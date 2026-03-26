@@ -16,8 +16,27 @@ const requestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // --- Debug: validate env var before hitting Stripe ---
+    const priceId = process.env.STRIPE_PRICE_ID_399
+    console.log('[checkout] STRIPE_PRICE_ID_399 exists:', !!priceId)
+    console.log('[checkout] STRIPE_PRICE_ID_399 prefix:', priceId ? priceId.slice(0, 7) : 'MISSING')
+
+    if (!priceId) {
+      console.error('[checkout] STRIPE_PRICE_ID_399 is not set')
+      return NextResponse.json({ error: 'Stripe price not configured' }, { status: 500 })
+    }
+    if (!priceId.startsWith('price_')) {
+      console.error('[checkout] STRIPE_PRICE_ID_399 does not start with price_ — got:', priceId.slice(0, 8))
+      return NextResponse.json(
+        { error: `Invalid Stripe price ID format. Expected price_... but got ${priceId.slice(0, 8)}...` },
+        { status: 500 }
+      )
+    }
+
     const body = await req.json()
     const input = requestSchema.parse(body)
+
+    console.log('[checkout] Creating Stripe session for:', input.email, input.url)
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -25,7 +44,7 @@ export async function POST(req: NextRequest) {
       customer_email: input.email,
       line_items: [
         {
-          price: process.env.STRIPE_PRICE_ID_399!,
+          price: priceId,
           quantity: 1,
         },
       ],

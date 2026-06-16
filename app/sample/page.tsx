@@ -1,41 +1,158 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  CheckCircle,
+  CircleAlert,
+  ExternalLink,
+  FileSearch,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  Target,
+  Zap,
+} from 'lucide-react'
 
-function SeverityBadge({ severity }: { severity: string }) {
-  const colors: Record<string, string> = {
-    critical: 'bg-red-100 text-red-800 border-red-200',
-    medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    low: 'bg-green-100 text-green-800 border-green-200',
-  }
-  return <Badge className={colors[severity] || ''}>{severity}</Badge>
+const scoreCards = [
+  { label: 'AI Visibility / 100', value: '31', tone: 'risk' },
+  { label: 'Mention rate', value: '22%', tone: 'warn' },
+  { label: 'Share of voice', value: '14%', tone: 'warn' },
+  { label: 'Engine results', value: '18', tone: 'default' },
+]
+
+const queryRows = [
+  {
+    question: 'best deployment platform for mid-market SaaS teams',
+    engine: 'ChatGPT',
+    named: ['Competitor A', 'Competitor B'],
+    cited: ['g2.com', 'competitor-a.com'],
+    status: 'Not named',
+    tone: 'risk',
+  },
+  {
+    question: 'how to ship product updates without downtime',
+    engine: 'Perplexity',
+    named: ['Competitor A', 'Example SaaS'],
+    cited: ['reddit.com', 'competitor-a.com'],
+    status: 'Mentioned',
+    tone: 'warn',
+  },
+  {
+    question: 'best alternatives to Competitor A for SaaS engineering teams',
+    engine: 'Claude',
+    named: ['Competitor A', 'Competitor C'],
+    cited: ['g2.com', 'capterra.com'],
+    status: 'Not named',
+    tone: 'risk',
+  },
+  {
+    question: 'AI-ready deployment tools for B2B SaaS',
+    engine: 'Google AI',
+    named: ['Example SaaS'],
+    cited: ['example-saas.com'],
+    status: 'Cited',
+    tone: 'ok',
+  },
+]
+
+const competitors = [
+  ['Competitor A', '67%'],
+  ['Competitor B', '54%'],
+  ['Competitor C', '38%'],
+]
+
+const citedDomains = [
+  ['g2.com', '5x'],
+  ['reddit.com', '4x'],
+  ['competitor-a.com', '3x'],
+  ['capterra.com', '2x'],
+]
+
+const citationGaps = [
+  'No comparison or alternatives pages for high-intent buyer questions',
+  'Weak third-party proof: no G2/Capterra profile and few review signals',
+  'Homepage does not answer category questions in citation-ready sections',
+  'No structured FAQ content for answer engines to quote cleanly',
+]
+
+const clarityScores = [
+  ['ICP clarity', 35, 'critical'],
+  ['Headline strength', 28, 'critical'],
+  ['CTA effectiveness', 45, 'medium'],
+  ['Trust & proof', 22, 'critical'],
+  ['AI-search readiness', 31, 'critical'],
+]
+
+const fixes = [
+  {
+    title: 'Publish a competitor alternatives page',
+    desc: 'Create a neutral “Competitor A alternatives” page answering use cases, tradeoffs, pricing signals, and who each tool is best for.',
+    impact: 'high',
+    effort: 'medium',
+    category: 'ai_search',
+  },
+  {
+    title: 'Rewrite the hero around outcome + ICP',
+    desc: 'Replace generic platform language with a concrete promise for mid-market SaaS product and engineering teams.',
+    impact: 'high',
+    effort: 'easy',
+    category: 'copy',
+  },
+  {
+    title: 'Add third-party proof above the fold',
+    desc: 'Add named logos, review badges, and one proof metric so answer engines can associate the brand with credible entities.',
+    impact: 'high',
+    effort: 'easy',
+    category: 'proof',
+  },
+  {
+    title: 'Create a citation-ready FAQ block',
+    desc: 'Answer the exact buyer questions tested in this audit with concise, quotable sections and FAQ schema.',
+    impact: 'medium',
+    effort: 'medium',
+    category: 'structure',
+  },
+  {
+    title: 'Replace vague CTA copy',
+    desc: 'Change “Get Started” to “Book a 15-min deployment demo” so the next step matches buyer intent.',
+    impact: 'medium',
+    effort: 'easy',
+    category: 'cta',
+  },
+]
+
+function statusClass(tone: string) {
+  if (tone === 'risk') return 'border-red-200 bg-red-50 text-red-700'
+  if (tone === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700'
+  if (tone === 'ok') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
-function ScoreBar({ score }: { score: number }) {
-  const pct = Math.min(100, score)
-  const color = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-500'
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-sm font-semibold w-8 text-right">{score}</span>
-    </div>
-  )
+function statusIcon(tone: string) {
+  if (tone === 'ok') return CheckCircle
+  if (tone === 'warn') return CircleAlert
+  return ShieldAlert
+}
+
+function impactClass(impact: string) {
+  if (impact === 'high') return 'bg-red-50 text-red-700 border-red-200'
+  return 'bg-amber-50 text-amber-700 border-amber-200'
 }
 
 export default function SampleReportPage() {
   return (
-    <div className="min-h-screen">
-      <nav className="border-b">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-white text-slate-950">
+      <nav className="border-b bg-white">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-muted-foreground hover:text-foreground">
+            <Link href="/" className="text-slate-500 hover:text-slate-950">
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <span className="text-xl font-bold tracking-tight">ClearSignal</span>
+            <Link href="/" className="text-xl font-bold tracking-tight">ClearSignal</Link>
           </div>
           <Link href="/score">
             <Button size="sm" className="gap-2">
@@ -45,291 +162,253 @@ export default function SampleReportPage() {
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-10">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8 text-center">
-          <p className="text-sm text-yellow-800 font-medium">
-            This is a sample report for demonstration purposes. Data shown is fictional.
+      <main className="max-w-6xl mx-auto px-6 py-10">
+        <div className="border border-amber-200 bg-amber-50 rounded-lg p-4 mb-8">
+          <p className="text-sm text-amber-800 font-medium">
+            Sample report for demo purposes. Data is fictional, but mirrors the structure of a paid ClearSignal audit.
           </p>
         </div>
 
-        <div className="mb-10">
-          <Badge variant="secondary" className="mb-3">automated audit</Badge>
-          <h1 className="text-3xl font-bold mb-2">ClearSignal Audit Report</h1>
-          <p className="text-muted-foreground">https://example-saas.com</p>
-          <p className="text-xs text-muted-foreground mt-1">Generated March 15, 2026 | ICP: Mid-market B2B SaaS product teams</p>
-        </div>
-
-        {/* AI Visibility (GEO/AEO) — the headline section */}
-        <h2 className="text-2xl font-bold mb-4">AI Visibility (GEO / AEO)</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          {[
-            { v: '31', l: 'AI Visibility / 100' },
-            { v: '22%', l: 'Mention rate' },
-            { v: '14%', l: 'Share of voice' },
-            { v: '6', l: 'Queries · 3 engines' },
-          ].map((s) => (
-            <Card key={s.l}>
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold">{s.v}</div>
-                <div className="text-xs text-muted-foreground mt-1">{s.l}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card className="mb-6 border-primary/20 bg-primary/5">
-          <CardContent className="p-5">
-            <p className="text-sm leading-relaxed">
-              Across the buying queries we tested on ChatGPT, Perplexity and Google AI, Example SaaS
-              was named in only 22% of answers and almost never cited as a source. Competitors with
-              comparison pages and third-party reviews dominate the recommendations.
+        <section className="grid lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
+          <div>
+            <Badge variant="secondary" className="mb-4">Automated AI Visibility Audit</Badge>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
+              Example SaaS is visible, but competitors own the recommendations.
+            </h1>
+            <p className="mt-4 text-slate-600">https://example-saas.com</p>
+            <p className="mt-4 text-lg text-slate-600 leading-relaxed">
+              Across 18 answer-engine results, Example SaaS appeared in only 22% of answers
+              and was cited once. Competitors with comparison pages, review profiles, and clearer
+              proof signals dominate the buyer discovery moment.
             </p>
-            <p className="text-xs text-muted-foreground mt-2">Engines tested: claude, perplexity, openai</p>
+          </div>
+
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-medium text-slate-600">AI Visibility Score</div>
+                  <div className="text-7xl font-bold tracking-tight text-red-600 mt-2">31</div>
+                  <div className="text-sm text-slate-600 mt-1">out of 100</div>
+                </div>
+                <Badge className="bg-white/70 text-slate-700 border-slate-200">ChatGPT, Claude, Perplexity</Badge>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 mt-6">
+                {scoreCards.map((card) => (
+                  <div key={card.label} className="border rounded-lg bg-white/80 p-3">
+                    <div className={card.tone === 'risk' ? 'text-2xl font-bold text-red-600' : card.tone === 'warn' ? 'text-2xl font-bold text-amber-600' : 'text-2xl font-bold'}>
+                      {card.value}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">{card.label}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <Card className="mt-8 border-slate-200 bg-slate-50">
+          <CardContent className="p-5">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Executive summary
+            </div>
+            <p className="leading-relaxed text-slate-700">
+              Example SaaS has a credible product, but its homepage and surrounding content do not
+              give answer engines enough specific, citable signals. The fastest path to better AI
+              visibility is to publish comparison content, add third-party proof, and rewrite the
+              hero around a concrete outcome for mid-market SaaS teams.
+            </p>
           </CardContent>
         </Card>
-        <div className="grid sm:grid-cols-2 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-5">
-              <h3 className="font-semibold mb-3">Who AI recommends instead</h3>
-              <div className="space-y-2 text-sm">
-                {[['Competitor A', '67%'], ['Competitor B', '54%'], ['Competitor C', '38%']].map(([n, p]) => (
-                  <div key={n} className="flex items-center justify-between">
-                    <span>{n}</span>
-                    <span className="font-mono text-muted-foreground">{p}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5">
-              <h3 className="font-semibold mb-3">Sources AI cites most</h3>
-              <div className="space-y-2 text-sm">
-                {[['g2.com', '5×'], ['reddit.com', '4×'], ['competitor-a.com', '3×']].map(([d, c]) => (
-                  <div key={d} className="flex items-center justify-between">
-                    <span>{d}</span>
-                    <span className="font-mono text-muted-foreground">{c}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <Card className="mb-10 border-red-200 bg-red-50/50">
-          <CardContent className="p-5">
-            <h3 className="font-semibold text-red-800 mb-2">Why AI skips you — citation gaps</h3>
-            <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-              <li>No G2 / Capterra presence — AI leans on review sites it can cite</li>
-              <li>No &ldquo;vs competitor&rdquo; or alternatives comparison pages</li>
-              <li>No FAQ / structured data answering buyer questions directly</li>
-              <li>Thin third-party coverage (no Reddit threads, listicles, or case studies)</li>
+
+        <section className="mt-8">
+          <div className="flex items-end justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-2xl font-bold">Answer-engine evidence</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                The paid report shows the actual buyer questions tested and who appeared in the answers.
+              </p>
+            </div>
+            <Badge variant="outline">18 engine results</Badge>
+          </div>
+
+          <div className="border rounded-lg overflow-hidden">
+            <div className="hidden md:grid grid-cols-[1fr_8rem_1fr_9rem] gap-4 bg-slate-50 border-b px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <div>Buyer question</div>
+              <div>Engine</div>
+              <div>Who AI named / cited</div>
+              <div className="text-right">Your status</div>
+            </div>
+            <div className="divide-y">
+              {queryRows.map((row) => (
+                <QueryRow key={`${row.engine}-${row.question}`} row={row} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 grid lg:grid-cols-3 gap-4">
+          <InsightCard icon={BarChart3} title="Competitors AI recommends">
+            {competitors.map(([name, rate]) => (
+              <MetricLine key={name} label={name} value={rate} />
+            ))}
+          </InsightCard>
+          <InsightCard icon={ExternalLink} title="Sources AI cites most">
+            {citedDomains.map(([domain, count]) => (
+              <MetricLine key={domain} label={domain} value={count} />
+            ))}
+          </InsightCard>
+          <InsightCard icon={CircleAlert} title="Citation gaps" tone="risk">
+            <ul className="space-y-2 text-sm text-slate-700">
+              {citationGaps.map((gap) => (
+                <li key={gap}>{gap}</li>
+              ))}
             </ul>
-          </CardContent>
-        </Card>
+          </InsightCard>
+        </section>
 
-        {/* Executive Summary */}
-        <Card className="mb-8 border-primary/20 bg-primary/5">
-          <CardHeader><CardTitle className="text-lg">Executive Summary</CardTitle></CardHeader>
-          <CardContent>
-            <p className="leading-relaxed">
-              Example SaaS has strong product capabilities but the homepage fails to communicate them to the right buyer.
-              The headline is generic, trust proof is thin, and the CTA language doesn&apos;t match buyer intent. Competitors
-              are outmessaging you on specificity and social proof. Fixing the headline and adding 2-3 proof points could
-              lift demo requests by 15-25% based on comparable audits.
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Clarity Block */}
-        <h2 className="text-2xl font-bold mb-4">Messaging Clarity</h2>
-        <div className="mb-4">
-          <div className="text-sm text-muted-foreground mb-1">Overall Clarity Score</div>
-          <ScoreBar score={42} />
-        </div>
-
-        <div className="grid gap-4 mb-8">
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">ICP Visibility</h3>
-                <div className="flex items-center gap-2">
-                  <SeverityBadge severity="critical" />
-                  <span className="text-sm font-mono">35/100</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                The homepage never explicitly names the target buyer. &ldquo;Teams of all sizes&rdquo; appears twice
-                but says nothing about who benefits most. A Series B product team and a solo founder would read
-                this identically — which means neither feels it&apos;s for them.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">Headline</h3>
-                <div className="flex items-center gap-2">
-                  <SeverityBadge severity="critical" />
-                  <span className="text-sm font-mono">28/100</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                &ldquo;The All-in-One Platform for Your Business&rdquo; could describe any SaaS product. Zero specificity
-                about what the product does or what pain it solves.
-              </p>
-              <div className="bg-muted rounded p-3 space-y-2 text-sm">
-                <div><span className="font-medium">Current:</span> The All-in-One Platform for Your Business</div>
-                <div><span className="font-medium text-green-700">Suggested:</span> Ship product updates 3x faster — the deployment platform built for mid-market SaaS teams</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">CTA</h3>
-                <div className="flex items-center gap-2">
-                  <SeverityBadge severity="medium" />
-                  <span className="text-sm font-mono">45/100</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                &ldquo;Get Started&rdquo; is low-commitment but also low-information. Buyer doesn&apos;t know what happens next.
-              </p>
-              <div className="bg-muted rounded p-3 text-sm">
-                <span className="font-medium text-green-700">Suggested:</span> See it in action — book a 15-min demo
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">Trust & Proof</h3>
-                <div className="flex items-center gap-2">
-                  <SeverityBadge severity="critical" />
-                  <span className="text-sm font-mono">22/100</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                No customer logos, no testimonials, no case studies. The only proof is a &ldquo;1000+ users&rdquo; badge
-                which feels generic and unverifiable.
-              </p>
-              <div className="text-sm">
-                <span className="font-medium">Missing:</span>
-                <ul className="list-disc list-inside mt-1 text-muted-foreground">
-                  <li>Named customer logos</li>
-                  <li>Specific outcome metrics</li>
-                  <li>Testimonial with name + title</li>
-                  <li>Case study link</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Gap Block */}
-        <h2 className="text-2xl font-bold mb-4 mt-10">Competitive Gap Analysis</h2>
-
-        <Card className="mb-4">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm">https://competitor-a.com</h3>
-              <span className="text-sm font-mono">72/100</span>
-            </div>
-            <p className="text-sm text-muted-foreground mb-3 italic">
-              &ldquo;Deploy 10x faster with zero downtime — trusted by 200+ engineering teams&rdquo;
-            </p>
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-green-700">Strengths</span>
-                <ul className="list-disc list-inside mt-1 text-muted-foreground">
-                  <li>Specific metric in headline (10x)</li>
-                  <li>Named customer count (200+)</li>
-                  <li>Clear ICP (engineering teams)</li>
-                </ul>
-              </div>
-              <div>
-                <span className="font-medium text-red-700">Weaknesses</span>
-                <ul className="list-disc list-inside mt-1 text-muted-foreground">
-                  <li>No named logos visible</li>
-                  <li>CTA is still generic &ldquo;Try Free&rdquo;</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid sm:grid-cols-2 gap-4 mb-6">
-          <Card className="border-red-200 bg-red-50/50">
-            <CardContent className="p-5">
-              <h3 className="font-semibold text-red-800 mb-2">Where you lose</h3>
-              <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-                <li>Competitor headlines are 3x more specific</li>
-                <li>Competitors show named logos and metrics</li>
-                <li>Competitors name their ICP in the first fold</li>
-              </ul>
-            </CardContent>
-          </Card>
-          <Card className="border-green-200 bg-green-50/50">
-            <CardContent className="p-5">
-              <h3 className="font-semibold text-green-800 mb-2">Where you win</h3>
-              <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-                <li>Broader feature set</li>
-                <li>Cleaner visual design</li>
-                <li>More transparent pricing page</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Action Plan */}
-        <h2 className="text-2xl font-bold mb-4 mt-10">Action Plan</h2>
-
-        <div className="space-y-3 mb-8">
-          {[
-            { id: 1, title: 'Rewrite headline with specific outcome + ICP', impact: 'high', effort: 'easy', category: 'copy' },
-            { id: 2, title: 'Add 3 named customer logos above the fold', impact: 'high', effort: 'easy', category: 'proof' },
-            { id: 3, title: 'Replace "Get Started" with outcome-oriented CTA', impact: 'high', effort: 'easy', category: 'cta' },
-            { id: 4, title: 'Add one testimonial with name, title, and metric', impact: 'high', effort: 'medium', category: 'proof' },
-            { id: 5, title: 'Add structured data for AI search citation', impact: 'medium', effort: 'medium', category: 'ai_search' },
-          ].map((fix) => (
-            <Card key={fix.id}>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono text-muted-foreground w-6">#{fix.id}</span>
-                    <h3 className="font-semibold">{fix.title}</h3>
+        <section className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Search className="h-5 w-5" />
+            <h2 className="text-xl font-bold">Messaging clarity</h2>
+          </div>
+          <div className="grid md:grid-cols-5 gap-3">
+            {clarityScores.map(([label, score, severity]) => (
+              <Card key={label} className={severity === 'critical' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}>
+                <CardContent className="p-4">
+                  <div className="text-sm font-medium">{label}</div>
+                  <div className={severity === 'critical' ? 'text-3xl font-bold mt-3 text-red-600' : 'text-3xl font-bold mt-3 text-amber-600'}>
+                    {score}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge className={fix.impact === 'high' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}>
-                      {fix.impact} impact
-                    </Badge>
-                    <Badge className={fix.effort === 'easy' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                      {fix.effort}
-                    </Badge>
-                    <Badge variant="outline">{fix.category}</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          <p className="text-sm text-muted-foreground text-center">... and 5 more fixes in the full report</p>
-        </div>
+                  <div className="text-xs text-slate-500 mt-1">out of 100</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
 
-        {/* CTA */}
-        <div className="text-center py-10 border-t">
-          <h2 className="text-2xl font-bold mb-3">Get your own ClearSignal audit</h2>
-          <p className="text-muted-foreground mb-6">
-            Start with a free score, then get the full analysis for €399.
-          </p>
+        <section className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="h-5 w-5" />
+            <h2 className="text-xl font-bold">Prioritized action plan</h2>
+          </div>
+          <div className="space-y-3">
+            {fixes.map((fix, index) => (
+              <Card key={fix.title}>
+                <CardContent className="p-5">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-500 mb-2">Fix #{index + 1}</div>
+                      <h3 className="font-semibold">{fix.title}</h3>
+                      <p className="text-sm text-slate-600 mt-2 leading-relaxed">{fix.desc}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Badge className={impactClass(fix.impact)}>{fix.impact} impact</Badge>
+                      <Badge variant="outline">{fix.effort}</Badge>
+                      <Badge variant="outline">{fix.category}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10 border rounded-lg bg-slate-950 text-white p-6 grid lg:grid-cols-[1fr_auto] gap-6 items-center">
+          <div>
+            <Badge className="bg-white/10 text-white border-white/20 mb-4">ClearSignal audit</Badge>
+            <h2 className="text-2xl font-bold">Get this report for your own homepage.</h2>
+            <p className="text-slate-300 mt-3 max-w-2xl">
+              Start with a free AI visibility score, then unlock the full audit with competitor
+              share-of-voice, cited-domain analysis, messaging gaps, and 10 prioritized fixes.
+            </p>
+          </div>
           <Link href="/score">
-            <Button size="lg" className="gap-2">
-              Get your free score <ArrowRight className="h-4 w-4" />
+            <Button size="lg" variant="secondary" className="gap-2 w-full lg:w-auto">
+              Start with a free score <Sparkles className="h-4 w-4" />
             </Button>
           </Link>
+        </section>
+      </main>
+    </div>
+  )
+}
+
+function QueryRow({
+  row,
+}: {
+  row: {
+    question: string
+    engine: string
+    named: string[]
+    cited: string[]
+    status: string
+    tone: string
+  }
+}) {
+  const StatusIcon = statusIcon(row.tone)
+  const named = [...new Set([...row.named, ...row.cited])]
+
+  return (
+    <div className="grid md:grid-cols-[1fr_8rem_1fr_9rem] gap-3 md:gap-4 px-5 py-4 text-sm">
+      <div>
+        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Buyer question</div>
+        <div className="font-medium leading-relaxed">{row.question}</div>
+      </div>
+      <div>
+        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Engine</div>
+        <Badge variant="outline">{row.engine}</Badge>
+      </div>
+      <div>
+        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Who AI named / cited</div>
+        <div className="flex flex-wrap gap-2">
+          {named.map((item) => (
+            <span key={item} className="border rounded-full px-2 py-1 text-xs bg-slate-50 text-slate-600">
+              {item}
+            </span>
+          ))}
         </div>
       </div>
+      <div className="md:text-right">
+        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Your status</div>
+        <span className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-medium ${statusClass(row.tone)}`}>
+          <StatusIcon className="h-3 w-3" />
+          {row.status}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function InsightCard({
+  icon: Icon,
+  title,
+  children,
+  tone = 'default',
+}: {
+  icon: typeof BarChart3
+  title: string
+  children: React.ReactNode
+  tone?: 'default' | 'risk'
+}) {
+  return (
+    <Card className={tone === 'risk' ? 'border-amber-200 bg-amber-50/50' : ''}>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Icon className="h-5 w-5" />
+          <h3 className="font-semibold">{title}</h3>
+        </div>
+        {children}
+      </CardContent>
+    </Card>
+  )
+}
+
+function MetricLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-slate-700">{label}</span>
+      <span className="font-mono text-slate-500">{value}</span>
     </div>
   )
 }

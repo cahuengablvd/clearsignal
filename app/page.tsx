@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { ArrowRight, Zap, BarChart3, Target, Search, CheckCircle } from 'lucide-react'
 
 export default function LandingPage() {
@@ -10,25 +11,27 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <span className="text-xl font-bold tracking-tight">ClearSignal</span>
           <Link href="/score">
-            <Button variant="outline" size="sm">Get free score</Button>
+            <Button variant="outline" size="sm">Free AI visibility check</Button>
           </Link>
         </div>
       </nav>
 
       {/* Hero */}
       <section className="max-w-3xl mx-auto px-6 pt-20 pb-16 text-center">
+        <Badge variant="secondary" className="mb-5">GEO / Answer Engine Optimization</Badge>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
-          Your site is getting traffic.<br />
-          It&apos;s not getting enough conversions.
+          Does ChatGPT recommend you —<br />
+          or your competitor?
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          ClearSignal audits your B2B SaaS homepage — messaging, competitive gaps, and AI-search
-          visibility — and tells you exactly what to fix first. In 48 hours.
+          Buyers now ask ChatGPT, Perplexity and Google&apos;s AI which tool to use. ClearSignal
+          measures whether AI assistants actually recommend your B2B SaaS — then tells you exactly
+          what to fix to get cited.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/score">
             <Button size="lg" className="gap-2">
-              Get your free ClearSignal score <ArrowRight className="h-4 w-4" />
+              Get your free AI Visibility Score <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
           <Link href="/sample">
@@ -37,6 +40,9 @@ export default function LandingPage() {
             </Button>
           </Link>
         </div>
+        <p className="mt-4 text-xs text-muted-foreground">
+          We ask real AI engines the questions your buyers ask — and show you who they name.
+        </p>
       </section>
 
       {/* How it works */}
@@ -47,17 +53,17 @@ export default function LandingPage() {
             <div className="text-center">
               <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-4 text-lg font-bold">1</div>
               <h3 className="font-semibold mb-2">Get your free score</h3>
-              <p className="text-sm text-muted-foreground">Enter your URL and get a 5-dimension clarity score in seconds.</p>
+              <p className="text-sm text-muted-foreground">Enter your URL. We ask real AI engines what your buyers ask and measure if you&apos;re named.</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-4 text-lg font-bold">2</div>
               <h3 className="font-semibold mb-2">Order your audit</h3>
-              <p className="text-sm text-muted-foreground">Pay once. We analyze your homepage, competitors, and AI-search readiness.</p>
+              <p className="text-sm text-muted-foreground">Pay once. We probe ChatGPT, Perplexity &amp; Google AI across your buying queries and competitors.</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-4 text-lg font-bold">3</div>
               <h3 className="font-semibold mb-2">Get your action plan</h3>
-              <p className="text-sm text-muted-foreground">Receive a prioritized fix list, competitor intel, and rewritten outreach messages.</p>
+              <p className="text-sm text-muted-foreground">Receive the exact content gaps costing you citations, plus a prioritized fix list.</p>
             </div>
           </div>
         </div>
@@ -69,10 +75,10 @@ export default function LandingPage() {
           <h2 className="text-2xl font-bold text-center mb-12">What&apos;s in the audit</h2>
           <div className="grid sm:grid-cols-2 gap-6">
             {[
-              { icon: Target, title: 'Messaging clarity analysis', desc: 'ICP visibility, headline strength, CTA effectiveness, and trust proof quality — scored and explained.' },
-              { icon: BarChart3, title: 'Competitive gap analysis', desc: 'Side-by-side comparison of your homepage against up to 3 competitors. Where you win, where you lose.' },
-              { icon: Search, title: 'AI-search visibility', desc: 'Heuristic assessment of how likely AI search tools are to cite your content.' },
-              { icon: Zap, title: 'Prioritized action plan', desc: '10 specific fixes ranked by impact and effort. Plus 3 rewritten outreach messages.' },
+              { icon: Search, title: 'AI Visibility measurement', desc: 'We query ChatGPT, Perplexity & Google AI with your buyers’ questions and measure how often — and where — you get named and cited.' },
+              { icon: BarChart3, title: 'Share-of-voice vs competitors', desc: 'See exactly who AI recommends instead of you, and your share of voice across buying queries.' },
+              { icon: Target, title: 'Citation gap analysis', desc: 'The specific content, entity and structure signals the cited sources have and you don’t — the reasons AI skips you.' },
+              { icon: Zap, title: 'Prioritized action plan', desc: '10 specific fixes to get cited more, ranked by impact and effort. Plus messaging-clarity scoring.' },
             ].map((item) => (
               <div key={item.title} className="flex gap-4 p-4">
                 <item.icon className="h-6 w-6 mt-0.5 shrink-0 text-primary" />
@@ -99,11 +105,11 @@ export default function LandingPage() {
             <div className="text-4xl font-bold mb-4">€399</div>
             <ul className="text-sm text-left space-y-2 mb-6">
               {[
+                'AI visibility across ChatGPT, Perplexity & Google',
+                'Share-of-voice vs up to 3 competitors',
+                'Citation gap analysis — why AI skips you',
                 'Full messaging clarity analysis',
-                'Competitor gap analysis (up to 3)',
-                'AI-search visibility assessment',
-                '10 prioritized fixes',
-                '3 rewritten outreach messages',
+                '10 prioritized fixes to get cited',
                 'PDF report + web dashboard',
               ].map((item) => (
                 <li key={item} className="flex gap-2">

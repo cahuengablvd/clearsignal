@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
+import { verifyToken } from '@/lib/tokens'
+import { isAdminAuthenticated } from '@/lib/auth'
 import type { ClearSignalReport } from '@/lib/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -52,8 +54,16 @@ export default async function AuditPage({
   searchParams,
 }: {
   params: { id: string }
-  searchParams: { pdf?: string }
+  searchParams: { pdf?: string; token?: string }
 }) {
+  // Access control: the paid report is gated behind a signed token (in the
+  // emailed link, and used by the PDF renderer) or an admin session.
+  const hasAccess =
+    verifyToken('audit', params.id, searchParams.token) || isAdminAuthenticated()
+  if (!hasAccess) {
+    notFound()
+  }
+
   const { data: audit, error } = await supabaseAdmin
     .from('audits')
     .select('*')
@@ -78,7 +88,9 @@ export default async function AuditPage({
               </Link>
               <span className="text-xl font-bold tracking-tight">ClearSignal</span>
             </div>
-            <a href={`/api/audit/${params.id}/pdf`}>
+            <a
+              href={`/api/audit/${params.id}/pdf${searchParams.token ? `?token=${searchParams.token}` : ''}`}
+            >
               <Button variant="outline" size="sm" className="gap-2">
                 <Download className="h-4 w-4" /> Download PDF
               </Button>
@@ -108,6 +120,116 @@ export default async function AuditPage({
             <p className="leading-relaxed">{report.action.executive_summary}</p>
           </CardContent>
         </Card>
+
+        {/* ========== GEO / AI VISIBILITY BLOCK ========== */}
+        {report.geo && (
+          <>
+            <h2 className="text-2xl font-bold mb-4 mt-10">AI Visibility (GEO / AEO)</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl font-bold">{report.geo.ai_visibility_score}</div>
+                  <div className="text-xs text-muted-foreground mt-1">AI Visibility / 100</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl font-bold">{Math.round(report.geo.mention_rate)}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">Mention rate</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl font-bold">{Math.round(report.geo.share_of_voice)}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">Share of voice</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl font-bold">{report.geo.queries_tested}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Queries · {report.geo.engines_tested.length} engine
+                    {report.geo.engines_tested.length === 1 ? '' : 's'}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="mb-6 border-primary/20 bg-primary/5">
+              <CardContent className="p-5">
+                <p className="text-sm leading-relaxed">{report.geo.summary}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Engines tested: {report.geo.engines_tested.join(', ')}
+                </p>
+              </CardContent>
+            </Card>
+
+            <div className="grid sm:grid-cols-2 gap-4 mb-6">
+              {report.geo.competitor_visibility.length > 0 && (
+                <Card>
+                  <CardContent className="p-5">
+                    <h3 className="font-semibold mb-3">Who AI recommends instead</h3>
+                    <div className="space-y-2">
+                      {report.geo.competitor_visibility.slice(0, 6).map((c, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span>{c.name}</span>
+                          <span className="font-mono text-muted-foreground">
+                            {Math.round(c.mention_rate)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {report.geo.cited_domains_ranked.length > 0 && (
+                <Card>
+                  <CardContent className="p-5">
+                    <h3 className="font-semibold mb-3">Sources AI cites most</h3>
+                    <div className="space-y-2">
+                      {report.geo.cited_domains_ranked.slice(0, 6).map((d, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="truncate max-w-[14rem]">{d.domain}</span>
+                          <span className="font-mono text-muted-foreground">{d.count}×</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {report.geo.missing_signals.length > 0 && (
+              <Card className="mb-6 border-red-200 bg-red-50/50">
+                <CardContent className="p-5">
+                  <h3 className="font-semibold text-red-800 mb-2">
+                    Why AI skips you — citation gaps
+                  </h3>
+                  <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
+                    {report.geo.missing_signals.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {report.geo.recommendations.length > 0 && (
+              <Card className="mb-8 border-green-200 bg-green-50/50">
+                <CardContent className="p-5">
+                  <h3 className="font-semibold text-green-800 mb-2">
+                    How to get cited more
+                  </h3>
+                  <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
+                    {report.geo.recommendations.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
 
         {/* ========== CLARITY BLOCK ========== */}
         <h2 className="text-2xl font-bold mb-4 mt-10">Messaging Clarity</h2>

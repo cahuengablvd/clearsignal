@@ -13,6 +13,49 @@ export const ClearSignalScoreSchema = z.object({
 
 export type ClearSignalScore = z.infer<typeof ClearSignalScoreSchema>
 
+// --- GEO / AEO (Answer Engine Optimization) ---
+
+/** One engine's answer to one buyer-intent query, analyzed for brand presence. */
+export const GeoQueryResultSchema = z.object({
+  engine: z.string(),
+  query: z.string(),
+  brand_mentioned: z.boolean(),
+  // Rank of the brand within the engine's answer (1 = first recommended).
+  // null when the brand is not mentioned at all.
+  brand_position: z.number().nullable(),
+  brand_cited: z.boolean(), // brand's own domain appears in the engine's sources
+  competitors_mentioned: z.array(z.string()),
+  cited_domains: z.array(z.string()),
+})
+
+export type GeoQueryResult = z.infer<typeof GeoQueryResultSchema>
+
+/** The analysis Claude produces from the raw engine responses. */
+export const GeoAnalysisSchema = z.object({
+  ai_visibility_score: z.number().min(0).max(100),
+  mention_rate: z.number().min(0).max(100), // % of (query, engine) pairs that mention the brand
+  share_of_voice: z.number().min(0).max(100), // brand mentions / (brand + competitor mentions)
+  per_query: z.array(GeoQueryResultSchema),
+  competitor_visibility: z.array(
+    z.object({ name: z.string(), mention_rate: z.number().min(0).max(100) })
+  ),
+  cited_domains_ranked: z.array(z.object({ domain: z.string(), count: z.number() })),
+  missing_signals: z.array(z.string()),
+  recommendations: z.array(z.string()),
+  summary: z.string(),
+})
+
+export type GeoAnalysis = z.infer<typeof GeoAnalysisSchema>
+
+/** Full GEO result persisted with a score/audit. */
+export const GeoResultSchema = GeoAnalysisSchema.extend({
+  brand: z.string(),
+  queries_tested: z.number(),
+  engines_tested: z.array(z.string()),
+})
+
+export type GeoResult = z.infer<typeof GeoResultSchema>
+
 // --- Severity & Impact Enums ---
 
 const severitySchema = z.enum(['critical', 'medium', 'low'])
@@ -110,6 +153,9 @@ export const ClearSignalReportSchema = z.object({
   clarity: claritySchema,
   gap: gapSchema,
   action: actionSchema,
+  // Live multi-engine AI-visibility measurement. Optional so older reports
+  // (and runs where every engine was unreachable) still validate.
+  geo: GeoResultSchema.optional().nullable(),
 })
 
 export type ClearSignalReport = z.infer<typeof ClearSignalReportSchema>

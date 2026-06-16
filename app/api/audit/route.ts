@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { runFullAudit } from '@/lib/audit-runner'
+import { enqueueAudit } from '@/lib/audit-queue'
+import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
+  // Admin-only: this re-runs a paid audit and spends API credits.
+  if (!isValidAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { audit_id } = await req.json()
 
@@ -25,8 +31,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Audit is already processing' }, { status: 409 })
     }
 
-    // Run or re-run the audit
-    await runFullAudit(audit_id)
+    // Enqueue (Trigger.dev when configured, else in-process for dev).
+    await enqueueAudit(audit_id)
 
     return NextResponse.json({ success: true, audit_id })
   } catch (err) {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { stripe } from '@/lib/stripe'
+import { enforceRateLimits, clientIp, emailDomain } from '@/lib/rate-limit'
+import { verifyToken } from '@/lib/tokens'
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
@@ -12,6 +14,7 @@ const requestSchema = z.object({
   competitor_3: z.string().optional().default(''),
   icp_description: z.string().optional().default(''),
   score_id: z.string().optional().default(''),
+  score_token: z.string().optional().default(''),
 })
 
 export async function POST(req: NextRequest) {
@@ -35,6 +38,24 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const input = requestSchema.parse(body)
+
+    if (input.score_id && !verifyToken('score', input.score_id, input.score_token)) {
+      return NextResponse.json({ error: 'Invalid score access token' }, { status: 403 })
+    }
+
+    // Rate limit checkout-session creation by email + IP to deter abuse/spam.
+    const hour = 60 * 60 * 1000
+    const rl = await enforceRateLimits([
+      { key: `checkout:email:${input.email.toLowerCase()}`, limit: 5, windowMs: hour },
+      { key: `checkout:domain:${emailDomain(input.email)}`, limit: 15, windowMs: hour },
+      { key: `checkout:ip:${clientIp(req)}`, limit: 15, windowMs: hour },
+    ])
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many checkout attempts. Please try again later.' },
+        { status: 429 }
+      )
+    }
 
     console.log('[checkout] Creating Stripe session for:', input.email, input.url)
 

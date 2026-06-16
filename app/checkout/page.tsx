@@ -20,6 +20,7 @@ export default function CheckoutPage() {
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const scoreId = searchParams.get('score_id') || ''
+  const scoreToken = searchParams.get('token') || ''
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [prefilled, setPrefilled] = useState({
@@ -32,7 +33,10 @@ function CheckoutContent() {
   // Pre-fill from score if available
   useEffect(() => {
     if (scoreId) {
-      fetch(`/api/score/${scoreId}`)
+      // Token authorizes returning the lead's email for pre-fill; without it
+      // the API returns only non-sensitive fields.
+      const qs = scoreToken ? `?token=${encodeURIComponent(scoreToken)}` : ''
+      fetch(`/api/score/${scoreId}${qs}`)
         .then((res) => res.ok ? res.json() : null)
         .then((data) => {
           if (data) {
@@ -46,7 +50,7 @@ function CheckoutContent() {
         })
         .catch(() => {})
     }
-  }, [scoreId])
+  }, [scoreId, scoreToken])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -67,6 +71,7 @@ function CheckoutContent() {
           competitor_3: form.get('competitor_3'),
           icp_description: form.get('icp_description'),
           score_id: scoreId,
+          score_token: scoreToken,
         }),
       })
 

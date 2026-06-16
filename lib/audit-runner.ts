@@ -21,6 +21,18 @@ import {
   actionUserPrompt,
 } from './prompts'
 import { sendReportEmail } from './resend'
+import { runGeoScan } from './geo'
+import type { GeoResult } from './schemas'
+
+function brandFromUrl(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '')
+    const name = host.split('.')[0]
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  } catch {
+    return url
+  }
+}
 
 export async function runFullAudit(auditId: string): Promise<void> {
   // 1. Fetch audit record
@@ -61,6 +73,21 @@ export async function runFullAudit(auditId: string): Promise<void> {
     }
 
     const icp = audit.icp_description || ''
+    const brand = brandFromUrl(audit.url)
+
+    // 3b. Live AI-visibility (GEO/AEO) scan — full breadth across every
+    // configured engine. Runs alongside the messaging analysis below.
+    const geoPromise: Promise<GeoResult | null> = runGeoScan({
+      brand,
+      url: audit.url,
+      category: targetMarkdown.slice(0, 600),
+      icp,
+      competitors: competitorUrls,
+      queryCount: 6,
+    }).catch((err) => {
+      console.error(`GEO scan failed for ${auditId} (continuing without it):`, err)
+      return null
+    })
 
     // 4. Step 2: Clarity block
     const clarity = await callClaudeJSON<ClarityBlock>({
@@ -89,6 +116,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
       maxTokens: 4096,
     })
 
+    const geo = await geoPromise
+
     // 7. Assemble report
     const report: ClearSignalReport = {
       meta: {
@@ -101,6 +130,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       clarity,
       gap,
       action,
+      geo,
     }
 
     // 8. Save report to audit
@@ -119,7 +149,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
       headline_score: clarity.headline.score,
       cta_score: clarity.cta.score,
       trust_score: clarity.trust_proof.score,
-      ai_search_score: gap.ai_search.score,
+      // Prefer the live AI-visibility measurement; fall back to the heuristic.
+      ai_search_score: geo?.ai_visibility_score ?? gap.ai_search.score,
       top_issues: action.top_fixes.slice(0, 3).map((f) => f.title),
       competitor_patterns: gap.where_you_lose.slice(0, 5),
     })

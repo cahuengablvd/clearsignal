@@ -59,6 +59,73 @@ export default function SampleReportPage() {
           <p className="text-xs text-muted-foreground mt-1">Generated March 15, 2026 | ICP: Mid-market B2B SaaS product teams</p>
         </div>
 
+        {/* AI Visibility (GEO/AEO) — the headline section */}
+        <h2 className="text-2xl font-bold mb-4">AI Visibility (GEO / AEO)</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {[
+            { v: '31', l: 'AI Visibility / 100' },
+            { v: '22%', l: 'Mention rate' },
+            { v: '14%', l: 'Share of voice' },
+            { v: '6', l: 'Queries · 3 engines' },
+          ].map((s) => (
+            <Card key={s.l}>
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold">{s.v}</div>
+                <div className="text-xs text-muted-foreground mt-1">{s.l}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="p-5">
+            <p className="text-sm leading-relaxed">
+              Across the buying queries we tested on ChatGPT, Perplexity and Google AI, Example SaaS
+              was named in only 22% of answers and almost never cited as a source. Competitors with
+              comparison pages and third-party reviews dominate the recommendations.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">Engines tested: claude, perplexity, openai</p>
+          </CardContent>
+        </Card>
+        <div className="grid sm:grid-cols-2 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-5">
+              <h3 className="font-semibold mb-3">Who AI recommends instead</h3>
+              <div className="space-y-2 text-sm">
+                {[['Competitor A', '67%'], ['Competitor B', '54%'], ['Competitor C', '38%']].map(([n, p]) => (
+                  <div key={n} className="flex items-center justify-between">
+                    <span>{n}</span>
+                    <span className="font-mono text-muted-foreground">{p}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5">
+              <h3 className="font-semibold mb-3">Sources AI cites most</h3>
+              <div className="space-y-2 text-sm">
+                {[['g2.com', '5×'], ['reddit.com', '4×'], ['competitor-a.com', '3×']].map(([d, c]) => (
+                  <div key={d} className="flex items-center justify-between">
+                    <span>{d}</span>
+                    <span className="font-mono text-muted-foreground">{c}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <Card className="mb-10 border-red-200 bg-red-50/50">
+          <CardContent className="p-5">
+            <h3 className="font-semibold text-red-800 mb-2">Why AI skips you — citation gaps</h3>
+            <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
+              <li>No G2 / Capterra presence — AI leans on review sites it can cite</li>
+              <li>No &ldquo;vs competitor&rdquo; or alternatives comparison pages</li>
+              <li>No FAQ / structured data answering buyer questions directly</li>
+              <li>Thin third-party coverage (no Reddit threads, listicles, or case studies)</li>
+            </ul>
+          </CardContent>
+        </Card>
+
         {/* Executive Summary */}
         <Card className="mb-8 border-primary/20 bg-primary/5">
           <CardHeader><CardTitle className="text-lg">Executive Summary</CardTitle></CardHeader>

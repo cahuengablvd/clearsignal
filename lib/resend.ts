@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { signToken } from './tokens'
 
 let _resend: Resend | null = null
 
@@ -11,8 +12,10 @@ function getResend() {
 
 export async function sendReportEmail(email: string, auditId: string, url: string) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-  const reportLink = `${baseUrl}/audit/${auditId}`
-  const pdfLink = `${baseUrl}/api/audit/${auditId}/pdf`
+  // Signed access token gates the report + PDF to whoever has the email link.
+  const token = signToken('audit', auditId)
+  const reportLink = `${baseUrl}/audit/${auditId}?token=${token}`
+  const pdfLink = `${baseUrl}/api/audit/${auditId}/pdf?token=${token}`
 
   await getResend().emails.send({
     from: 'ClearSignal <reports@clearsignal.dev>',

@@ -1,6 +1,6 @@
 // --- Model IDs ---
 export const MODEL_SCORE = 'claude-haiku-4-5-20251001'
-export const MODEL_AUDIT = 'claude-sonnet-4-5-20250514'
+export const MODEL_AUDIT = 'claude-sonnet-4-6'
 
 // --- Free Score ---
 export const SCORE_SYSTEM = `You are a B2B SaaS conversion expert.
@@ -25,6 +25,80 @@ Score these dimensions and return JSON with these exact keys:
 Also return "top_insight": one sentence, the single most important issue.
 
 Return ONLY a JSON object with keys: icp, headline, cta, trust, ai_search, top_insight`
+}
+
+// --- GEO / AEO ---
+export const MODEL_GEO_QUERIES = 'claude-haiku-4-5-20251001'
+export const MODEL_GEO_ANALYSIS = 'claude-sonnet-4-6'
+
+export const GEO_QUERIES_SYSTEM = `You generate the buyer-intent search queries a real prospect would type into an AI assistant (ChatGPT, Perplexity, Claude) when looking for a product like this one.
+These are the questions where the brand WANTS to be recommended.
+Return ONLY valid JSON, no commentary.`
+
+export function geoQueriesUserPrompt(
+  brand: string,
+  category: string,
+  icp: string,
+  count: number
+): string {
+  return `Brand: ${brand}
+Product category / what it does: ${category || 'Unknown — infer from the brand'}
+Ideal customer: ${icp || 'Not provided'}
+
+Generate exactly ${count} natural-language queries a buyer would ask an AI assistant when researching this category. Mix:
+- "best X for Y" comparison queries
+- problem-first queries ("how do I ...")
+- alternatives / vs queries
+
+Do NOT mention the brand name in the queries — we want to see if the brand surfaces on its own.
+
+Return ONLY a JSON object: { "queries": ["<query>", ...] }`
+}
+
+export const GEO_ANALYSIS_SYSTEM = `You are an AEO (Answer Engine Optimization) analyst.
+You are given a brand, its competitors, and the raw answers several AI answer engines gave to buyer-intent queries — with the sources each engine cited.
+Determine how visible the brand is in AI-generated answers versus its competitors, and what is missing for it to get cited more.
+Be precise and quantitative. Base every judgement only on the provided answers and citations — do not invent mentions.
+Return ONLY valid JSON matching the schema.`
+
+export function geoAnalysisUserPrompt(
+  brand: string,
+  brandDomain: string,
+  competitors: string[],
+  rawResults: { engine: string; query: string; answer: string; citations: string[] }[]
+): string {
+  const blocks = rawResults
+    .map(
+      (r, i) =>
+        `### Result ${i + 1} — engine: ${r.engine}\nQuery: ${r.query}\nAnswer:\n${r.answer || '(no answer)'}\nCited sources: ${r.citations.length ? r.citations.join(', ') : '(none)'}`
+    )
+    .join('\n\n')
+
+  return `Brand: ${brand}
+Brand domain: ${brandDomain}
+Known competitors: ${competitors.length ? competitors.join(', ') : 'None provided — infer competitors from the answers'}
+
+Raw engine results:
+${blocks}
+
+For EACH result, determine:
+- brand_mentioned: is the brand named in the answer?
+- brand_position: its rank in the answer (1 = first product recommended), or null if not mentioned
+- brand_cited: does the brand's own domain appear in the cited sources?
+- competitors_mentioned: which competitor names appear
+- cited_domains: the distinct domains cited (hostnames only, e.g. "example.com")
+
+Then aggregate:
+- ai_visibility_score (0-100): overall how visible the brand is across engines, weighting being mentioned, ranking high, and being cited.
+- mention_rate (0-100): % of results where the brand was mentioned.
+- share_of_voice (0-100): brand mentions / (brand mentions + all competitor mentions) * 100.
+- competitor_visibility: per competitor, its mention_rate (0-100) across results.
+- cited_domains_ranked: the domains cited most often across all results, with counts (most-cited first).
+- missing_signals: concrete content/structure/entity signals the brand lacks that the cited sources have (e.g. "no comparison page", "not on G2", "no FAQ schema").
+- recommendations: specific actions to increase AI-answer visibility, ranked by impact.
+- summary: 2-3 sentences on where the brand stands in AI answers.
+
+Return ONLY a JSON object with keys: ai_visibility_score, mention_rate, share_of_voice, per_query (array of {engine, query, brand_mentioned, brand_position, brand_cited, competitors_mentioned, cited_domains}), competitor_visibility (array of {name, mention_rate}), cited_domains_ranked (array of {domain, count}), missing_signals (array), recommendations (array), summary.`
 }
 
 // --- Clarity Block ---

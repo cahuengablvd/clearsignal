@@ -1,18 +1,17 @@
 import { headers } from 'next/headers'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase'
-import { runFullAudit } from '@/lib/audit-runner'
+import { enqueueAudit } from '@/lib/audit-queue'
 import Stripe from 'stripe'
 
-// Allow up to 5 minutes on Vercel Pro; on Hobby it's capped at 60s
+// Allow up to 5 minutes on Vercel Pro; on Hobby it's capped at 60s.
 export const maxDuration = 300
 
 export async function POST(req: Request) {
   console.log('[webhook] POST /api/stripe/webhook received')
 
   const body = await req.text()
-  const headersList = headers()
-  const signature = headersList.get('stripe-signature')
+  const signature = headers().get('stripe-signature')
 
   console.log('[webhook] stripe-signature present:', !!signature)
 
@@ -44,11 +43,10 @@ export async function POST(req: Request) {
   const meta = session.metadata || {}
   const stripeSessionId = session.id
 
-  console.log('[webhook] checkout.session.completed — session:', stripeSessionId)
+  console.log('[webhook] checkout.session.completed -- session:', stripeSessionId)
   console.log('[webhook] metadata email:', meta.email, 'url:', meta.url)
 
   try {
-    // Idempotency: check if audit already exists for this session
     const { data: existing } = await supabaseAdmin
       .from('audits')
       .select('id, payment_status, audit_status')
@@ -58,14 +56,19 @@ export async function POST(req: Request) {
     let auditId: string
 
     if (existing) {
-      console.log('[webhook] Existing audit found:', existing.id, '| payment_status:', existing.payment_status, '| audit_status:', existing.audit_status)
+      console.log(
+        '[webhook] Existing audit found:',
+        existing.id,
+        '| payment_status:',
+        existing.payment_status,
+        '| audit_status:',
+        existing.audit_status
+      )
 
-      // Already paid — do not duplicate
       if (existing.payment_status === 'paid') {
         return new Response(JSON.stringify({ received: true, message: 'Already processed' }), { status: 200 })
       }
 
-      // Already processing or done — do not restart
       if (['processing', 'done', 'delivered'].includes(existing.audit_status)) {
         return new Response(JSON.stringify({ received: true, message: 'Audit already in progress or done' }), { status: 200 })
       }
@@ -99,26 +102,19 @@ export async function POST(req: Request) {
 
       if (insertError || !audit) {
         console.error('[webhook] Failed to insert audit record:', insertError)
-        // Return 200 so Stripe doesn't retry — we'll need manual recovery
-        return new Response(JSON.stringify({ received: true, error: 'DB insert failed' }), { status: 200 })
+        return new Response(JSON.stringify({ error: 'DB insert failed' }), { status: 500 })
       }
 
       auditId = audit.id
       console.log('[webhook] Audit record created:', auditId)
     }
 
-    // Respond 200 immediately so Stripe doesn't retry.
-    // Fire the audit runner without awaiting — Vercel keeps the function
-    // alive until the event loop drains (serverless Node.js runtime).
-    console.log('[webhook] Firing audit runner for:', auditId)
-    runFullAudit(auditId).catch((err) => {
-      console.error('[webhook] runFullAudit failed for', auditId, ':', err)
-    })
+    console.log('[webhook] Enqueuing audit for:', auditId)
+    await enqueueAudit(auditId)
 
     return new Response(JSON.stringify({ received: true, audit_id: auditId }), { status: 200 })
   } catch (err) {
     console.error('[webhook] Unexpected error:', err)
-    // Return 200 to prevent Stripe from retrying indefinitely
-    return new Response(JSON.stringify({ received: true, error: 'Unexpected error' }), { status: 200 })
+    return new Response(JSON.stringify({ error: 'Webhook processing failed' }), { status: 500 })
   }
 }

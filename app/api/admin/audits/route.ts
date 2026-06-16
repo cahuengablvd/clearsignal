@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   // Check admin session
-  if (req.cookies.get('admin_session')?.value !== 'authenticated') {
+  if (!isValidAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

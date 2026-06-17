@@ -74,6 +74,27 @@ export const GeoSourceGapSchema = z.object({
 
 export type GeoSourceGap = z.infer<typeof GeoSourceGapSchema>
 
+// --- Weekly monitoring ---
+
+export const MonitoringAlertSchema = z.object({
+  level: z.enum(['up', 'down', 'info']),
+  message: z.string(),
+})
+export type MonitoringAlert = z.infer<typeof MonitoringAlertSchema>
+
+/** Change in this run vs the previous run for a monitored site. */
+export const MonitoringDeltaSchema = z.object({
+  is_first_run: z.boolean(),
+  ai_visibility_score: z.number(), // signed
+  mention_rate: z.number(),
+  share_of_voice: z.number(),
+  citation_rate: z.number(),
+  new_competitors: z.array(z.string()),
+  new_cited_domains: z.array(z.string()),
+  brand_citation_change: z.enum(['gained', 'lost', 'none']),
+})
+export type MonitoringDelta = z.infer<typeof MonitoringDeltaSchema>
+
 /** Full GEO result persisted with a score/audit. */
 export const GeoResultSchema = z.object({
   brand: z.string(),

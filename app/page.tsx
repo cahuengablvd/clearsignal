@@ -263,47 +263,76 @@ export default function LandingPage() {
         <section id="pricing" className="bg-slate-50">
           <div className="max-w-6xl mx-auto px-6 py-16">
             <div className="text-center max-w-2xl mx-auto">
-              <h2 className="text-3xl font-bold">Simple pricing</h2>
+              <h2 className="text-3xl font-bold">Audit once, or monitor every week</h2>
               <p className="text-slate-600 mt-3">
-                Agencies charge $3K-$6K and take weeks. ClearSignal gives you a focused AI
-                visibility audit for &euro;399.
+                Agencies charge $3K-$6K and take weeks. Start with a one-time audit, then keep
+                watching your AI visibility as it moves.
               </p>
             </div>
 
-            <div className="mt-10 border rounded-lg bg-white p-6 max-w-lg mx-auto shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm font-medium text-slate-500">Automated AI Visibility Audit</div>
-                  <div className="text-5xl font-bold mt-2">&euro;399</div>
+            <div className="mt-10 grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-start">
+              {/* One-time audit */}
+              <div className="border rounded-lg bg-white p-6 shadow-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium text-slate-500">One-time AI Visibility Audit</div>
+                    <div className="text-5xl font-bold mt-2">&euro;399</div>
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                    <ShieldCheck className="h-3 w-3 mr-1" />
+                    Paid once
+                  </Badge>
                 </div>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                  <ShieldCheck className="h-3 w-3 mr-1" />
-                  Paid once
-                </Badge>
+                <ul className="text-sm space-y-3 mt-6">
+                  {deliverables.map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/score" className="block mt-7">
+                  <Button className="w-full gap-2" size="lg">
+                    Start with a free score <Sparkles className="h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
 
-              <div className="mt-6 border rounded-lg bg-slate-50 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <FileSearch className="h-4 w-4" />
-                  Delivered as PDF + web dashboard
+              {/* Recurring monitoring */}
+              <div className="border-2 border-slate-900 rounded-lg bg-white p-6 shadow-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium text-slate-500">Weekly Monitoring</div>
+                    <div className="text-5xl font-bold mt-2">
+                      &euro;99<span className="text-lg font-medium text-slate-500">/mo</span>
+                    </div>
+                  </div>
+                  <Badge className="bg-slate-900 text-white border-slate-900">Most popular</Badge>
                 </div>
+                <ul className="text-sm space-y-3 mt-6">
+                  {[
+                    'Automatic AI visibility re-scan every week',
+                    'Trend: is your visibility rising or falling',
+                    'Alerts when a competitor overtakes you',
+                    'New cited sources & lost-citation alerts',
+                    'Always-on dashboard with the latest evidence',
+                  ].map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/monitoring/sample" className="block mt-7">
+                  <Button variant="outline" className="w-full gap-2" size="lg">
+                    See the monitoring dashboard <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
-
-              <ul className="text-sm space-y-3 mt-6">
-                {deliverables.map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link href="/score" className="block mt-7">
-                <Button className="w-full gap-2" size="lg">
-                  Start with a free score <Sparkles className="h-4 w-4" />
-                </Button>
-              </Link>
             </div>
+            <p className="text-center text-xs text-slate-500 mt-6">
+              Agency / multi-brand plans coming soon.
+            </p>
           </div>
         </section>
       </main>

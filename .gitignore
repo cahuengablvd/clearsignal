@@ -5,3 +5,10 @@ node_modules/
 out/
 *.tsbuildinfo
 next-env.d.ts
+
+# Local scratch / review artifacts (not for the repo)
+REVIEW_DIFF.txt
+_*.txt
+_*.py
+_*.ts
+email-preview.html

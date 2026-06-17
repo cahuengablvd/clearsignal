@@ -2,7 +2,7 @@
  * Audit PDF generation.
  *
  * On Vercel/serverless, full `puppeteer` (which bundles a desktop Chromium)
- * exceeds the function bundle size and fails to launch — the classic cause of
+ * exceeds the function bundle size and fails to launch - the classic cause of
  * the PDF route silently breaking. We use `puppeteer-core` + `@sparticuz/chromium`
  * (a Lambda-sized Chromium) in production, and fall back to a locally-installed
  * Chrome/Chromium in development.

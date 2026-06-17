@@ -6,7 +6,7 @@ import crypto from 'crypto'
  *
  * Requires ACCESS_TOKEN_SECRET. In production a missing secret is fatal
  * (fail-closed). In development we fall back to a fixed insecure secret so the
- * app still runs locally — never rely on this in prod.
+ * app still runs locally - never rely on this in prod.
  */
 function getSecret(): string {
   const secret = process.env.ACCESS_TOKEN_SECRET
@@ -27,7 +27,7 @@ export function verifyToken(scope: string, id: string, token: string | undefined
   try {
     expected = signToken(scope, id)
   } catch {
-    // Secret missing in prod → cannot verify → deny.
+    // Secret missing in prod -> cannot verify -> deny.
     return false
   }
   const a = Buffer.from(token)

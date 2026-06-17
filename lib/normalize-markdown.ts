@@ -22,14 +22,14 @@ export function normalizeMarkdown(raw: string): string {
     if (inNav) continue
 
     // Detect footer sections
-    if (lower.match(/^#{1,3}\s*(footer|copyright|©|all rights reserved)/)) {
+    if (lower.match(/^#{1,3}\s*(footer|copyright|\u00a9|all rights reserved)/)) {
       inFooter = true
       continue
     }
     if (inFooter) continue
 
     // Skip common boilerplate lines
-    if (lower.match(/^(cookie|privacy|terms|sitemap|© \d{4}|all rights reserved)/)) continue
+    if (lower.match(/^(cookie|privacy|terms|sitemap|\u00a9 \d{4}|all rights reserved)/)) continue
     if (lower === '') {
       // Collapse multiple blank lines
       if (filtered.length > 0 && filtered[filtered.length - 1] === '') continue

@@ -3,7 +3,7 @@
  *
  * Each adapter asks a real "answer engine" a buyer-intent question and returns
  * the grounded answer plus the source URLs it cited. This is what lets us
- * MEASURE whether a brand actually surfaces in AI answers — as opposed to the
+ * MEASURE whether a brand actually surfaces in AI answers - as opposed to the
  * old heuristic that just guessed "citation-worthiness" from page text.
  *
  * Engines degrade gracefully: if an API key is missing or a call fails, the

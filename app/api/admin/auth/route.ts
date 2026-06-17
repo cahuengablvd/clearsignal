@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { ADMIN_COOKIE, adminCookieValue } from '@/lib/auth'
 
-// Password-based admin auth. ADMIN_PASSWORD must be set — there is NO fallback.
+// Password-based admin auth. ADMIN_PASSWORD must be set - there is NO fallback.
 export async function POST(req: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
 
   // Fail closed if the admin password isn't configured.
   if (!adminPassword) {
-    console.error('[admin/auth] ADMIN_PASSWORD is not set — admin login disabled')
+    console.error('[admin/auth] ADMIN_PASSWORD is not set - admin login disabled')
     return NextResponse.json({ error: 'Admin authentication is not configured' }, { status: 503 })
   }
 
@@ -24,12 +24,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Signed session cookie. adminCookieValue() throws in prod if ACCESS_TOKEN_SECRET
-  // is missing — surface that as a config error rather than a forgeable cookie.
+  // is missing - surface that as a config error rather than a forgeable cookie.
   let cookieValue: string
   try {
     cookieValue = adminCookieValue()
   } catch {
-    console.error('[admin/auth] ACCESS_TOKEN_SECRET is not set — cannot issue session')
+    console.error('[admin/auth] ACCESS_TOKEN_SECRET is not set - cannot issue session')
     return NextResponse.json({ error: 'Admin authentication is not configured' }, { status: 503 })
   }
 

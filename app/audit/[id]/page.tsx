@@ -148,7 +148,7 @@ export default async function AuditPage({
                 <CardContent className="p-4 text-center">
                   <div className="text-3xl font-bold">{report.geo.queries_tested}</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Queries · {report.geo.engines_tested.length} engine
+                    Queries - {report.geo.engines_tested.length} engine
                     {report.geo.engines_tested.length === 1 ? '' : 's'}
                   </div>
                 </CardContent>
@@ -190,7 +190,7 @@ export default async function AuditPage({
                       {report.geo.cited_domains_ranked.slice(0, 6).map((d, i) => (
                         <div key={i} className="flex items-center justify-between text-sm">
                           <span className="truncate max-w-[14rem]">{d.domain}</span>
-                          <span className="font-mono text-muted-foreground">{d.count}×</span>
+                          <span className="font-mono text-muted-foreground">{d.count}x</span>
                         </div>
                       ))}
                     </div>
@@ -203,7 +203,7 @@ export default async function AuditPage({
               <Card className="mb-6 border-red-200 bg-red-50/50">
                 <CardContent className="p-5">
                   <h3 className="font-semibold text-red-800 mb-2">
-                    Why AI skips you — citation gaps
+                    Why AI skips you - citation gaps
                   </h3>
                   <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
                     {report.geo.missing_signals.map((s, i) => (

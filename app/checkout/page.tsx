@@ -102,7 +102,7 @@ function CheckoutContent() {
       <div className="max-w-lg mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Order your full audit</h1>
         <p className="text-muted-foreground mb-8">
-          €399 — one-time payment. You&apos;ll receive your full report via email.
+          &euro;399 - one-time payment. You&apos;ll receive your full report via email.
         </p>
 
         <div className="bg-muted/50 rounded-lg p-4 mb-8 space-y-2">
@@ -167,7 +167,7 @@ function CheckoutContent() {
             {loading ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Redirecting to payment...</>
             ) : (
-              'Pay €399 and start audit'
+              <>Pay &euro;399 and start audit</>
             )}
           </Button>
         </form>

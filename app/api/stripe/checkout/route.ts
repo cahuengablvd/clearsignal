@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe price not configured' }, { status: 500 })
     }
     if (!priceId.startsWith('price_')) {
-      console.error('[checkout] STRIPE_PRICE_ID_399 does not start with price_ — got:', priceId.slice(0, 8))
+      console.error('[checkout] STRIPE_PRICE_ID_399 does not start with price_ - got:', priceId.slice(0, 8))
       return NextResponse.json(
         { error: `Invalid Stripe price ID format. Expected price_... but got ${priceId.slice(0, 8)}...` },
         { status: 500 }

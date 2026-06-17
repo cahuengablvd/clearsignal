@@ -3,13 +3,13 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { availableEngines } from '@/lib/geo'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 
-// No caching — this is a live diagnostic.
+// No caching - this is a live diagnostic.
 export const dynamic = 'force-dynamic'
 
 /**
  * Liveness + (gated) diagnostics.
  *
- * Public response is intentionally minimal — just that the app is up. It does
+ * Public response is intentionally minimal - just that the app is up. It does
  * NOT probe Supabase/Anthropic/Firecrawl, so it makes no claim about them.
  *
  * Detailed diagnostics (live Supabase ping + env presence for the other
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   // --- Authorized detailed diagnostics ---
   const checks: Record<string, { ok: boolean; type: 'live' | 'env-presence'; detail?: string }> = {}
 
-  // Live Supabase connectivity — the dependency that actually broke the demo.
+  // Live Supabase connectivity - the dependency that actually broke the demo.
   try {
     const { error } = await supabaseAdmin.from('scores').select('id').limit(1)
     checks.supabase = error

@@ -13,7 +13,7 @@ import { enforceRateLimits, clientIp, emailDomain } from '@/lib/rate-limit'
 export const maxDuration = 60
 
 // Cap the GEO probe so a slow/stuck answer engine can't push us toward the
-// Vercel function timeout — the score still returns without GEO.
+// Vercel function timeout - the score still returns without GEO.
 const GEO_BUDGET_MS = 35_000
 
 function geoWithTimeout(p: Promise<GeoResult>): Promise<GeoResult | null> {
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     ])
     if (!rl.allowed) {
       return NextResponse.json(
-        { error: 'Rate limit reached. Free scores are limited per hour — please try again later.' },
+        { error: 'Rate limit reached. Free scores are limited per hour - please try again later.' },
         { status: 429 }
       )
     }
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       ),
     ])
 
-    // Save to database (GEO nested into the jsonb — no schema migration needed)
+    // Save to database (GEO nested into the jsonb - no schema migration needed)
     const { data: row, error: dbError } = await supabaseAdmin
       .from('scores')
       .insert({

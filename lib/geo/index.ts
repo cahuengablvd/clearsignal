@@ -1,5 +1,5 @@
 /**
- * GEO / AEO engine — the core differentiator.
+ * GEO / AEO engine - the core differentiator.
  *
  * Pipeline:
  *   1. generate buyer-intent queries for the brand's category
@@ -43,7 +43,7 @@ function hostname(url: string): string {
 export interface RunGeoOptions {
   brand: string
   url: string
-  /** What the product does — improves query relevance. Falls back to the brand. */
+  /** What the product does - improves query relevance. Falls back to the brand. */
   category?: string
   icp?: string
   competitors?: string[]
@@ -99,7 +99,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       cited_domains_ranked: [],
       missing_signals: ['Could not reach any AI answer engine to measure visibility.'],
       recommendations: [],
-      summary: 'AI visibility could not be measured — no answer engine responded.',
+      summary: 'AI visibility could not be measured - no answer engine responded.',
     }
   }
 

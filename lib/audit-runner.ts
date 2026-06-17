@@ -75,7 +75,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const icp = audit.icp_description || ''
     const brand = brandFromUrl(audit.url)
 
-    // 3b. Live AI-visibility (GEO/AEO) scan — full breadth across every
+    // 3b. Live AI-visibility (GEO/AEO) scan - full breadth across every
     // configured engine. Runs alongside the messaging analysis below.
     const geoPromise: Promise<GeoResult | null> = runGeoScan({
       brand,

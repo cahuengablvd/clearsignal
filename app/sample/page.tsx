@@ -90,7 +90,7 @@ const clarityScores = [
 const fixes = [
   {
     title: 'Publish a competitor alternatives page',
-    desc: 'Create a neutral “Competitor A alternatives” page answering use cases, tradeoffs, pricing signals, and who each tool is best for.',
+    desc: 'Create a neutral "Competitor A alternatives" page answering use cases, tradeoffs, pricing signals, and who each tool is best for.',
     impact: 'high',
     effort: 'medium',
     category: 'ai_search',
@@ -118,7 +118,7 @@ const fixes = [
   },
   {
     title: 'Replace vague CTA copy',
-    desc: 'Change “Get Started” to “Book a 15-min deployment demo” so the next step matches buyer intent.',
+    desc: 'Change "Get Started" to "Book a 15-min deployment demo" so the next step matches buyer intent.',
     impact: 'medium',
     effort: 'easy',
     category: 'cta',

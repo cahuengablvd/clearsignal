@@ -24,7 +24,7 @@ export default function SuccessPage() {
 
         <div className="bg-muted/50 rounded-lg p-4 inline-flex items-center gap-3 mb-8">
           <Mail className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm">Check your inbox — your report link will arrive shortly.</span>
+          <span className="text-sm">Check your inbox - your report link will arrive shortly.</span>
         </div>
 
         <div>

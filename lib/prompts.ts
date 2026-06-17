@@ -42,7 +42,7 @@ export function geoQueriesUserPrompt(
   count: number
 ): string {
   return `Brand: ${brand}
-Product category / what it does: ${category || 'Unknown — infer from the brand'}
+Product category / what it does: ${category || 'Unknown - infer from the brand'}
 Ideal customer: ${icp || 'Not provided'}
 
 Generate exactly ${count} natural-language queries a buyer would ask an AI assistant when researching this category. Mix:
@@ -50,15 +50,15 @@ Generate exactly ${count} natural-language queries a buyer would ask an AI assis
 - problem-first queries ("how do I ...")
 - alternatives / vs queries
 
-Do NOT mention the brand name in the queries — we want to see if the brand surfaces on its own.
+Do NOT mention the brand name in the queries - we want to see if the brand surfaces on its own.
 
 Return ONLY a JSON object: { "queries": ["<query>", ...] }`
 }
 
 export const GEO_ANALYSIS_SYSTEM = `You are an AEO (Answer Engine Optimization) analyst.
-You are given a brand, its competitors, and the raw answers several AI answer engines gave to buyer-intent queries — with the sources each engine cited.
+You are given a brand, its competitors, and the raw answers several AI answer engines gave to buyer-intent queries - with the sources each engine cited.
 Determine how visible the brand is in AI-generated answers versus its competitors, and what is missing for it to get cited more.
-Be precise and quantitative. Base every judgement only on the provided answers and citations — do not invent mentions.
+Be precise and quantitative. Base every judgement only on the provided answers and citations - do not invent mentions.
 Return ONLY valid JSON matching the schema.`
 
 export function geoAnalysisUserPrompt(
@@ -70,13 +70,13 @@ export function geoAnalysisUserPrompt(
   const blocks = rawResults
     .map(
       (r, i) =>
-        `### Result ${i + 1} — engine: ${r.engine}\nQuery: ${r.query}\nAnswer:\n${r.answer || '(no answer)'}\nCited sources: ${r.citations.length ? r.citations.join(', ') : '(none)'}`
+        `### Result ${i + 1} - engine: ${r.engine}\nQuery: ${r.query}\nAnswer:\n${r.answer || '(no answer)'}\nCited sources: ${r.citations.length ? r.citations.join(', ') : '(none)'}`
     )
     .join('\n\n')
 
   return `Brand: ${brand}
 Brand domain: ${brandDomain}
-Known competitors: ${competitors.length ? competitors.join(', ') : 'None provided — infer competitors from the answers'}
+Known competitors: ${competitors.length ? competitors.join(', ') : 'None provided - infer competitors from the answers'}
 
 Raw engine results:
 ${blocks}

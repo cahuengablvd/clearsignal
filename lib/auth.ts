@@ -3,7 +3,7 @@ import { signToken, verifyToken } from './tokens'
 
 export const ADMIN_COOKIE = 'admin_session'
 
-/** Signed value stored in the admin cookie — not a forgeable static string. */
+/** Signed value stored in the admin cookie - not a forgeable static string. */
 export function adminCookieValue(): string {
   return signToken('admin', 'session')
 }

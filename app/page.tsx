@@ -266,7 +266,7 @@ export default function LandingPage() {
               <h2 className="text-3xl font-bold">Simple pricing</h2>
               <p className="text-slate-600 mt-3">
                 Agencies charge $3K-$6K and take weeks. ClearSignal gives you a focused AI
-                visibility audit for EUR 399.
+                visibility audit for &euro;399.
               </p>
             </div>
 
@@ -274,7 +274,7 @@ export default function LandingPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-sm font-medium text-slate-500">Automated AI Visibility Audit</div>
-                  <div className="text-5xl font-bold mt-2">EUR 399</div>
+                  <div className="text-5xl font-bold mt-2">&euro;399</div>
                 </div>
                 <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
                   <ShieldCheck className="h-3 w-3 mr-1" />

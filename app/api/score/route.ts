@@ -95,9 +95,13 @@ export async function POST(req: NextRequest) {
           category: markdown.slice(0, 400),
           icp: input.icp_description,
           competitors: input.competitor_1 ? [input.competitor_1] : [],
-          queryCount: 2,
+          // Web search stays off for speed, but competitor discovery + more
+          // queries are cheap (extra haiku calls) and make the score actually
+          // differentiate by brand instead of collapsing to a constant 75 with
+          // 100% share-of-voice. Citations/citation-rate remain a paid upsell.
+          queryCount: 4,
           engines: ['claude'],
-          discoverCompetitors: false,
+          discoverCompetitors: true,
           narrative: false,
           webSearch: false,
         })

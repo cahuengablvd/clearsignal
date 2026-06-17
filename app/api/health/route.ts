@@ -64,6 +64,9 @@ export async function GET(req: NextRequest) {
 
   checks.aeo_engines = { ok: true, type: 'env-presence', detail: availableEngines().join(', ') }
 
+  // Live audit fulfillment counts - surfaces stuck/failed paid audits.
+  const audits = await auditCounts()
+
   // "Healthy" = the things that must be live/present for the core pipeline.
   const required = ['supabase', 'env:ANTHROPIC_API_KEY', 'env:SUPABASE_SERVICE_ROLE_KEY', 'env:FIRECRAWL_API_KEY', 'env:ACCESS_TOKEN_SECRET']
   const healthy = required.every((k) => checks[k]?.ok)
@@ -73,8 +76,37 @@ export async function GET(req: NextRequest) {
       status: healthy ? 'ok' : 'degraded',
       note: 'supabase is checked live; other services are env-presence only (no billable probes).',
       checks,
+      audits,
       ts: new Date().toISOString(),
     },
     { status: healthy ? 200 : 503 }
   )
+}
+
+const STALE_PROCESSING_MS = 20 * 60 * 1000
+
+/** Live audit-status counts for fulfillment monitoring. */
+async function auditCounts(): Promise<Record<string, number | string>> {
+  const statuses = ['queued', 'processing', 'failed', 'done', 'delivered'] as const
+  const out: Record<string, number | string> = {}
+  try {
+    const cutoff = new Date(Date.now() - STALE_PROCESSING_MS).toISOString()
+    const results = await Promise.all([
+      ...statuses.map((s) =>
+        supabaseAdmin.from('audits').select('id', { count: 'exact', head: true }).eq('audit_status', s)
+      ),
+      supabaseAdmin
+        .from('audits')
+        .select('id', { count: 'exact', head: true })
+        .eq('audit_status', 'processing')
+        .lt('created_at', cutoff),
+    ])
+    statuses.forEach((s, i) => {
+      out[s] = results[i].count ?? 0
+    })
+    out.stale_processing = results[statuses.length].count ?? 0
+  } catch (err) {
+    out.error = err instanceof Error ? err.message : String(err)
+  }
+  return out
 }

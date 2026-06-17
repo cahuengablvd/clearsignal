@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase'
 import { enqueueAudit } from '@/lib/audit-queue'
+import { notify } from '@/lib/notify'
 import Stripe from 'stripe'
 
 // Allow up to 5 minutes on Vercel Pro; on Hobby it's capped at 60s.
@@ -110,7 +111,19 @@ export async function POST(req: Request) {
     }
 
     console.log('[webhook] Enqueuing audit for:', auditId)
-    await enqueueAudit(auditId)
+    try {
+      await enqueueAudit(auditId)
+    } catch (enqueueErr) {
+      // Paid, but couldn't enqueue. Alert, and return 500 so Stripe retries.
+      // enqueueAudit leaves the audit in `queued` for the recovery endpoint.
+      await notify('audit_enqueue_failed', {
+        audit_id: auditId,
+        stripe_session: stripeSessionId,
+        email: meta.email,
+        error: enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr),
+      })
+      return new Response(JSON.stringify({ error: 'Audit enqueue failed' }), { status: 500 })
+    }
 
     return new Response(JSON.stringify({ received: true, audit_id: auditId }), { status: 200 })
   } catch (err) {

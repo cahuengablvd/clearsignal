@@ -22,6 +22,7 @@ import {
 } from './prompts'
 import { sendReportEmail } from './resend'
 import { runGeoScan } from './geo'
+import { notify } from './notify'
 import type { GeoResult } from './schemas'
 
 function brandFromUrl(url: string): string {
@@ -176,6 +177,10 @@ export async function runFullAudit(auditId: string): Promise<void> {
       .from('audits')
       .update({ audit_status: 'failed' })
       .eq('id', auditId)
+    await notify('audit_generation_failed', {
+      audit_id: auditId,
+      error: err instanceof Error ? err.message : String(err),
+    })
     throw err
   }
 }

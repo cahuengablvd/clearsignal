@@ -25,6 +25,7 @@ export interface EngineResponse {
 }
 
 const ENGINE_TIMEOUT_MS = 45_000
+const FAST_ENGINE_TIMEOUT_MS = 20_000
 
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -58,8 +59,26 @@ function getAnthropic() {
   return _anthropic
 }
 
-async function queryClaude(question: string): Promise<EngineResponse> {
+async function queryClaude(question: string, opts: { webSearch?: boolean } = {}): Promise<EngineResponse> {
   try {
+    if (opts.webSearch === false) {
+      const res: any = await getAnthropic().messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 700,
+        system:
+          'Answer as a buyer research assistant. Recommend relevant products/vendors when appropriate. Be concise.',
+        messages: [{ role: 'user', content: question }],
+      } as any)
+
+      const answer = (res.content ?? [])
+        .filter((block: any) => block.type === 'text')
+        .map((block: any) => block.text)
+        .join('')
+        .trim()
+
+      return { engine: 'claude', ok: true, answer, citations: [] }
+    }
+
     // web_search_20260209 supports dynamic filtering on Sonnet 4.6. The server
     // tool runs on Anthropic's infra and returns citations inline.
     const res: any = await getAnthropic().messages.create({
@@ -198,9 +217,18 @@ export function availableEngines(): EngineId[] {
 }
 
 /** Run one question against one engine (with a hard timeout). */
-export async function queryEngine(engine: EngineId, question: string): Promise<EngineResponse> {
+export async function queryEngine(
+  engine: EngineId,
+  question: string,
+  opts: { webSearch?: boolean } = {}
+): Promise<EngineResponse> {
   try {
-    return await withTimeout(ADAPTERS[engine](question), ENGINE_TIMEOUT_MS, `${engine} query`)
+    const timeout = opts.webSearch === false ? FAST_ENGINE_TIMEOUT_MS : ENGINE_TIMEOUT_MS
+    const run =
+      engine === 'claude'
+        ? queryClaude(question, { webSearch: opts.webSearch })
+        : ADAPTERS[engine](question)
+    return await withTimeout(run, timeout, `${engine} query`)
   } catch (err) {
     return {
       engine,

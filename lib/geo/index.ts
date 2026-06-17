@@ -77,6 +77,8 @@ export interface RunGeoOptions {
   maxSources?: number
   /** Generate LLM narrative. Disable for timeout-sensitive free scans. */
   narrative?: boolean
+  /** Use grounded web-search answers. Disable for timeout-sensitive free scans. */
+  webSearch?: boolean
   /** Target page markdown (reused to avoid re-scraping). Scraped if omitted. */
   targetMarkdown?: string
 }
@@ -93,6 +95,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     analyzeSources = false,
     maxSources = 5,
     narrative: includeNarrative = true,
+    webSearch = true,
   } = opts
   const engines = opts.engines ?? availableEngines()
   const brandDomain = registrableDomain(url)
@@ -110,7 +113,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   // 2. Fan out: every query against every engine, in parallel.
   const settled = await Promise.all(
     queries.flatMap((query) =>
-      engines.map(async (engine) => ({ engine, query, res: await queryEngine(engine, query) }))
+      engines.map(async (engine) => ({ engine, query, res: await queryEngine(engine, query, { webSearch }) }))
     )
   )
   const raw = settled

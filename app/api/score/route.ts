@@ -14,7 +14,7 @@ export const maxDuration = 60
 
 // Cap the GEO probe so a slow/stuck answer engine can't push us toward the
 // Vercel function timeout - the score still returns without GEO.
-const GEO_BUDGET_MS = 45_000
+const GEO_BUDGET_MS = 35_000
 
 function geoWithTimeout(p: Promise<GeoResult>): Promise<GeoResult | null> {
   return Promise.race([
@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
           engines: ['claude'],
           discoverCompetitors: false,
           narrative: false,
+          webSearch: false,
         })
       ),
     ])

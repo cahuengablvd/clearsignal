@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { availableEngines } from '@/lib/geo'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
+import { STALE_PROCESSING_MS } from '@/lib/audit-recovery'
 
 // No caching - this is a live diagnostic.
 export const dynamic = 'force-dynamic'
@@ -82,8 +83,6 @@ export async function GET(req: NextRequest) {
     { status: healthy ? 200 : 503 }
   )
 }
-
-const STALE_PROCESSING_MS = 20 * 60 * 1000
 
 /** Live audit-status counts for fulfillment monitoring. */
 async function auditCounts(): Promise<Record<string, number | string>> {

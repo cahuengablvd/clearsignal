@@ -84,6 +84,10 @@ export async function runFullAudit(auditId: string): Promise<void> {
       icp,
       competitors: competitorUrls,
       queryCount: 6,
+      // Paid audit: also scrape the most-cited sources and explain why they win.
+      analyzeSources: true,
+      maxSources: 6,
+      targetMarkdown,
     }).catch((err) => {
       console.error(`GEO scan failed for ${auditId} (continuing without it):`, err)
       return null

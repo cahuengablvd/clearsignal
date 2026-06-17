@@ -242,6 +242,56 @@ export default async function AuditPage({
               </Card>
             )}
 
+            {report.geo.source_gap_analysis && report.geo.source_gap_analysis.length > 0 && (
+              <>
+                <h3 className="text-lg font-semibold mb-1">Why these sources get cited (and you don&apos;t)</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  We scraped the pages AI actually cites and compared their citation signals to your site.
+                </p>
+                <div className="grid gap-3 mb-8">
+                  {report.geo.source_gap_analysis.map((s, i) => (
+                    <Card key={i}>
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <h4 className="font-semibold">{s.cited_source}</h4>
+                          <Badge variant="outline">cited source</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">{s.why_this_source_gets_cited}</p>
+                        {s.signals_found.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-xs font-medium mb-1">This source has:</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {s.signals_found.map((sig, j) => (
+                                <span key={j} className="text-xs border rounded-full px-2 py-0.5 bg-muted text-muted-foreground">
+                                  {sig}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {s.target_missing_signals.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-xs font-medium text-red-700 mb-1">You&apos;re missing:</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {s.target_missing_signals.map((sig, j) => (
+                                <span key={j} className="text-xs border border-red-200 rounded-full px-2 py-0.5 bg-red-50 text-red-700">
+                                  {sig}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="text-sm bg-green-50 border border-green-200 rounded p-3">
+                          <span className="font-medium text-green-800">Fix:</span>{' '}
+                          <span className="text-green-900">{s.recommended_fix}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
+
             {report.geo.evidence.length > 0 && (
               <>
                 <h3 className="text-lg font-semibold mb-1">Evidence: what the engines actually said</h3>

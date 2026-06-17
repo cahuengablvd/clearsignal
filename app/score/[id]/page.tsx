@@ -106,6 +106,7 @@ export default async function ScoreResultPage({ params }: { params: { id: string
     : []
   const missingSignals = geo?.missing_signals.slice(0, 4) ?? []
   const recommendations = geo?.recommendations.slice(0, 4) ?? []
+  const sourceGaps = geo?.source_gap_analysis?.slice(0, 2) ?? []
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
@@ -259,6 +260,32 @@ export default async function ScoreResultPage({ params }: { params: { id: string
                     <div key={rec} className="border rounded-lg p-4 bg-slate-50">
                       <div className="text-xs font-semibold text-slate-500 mb-2">Fix #{index + 1}</div>
                       <p className="text-sm text-slate-700 leading-relaxed">{rec}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {sourceGaps.length > 0 && (
+              <section className="mt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileSearch className="h-5 w-5" />
+                  <h2 className="text-xl font-bold">Why AI cites them, not you</h2>
+                </div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {sourceGaps.map((s) => (
+                    <div key={s.cited_source} className="border rounded-lg p-4">
+                      <div className="font-semibold text-sm mb-1">{s.cited_source}</div>
+                      <p className="text-xs text-slate-600 mb-2 leading-relaxed">{s.why_this_source_gets_cited}</p>
+                      {s.target_missing_signals.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {s.target_missing_signals.map((sig) => (
+                            <span key={sig} className="text-xs border border-red-200 rounded-full px-2 py-0.5 bg-red-50 text-red-700">
+                              {sig}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

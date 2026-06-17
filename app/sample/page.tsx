@@ -80,6 +80,23 @@ const citedDomains = [
   ['capterra.com', '2x'],
 ]
 
+const sourceGaps = [
+  {
+    cited_source: 'g2.com',
+    why: 'A review aggregator with category landing pages, star ratings, and side-by-side comparisons - exactly the structured, citable content answer engines quote.',
+    has: ['Comparison / alternatives page', 'Review / proof signals', 'Clear category language', 'Third-party authority'],
+    missing: ['Review / proof signals', 'Clear category language'],
+    fix: 'Claim and complete a G2/Capterra profile and seed it with named-customer reviews.',
+  },
+  {
+    cited_source: 'competitor-a.com',
+    why: 'Has a dedicated "alternatives" page and FAQ sections that directly answer buyer questions in quotable language.',
+    has: ['Comparison / alternatives page', 'FAQ / Q&A structure', 'Specific ICP language', 'Pricing / use-case content'],
+    missing: ['Comparison / alternatives page', 'FAQ / Q&A structure'],
+    fix: 'Publish a "[You] vs alternatives" page plus an FAQ block answering the exact tested queries.',
+  },
+]
+
 const citationGaps = [
   'No comparison or alternatives pages for high-intent buyer questions',
   'Weak third-party proof: no G2/Capterra profile and few review signals',
@@ -273,6 +290,53 @@ export default function SampleReportPage() {
               ))}
             </ul>
           </InsightCard>
+        </section>
+
+        <section className="mt-8">
+          <div className="flex items-center gap-2 mb-1">
+            <FileSearch className="h-5 w-5" />
+            <h2 className="text-xl font-bold">Why these sources get cited (and you don&apos;t)</h2>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            We scrape the pages AI actually cites and compare their citation signals to your site.
+          </p>
+          <div className="grid gap-3">
+            {sourceGaps.map((s) => (
+              <Card key={s.cited_source}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <h3 className="font-semibold">{s.cited_source}</h3>
+                    <Badge variant="outline">cited source</Badge>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3">{s.why}</p>
+                  <div className="mb-3">
+                    <div className="text-xs font-medium mb-1">This source has:</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {s.has.map((sig) => (
+                        <span key={sig} className="text-xs border rounded-full px-2 py-0.5 bg-slate-50 text-slate-600">
+                          {sig}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs font-medium text-red-700 mb-1">You&apos;re missing:</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {s.missing.map((sig) => (
+                        <span key={sig} className="text-xs border border-red-200 rounded-full px-2 py-0.5 bg-red-50 text-red-700">
+                          {sig}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-sm bg-emerald-50 border border-emerald-200 rounded p-3">
+                    <span className="font-medium text-emerald-800">Fix:</span>{' '}
+                    <span className="text-emerald-900">{s.fix}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </section>
 
         <section className="mt-8">

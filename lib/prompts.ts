@@ -56,7 +56,7 @@ Return ONLY a JSON object: { "queries": ["<query>", ...] }`
 }
 
 // Competitor discovery: pure EXTRACTION of product names from answers. It does
-// not decide the brand's own status (that stays deterministic) — it only finds
+// not decide the brand's own status (that stays deterministic) - it only finds
 // candidate rival names so we can measure share of voice.
 export const GEO_COMPETITORS_SYSTEM = `You extract product/company names from AI assistant answers.
 List only real product or vendor names that appear, excluding the brand itself.
@@ -79,10 +79,10 @@ Return ONLY a JSON object: { "competitors": ["<name>", ...] } (max 12, most prom
 }
 
 // The narrative layer. The model is given the DETERMINISTIC facts and metrics
-// and only explains them — it must not recompute the score or invent mentions.
+// and only explains them - it must not recompute the score or invent mentions.
 export const GEO_ANALYSIS_SYSTEM = `You are an AEO (Answer Engine Optimization) analyst.
 You are given a brand's already-measured AI visibility: which engines mentioned/cited it, its competitors' visibility, and the sources engines cite most.
-The facts and numbers are fixed and computed deterministically — do NOT dispute, recompute, or invent them.
+The facts and numbers are fixed and computed deterministically - do NOT dispute, recompute, or invent them.
 Your job is only to explain WHY the brand is (in)visible and HOW to improve, grounded in the cited sources and evidence provided.
 Return ONLY valid JSON matching the schema.`
 
@@ -116,7 +116,7 @@ export function geoAnalysisUserPrompt(
 
   return `Brand: ${brand} (domain: ${brandDomain})
 
-MEASURED FACTS (fixed — explain, do not change):
+MEASURED FACTS (fixed - explain, do not change):
 - AI Visibility Score: ${metrics.ai_visibility_score}/100
 - Mention rate: ${metrics.mention_rate}% | Citation rate: ${metrics.citation_rate}% | Share of voice: ${metrics.share_of_voice}%
 - Competitor visibility: ${competitorVisibility.map((c) => `${c.name} ${c.mention_rate}%`).join(', ') || '(none detected)'}
@@ -131,6 +131,81 @@ Based ONLY on the above, return a JSON object:
   "recommendations": ["<specific action to get cited more, ranked by impact>"],
   "summary": "<2-3 sentences explaining where the brand stands in AI answers and why>"
 }`
+}
+
+// Cited-source analysis: extract the SAME structured signals from each
+// frequently-cited source and from the target, so gaps can be computed
+// deterministically. The model only fills booleans + explains why/how.
+export const GEO_SOURCES_SYSTEM = `You analyze why some web pages get cited by AI answer engines.
+For each page you are given, detect a fixed set of citation-friendly signals (true/false), then explain why the cited source is quotable and how the target site could match it.
+Judge signals only from the provided page text. Return ONLY valid JSON matching the schema.`
+
+export const GEO_SIGNAL_KEYS = [
+  'comparison_page',
+  'faq_structure',
+  'clear_category_language',
+  'names_competitors',
+  'review_or_proof_signals',
+  'specific_icp_language',
+  'pricing_or_use_cases',
+  'third_party_authority',
+] as const
+
+export const GEO_SIGNAL_LABELS: Record<string, string> = {
+  comparison_page: 'Comparison / alternatives page',
+  faq_structure: 'FAQ / Q&A structure',
+  clear_category_language: 'Clear category language',
+  names_competitors: 'Names competitors',
+  review_or_proof_signals: 'Review / proof signals',
+  specific_icp_language: 'Specific ICP language',
+  pricing_or_use_cases: 'Pricing / use-case content',
+  third_party_authority: 'Third-party authority',
+}
+
+export function geoSourcesUserPrompt(
+  brand: string,
+  targetUrl: string,
+  targetMarkdown: string,
+  sources: { url: string; markdown: string }[]
+): string {
+  const signalDesc = `Signals (boolean) to detect on each page:
+- comparison_page: a "X vs Y" or "alternatives to X" comparison page
+- faq_structure: explicit question/answer or FAQ sections
+- clear_category_language: names the product category plainly
+- names_competitors: names specific competing products/vendors
+- review_or_proof_signals: ratings, testimonials, customer logos, case studies
+- specific_icp_language: speaks to a specific buyer/segment
+- pricing_or_use_cases: pricing details or concrete use cases
+- third_party_authority: independent/editorial source (review site, forum, listicle)`
+
+  const sourceBlocks = sources
+    .map((s, i) => `### Cited source ${i + 1}: ${s.url}\n${s.markdown.slice(0, 3500)}`)
+    .join('\n\n')
+
+  return `Brand: ${brand}
+Target site: ${targetUrl}
+
+${signalDesc}
+
+--- TARGET PAGE (${targetUrl}) ---
+${targetMarkdown.slice(0, 3500)}
+
+--- CITED SOURCES (these are what AI engines cited) ---
+${sourceBlocks}
+
+Return ONLY a JSON object:
+{
+  "target_signals": { ${GEO_SIGNAL_KEYS.map((k) => `"${k}": <bool>`).join(', ')} },
+  "sources": [
+    {
+      "url": "<cited source url>",
+      "signals": { ${GEO_SIGNAL_KEYS.map((k) => `"${k}": <bool>`).join(', ')} },
+      "why_cited": "<1-2 sentences: why an AI engine finds this source quotable for buyer questions>",
+      "recommended_fix": "<1 specific action for ${brand} to match this source>"
+    }
+  ]
+}
+Include one entry in "sources" for every cited source provided, in order.`
 }
 
 // --- Clarity Block ---

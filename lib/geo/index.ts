@@ -1,11 +1,11 @@
 /**
- * GEO / AEO engine — the credibility core of ClearSignal.
+ * GEO / AEO engine - the credibility core of ClearSignal.
  *
  * Pipeline:
  *   1. generate buyer-intent queries for the brand's category (LLM)
  *   2. ask each configured answer engine every query (Claude/Perplexity/OpenAI)
  *   3. DETERMINISTICALLY detect brand/competitor mentions + citations from the
- *      raw answers (string/domain matching — no LLM judgement)
+ *      raw answers (string/domain matching - no LLM judgement)
  *   4. compute a reproducible AI Visibility Score from those facts
  *   5. use the LLM ONLY to explain gaps + recommend fixes + summarize
  *
@@ -29,6 +29,9 @@ import {
   geoAnalysisUserPrompt,
 } from '../prompts'
 import { availableEngines, queryEngine, type EngineId } from './engines'
+import { analyzeCitedSources } from './sources'
+import { scrapeUrl } from '../firecrawl'
+import { normalizeMarkdown } from '../normalize-markdown'
 import {
   buildVariants,
   textMentions,
@@ -68,6 +71,12 @@ export interface RunGeoOptions {
   engines?: EngineId[]
   /** Discover rival names from the answers to enrich share-of-voice. */
   discoverCompetitors?: boolean
+  /** Scrape the most-cited sources and explain why they get cited vs the target. */
+  analyzeSources?: boolean
+  /** How many cited sources to analyze when analyzeSources is on. */
+  maxSources?: number
+  /** Target page markdown (reused to avoid re-scraping). Scraped if omitted. */
+  targetMarkdown?: string
 }
 
 export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
@@ -79,6 +88,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     competitors = [],
     queryCount = 4,
     discoverCompetitors = true,
+    analyzeSources = false,
+    maxSources = 5,
   } = opts
   const engines = opts.engines ?? availableEngines()
   const brandDomain = registrableDomain(url)
@@ -250,6 +261,26 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     narrative.summary = `Measured AI visibility ${ai_visibility_score}/100 across ${raw.length} answer-engine results.`
   }
 
+  // 7. Evidence-based cited-source analysis (paid audits): why do the sources
+  // engines cite win, and what does the target lack vs them?
+  let source_gap_analysis = null
+  if (analyzeSources) {
+    let targetMd = opts.targetMarkdown
+    if (!targetMd) {
+      const raw = await scrapeUrl(url).catch(() => null)
+      targetMd = raw ? normalizeMarkdown(raw) : ''
+    }
+    if (targetMd) {
+      source_gap_analysis = await analyzeCitedSources({
+        brand,
+        targetUrl: url,
+        targetMarkdown: targetMd,
+        evidence,
+        maxSources,
+      })
+    }
+  }
+
   const result: GeoResult = {
     brand,
     brand_domain: brandDomain,
@@ -276,6 +307,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     competitor_visibility,
     cited_domains_ranked,
     ...narrative,
+    source_gap_analysis,
   }
 
   return GeoResultSchema.parse(result)

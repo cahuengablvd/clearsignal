@@ -17,7 +17,7 @@ export type ClearSignalScore = z.infer<typeof ClearSignalScoreSchema>
 
 /**
  * Raw, auditable evidence for one (engine, query) pair. Detection flags are
- * computed deterministically (string/domain matching), NOT by an LLM — so the
+ * computed deterministically (string/domain matching), NOT by an LLM - so the
  * report can show the actual answer next to "your status".
  */
 export const GeoEvidenceSchema = z.object({
@@ -50,7 +50,7 @@ export const GeoScoreBreakdownSchema = z.object({
   }),
 })
 
-/** The LLM's narrative layer — explanation only, never the underlying facts. */
+/** The LLM's narrative layer - explanation only, never the underlying facts. */
 export const GeoAnalysisSchema = z.object({
   missing_signals: z.array(z.string()),
   recommendations: z.array(z.string()),
@@ -58,6 +58,21 @@ export const GeoAnalysisSchema = z.object({
 })
 
 export type GeoAnalysis = z.infer<typeof GeoAnalysisSchema>
+
+/**
+ * Why a frequently-cited source wins, and what the target lacks vs it.
+ * signals_found / target_missing_signals are derived from structured boolean
+ * signal extraction; the why/fix text is the LLM's explanation.
+ */
+export const GeoSourceGapSchema = z.object({
+  cited_source: z.string(), // domain or URL the engines cited
+  signals_found: z.array(z.string()), // citation-friendly signals this source has
+  target_missing_signals: z.array(z.string()), // signals the source has and the target lacks
+  why_this_source_gets_cited: z.string(),
+  recommended_fix: z.string(),
+})
+
+export type GeoSourceGap = z.infer<typeof GeoSourceGapSchema>
 
 /** Full GEO result persisted with a score/audit. */
 export const GeoResultSchema = z.object({
@@ -81,6 +96,9 @@ export const GeoResultSchema = z.object({
   missing_signals: z.array(z.string()),
   recommendations: z.array(z.string()),
   summary: z.string(),
+  // Evidence-based "why these sources get cited" analysis. Optional so older
+  // reports and runs without source analysis still validate.
+  source_gap_analysis: z.array(GeoSourceGapSchema).optional().nullable(),
 })
 
 export type GeoResult = z.infer<typeof GeoResultSchema>

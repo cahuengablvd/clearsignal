@@ -21,6 +21,14 @@ export function signToken(scope: string, id: string): string {
   return crypto.createHmac('sha256', getSecret()).update(`${scope}:${id}`).digest('base64url')
 }
 
+export function trySignToken(scope: string, id: string): string | null {
+  try {
+    return signToken(scope, id)
+  } catch {
+    return null
+  }
+}
+
 export function verifyToken(scope: string, id: string, token: string | undefined | null): boolean {
   if (!token) return false
   let expected: string

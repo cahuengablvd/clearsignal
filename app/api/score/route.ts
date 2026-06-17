@@ -14,7 +14,7 @@ export const maxDuration = 60
 
 // Cap the GEO probe so a slow/stuck answer engine can't push us toward the
 // Vercel function timeout - the score still returns without GEO.
-const GEO_BUDGET_MS = 35_000
+const GEO_BUDGET_MS = 45_000
 
 function geoWithTimeout(p: Promise<GeoResult>): Promise<GeoResult | null> {
   return Promise.race([
@@ -77,8 +77,9 @@ export async function POST(req: NextRequest) {
     const brand = brandFromUrl(input.url)
 
     // Run the heuristic clarity score and the live AI-visibility probe in
-    // parallel. The GEO probe is the headline number; keep it light for the
-    // free tier (few queries, Claude engine only) to stay within the timeout.
+    // parallel. The free GEO probe intentionally skips expensive competitor
+    // discovery and narrative LLM calls; it still stores raw evidence and uses
+    // the same deterministic score formula.
     const [scores, geo] = await Promise.all([
       callClaudeJSON<ClearSignalScore>({
         model: MODEL_SCORE,
@@ -94,8 +95,10 @@ export async function POST(req: NextRequest) {
           category: markdown.slice(0, 400),
           icp: input.icp_description,
           competitors: input.competitor_1 ? [input.competitor_1] : [],
-          queryCount: 3,
+          queryCount: 2,
           engines: ['claude'],
+          discoverCompetitors: false,
+          narrative: false,
         })
       ),
     ])

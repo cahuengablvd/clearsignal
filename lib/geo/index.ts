@@ -75,6 +75,8 @@ export interface RunGeoOptions {
   analyzeSources?: boolean
   /** How many cited sources to analyze when analyzeSources is on. */
   maxSources?: number
+  /** Generate LLM narrative. Disable for timeout-sensitive free scans. */
+  narrative?: boolean
   /** Target page markdown (reused to avoid re-scraping). Scraped if omitted. */
   targetMarkdown?: string
 }
@@ -90,6 +92,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     discoverCompetitors = true,
     analyzeSources = false,
     maxSources = 5,
+    narrative: includeNarrative = true,
   } = opts
   const engines = opts.engines ?? availableEngines()
   const brandDomain = registrableDomain(url)
@@ -232,33 +235,42 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     .slice(0, 10)
 
   // 6. LLM narrative only (explanation / recommendations / summary).
-  let narrative = { missing_signals: [] as string[], recommendations: [] as string[], summary: '' }
-  try {
-    narrative = await callClaudeJSON({
-      model: MODEL_GEO_ANALYSIS,
-      system: GEO_ANALYSIS_SYSTEM,
-      user: geoAnalysisUserPrompt(
-        brand,
-        brandDomain,
-        { ai_visibility_score, mention_rate, citation_rate, share_of_voice },
-        evidence.map((e) => ({
-          engine: e.engine,
-          query: e.query,
-          answer: e.answer_excerpt,
-          citations: e.citations,
-          brand_mentioned: e.brand_mentioned,
-          brand_cited: e.brand_cited,
-          competitors_mentioned: e.competitors_mentioned,
-        })),
-        cited_domains_ranked,
-        competitor_visibility
-      ),
-      validate: (d) => GeoAnalysisSchema.parse(d),
-      maxTokens: 1536,
-    })
-  } catch (err) {
-    console.warn('GEO narrative generation failed, returning metrics only:', err)
-    narrative.summary = `Measured AI visibility ${ai_visibility_score}/100 across ${raw.length} answer-engine results.`
+  let narrative = deterministicNarrative({
+    brand,
+    ai_visibility_score,
+    rawCount: raw.length,
+    mention_rate,
+    citation_rate,
+    cited_domains_ranked,
+    competitor_visibility,
+  })
+  if (includeNarrative) {
+    try {
+      narrative = await callClaudeJSON({
+        model: MODEL_GEO_ANALYSIS,
+        system: GEO_ANALYSIS_SYSTEM,
+        user: geoAnalysisUserPrompt(
+          brand,
+          brandDomain,
+          { ai_visibility_score, mention_rate, citation_rate, share_of_voice },
+          evidence.map((e) => ({
+            engine: e.engine,
+            query: e.query,
+            answer: e.answer_excerpt,
+            citations: e.citations,
+            brand_mentioned: e.brand_mentioned,
+            brand_cited: e.brand_cited,
+            competitors_mentioned: e.competitors_mentioned,
+          })),
+          cited_domains_ranked,
+          competitor_visibility
+        ),
+        validate: (d) => GeoAnalysisSchema.parse(d),
+        maxTokens: 1536,
+      })
+    } catch (err) {
+      console.warn('GEO narrative generation failed, returning metrics only:', err)
+    }
   }
 
   // 7. Evidence-based cited-source analysis (paid audits): why do the sources
@@ -328,6 +340,47 @@ function truncate(s: string, n: number): string {
 function prettyName(urlOrName: string): string {
   const s = sld(urlOrName)
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : urlOrName
+}
+
+function deterministicNarrative({
+  brand,
+  ai_visibility_score,
+  rawCount,
+  mention_rate,
+  citation_rate,
+  cited_domains_ranked,
+  competitor_visibility,
+}: {
+  brand: string
+  ai_visibility_score: number
+  rawCount: number
+  mention_rate: number
+  citation_rate: number
+  cited_domains_ranked: { domain: string; count: number }[]
+  competitor_visibility: { name: string; mention_rate: number }[]
+}) {
+  const missing_signals: string[] = []
+  if (mention_rate < 50) missing_signals.push('Brand is not consistently named in answer-engine recommendations')
+  if (citation_rate === 0) missing_signals.push('Target domain is not being cited as a source')
+  if (cited_domains_ranked.length > 0) {
+    missing_signals.push(`AI answers cite third-party sources such as ${cited_domains_ranked[0].domain}`)
+  }
+  if (competitor_visibility.length > 0) {
+    missing_signals.push(`${competitor_visibility[0].name} appears more prominently in sampled answers`)
+  }
+
+  const recommendations = [
+    'Create category and comparison pages that answer buyer questions directly',
+    'Add concise FAQ sections with clear product-category language',
+    'Strengthen proof signals: reviews, case studies, customer logos, and third-party mentions',
+    'Publish pages that mention relevant alternatives and explain where the product fits',
+  ]
+
+  return {
+    missing_signals: missing_signals.slice(0, 4),
+    recommendations,
+    summary: `Measured AI visibility ${ai_visibility_score}/100 for ${brand} across ${rawCount} answer-engine result${rawCount === 1 ? '' : 's'}. Mention rate was ${mention_rate}% and citation rate was ${citation_rate}%, based on stored evidence from the scan.`,
+  }
 }
 
 function emptyResult(

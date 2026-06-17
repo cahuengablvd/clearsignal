@@ -56,8 +56,8 @@ const workflow = [
 ]
 
 const roadmap = [
-  ['Now', 'EUR 399 AI Visibility Audit', 'One-time audit with evidence, citation gaps, and fixes.'],
-  ['Next', 'EUR 99/mo Weekly Monitoring', 'Weekly rescans, deltas, alerts, and competitor tracking.'],
+  ['Now', '\u20ac399 AI Visibility Audit', 'One-time audit with evidence, citation gaps, and fixes.'],
+  ['Next', '\u20ac99/mo Weekly Monitoring', 'Weekly rescans, deltas, alerts, and competitor tracking.'],
   ['Later', 'Agency and team plans', 'Multi-client dashboards, exports, seats, and reporting workflows.'],
   ['Enterprise', 'AI discovery intelligence', 'Category-level tracking, source maps, and custom answer-engine coverage.'],
 ]
@@ -128,8 +128,8 @@ export default function InvestorPage() {
                     <Radar className="h-9 w-9" />
                   </div>
                   <div className="mt-6 grid grid-cols-2 gap-3">
-                    <Metric value="EUR 399" label="one-time audit" />
-                    <Metric value="EUR 99/mo" label="weekly monitoring" />
+                    <Metric value={'\u20ac399'} label="one-time audit" />
+                    <Metric value={'\u20ac99/mo'} label="weekly monitoring" />
                     <Metric value="18+" label="engine results per audit" />
                     <Metric value="10" label="prioritized fixes" />
                   </div>

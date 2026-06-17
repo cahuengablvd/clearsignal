@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { signToken } from '@/lib/tokens'
+import { trySignToken } from '@/lib/tokens'
 import type { GeoEvidence, GeoResult } from '@/lib/schemas'
 import {
   ArrowLeft,
@@ -93,8 +93,8 @@ export default async function ScoreResultPage({ params }: { params: { id: string
 
   const scores = score.scores as Record<string, number | string | GeoResult | null>
   const geo = scores.geo as GeoResult | null | undefined
-  const scoreToken = signToken('score', score.id)
-  const checkoutHref = `/checkout?score_id=${score.id}&token=${scoreToken}`
+  const scoreToken = trySignToken('score', score.id)
+  const checkoutHref = scoreToken ? `/checkout?score_id=${score.id}&token=${scoreToken}` : null
   const avg = Math.round(
     dimensions.reduce((sum, d) => sum + (Number(scores[d]) || 0), 0) / dimensions.length
   )
@@ -118,11 +118,17 @@ export default async function ScoreResultPage({ params }: { params: { id: string
             </Link>
             <Link href="/" className="text-xl font-bold tracking-tight">ClearSignal</Link>
           </div>
-          <Link href={checkoutHref}>
-            <Button size="sm" className="gap-2">
-              Unlock full audit <ArrowRight className="h-3 w-3" />
+          {checkoutHref ? (
+            <Link href={checkoutHref}>
+              <Button size="sm" className="gap-2">
+                Unlock full audit <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          ) : (
+            <Button size="sm" className="gap-2" disabled>
+              Audit checkout offline
             </Button>
-          </Link>
+          )}
         </div>
       </nav>
 
@@ -141,11 +147,17 @@ export default async function ScoreResultPage({ params }: { params: { id: string
             </p>
 
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
-              <Link href={checkoutHref}>
-                <Button size="lg" className="gap-2">
-                  Unlock the full audit <Sparkles className="h-4 w-4" />
+              {checkoutHref ? (
+                <Link href={checkoutHref}>
+                  <Button size="lg" className="gap-2">
+                    Unlock the full audit <Sparkles className="h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
+                <Button size="lg" className="gap-2" disabled>
+                  Full audit checkout offline <Sparkles className="h-4 w-4" />
                 </Button>
-              </Link>
+              )}
               <Link href="/sample">
                 <Button variant="outline" size="lg">
                   View sample report
@@ -324,11 +336,17 @@ export default async function ScoreResultPage({ params }: { params: { id: string
               messaging clarity findings, and 10 prioritized fixes in a PDF + dashboard.
             </p>
           </div>
-          <Link href={checkoutHref}>
-            <Button size="lg" variant="secondary" className="gap-2 w-full lg:w-auto">
-              Get the full audit <ArrowRight className="h-4 w-4" />
+          {checkoutHref ? (
+            <Link href={checkoutHref}>
+              <Button size="lg" variant="secondary" className="gap-2 w-full lg:w-auto">
+                Get the full audit <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          ) : (
+            <Button size="lg" variant="secondary" className="gap-2 w-full lg:w-auto" disabled>
+              Checkout needs configuration
             </Button>
-          </Link>
+          )}
         </section>
       </main>
     </div>

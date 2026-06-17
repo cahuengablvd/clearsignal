@@ -55,50 +55,82 @@ Do NOT mention the brand name in the queries - we want to see if the brand surfa
 Return ONLY a JSON object: { "queries": ["<query>", ...] }`
 }
 
+// Competitor discovery: pure EXTRACTION of product names from answers. It does
+// not decide the brand's own status (that stays deterministic) — it only finds
+// candidate rival names so we can measure share of voice.
+export const GEO_COMPETITORS_SYSTEM = `You extract product/company names from AI assistant answers.
+List only real product or vendor names that appear, excluding the brand itself.
+Return ONLY valid JSON, no commentary.`
+
+export function geoCompetitorsUserPrompt(
+  brand: string,
+  answers: { query: string; answer: string }[]
+): string {
+  const blocks = answers
+    .map((a, i) => `### Answer ${i + 1} (query: ${a.query})\n${a.answer || '(no answer)'}`)
+    .join('\n\n')
+  return `Brand to exclude: ${brand}
+
+Answers:
+${blocks}
+
+List the distinct product/company names recommended or mentioned across these answers, excluding "${brand}".
+Return ONLY a JSON object: { "competitors": ["<name>", ...] } (max 12, most prominent first).`
+}
+
+// The narrative layer. The model is given the DETERMINISTIC facts and metrics
+// and only explains them — it must not recompute the score or invent mentions.
 export const GEO_ANALYSIS_SYSTEM = `You are an AEO (Answer Engine Optimization) analyst.
-You are given a brand, its competitors, and the raw answers several AI answer engines gave to buyer-intent queries - with the sources each engine cited.
-Determine how visible the brand is in AI-generated answers versus its competitors, and what is missing for it to get cited more.
-Be precise and quantitative. Base every judgement only on the provided answers and citations - do not invent mentions.
+You are given a brand's already-measured AI visibility: which engines mentioned/cited it, its competitors' visibility, and the sources engines cite most.
+The facts and numbers are fixed and computed deterministically — do NOT dispute, recompute, or invent them.
+Your job is only to explain WHY the brand is (in)visible and HOW to improve, grounded in the cited sources and evidence provided.
 Return ONLY valid JSON matching the schema.`
 
 export function geoAnalysisUserPrompt(
   brand: string,
   brandDomain: string,
-  competitors: string[],
-  rawResults: { engine: string; query: string; answer: string; citations: string[] }[]
+  metrics: {
+    ai_visibility_score: number
+    mention_rate: number
+    citation_rate: number
+    share_of_voice: number
+  },
+  evidence: {
+    engine: string
+    query: string
+    answer: string
+    citations: string[]
+    brand_mentioned: boolean
+    brand_cited: boolean
+    competitors_mentioned: string[]
+  }[],
+  citedDomainsRanked: { domain: string; count: number }[],
+  competitorVisibility: { name: string; mention_rate: number }[]
 ): string {
-  const blocks = rawResults
+  const blocks = evidence
     .map(
       (r, i) =>
-        `### Result ${i + 1} - engine: ${r.engine}\nQuery: ${r.query}\nAnswer:\n${r.answer || '(no answer)'}\nCited sources: ${r.citations.length ? r.citations.join(', ') : '(none)'}`
+        `### Result ${i + 1} - engine: ${r.engine}\nQuery: ${r.query}\nBrand mentioned: ${r.brand_mentioned} | Brand cited: ${r.brand_cited}\nCompetitors named: ${r.competitors_mentioned.join(', ') || '(none)'}\nAnswer:\n${r.answer || '(no answer)'}\nCited sources: ${r.citations.length ? r.citations.join(', ') : '(none)'}`
     )
     .join('\n\n')
 
-  return `Brand: ${brand}
-Brand domain: ${brandDomain}
-Known competitors: ${competitors.length ? competitors.join(', ') : 'None provided - infer competitors from the answers'}
+  return `Brand: ${brand} (domain: ${brandDomain})
 
-Raw engine results:
+MEASURED FACTS (fixed — explain, do not change):
+- AI Visibility Score: ${metrics.ai_visibility_score}/100
+- Mention rate: ${metrics.mention_rate}% | Citation rate: ${metrics.citation_rate}% | Share of voice: ${metrics.share_of_voice}%
+- Competitor visibility: ${competitorVisibility.map((c) => `${c.name} ${c.mention_rate}%`).join(', ') || '(none detected)'}
+- Most-cited sources: ${citedDomainsRanked.map((d) => `${d.domain} (${d.count})`).join(', ') || '(none)'}
+
+Evidence (raw engine answers):
 ${blocks}
 
-For EACH result, determine:
-- brand_mentioned: is the brand named in the answer?
-- brand_position: its rank in the answer (1 = first product recommended), or null if not mentioned
-- brand_cited: does the brand's own domain appear in the cited sources?
-- competitors_mentioned: which competitor names appear
-- cited_domains: the distinct domains cited (hostnames only, e.g. "example.com")
-
-Then aggregate:
-- ai_visibility_score (0-100): overall how visible the brand is across engines, weighting being mentioned, ranking high, and being cited.
-- mention_rate (0-100): % of results where the brand was mentioned.
-- share_of_voice (0-100): brand mentions / (brand mentions + all competitor mentions) * 100.
-- competitor_visibility: per competitor, its mention_rate (0-100) across results.
-- cited_domains_ranked: the domains cited most often across all results, with counts (most-cited first).
-- missing_signals: concrete content/structure/entity signals the brand lacks that the cited sources have (e.g. "no comparison page", "not on G2", "no FAQ schema").
-- recommendations: specific actions to increase AI-answer visibility, ranked by impact.
-- summary: 2-3 sentences on where the brand stands in AI answers.
-
-Return ONLY a JSON object with keys: ai_visibility_score, mention_rate, share_of_voice, per_query (array of {engine, query, brand_mentioned, brand_position, brand_cited, competitors_mentioned, cited_domains}), competitor_visibility (array of {name, mention_rate}), cited_domains_ranked (array of {domain, count}), missing_signals (array), recommendations (array), summary.`
+Based ONLY on the above, return a JSON object:
+{
+  "missing_signals": ["<concrete content/structure/entity signal the brand lacks that cited sources have, e.g. 'not listed on G2', 'no comparison page', 'no FAQ schema'>"],
+  "recommendations": ["<specific action to get cited more, ranked by impact>"],
+  "summary": "<2-3 sentences explaining where the brand stands in AI answers and why>"
+}`
 }
 
 // --- Clarity Block ---

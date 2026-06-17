@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { signToken } from '@/lib/tokens'
-import type { GeoQueryResult, GeoResult } from '@/lib/schemas'
+import type { GeoEvidence, GeoResult } from '@/lib/schemas'
 import {
   ArrowLeft,
   ArrowRight,
@@ -54,7 +54,7 @@ function visBg(score: number): string {
   return 'bg-red-50 border-red-200'
 }
 
-function queryStatus(query: GeoQueryResult) {
+function queryStatus(query: GeoEvidence) {
   if (query.brand_cited) {
     return {
       label: 'Cited',
@@ -99,10 +99,8 @@ export default async function ScoreResultPage({ params }: { params: { id: string
     dimensions.reduce((sum, d) => sum + (Number(scores[d]) || 0), 0) / dimensions.length
   )
 
-  const testedQueries = geo?.per_query?.slice(0, 4) ?? []
-  const competitors = geo
-    ? unique(geo.per_query.flatMap((q) => q.competitors_mentioned)).slice(0, 6)
-    : []
+  const testedQueries = geo?.evidence?.slice(0, 4) ?? []
+  const competitors = geo ? geo.competitor_visibility.slice(0, 6) : []
   const citedDomains = geo
     ? geo.cited_domains_ranked.slice(0, 6)
     : []
@@ -210,7 +208,7 @@ export default async function ScoreResultPage({ params }: { params: { id: string
                     Each row shows one answer-engine probe and whether your brand appeared.
                   </p>
                 </div>
-                <Badge variant="outline">{geo.per_query.length} engine results</Badge>
+                <Badge variant="outline">{geo.evidence.length} engine results</Badge>
               </div>
 
               <div className="border rounded-lg overflow-hidden">
@@ -233,7 +231,7 @@ export default async function ScoreResultPage({ params }: { params: { id: string
                 icon={BarChart3}
                 title="Competitors AI mentioned"
                 empty="No competitors were detected in the sampled answers."
-                items={competitors.map((name) => ({ label: name }))}
+                items={competitors.map((c) => ({ label: c.name, value: `${Math.round(c.mention_rate)}%` }))}
               />
               <InsightCard
                 icon={ExternalLink}
@@ -319,42 +317,54 @@ function Metric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function QueryRow({ query }: { query: GeoQueryResult }) {
+function QueryRow({ query }: { query: GeoEvidence }) {
   const status = queryStatus(query)
   const StatusIcon = status.icon
   const named = unique([...query.competitors_mentioned, ...query.cited_domains]).slice(0, 4)
 
   return (
-    <div className="grid md:grid-cols-[1fr_8rem_1fr_9rem] gap-3 md:gap-4 px-5 py-4 text-sm">
-      <div>
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Buyer question</div>
-        <div className="font-medium leading-relaxed">{query.query}</div>
+    <div className="px-5 py-4 text-sm">
+      <div className="grid md:grid-cols-[1fr_8rem_1fr_9rem] gap-3 md:gap-4">
+        <div>
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Buyer question</div>
+          <div className="font-medium leading-relaxed">{query.query}</div>
+        </div>
+        <div>
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Engine</div>
+          <Badge variant="outline">{query.engine}</Badge>
+        </div>
+        <div>
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Who AI named / cited</div>
+          {named.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {named.map((item) => (
+                <span key={item} className="border rounded-full px-2 py-1 text-xs bg-slate-50 text-slate-600">
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-slate-500">No competitor/source captured</span>
+          )}
+        </div>
+        <div className="md:text-right">
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Your status</div>
+          <span className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-medium ${status.className}`}>
+            <StatusIcon className="h-3 w-3" />
+            {status.label}
+          </span>
+        </div>
       </div>
-      <div>
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Engine</div>
-        <Badge variant="outline">{query.engine}</Badge>
-      </div>
-      <div>
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Who AI named / cited</div>
-        {named.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {named.map((item) => (
-              <span key={item} className="border rounded-full px-2 py-1 text-xs bg-slate-50 text-slate-600">
-                {item}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <span className="text-slate-500">No competitor/source captured</span>
-        )}
-      </div>
-      <div className="md:text-right">
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Your status</div>
-        <span className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-medium ${status.className}`}>
-          <StatusIcon className="h-3 w-3" />
-          {status.label}
-        </span>
-      </div>
+      {query.answer_excerpt && (
+        <details className="mt-3 group">
+          <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
+            <FileSearch className="h-3 w-3" /> Show the actual AI answer
+          </summary>
+          <blockquote className="mt-2 border-l-2 border-slate-200 pl-3 text-xs text-slate-600 leading-relaxed italic">
+            {query.answer_excerpt}
+          </blockquote>
+        </details>
+      )}
     </div>
   )
 }

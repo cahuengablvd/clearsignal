@@ -32,6 +32,8 @@ const queryRows = [
     cited: ['g2.com', 'competitor-a.com'],
     status: 'Not named',
     tone: 'risk',
+    excerpt:
+      'For mid-market SaaS teams, the most recommended platforms are Competitor A (best for zero-downtime deploys) and Competitor B. Both are widely reviewed on G2 and have clear comparison pages...',
   },
   {
     question: 'how to ship product updates without downtime',
@@ -40,6 +42,8 @@ const queryRows = [
     cited: ['reddit.com', 'competitor-a.com'],
     status: 'Mentioned',
     tone: 'warn',
+    excerpt:
+      'Several tools handle zero-downtime releases. Competitor A is the most cited option; Example SaaS is also mentioned as an alternative, though with less third-party coverage...',
   },
   {
     question: 'best alternatives to Competitor A for SaaS engineering teams',
@@ -48,6 +52,8 @@ const queryRows = [
     cited: ['g2.com', 'capterra.com'],
     status: 'Not named',
     tone: 'risk',
+    excerpt:
+      'Popular alternatives to Competitor A include Competitor C and a few others, based on G2 and Capterra roundups. (Example SaaS is not surfaced for this query.)...',
   },
   {
     question: 'AI-ready deployment tools for B2B SaaS',
@@ -56,6 +62,8 @@ const queryRows = [
     cited: ['example-saas.com'],
     status: 'Cited',
     tone: 'ok',
+    excerpt:
+      'Example SaaS positions itself for AI-ready deployment workflows, citing its own documentation. It appears for this narrower query where competitor content is thinner...',
   },
 ]
 
@@ -344,38 +352,49 @@ function QueryRow({
     cited: string[]
     status: string
     tone: string
+    excerpt: string
   }
 }) {
   const StatusIcon = statusIcon(row.tone)
   const named = [...new Set([...row.named, ...row.cited])]
 
   return (
-    <div className="grid md:grid-cols-[1fr_8rem_1fr_9rem] gap-3 md:gap-4 px-5 py-4 text-sm">
-      <div>
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Buyer question</div>
-        <div className="font-medium leading-relaxed">{row.question}</div>
-      </div>
-      <div>
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Engine</div>
-        <Badge variant="outline">{row.engine}</Badge>
-      </div>
-      <div>
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Who AI named / cited</div>
-        <div className="flex flex-wrap gap-2">
-          {named.map((item) => (
-            <span key={item} className="border rounded-full px-2 py-1 text-xs bg-slate-50 text-slate-600">
-              {item}
-            </span>
-          ))}
+    <div className="px-5 py-4 text-sm">
+      <div className="grid md:grid-cols-[1fr_8rem_1fr_9rem] gap-3 md:gap-4">
+        <div>
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Buyer question</div>
+          <div className="font-medium leading-relaxed">{row.question}</div>
+        </div>
+        <div>
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Engine</div>
+          <Badge variant="outline">{row.engine}</Badge>
+        </div>
+        <div>
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Who AI named / cited</div>
+          <div className="flex flex-wrap gap-2">
+            {named.map((item) => (
+              <span key={item} className="border rounded-full px-2 py-1 text-xs bg-slate-50 text-slate-600">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="md:text-right">
+          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Your status</div>
+          <span className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-medium ${statusClass(row.tone)}`}>
+            <StatusIcon className="h-3 w-3" />
+            {row.status}
+          </span>
         </div>
       </div>
-      <div className="md:text-right">
-        <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Your status</div>
-        <span className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-medium ${statusClass(row.tone)}`}>
-          <StatusIcon className="h-3 w-3" />
-          {row.status}
-        </span>
-      </div>
+      <details className="mt-3">
+        <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
+          <FileSearch className="h-3 w-3" /> Show the actual AI answer
+        </summary>
+        <blockquote className="mt-2 border-l-2 border-slate-200 pl-3 text-xs text-slate-600 leading-relaxed italic">
+          {row.excerpt}
+        </blockquote>
+      </details>
     </div>
   )
 }

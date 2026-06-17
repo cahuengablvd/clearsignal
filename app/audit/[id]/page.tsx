@@ -158,8 +158,21 @@ export default async function AuditPage({
             <Card className="mb-6 border-primary/20 bg-primary/5">
               <CardContent className="p-5">
                 <p className="text-sm leading-relaxed">{report.geo.summary}</p>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-3">
                   Engines tested: {report.geo.engines_tested.join(', ')}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Score = {Math.round(report.geo.score_breakdown.weights.mention * 100)}%
+                  mention-rate ({Math.round(report.geo.mention_rate)}) +{' '}
+                  {Math.round(report.geo.score_breakdown.weights.citation * 100)}% citation-rate (
+                  {Math.round(report.geo.citation_rate)}) +{' '}
+                  {Math.round(report.geo.score_breakdown.weights.position * 100)}% position +{' '}
+                  {Math.round(report.geo.score_breakdown.weights.share_of_voice * 100)}% share-of-voice.
+                  Measured deterministically from the answers below
+                  {report.geo.avg_position != null
+                    ? `; avg. position when named: ${report.geo.avg_position}`
+                    : ''}
+                  .
                 </p>
               </CardContent>
             </Card>
@@ -227,6 +240,54 @@ export default async function AuditPage({
                   </ul>
                 </CardContent>
               </Card>
+            )}
+
+            {report.geo.evidence.length > 0 && (
+              <>
+                <h3 className="text-lg font-semibold mb-1">Evidence: what the engines actually said</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Every status above is detected directly from these answers - no guesswork.
+                </p>
+                <div className="grid gap-3 mb-8">
+                  {report.geo.evidence.map((e, i) => {
+                    const status = e.brand_cited
+                      ? { label: 'Cited', cls: 'bg-green-100 text-green-800 border-green-200' }
+                      : e.brand_mentioned
+                        ? { label: 'Mentioned', cls: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
+                        : { label: 'Not named', cls: 'bg-red-100 text-red-800 border-red-200' }
+                    return (
+                      <Card key={i}>
+                        <CardContent className="p-5">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="font-medium text-sm">{e.query}</div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Badge variant="outline">{e.engine}</Badge>
+                              <Badge className={status.cls}>{status.label}</Badge>
+                            </div>
+                          </div>
+                          <blockquote className="border-l-2 border-muted pl-3 text-sm text-muted-foreground italic leading-relaxed mb-3">
+                            {e.answer_excerpt}
+                          </blockquote>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            {e.competitors_mentioned.length > 0 && (
+                              <div>
+                                <span className="font-medium">AI named:</span>{' '}
+                                {e.competitors_mentioned.join(', ')}
+                              </div>
+                            )}
+                            {e.cited_domains.length > 0 && (
+                              <div>
+                                <span className="font-medium">Sources cited:</span>{' '}
+                                {e.cited_domains.slice(0, 6).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </>
         )}

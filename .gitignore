@@ -12,3 +12,5 @@ _*.txt
 _*.py
 _*.ts
 email-preview.html
+
+.vercel

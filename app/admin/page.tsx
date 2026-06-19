@@ -17,6 +17,16 @@ type Audit = {
   audit_status: string
   tier: string
   admin_notes: string | null
+  report_url?: string | null
+}
+
+const emptyForm = {
+  email: '',
+  url: '',
+  competitor_1: '',
+  competitor_2: '',
+  competitor_3: '',
+  icp_description: '',
 }
 
 export default function AdminPage() {
@@ -25,6 +35,9 @@ export default function AdminPage() {
   const [audits, setAudits] = useState<Audit[]>([])
   const [loading, setLoading] = useState(false)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
+  const [form, setForm] = useState(emptyForm)
+  const [creating, setCreating] = useState(false)
+  const [createMsg, setCreateMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Simple password gate (check against env via API)
   async function handleLogin(e: React.FormEvent) {
@@ -65,6 +78,31 @@ export default function AdminPage() {
       console.error('Regeneration failed:', err)
     }
     setRegeneratingId(null)
+  }
+
+  async function createManualAudit(e: React.FormEvent) {
+    e.preventDefault()
+    setCreating(true)
+    setCreateMsg(null)
+    try {
+      const res = await fetch('/api/admin/audits/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setCreateMsg({ ok: true, text: `Audit queued. Share link: ${data.report_url}` })
+        setForm(emptyForm)
+        await loadAudits()
+      } else {
+        setCreateMsg({ ok: false, text: data.error || 'Failed to create audit' })
+        await loadAudits()
+      }
+    } catch {
+      setCreateMsg({ ok: false, text: 'Request failed' })
+    }
+    setCreating(false)
   }
 
   async function saveNotes(auditId: string, notes: string) {
@@ -143,6 +181,72 @@ export default function AdminPage() {
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Create manual / comped audit (no Stripe) */}
+        <Card className="mb-8">
+          <CardContent className="p-5">
+            <h2 className="font-semibold mb-1">Create manual audit</h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Runs the full audit with no payment (comped). For friends &amp; feedback.
+            </p>
+            <form onSubmit={createManualAudit} className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Input
+                  type="email"
+                  placeholder="Email *"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+                <Input
+                  type="url"
+                  placeholder="Homepage URL * (https://...)"
+                  required
+                  value={form.url}
+                  onChange={(e) => setForm({ ...form, url: e.target.value })}
+                />
+                <Input
+                  type="url"
+                  placeholder="Competitor 1 (optional)"
+                  value={form.competitor_1}
+                  onChange={(e) => setForm({ ...form, competitor_1: e.target.value })}
+                />
+                <Input
+                  type="url"
+                  placeholder="Competitor 2 (optional)"
+                  value={form.competitor_2}
+                  onChange={(e) => setForm({ ...form, competitor_2: e.target.value })}
+                />
+                <Input
+                  type="url"
+                  placeholder="Competitor 3 (optional)"
+                  value={form.competitor_3}
+                  onChange={(e) => setForm({ ...form, competitor_3: e.target.value })}
+                />
+              </div>
+              <Textarea
+                placeholder="ICP description (optional)"
+                rows={2}
+                value={form.icp_description}
+                onChange={(e) => setForm({ ...form, icp_description: e.target.value })}
+              />
+              <div className="flex items-center gap-3">
+                <Button type="submit" disabled={creating} className="gap-2">
+                  {creating ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</>
+                  ) : (
+                    'Create manual audit'
+                  )}
+                </Button>
+                {createMsg && (
+                  <span className={`text-xs ${createMsg.ok ? 'text-green-700' : 'text-red-700'} break-all`}>
+                    {createMsg.text}
+                  </span>
+                )}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
         {loading ? (
           <div className="text-center py-20">
             <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -175,7 +279,7 @@ export default function AdminPage() {
 
                   <div className="flex items-center gap-2 mb-3">
                     {['done', 'delivered'].includes(audit.audit_status) && (
-                      <a href={`/audit/${audit.id}`} target="_blank" rel="noopener noreferrer">
+                      <a href={audit.report_url || `/audit/${audit.id}`} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm" className="gap-1">
                           <ExternalLink className="h-3 w-3" /> View Report
                         </Button>

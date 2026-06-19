@@ -3,6 +3,9 @@ import { generateAuditPDF } from '@/lib/pdf'
 import { verifyToken } from '@/lib/tokens'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 
+// Chromium launch + page render needs well over the default function timeout.
+export const maxDuration = 60
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -17,7 +20,7 @@ export async function GET(
   }
 
   try {
-    const pdfBuffer = await generateAuditPDF(params.id)
+    const pdfBuffer = await generateAuditPDF(params.id, req.nextUrl.origin)
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
@@ -27,8 +30,10 @@ export async function GET(
     })
   } catch (err) {
     console.error('PDF generation error:', err)
+    // Caller is already access-gated (token/admin); surface the detail to help
+    // diagnose serverless Chromium issues.
     return NextResponse.json(
-      { error: 'Failed to generate PDF' },
+      { error: 'Failed to generate PDF', detail: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     )
   }

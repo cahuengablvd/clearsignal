@@ -10,7 +10,7 @@
 import puppeteer from 'puppeteer-core'
 import { signToken } from './tokens'
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+const fallbackBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
 async function getBrowser() {
   const isServerless = !!process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL === '1'
@@ -40,7 +40,10 @@ async function getBrowser() {
   })
 }
 
-export async function generateAuditPDF(auditId: string): Promise<Buffer> {
+export async function generateAuditPDF(auditId: string, origin?: string): Promise<Buffer> {
+  // Prefer the request origin (always correct) over NEXT_PUBLIC_BASE_URL, which
+  // is easy to leave unset on Vercel -> would point Chromium at localhost.
+  const baseUrl = origin || fallbackBaseUrl
   const browser = await getBrowser()
 
   try {
@@ -49,7 +52,7 @@ export async function generateAuditPDF(auditId: string): Promise<Buffer> {
     const token = signToken('audit', auditId)
     await page.goto(`${baseUrl}/audit/${auditId}?pdf=true&token=${token}`, {
       waitUntil: 'networkidle0',
-      timeout: 30000,
+      timeout: 45000,
     })
 
     const pdf = await page.pdf({

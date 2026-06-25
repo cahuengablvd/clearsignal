@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { RoleExport } from '@/components/role-export'
 import {
   ArrowLeft,
   ArrowRight,
@@ -418,6 +419,20 @@ export default function SampleReportPage() {
               </Card>
             ))}
           </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Target className="h-5 w-5" />
+            <h2 className="text-xl font-bold">Hand off by role</h2>
+          </div>
+          <p className="text-sm text-slate-600 mb-3">
+            The same fixes, grouped by who should do them - copy a task list straight to the right person.
+          </p>
+          <RoleExport
+            label="example-saas.com"
+            fixes={fixes.map((f) => ({ title: f.title, description: f.desc, category: f.category }))}
+          />
         </section>
 
         <section className="mt-10 border rounded-lg bg-slate-950 text-white p-6 grid lg:grid-cols-[1fr_auto] gap-6 items-center">

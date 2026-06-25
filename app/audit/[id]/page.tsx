@@ -7,6 +7,7 @@ import type { ClearSignalReport } from '@/lib/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { RoleExport } from '@/components/role-export'
 import { Download, ArrowLeft } from 'lucide-react'
 
 function SeverityBadge({ severity }: { severity: string }) {
@@ -603,6 +604,22 @@ export default async function AuditPage({
               </ul>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Hand off by role */}
+        <h3 className="text-lg font-semibold mb-1">Hand off by role</h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          The fixes above, grouped by who should do them - copy a task list straight to the right person.
+        </p>
+        <div className="mb-10">
+          <RoleExport
+            label={report.meta.url}
+            fixes={report.action.top_fixes.map((f) => ({
+              title: f.title,
+              description: f.description,
+              category: f.category,
+            }))}
+          />
         </div>
 
         {/* Outreach Messages */}

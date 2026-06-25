@@ -5,19 +5,21 @@ import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { enqueueAudit } from '@/lib/audit-queue'
 import { notify } from '@/lib/notify'
 import { trySignToken } from '@/lib/tokens'
+import { competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
 
 export const maxDuration = 60
-
-const optionalUrl = z.string().url().optional().or(z.literal(''))
 
 const requestSchema = z.object({
   email: z.string().email(),
   url: z.string().url(),
-  competitor_1: optionalUrl,
-  competitor_2: optionalUrl,
-  competitor_3: optionalUrl,
-  icp_description: z.string().optional().default(''),
+  competitor_1: competitorUrlSchema,
+  competitor_2: competitorUrlSchema,
+  competitor_3: competitorUrlSchema,
+  // ICP must be plain text - a URL here is rejected (the URL belongs in `url`).
+  icp_description: icpTextSchema,
   tier: z.enum(['automated', 'reviewed', 'sprint']).optional().default('automated'),
+  // Operator-confirmed buyer-intent queries from the preview/confirmation step.
+  queries: z.array(z.string().min(1)).max(12).optional(),
 })
 
 /**
@@ -42,22 +44,35 @@ export async function POST(req: NextRequest) {
   }
 
   // Create the audit row (comped: marked paid, no Stripe session).
-  const { data: audit, error: insertError } = await supabaseAdmin
+  const base = {
+    email: input.email,
+    url: input.url,
+    competitor_1: input.competitor_1 || null,
+    competitor_2: input.competitor_2 || null,
+    competitor_3: input.competitor_3 || null,
+    icp_description: input.icp_description || null,
+    stripe_session: null,
+    payment_status: 'paid', // comped: no `comped` value in the current schema
+    audit_status: 'queued',
+    tier: input.tier,
+  }
+  const queries = input.queries?.length ? input.queries : null
+
+  let { data: audit, error: insertError } = await supabaseAdmin
     .from('audits')
-    .insert({
-      email: input.email,
-      url: input.url,
-      competitor_1: input.competitor_1 || null,
-      competitor_2: input.competitor_2 || null,
-      competitor_3: input.competitor_3 || null,
-      icp_description: input.icp_description || null,
-      stripe_session: null,
-      payment_status: 'paid', // comped: no `comped` value in the current schema
-      audit_status: 'queued',
-      tier: input.tier,
-    })
+    .insert(queries ? { ...base, geo_queries: queries } : base)
     .select('id')
     .single()
+
+  // Graceful fallback if migration 003 (geo_queries column) isn't applied yet.
+  if (insertError && queries && /geo_queries/i.test(insertError.message)) {
+    console.warn('[admin/create] geo_queries column missing - run migration 003. Inserting without it.')
+    ;({ data: audit, error: insertError } = await supabaseAdmin
+      .from('audits')
+      .insert(base)
+      .select('id')
+      .single())
+  }
 
   if (insertError || !audit) {
     console.error('[admin/create] insert failed:', insertError)

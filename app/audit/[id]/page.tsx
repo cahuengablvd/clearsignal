@@ -121,6 +121,50 @@ export default async function AuditPage({
           </CardContent>
         </Card>
 
+        {/* ========== VERIFIED STRUCTURAL FINDINGS (deterministic) ========== */}
+        {report.technical_findings && report.technical_findings.length > 0 && (
+          <>
+            <h2 className="text-2xl font-bold mb-1 mt-10">Verified signals</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Detected directly from the page - each with how it was checked and a confidence score.
+            </p>
+            <div className="grid gap-3 mb-8">
+              {report.technical_findings.map((f) => {
+                const cls =
+                  f.classification === 'detected'
+                    ? 'bg-green-100 text-green-800 border-green-200'
+                    : f.classification === 'likely'
+                      ? 'bg-blue-100 text-blue-800 border-blue-200'
+                      : f.classification === 'manual_verification'
+                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                        : 'bg-slate-100 text-slate-800 border-slate-200'
+                return (
+                  <Card key={f.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3 mb-1">
+                        <h3 className="font-semibold text-sm">{f.label}</h3>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge className={cls}>{f.classification.replace('_', ' ')}</Badge>
+                          <span className="text-xs font-mono text-muted-foreground">{f.confidence}%</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{f.detail}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        <span className="font-medium">How checked:</span> {f.confidence_basis}
+                      </p>
+                      {f.evidence?.extracted_text && (
+                        <blockquote className="mt-2 border-l-2 border-muted pl-3 text-xs italic text-muted-foreground">
+                          {f.evidence.extracted_text}
+                        </blockquote>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </>
+        )}
+
         {/* ========== GEO / AI VISIBILITY BLOCK ========== */}
         {report.geo && (
           <>

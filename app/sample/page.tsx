@@ -340,6 +340,40 @@ export default function SampleReportPage() {
         </section>
 
         <section className="mt-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Search className="h-5 w-5" />
+            <h2 className="text-xl font-bold">Verified signals</h2>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            Detected directly from the page - each with how it was checked and a confidence score.
+          </p>
+          <div className="grid gap-3">
+            {[
+              { label: 'Primary call-to-action', cls: 'detected', conf: 96, detail: 'A primary CTA element is present.', basis: 'Matched a button element in the rendered HTML' },
+              { label: 'Structured data (schema.org JSON-LD)', cls: 'detected', conf: 88, detail: 'No JSON-LD structured data found - AI engines have fewer entity signals to cite.', basis: 'No application/ld+json script present in the rendered HTML' },
+              { label: 'Social proof signals', cls: 'manual_verification', conf: 45, detail: 'No textual social-proof signals found - verify whether logos/testimonials exist as images.', basis: 'No proof-related keywords found; visual logos may not be detectable from text' },
+            ].map((f) => {
+              const cls = f.cls === 'detected' ? 'bg-green-100 text-green-800 border-green-200' : f.cls === 'likely' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+              return (
+                <Card key={f.label}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <h3 className="font-semibold text-sm">{f.label}</h3>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge className={cls}>{f.cls.replace('_', ' ')}</Badge>
+                        <span className="text-xs font-mono text-slate-500">{f.conf}%</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600">{f.detail}</p>
+                    <p className="text-xs text-slate-500 mt-2"><span className="font-medium">How checked:</span> {f.basis}</p>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="mt-8">
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5" />
             <h2 className="text-xl font-bold">Messaging clarity</h2>

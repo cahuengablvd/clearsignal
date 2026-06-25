@@ -21,3 +21,20 @@ export async function scrapeUrl(url: string): Promise<string | null> {
     return null
   }
 }
+
+/**
+ * Scrape both markdown and rendered HTML. The HTML (browser-rendered by
+ * Firecrawl) lets the Trust Layer verify structural signals deterministically.
+ */
+export async function scrapePage(url: string): Promise<{ markdown: string; html: string } | null> {
+  try {
+    const result = await getFirecrawl().v1.scrapeUrl(url, { formats: ['markdown', 'html'] })
+    if (result.success && result.markdown) {
+      return { markdown: result.markdown, html: result.html || '' }
+    }
+    return null
+  } catch (err) {
+    console.error(`Firecrawl scrape failed for ${url}:`, err)
+    return null
+  }
+}

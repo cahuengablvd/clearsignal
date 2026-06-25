@@ -29,6 +29,15 @@ const emptyForm = {
   icp_description: '',
 }
 
+type AuditPreview = {
+  brand: string
+  url: string
+  icp_description: string
+  competitors: string[]
+  queries: string[]
+  scraped: boolean
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -37,6 +46,8 @@ export default function AdminPage() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [creating, setCreating] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
+  const [preview, setPreview] = useState<AuditPreview | null>(null)
   const [createMsg, setCreateMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Simple password gate (check against env via API)
@@ -80,20 +91,44 @@ export default function AdminPage() {
     setRegeneratingId(null)
   }
 
-  async function createManualAudit(e: React.FormEvent) {
+  // Step 1: preview - generate the queries and show a confirmation screen.
+  async function previewAudit(e: React.FormEvent) {
     e.preventDefault()
-    setCreating(true)
+    setPreviewing(true)
     setCreateMsg(null)
     try {
-      const res = await fetch('/api/admin/audits/create', {
+      const res = await fetch('/api/admin/audits/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
       const data = await res.json()
       if (res.ok) {
+        setPreview(data as AuditPreview)
+      } else {
+        setCreateMsg({ ok: false, text: data.error || 'Failed to preview audit' })
+      }
+    } catch {
+      setCreateMsg({ ok: false, text: 'Preview request failed' })
+    }
+    setPreviewing(false)
+  }
+
+  // Step 2: confirm - only now is the audit created and run.
+  async function confirmAudit() {
+    setCreating(true)
+    setCreateMsg(null)
+    try {
+      const res = await fetch('/api/admin/audits/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, queries: preview?.queries }),
+      })
+      const data = await res.json()
+      if (res.ok) {
         setCreateMsg({ ok: true, text: `Audit queued. Share link: ${data.report_url}` })
         setForm(emptyForm)
+        setPreview(null)
         await loadAudits()
       } else {
         setCreateMsg({ ok: false, text: data.error || 'Failed to create audit' })
@@ -188,7 +223,54 @@ export default function AdminPage() {
             <p className="text-xs text-muted-foreground mb-4">
               Runs the full audit with no payment (comped). For friends &amp; feedback.
             </p>
-            <form onSubmit={createManualAudit} className="space-y-3">
+
+            {preview ? (
+              /* Step 2: confirmation screen - nothing runs until "Confirm & run". */
+              <div className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <div><span className="text-muted-foreground">Brand:</span> <strong>{preview.brand}</strong></div>
+                  <div className="break-all"><span className="text-muted-foreground">URL:</span> {preview.url}</div>
+                  <div className="sm:col-span-2"><span className="text-muted-foreground">ICP:</span> {preview.icp_description || <em className="text-muted-foreground">none</em>}</div>
+                  <div className="sm:col-span-2">
+                    <span className="text-muted-foreground">Competitors:</span>{' '}
+                    {preview.competitors.length ? preview.competitors.join(', ') : <em className="text-muted-foreground">none</em>}
+                  </div>
+                </div>
+                {!preview.scraped && (
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                    Could not scrape the homepage - queries are based on the brand/ICP only. Check the URL.
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground mb-2">
+                    Buyer queries that will be tested ({preview.queries.length})
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    {preview.queries.map((q, i) => (
+                      <li key={i} className="text-slate-700">{q}</li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" onClick={() => setPreview(null)} disabled={creating}>
+                    Back
+                  </Button>
+                  <Button onClick={confirmAudit} disabled={creating} className="gap-2">
+                    {creating ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Running...</>
+                    ) : (
+                      'Confirm & run'
+                    )}
+                  </Button>
+                  {createMsg && (
+                    <span className={`text-xs ${createMsg.ok ? 'text-green-700' : 'text-red-700'} break-all`}>
+                      {createMsg.text}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+            <form onSubmit={previewAudit} className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input
                   type="email"
@@ -230,11 +312,11 @@ export default function AdminPage() {
                 onChange={(e) => setForm({ ...form, icp_description: e.target.value })}
               />
               <div className="flex items-center gap-3">
-                <Button type="submit" disabled={creating} className="gap-2">
-                  {creating ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</>
+                <Button type="submit" disabled={previewing} className="gap-2">
+                  {previewing ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Preparing preview...</>
                   ) : (
-                    'Create manual audit'
+                    'Preview & confirm'
                   )}
                 </Button>
                 {createMsg && (
@@ -244,6 +326,7 @@ export default function AdminPage() {
                 )}
               </div>
             </form>
+            )}
           </CardContent>
         </Card>
 

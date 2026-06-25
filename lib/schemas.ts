@@ -13,6 +13,56 @@ export const ClearSignalScoreSchema = z.object({
 
 export type ClearSignalScore = z.infer<typeof ClearSignalScoreSchema>
 
+// --- Trust Layer: input validation ---
+
+/** Whole value is a bare URL (so we can keep it OUT of the ICP field). */
+export function looksLikeUrl(value: string): boolean {
+  return /^\s*https?:\/\/\S+\s*$/i.test(value)
+}
+
+/** ICP is a free-text description, NEVER a URL (the URL belongs in `url`). */
+export const icpTextSchema = z
+  .string()
+  .max(1000)
+  .refine((v) => !looksLikeUrl(v), { message: 'ICP must be a text description, not a URL' })
+  .optional()
+  .default('')
+
+/** A competitor is always a valid http(s) URL (or empty). */
+export const competitorUrlSchema = z.string().url().optional().or(z.literal(''))
+
+// --- Trust Layer: typed findings (deterministic confidence) ---
+
+export const FindingClassificationSchema = z.enum([
+  'detected', // verified present/absent from the page
+  'likely', // indirect signal, not exact
+  'manual_verification', // could not verify reliably -> human should check
+  'recommendation', // an action, not a measured fact
+])
+export type FindingClassification = z.infer<typeof FindingClassificationSchema>
+
+export const FindingEvidenceSchema = z.object({
+  url: z.string(),
+  checked_at: z.string(),
+  extracted_text: z.string().optional().nullable(),
+  html_snippet: z.string().optional().nullable(),
+})
+
+/**
+ * A single audit finding with a DETERMINISTIC confidence (computed from how the
+ * signal was verified, never asked of an LLM) and its supporting evidence.
+ */
+export const FindingSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  classification: FindingClassificationSchema,
+  confidence: z.number().min(0).max(100),
+  confidence_basis: z.string(),
+  detail: z.string(),
+  evidence: FindingEvidenceSchema.optional().nullable(),
+})
+export type Finding = z.infer<typeof FindingSchema>
+
 // --- GEO / AEO (Answer Engine Optimization) ---
 
 /**
@@ -224,6 +274,9 @@ export const ClearSignalReportSchema = z.object({
   // Live multi-engine AI-visibility measurement. Optional so older reports
   // (and runs where every engine was unreachable) still validate.
   geo: GeoResultSchema.optional().nullable(),
+  // Deterministic, evidence-backed structural findings (Trust Layer). Optional
+  // for backward compatibility with reports generated before this existed.
+  technical_findings: z.array(FindingSchema).optional().nullable(),
 })
 
 export type ClearSignalReport = z.infer<typeof ClearSignalReportSchema>

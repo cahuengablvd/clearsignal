@@ -32,6 +32,7 @@ import { availableEngines, queryEngine, type EngineId } from './engines'
 import { analyzeCitedSources } from './sources'
 import { scrapeUrl } from '../firecrawl'
 import { normalizeMarkdown } from '../normalize-markdown'
+import { boundSampleClaims } from '../sanitize'
 import {
   buildVariants,
   textMentions,
@@ -81,6 +82,29 @@ export interface RunGeoOptions {
   webSearch?: boolean
   /** Target page markdown (reused to avoid re-scraping). Scraped if omitted. */
   targetMarkdown?: string
+  /** Explicit query set (e.g. user-confirmed). Skips query generation when set. */
+  providedQueries?: string[]
+}
+
+/**
+ * Generate the buyer-intent queries for a brand's category. Exposed so the
+ * audit confirmation screen can preview (and the operator confirm) the exact
+ * set before a paid/comped run spends credits.
+ */
+export async function generateBuyerQueries(opts: {
+  brand: string
+  category?: string
+  icp?: string
+  count: number
+}): Promise<string[]> {
+  const { queries } = await callClaudeJSON<{ queries: string[] }>({
+    model: MODEL_GEO_QUERIES,
+    system: GEO_QUERIES_SYSTEM,
+    user: geoQueriesUserPrompt(opts.brand, opts.category ?? '', opts.icp ?? '', opts.count),
+    validate: (d) => listValidator<string>('queries')(d) as { queries: string[] },
+    maxTokens: 512,
+  })
+  return queries
 }
 
 export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
@@ -101,14 +125,11 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const brandDomain = registrableDomain(url)
   const brandVariants = buildVariants({ name: brand, url })
 
-  // 1. Generate buyer-intent queries.
-  const { queries } = await callClaudeJSON<{ queries: string[] }>({
-    model: MODEL_GEO_QUERIES,
-    system: GEO_QUERIES_SYSTEM,
-    user: geoQueriesUserPrompt(brand, category, icp, queryCount),
-    validate: (d) => listValidator<string>('queries')(d) as { queries: string[] },
-    maxTokens: 512,
-  })
+  // 1. Use the caller-confirmed query set if given, else generate one.
+  const queries =
+    opts.providedQueries && opts.providedQueries.length > 0
+      ? opts.providedQueries.slice(0, queryCount)
+      : await generateBuyerQueries({ brand, category, icp, count: queryCount })
 
   // 2. Fan out: every query against every engine, in parallel.
   const settled = await Promise.all(
@@ -275,6 +296,10 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       console.warn('GEO narrative generation failed, returning metrics only:', err)
     }
   }
+
+  // Trust Layer: keep visibility wording bounded to the tested sample.
+  narrative.summary = boundSampleClaims(narrative.summary, brandMentions, total)
+  narrative.missing_signals = narrative.missing_signals.map((s) => boundSampleClaims(s, brandMentions, total))
 
   // 7. Evidence-based cited-source analysis (paid audits): why do the sources
   // engines cite win, and what does the target lack vs them?

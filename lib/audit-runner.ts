@@ -1,6 +1,7 @@
 import { supabaseAdmin } from './supabase'
-import { scrapeUrl } from './firecrawl'
+import { scrapeUrl, scrapePage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
+import { computeTechnicalFindings } from './findings'
 import { callClaudeJSON } from './anthropic'
 import {
   ClarityBlockSchema,
@@ -23,7 +24,31 @@ import {
 import { sendReportEmail } from './resend'
 import { runGeoScan } from './geo'
 import { notify } from './notify'
+import { redactPerformanceClaims } from './sanitize'
 import type { GeoResult } from './schemas'
+
+/** Strip invented performance numbers from all human-facing report prose. */
+function sanitizeReportProse(clarity: ClarityBlock, gap: GapBlock, action: ActionBlock): void {
+  clarity.icp_visibility.finding = redactPerformanceClaims(clarity.icp_visibility.finding)
+  clarity.headline.finding = redactPerformanceClaims(clarity.headline.finding)
+  clarity.cta.finding = redactPerformanceClaims(clarity.cta.finding)
+  clarity.trust_proof.finding = redactPerformanceClaims(clarity.trust_proof.finding)
+  clarity.messaging_fit.finding = redactPerformanceClaims(clarity.messaging_fit.finding)
+
+  gap.where_you_lose = gap.where_you_lose.map(redactPerformanceClaims)
+  gap.where_you_win = gap.where_you_win.map(redactPerformanceClaims)
+
+  action.executive_summary = redactPerformanceClaims(action.executive_summary)
+  action.top_fixes = action.top_fixes.map((f) => ({
+    ...f,
+    title: redactPerformanceClaims(f.title),
+    description: redactPerformanceClaims(f.description),
+  }))
+  action.outreach_messages = action.outreach_messages.map((m) => ({
+    ...m,
+    message: redactPerformanceClaims(m.message),
+  }))
+}
 
 function brandFromUrl(url: string): string {
   try {
@@ -54,12 +79,19 @@ export async function runFullAudit(auditId: string): Promise<void> {
     .eq('id', auditId)
 
   try {
-    // 3. Scrape target + competitors
-    const targetRaw = await scrapeUrl(audit.url)
-    if (!targetRaw) {
+    // 3. Scrape target (markdown + rendered HTML) + competitors
+    const targetPage = await scrapePage(audit.url)
+    if (!targetPage) {
       throw new Error(`Failed to scrape target URL: ${audit.url}`)
     }
-    const targetMarkdown = normalizeMarkdown(targetRaw)
+    const targetMarkdown = normalizeMarkdown(targetPage.markdown)
+
+    // 3a. Deterministic structural findings from the rendered HTML.
+    const technicalFindings = computeTechnicalFindings({
+      url: audit.url,
+      html: targetPage.html,
+      markdown: targetMarkdown,
+    })
 
     const competitorUrls = [audit.competitor_1, audit.competitor_2, audit.competitor_3].filter(Boolean) as string[]
     const competitors: { url: string; markdown: string }[] = []
@@ -85,6 +117,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
       icp,
       competitors: competitorUrls,
       queryCount: 6,
+      // Use operator-confirmed queries when present (from the confirmation screen).
+      providedQueries: (audit.geo_queries as string[] | null) || undefined,
       // Paid audit: also scrape the most-cited sources and explain why they win.
       analyzeSources: true,
       maxSources: 6,
@@ -123,6 +157,10 @@ export async function runFullAudit(auditId: string): Promise<void> {
 
     const geo = await geoPromise
 
+    // 6b. Trust Layer: strip any invented performance numbers the model slipped
+    // into the prose, as a safety net behind the prompt instructions.
+    sanitizeReportProse(clarity, gap, action)
+
     // 7. Assemble report
     const report: ClearSignalReport = {
       meta: {
@@ -136,6 +174,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       gap,
       action,
       geo,
+      technical_findings: technicalFindings,
     }
 
     // 8. Save report to audit

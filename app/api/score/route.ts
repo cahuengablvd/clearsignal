@@ -4,7 +4,13 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { scrapeUrl } from '@/lib/firecrawl'
 import { normalizeMarkdown } from '@/lib/normalize-markdown'
 import { callClaudeJSON } from '@/lib/anthropic'
-import { ClearSignalScoreSchema, type ClearSignalScore, type GeoResult } from '@/lib/schemas'
+import {
+  ClearSignalScoreSchema,
+  competitorUrlSchema,
+  icpTextSchema,
+  type ClearSignalScore,
+  type GeoResult,
+} from '@/lib/schemas'
 import { MODEL_SCORE, SCORE_SYSTEM, scoreUserPrompt } from '@/lib/prompts'
 import { runGeoScan } from '@/lib/geo'
 import { enforceRateLimits, clientIp, emailDomain } from '@/lib/rate-limit'
@@ -29,8 +35,9 @@ function geoWithTimeout(p: Promise<GeoResult>): Promise<GeoResult | null> {
 const requestSchema = z.object({
   url: z.string().url(),
   email: z.string().email(),
-  competitor_1: z.string().url().optional().or(z.literal('')),
-  icp_description: z.string().optional(),
+  competitor_1: competitorUrlSchema,
+  // ICP must be plain text, never a URL.
+  icp_description: icpTextSchema,
 })
 
 function brandFromUrl(url: string): string {

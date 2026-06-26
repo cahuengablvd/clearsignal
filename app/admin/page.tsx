@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, RefreshCw, ExternalLink, LogIn } from 'lucide-react'
+import { Loader2, RefreshCw, ExternalLink, LogIn, X, Plus } from 'lucide-react'
 
 type Audit = {
   id: string
@@ -48,6 +48,7 @@ export default function AdminPage() {
   const [creating, setCreating] = useState(false)
   const [previewing, setPreviewing] = useState(false)
   const [preview, setPreview] = useState<AuditPreview | null>(null)
+  const [editedQueries, setEditedQueries] = useState<string[]>([])
   const [createMsg, setCreateMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Simple password gate (check against env via API)
@@ -105,6 +106,7 @@ export default function AdminPage() {
       const data = await res.json()
       if (res.ok) {
         setPreview(data as AuditPreview)
+        setEditedQueries((data as AuditPreview).queries)
       } else {
         setCreateMsg({ ok: false, text: data.error || 'Failed to preview audit' })
       }
@@ -116,13 +118,18 @@ export default function AdminPage() {
 
   // Step 2: confirm - only now is the audit created and run.
   async function confirmAudit() {
+    const finalQueries = editedQueries.map((q) => q.trim()).filter(Boolean)
+    if (finalQueries.length === 0) {
+      setCreateMsg({ ok: false, text: 'Add at least one query before running.' })
+      return
+    }
     setCreating(true)
     setCreateMsg(null)
     try {
       const res = await fetch('/api/admin/audits/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, queries: preview?.queries }),
+        body: JSON.stringify({ ...form, queries: finalQueries }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -243,13 +250,43 @@ export default function AdminPage() {
                 )}
                 <div>
                   <div className="text-xs font-semibold text-muted-foreground mb-2">
-                    Buyer queries that will be tested ({preview.queries.length})
+                    Buyer queries that will be tested ({editedQueries.length}) - edit, remove, or add before running
                   </div>
-                  <ol className="list-decimal list-inside space-y-1 text-sm">
-                    {preview.queries.map((q, i) => (
-                      <li key={i} className="text-slate-700">{q}</li>
+                  <div className="space-y-2">
+                    {editedQueries.map((q, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-4 text-right">{i + 1}.</span>
+                        <Input
+                          value={q}
+                          onChange={(e) => {
+                            const next = [...editedQueries]
+                            next[i] = e.target.value
+                            setEditedQueries(next)
+                          }}
+                          className="text-sm"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 text-muted-foreground hover:text-red-600"
+                          onClick={() => setEditedQueries(editedQueries.filter((_, j) => j !== i))}
+                          aria-label="Remove query"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
-                  </ol>
+                  </div>
+                  {editedQueries.length < 10 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 gap-1"
+                      onClick={() => setEditedQueries([...editedQueries, ''])}
+                    >
+                      <Plus className="h-3 w-3" /> Add query
+                    </Button>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <Button variant="outline" onClick={() => setPreview(null)} disabled={creating}>

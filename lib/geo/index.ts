@@ -125,10 +125,11 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const brandDomain = registrableDomain(url)
   const brandVariants = buildVariants({ name: brand, url })
 
-  // 1. Use the caller-confirmed query set if given, else generate one.
+  // 1. Use the caller-confirmed query set if given (honoring edits, capped at
+  // 8 to bound cost), else generate one.
   const queries =
     opts.providedQueries && opts.providedQueries.length > 0
-      ? opts.providedQueries.slice(0, queryCount)
+      ? opts.providedQueries.slice(0, 8)
       : await generateBuyerQueries({ brand, category, icp, count: queryCount })
 
   // 2. Fan out: every query against every engine, in parallel.

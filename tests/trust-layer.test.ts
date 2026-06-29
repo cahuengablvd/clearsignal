@@ -5,6 +5,7 @@ import {
   redactPerformanceClaims,
   boundSampleClaims,
   sanitizeGeneratedProse,
+  sanitizeGeneratedReportValue,
 } from '../lib/sanitize'
 import { icpTextSchema, competitorUrlSchema, FindingSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
@@ -224,6 +225,80 @@ describe('sample-bounded GEO wording', () => {
     expect(out.toLowerCase()).toContain('test de-emphasizing web3')
     expect(out.toLowerCase()).toContain('de-emphasize upwork')
     expect(out.toLowerCase()).toContain('transparent comparison guide')
+  })
+
+  it('redacts arbitrary unverified quantified examples', () => {
+    const out = sanitizeGeneratedProse(
+      'Use 80+ explainer videos, add minimum 6 logos, promise a 90 seconds video and a 4-6 weeks rollout.'
+    )
+    expect(out).toContain('[insert verified data]')
+    expect(out.toLowerCase()).not.toContain('80+ explainer videos')
+    expect(out.toLowerCase()).not.toContain('6 logos')
+    expect(out.toLowerCase()).not.toContain('90 seconds')
+    expect(out.toLowerCase()).not.toContain('4-6 weeks')
+  })
+
+  it('redacts unverified outreach usage claims', () => {
+    const out = sanitizeGeneratedProse(
+      'Their sales team uses the video before every enterprise call and the page actively repels buyers.'
+    )
+    expect(out).toContain('[Example only - replace with verified client data]')
+    expect(out.toLowerCase()).not.toContain('sales team uses the video')
+    expect(out.toLowerCase()).not.toContain('actively repels buyers')
+  })
+})
+
+describe('recursive report sanitizer', () => {
+  it('sanitizes nested generated prose fields that are easy to miss manually', () => {
+    const report = {
+      meta: {
+        url: 'https://blvd.example',
+        generated_at: '2026-06-29T00:00:00.000Z',
+        icp_description: 'B2B SaaS founders',
+        competitors: ['https://competitor.example'],
+        tier: 'automated',
+      },
+      clarity: {
+        headline: {
+          current_headline: 'Original headline with 80+ videos',
+          suggested_rewrite: 'We create 80+ explainer videos that lift trial signups.',
+        },
+        trust_proof: {
+          missing_elements: ['Add minimum 6 logos and claim a 4-6 weeks rollout.'],
+        },
+      },
+      implementation_briefs: [
+        {
+          fix_title: 'Fix direct revenue leak',
+          steps: ['Their sales team uses the video before every enterprise call.'],
+          acceptance_criteria: ['Done when the page no longer actively repels buyers.'],
+        },
+      ],
+      ready_materials: {
+        json_ld: '<script>{"@context":"https://schema.org","name":"80+ videos"}</script>',
+      },
+      geo: {
+        evidence: [
+          {
+            answer_excerpt: 'Raw AI evidence can say every dollar of paid traffic is wasted.',
+            query: 'best explainer video agencies',
+          },
+        ],
+      },
+    }
+
+    const out = sanitizeGeneratedReportValue(report, 0, 18)
+
+    expect(out.meta.url).toBe('https://blvd.example')
+    expect(out.clarity.headline.current_headline).toBe('Original headline with 80+ videos')
+    expect(out.ready_materials.json_ld).toContain('80+ videos')
+    expect(out.geo.evidence[0].answer_excerpt).toContain('wasted')
+    expect(out.clarity.headline.suggested_rewrite).toContain('[insert verified data]')
+    expect(out.clarity.headline.suggested_rewrite.toLowerCase()).not.toContain('trial signups')
+    expect(out.clarity.trust_proof.missing_elements[0].toLowerCase()).not.toContain('6 logos')
+    expect(out.implementation_briefs[0].fix_title.toLowerCase()).not.toContain('direct revenue leak')
+    expect(out.implementation_briefs[0].steps[0]).toContain('[Example only - replace with verified client data]')
+    expect(out.implementation_briefs[0].acceptance_criteria[0].toLowerCase()).not.toContain('actively repels buyers')
   })
 })
 

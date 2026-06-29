@@ -36,6 +36,8 @@ export function untrustedBlock(label: string, content: string, maxChars = DEFAUL
 const PERCENT_CLAIM = /\b(?:by\s+|up\s+to\s+|around\s+|approximately\s+|~\s*)?\d{1,3}(?:[.,]\d+)?\s*(?:[-\u2013]|to)?\s*\d{0,3}(?:[.,]\d+)?\s*%/gi
 const REVENUE_CLAIM = /\$\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m|mm|million|billion|\/mo|\/month|\/yr)?/gi
 const MULTIPLIER_CLAIM = /\b\d{1,2}(?:\.\d+)?\s?x\b/gi
+const UNVERIFIED_QUANTIFIED_EXAMPLE =
+  /\b(?:at least|minimum|min\.?|around|about|approximately|approx\.?|~)?\s*\d+(?:[.,]\d+)?(?:\+|\s*[-\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:explainer\s+)?(?:videos?|logos?|seconds?|minutes?|weeks?|days?|months?|clients?|customers?|users?|case studies?|testimonials?|reviews?|outcomes?|enterprise calls?)\b/gi
 
 /** Stateless .test for a global regex (avoids lastIndex carrying between calls). */
 function matches(re: RegExp, text: string): boolean {
@@ -63,6 +65,16 @@ export function redactPerformanceClaims(text: string): string {
   return out
 }
 
+/** Replace arbitrary quantified examples the operator did not verify. */
+export function redactUnverifiedQuantifiedExamples(text: string): string {
+  if (!text) return text
+  return text
+    .replace(UNVERIFIED_QUANTIFIED_EXAMPLE, '[insert verified data]')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .trim()
+}
+
 const OVERCLAIM_PHRASES = [
   /absent from (?:the )?(?:ai )?(?:knowledge bases?|answer layer|ecosystem)/gi,
   /entirely absent from the ai answer layer/gi,
@@ -82,6 +94,11 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bactively undermine credibility\b/gi, 'may weaken credibility'],
   [/\bactively undermines credibility\b/gi, 'may weaken credibility'],
   [/\bundermine credibility\b/gi, 'may weaken credibility'],
+  [/\blosing qualified buyers in the first \[insert verified data\]\b/gi, 'may cause some qualified buyers to leave early'],
+  [/\blosing qualified buyers in the first \d+(?:[.,]\d+)?\s*seconds?\b/gi, 'may cause some qualified buyers to leave early'],
+  [/\bimmediately question originality and professionalism\b/gi, 'may question originality and professionalism'],
+  [/\bactively repels buyers\b/gi, 'may reduce fit for some buyers'],
+  [/\bactively repel buyers\b/gi, 'may reduce fit for some buyers'],
   [/\bdisqualifying\b/gi, 'may reduce shortlist probability'],
   [/\bdisqualifies\b/gi, 'may reduce shortlist probability for'],
   [/every dollar of paid traffic is (?:wasted|should be tested carefully)/gi, 'paid traffic should be tested only after core conversion fixes'],
@@ -153,6 +170,8 @@ const UNVERIFIED_RESULT_PATTERNS: RegExp[] = [
   /\b(?:grow|grew|increase|increased|lift|lifted)\s+demo conversions\b(?:[^.?!]*)/gi,
   /\b(?:improve|improves|improved|increase|increases|increased|lift|lifts|lifted|grow|grows|grew)\s+trial signups?\b(?:[^.?!]*)/gi,
   /\b(?:influence|influences|influenced|secure|secures|secured|book|books|booked)\s+investor meetings?\b(?:[^.?!]*)/gi,
+  /\bsales team\s+(?:uses|used)\s+(?:the\s+)?(?:video|asset|case study)\s+before\s+every\s+enterprise call\b(?:[^.?!]*)/gi,
+  /\b(?:video|asset|case study)\s+(?:is|was)\s+used\s+before\s+every\s+enterprise call\b(?:[^.?!]*)/gi,
   /\b(?:20\+|30\+|50\+)\s+(?:client\s+)?logos\b/gi,
   /\b(?:3|4|5|6|3-6|4-6)\s+weeks?\b/gi,
 ]
@@ -190,5 +209,67 @@ export function softenUnsupportedClaims(text: string, mentions?: number, total?:
 
 /** Full prose safety pass for human-facing generated copy. */
 export function sanitizeGeneratedProse(text: string, mentions?: number, total?: number): string {
-  return softenUnsupportedClaims(redactPerformanceClaims(text), mentions, total)
+  return softenUnsupportedClaims(redactUnverifiedQuantifiedExamples(redactPerformanceClaims(text)), mentions, total)
+}
+
+const RAW_STRING_KEYS = new Set([
+  'url',
+  'generated_at',
+  'icp_description',
+  'competitors',
+  'current_headline',
+  'json_ld',
+  'engine',
+  'query',
+  'answer_excerpt',
+  'citations',
+  'brand',
+  'brand_domain',
+  'domain',
+  'cited_source',
+  'checked_at',
+  'extracted_text',
+  'html_snippet',
+])
+
+const RAW_PATH_PREFIXES = [
+  'meta.',
+  'geo.evidence.',
+  'technical_findings.',
+]
+
+function shouldSkipGeneratedProseSanitizer(path: string[], key?: string): boolean {
+  if (key && RAW_STRING_KEYS.has(key)) return true
+  const joined = path.join('.')
+  return RAW_PATH_PREFIXES.some((prefix) => joined.startsWith(prefix))
+}
+
+/**
+ * Recursively sanitize generated human-facing report prose. This is the final
+ * choke point before persistence, so new report fields cannot bypass the trust
+ * layer just because they were not manually listed in audit-runner.
+ */
+export function sanitizeGeneratedReportValue<T>(value: T, mentions?: number, total?: number, path: string[] = []): T {
+  if (typeof value === 'string') {
+    const key = path[path.length - 1]
+    return (shouldSkipGeneratedProseSanitizer(path, key)
+      ? value
+      : sanitizeGeneratedProse(value, mentions, total)) as T
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item, index) => sanitizeGeneratedReportValue(item, mentions, total, [...path, String(index)])) as T
+  }
+
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [key, child] of Object.entries(value)) {
+      out[key] = shouldSkipGeneratedProseSanitizer([...path, key], key)
+        ? child
+        : sanitizeGeneratedReportValue(child, mentions, total, [...path, key])
+    }
+    return out as T
+  }
+
+  return value
 }

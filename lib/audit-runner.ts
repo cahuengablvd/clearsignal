@@ -33,7 +33,7 @@ import {
 import { sendReportEmail } from './resend'
 import { runGeoScan } from './geo'
 import { notify } from './notify'
-import { sanitizeGeneratedProse } from './sanitize'
+import { sanitizeGeneratedProse, sanitizeGeneratedReportValue } from './sanitize'
 import { attachActionConfidence } from './action-confidence'
 import type { GeoResult } from './schemas'
 
@@ -279,12 +279,17 @@ export async function runFullAudit(auditId: string): Promise<void> {
       ready_materials: readyMaterials,
       implementation_briefs: implementationBriefs,
     }
+    const safeReport = sanitizeGeneratedReportValue(
+      report,
+      geo?.evidence.filter((e) => e.brand_mentioned).length,
+      geo?.evidence.length
+    )
 
     // 8. Save report to audit
     await supabaseAdmin
       .from('audits')
       .update({
-        report: report,
+        report: safeReport,
         audit_status: 'done',
       })
       .eq('id', auditId)

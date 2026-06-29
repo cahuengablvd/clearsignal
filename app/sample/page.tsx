@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
 import { buildJsonLd } from '@/lib/materials'
+import { priorityForFix } from '@/lib/prioritization'
 import {
   ArrowLeft,
   ArrowRight,
@@ -180,6 +181,13 @@ function statusIcon(tone: string) {
 function impactClass(impact: string) {
   if (impact === 'high') return 'bg-red-50 text-red-700 border-red-200'
   return 'bg-amber-50 text-amber-700 border-amber-200'
+}
+
+function priorityClass(bucket: string) {
+  if (bucket === 'Do now') return 'bg-green-50 text-green-700 border-green-200'
+  if (bucket === 'This month') return 'bg-blue-50 text-blue-700 border-blue-200'
+  if (bucket === 'Later') return 'bg-amber-50 text-amber-700 border-amber-200'
+  return 'bg-slate-50 text-slate-700 border-slate-200'
 }
 
 export default function SampleReportPage() {
@@ -363,23 +371,57 @@ export default function SampleReportPage() {
           </p>
           <div className="grid gap-3">
             {[
-              { label: 'Primary call-to-action', cls: 'detected', conf: 96, detail: 'A primary CTA element is present.', basis: 'Matched a button element in the rendered HTML' },
-              { label: 'Structured data (schema.org JSON-LD)', cls: 'detected', conf: 88, detail: 'No JSON-LD structured data found - AI engines have fewer entity signals to cite.', basis: 'No application/ld+json script present in the rendered HTML' },
-              { label: 'Social proof signals', cls: 'manual_verification', conf: 45, detail: 'No textual social-proof signals found - verify whether logos/testimonials exist as images.', basis: 'No proof-related keywords found; visual logos may not be detectable from text' },
+              {
+                label: 'Primary call-to-action',
+                status: 'present',
+                conf: 96,
+                detail: 'A primary CTA element is present.',
+                basis: 'Matched a button element in the rendered HTML',
+                evidence: '<button>Get started</button>',
+              },
+              {
+                label: 'Structured data (schema.org JSON-LD)',
+                status: 'absent',
+                conf: 88,
+                detail: 'No JSON-LD structured data found - AI engines have fewer entity signals to cite.',
+                basis: 'No application/ld+json script present in the rendered HTML',
+                evidence: 'Checked rendered HTML head; no application/ld+json script found.',
+              },
+              {
+                label: 'Social proof signals',
+                status: 'unknown',
+                conf: 45,
+                detail: 'No textual social-proof signals found - verify whether logos/testimonials exist as images.',
+                basis: 'No proof-related keywords found; visual logos may not be detectable from text',
+                evidence: 'Crawler text did not include testimonial, review, logo, G2 or Capterra signals.',
+              },
             ].map((f) => {
-              const cls = f.cls === 'detected' ? 'bg-green-100 text-green-800 border-green-200' : f.cls === 'likely' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+              const cls = f.status === 'present'
+                ? 'bg-green-100 text-green-800 border-green-200'
+                : f.status === 'absent'
+                  ? 'bg-red-100 text-red-800 border-red-200'
+                  : 'bg-amber-100 text-amber-800 border-amber-200'
+              const label = f.status === 'present' ? 'detected present' : f.status === 'absent' ? 'verified absent' : 'manual verification'
               return (
                 <Card key={f.label}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3 mb-1">
                       <h3 className="font-semibold text-sm">{f.label}</h3>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge className={cls}>{f.cls.replace('_', ' ')}</Badge>
+                        <Badge className={cls}>{label}</Badge>
                         <span className="text-xs font-mono text-slate-500">{f.conf}%</span>
                       </div>
                     </div>
                     <p className="text-sm text-slate-600">{f.detail}</p>
                     <p className="text-xs text-slate-500 mt-2"><span className="font-medium">How checked:</span> {f.basis}</p>
+                    <details className="mt-3 text-xs">
+                      <summary className="cursor-pointer font-medium text-slate-500 hover:text-slate-700">Evidence details</summary>
+                      <div className="mt-2 rounded border bg-slate-50 p-3 text-slate-600">
+                        <div><span className="font-medium text-slate-900">URL:</span> https://example-saas.com</div>
+                        <div><span className="font-medium text-slate-900">Checked:</span> sample timestamp</div>
+                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded bg-white p-2">{f.evidence}</pre>
+                      </div>
+                    </details>
                   </CardContent>
                 </Card>
               )
@@ -413,24 +455,31 @@ export default function SampleReportPage() {
             <h2 className="text-xl font-bold">Prioritized action plan</h2>
           </div>
           <div className="space-y-3">
-            {fixes.map((fix, index) => (
-              <Card key={fix.title}>
-                <CardContent className="p-5">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                    <div>
-                      <div className="text-xs font-semibold text-slate-500 mb-2">Fix #{index + 1}</div>
-                      <h3 className="font-semibold">{fix.title}</h3>
-                      <p className="text-sm text-slate-600 mt-2 leading-relaxed">{fix.desc}</p>
+            {fixes.map((fix, index) => {
+              const priority = priorityForFix(fix)
+              return (
+                <Card key={fix.title}>
+                  <CardContent className="p-5">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-slate-500 mb-2">Fix #{index + 1}</div>
+                        <h3 className="font-semibold">{fix.title}</h3>
+                        <p className="text-sm text-slate-600 mt-2 leading-relaxed">{fix.desc}</p>
+                        <p className="mt-2 text-xs text-slate-500">
+                          Priority score: <span className="font-mono">{priority.score}</span> (Impact x Confidence / Effort).
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <Badge className={priorityClass(priority.bucket)}>{priority.bucket}</Badge>
+                        <Badge className={impactClass(fix.impact)}>{fix.impact} impact</Badge>
+                        <Badge variant="outline">{fix.effort}</Badge>
+                        <Badge variant="outline">{fix.category}</Badge>
+                      </div>
                     </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Badge className={impactClass(fix.impact)}>{fix.impact} impact</Badge>
-                      <Badge variant="outline">{fix.effort}</Badge>
-                      <Badge variant="outline">{fix.category}</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </section>
 

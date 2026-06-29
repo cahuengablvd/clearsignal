@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { verifyToken } from '@/lib/tokens'
 import { isAdminAuthenticated } from '@/lib/auth'
 import type { ClearSignalReport } from '@/lib/schemas'
+import { priorityForFix } from '@/lib/prioritization'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -49,6 +50,47 @@ function EffortBadge({ effort }: { effort: string }) {
     hard: 'bg-red-100 text-red-800',
   }
   return <Badge className={colors[effort] || ''}>{effort}</Badge>
+}
+
+function FindingBadge({
+  classification,
+  status,
+}: {
+  classification: string
+  status?: string
+}) {
+  const label =
+    status === 'present'
+      ? 'detected present'
+      : status === 'absent'
+        ? 'verified absent'
+        : status === 'unknown'
+          ? 'manual verification'
+          : classification.replace('_', ' ')
+  const colors: Record<string, string> = {
+    present: 'bg-green-100 text-green-800 border-green-200',
+    absent: 'bg-red-100 text-red-800 border-red-200',
+    unknown: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    action: 'bg-slate-100 text-slate-800 border-slate-200',
+  }
+  if (status && colors[status]) return <Badge className={colors[status]}>{label}</Badge>
+  const fallback: Record<string, string> = {
+    detected: 'bg-green-100 text-green-800 border-green-200',
+    likely: 'bg-blue-100 text-blue-800 border-blue-200',
+    manual_verification: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    recommendation: 'bg-slate-100 text-slate-800 border-slate-200',
+  }
+  return <Badge className={fallback[classification] || ''}>{label}</Badge>
+}
+
+function PriorityBadge({ bucket }: { bucket: string }) {
+  const colors: Record<string, string> = {
+    'Do now': 'bg-green-100 text-green-800 border-green-200',
+    'This month': 'bg-blue-100 text-blue-800 border-blue-200',
+    Later: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    Optional: 'bg-slate-100 text-slate-800 border-slate-200',
+  }
+  return <Badge className={colors[bucket] || ''}>{bucket}</Badge>
 }
 
 export default async function AuditPage({
@@ -132,21 +174,13 @@ export default async function AuditPage({
             </p>
             <div className="grid gap-3 mb-8">
               {report.technical_findings.map((f) => {
-                const cls =
-                  f.classification === 'detected'
-                    ? 'bg-green-100 text-green-800 border-green-200'
-                    : f.classification === 'likely'
-                      ? 'bg-blue-100 text-blue-800 border-blue-200'
-                      : f.classification === 'manual_verification'
-                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                        : 'bg-slate-100 text-slate-800 border-slate-200'
                 return (
                   <Card key={f.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3 mb-1">
                         <h3 className="font-semibold text-sm">{f.label}</h3>
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge className={cls}>{f.classification.replace('_', ' ')}</Badge>
+                          <FindingBadge classification={f.classification} status={f.status} />
                           <span className="text-xs font-mono text-muted-foreground">{f.confidence}%</span>
                         </div>
                       </div>
@@ -158,6 +192,33 @@ export default async function AuditPage({
                         <blockquote className="mt-2 border-l-2 border-muted pl-3 text-xs italic text-muted-foreground">
                           {f.evidence.extracted_text}
                         </blockquote>
+                      )}
+                      {f.evidence && (
+                        <details className="mt-3 text-xs">
+                          <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">
+                            Evidence details
+                          </summary>
+                          <dl className="mt-2 grid gap-1 rounded border bg-muted/40 p-3 text-muted-foreground">
+                            <div className="break-all">
+                              <dt className="inline font-medium text-foreground">URL: </dt>
+                              <dd className="inline">{f.evidence.url}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline font-medium text-foreground">Checked: </dt>
+                              <dd className="inline">{new Date(f.evidence.checked_at).toLocaleString()}</dd>
+                            </div>
+                            {f.evidence.html_snippet && (
+                              <div>
+                                <dt className="font-medium text-foreground">HTML snippet:</dt>
+                                <dd>
+                                  <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded bg-background p-2">
+                                    {f.evidence.html_snippet}
+                                  </pre>
+                                </dd>
+                              </div>
+                            )}
+                          </dl>
+                        </details>
                       )}
                     </CardContent>
                   </Card>
@@ -567,24 +628,31 @@ export default async function AuditPage({
 
         {/* Top Fixes */}
         <div className="space-y-3 mb-8">
-          {report.action.top_fixes.map((fix) => (
-            <Card key={fix.id}>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono text-muted-foreground w-6">#{fix.id}</span>
-                    <h3 className="font-semibold">{fix.title}</h3>
+          {report.action.top_fixes.map((fix) => {
+            const priority = priorityForFix(fix)
+            return (
+              <Card key={fix.id}>
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono text-muted-foreground w-6">#{fix.id}</span>
+                      <h3 className="font-semibold">{fix.title}</h3>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                      <PriorityBadge bucket={priority.bucket} />
+                      <ImpactBadge impact={fix.impact} />
+                      <EffortBadge effort={fix.effort} />
+                      <Badge variant="outline">{fix.category}</Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <ImpactBadge impact={fix.impact} />
-                    <EffortBadge effort={fix.effort} />
-                    <Badge variant="outline">{fix.category}</Badge>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+                  <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>
+                  <p className="mt-2 ml-8 text-xs text-muted-foreground">
+                    Priority score: <span className="font-mono">{priority.score}</span> ({priority.formula}; default confidence 75% unless a measured confidence exists).
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         {/* Ship First / Ignore */}

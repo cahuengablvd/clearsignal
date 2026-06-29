@@ -8,11 +8,13 @@ import {
 import { icpTextSchema, competitorUrlSchema, FindingSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
 import { buildJsonLd } from '../lib/materials'
+import { priorityForFix } from '../lib/prioritization'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
     expect(icpTextSchema.safeParse('https://epipheo.com/').success).toBe(false)
     expect(icpTextSchema.safeParse('http://example.com').success).toBe(false)
+    expect(icpTextSchema.safeParse('B2B founders at https://epipheo.com/').success).toBe(false)
   })
 
   it('accepts a plain-text ICP description', () => {
@@ -26,7 +28,13 @@ describe('input validation', () => {
 
   it('accepts a valid URL competitor (or empty)', () => {
     expect(competitorUrlSchema.safeParse('https://notion.so').success).toBe(true)
+    expect(competitorUrlSchema.safeParse('http://notion.so').success).toBe(true)
     expect(competitorUrlSchema.safeParse('').success).toBe(true)
+  })
+
+  it('rejects non-http competitor URLs', () => {
+    expect(competitorUrlSchema.safeParse('mailto:sales@example.com').success).toBe(false)
+    expect(competitorUrlSchema.safeParse('ftp://example.com').success).toBe(false)
   })
 })
 
@@ -81,10 +89,12 @@ describe('deterministic technical findings', () => {
     const byId = Object.fromEntries(findings.map((f) => [f.id, f]))
 
     expect(byId.cta_present.classification).toBe('detected')
+    expect(byId.cta_present.status).toBe('present')
     expect(byId.cta_present.confidence).toBeGreaterThanOrEqual(95)
     expect(byId.h1_present.classification).toBe('detected')
     expect(byId.h1_present.evidence?.extracted_text).toContain('Ship faster')
     expect(byId.json_ld.classification).toBe('detected')
+    expect(byId.json_ld.status).toBe('present')
     expect(byId.json_ld.detail).toContain('Organization')
   })
 
@@ -92,7 +102,15 @@ describe('deterministic technical findings', () => {
     const findings = computeTechnicalFindings({ url, html: '<html><body><p>hi</p></body></html>', markdown: 'hi' })
     const cta = findings.find((f) => f.id === 'cta_present')!
     expect(cta.classification).toBe('manual_verification')
+    expect(cta.status).toBe('unknown')
     expect(cta.confidence).toBeLessThan(50)
+  })
+
+  it('marks verified absence separately from verified presence', () => {
+    const findings = computeTechnicalFindings({ url, html: '<html><body><h1>x</h1></body></html>', markdown: 'x' })
+    const jsonLd = findings.find((f) => f.id === 'json_ld')!
+    expect(jsonLd.classification).toBe('detected')
+    expect(jsonLd.status).toBe('absent')
   })
 
   it('every finding matches the schema and carries evidence.checked_at', () => {
@@ -138,5 +156,22 @@ describe('sample-bounded GEO wording', () => {
   it('falls back to a generic bounded phrase without counts', () => {
     const out = boundSampleClaims('The brand is invisible everywhere.')
     expect(out.toLowerCase()).toContain('tested queries')
+  })
+})
+
+describe('deterministic action priority', () => {
+  it('prioritizes high-impact easy fixes above low-impact hard fixes', () => {
+    const urgent = priorityForFix({ impact: 'high', effort: 'easy', confidence: 90 })
+    const optional = priorityForFix({ impact: 'low', effort: 'hard', confidence: 50 })
+
+    expect(urgent.score).toBeGreaterThan(optional.score)
+    expect(urgent.bucket).toBe('Do now')
+    expect(optional.bucket).toBe('Optional')
+  })
+
+  it('uses a default confidence when the model did not provide one', () => {
+    const priority = priorityForFix({ impact: 'medium', effort: 'medium' })
+    expect(priority.score).toBe(75)
+    expect(priority.formula).toContain('Impact')
   })
 })

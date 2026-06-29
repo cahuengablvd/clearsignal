@@ -20,16 +20,35 @@ export function looksLikeUrl(value: string): boolean {
   return /^\s*https?:\/\/\S+\s*$/i.test(value)
 }
 
+/** True when free text contains any URL-like http(s) token. */
+export function containsUrl(value: string): boolean {
+  return /https?:\/\/\S+/i.test(value)
+}
+
 /** ICP is a free-text description, NEVER a URL (the URL belongs in `url`). */
 export const icpTextSchema = z
   .string()
   .max(1000)
-  .refine((v) => !looksLikeUrl(v), { message: 'ICP must be a text description, not a URL' })
+  .refine((v) => !looksLikeUrl(v) && !containsUrl(v), {
+    message: 'ICP must be a text description, not a URL',
+  })
   .optional()
   .default('')
 
 /** A competitor is always a valid http(s) URL (or empty). */
-export const competitorUrlSchema = z.string().url().optional().or(z.literal(''))
+export const competitorUrlSchema = z
+  .string()
+  .url()
+  .refine((v) => {
+    try {
+      const protocol = new URL(v).protocol
+      return protocol === 'http:' || protocol === 'https:'
+    } catch {
+      return false
+    }
+  }, { message: 'Competitor must be an http(s) URL' })
+  .optional()
+  .or(z.literal(''))
 
 // --- Trust Layer: typed findings (deterministic confidence) ---
 
@@ -40,6 +59,14 @@ export const FindingClassificationSchema = z.enum([
   'recommendation', // an action, not a measured fact
 ])
 export type FindingClassification = z.infer<typeof FindingClassificationSchema>
+
+export const FindingStatusSchema = z.enum([
+  'present', // the signal was verified on the page
+  'absent', // the absence was verified from rendered HTML
+  'unknown', // crawler/browser evidence was insufficient
+  'action', // this row is a recommendation rather than a page fact
+])
+export type FindingStatus = z.infer<typeof FindingStatusSchema>
 
 export const FindingEvidenceSchema = z.object({
   url: z.string(),
@@ -56,6 +83,8 @@ export const FindingSchema = z.object({
   id: z.string(),
   label: z.string(),
   classification: FindingClassificationSchema,
+  // Optional for backward compatibility with older generated reports.
+  status: FindingStatusSchema.optional(),
   confidence: z.number().min(0).max(100),
   confidence_basis: z.string(),
   detail: z.string(),

@@ -75,6 +75,10 @@ const OVERCLAIM_PHRASES = [
 ]
 
 const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/social proof is actively damaging/gi, 'social proof may weaken trust'],
+  [/this single data point likely disqualifies ([^.]+)/gi, 'this signal may reduce shortlist probability for $1'],
+  [/every dollar of paid traffic is wasted/gi, 'paid traffic should be tested only after core conversion fixes'],
+  [/materially close the gap within 30 days/gi, 'likely improve competitive positioning'],
   [/\bhemorrhaging leads at every stage\b/gi, 'may be losing leads at several points'],
   [/\bhemorrhaging leads\b/gi, 'may be losing leads'],
   [/\bhemorrhaging buyers\b/gi, 'may be losing buyers'],
@@ -97,6 +101,9 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bcosting you demo conversions\b/gi, 'may be reducing demo intent'],
   [/ai engines have no content signals until ([^.]+)/gi, 'AI engines may need stronger owned-page and third-party signals; $1'],
   [/ai engines have no signals/gi, 'AI engines did not surface strong signals in the tested results'],
+  [/not recognized as an entity by ([^.]+)/gi, 'not mentioned in the tested engine-query combinations for $1'],
+  [/not recognized as an entity/gi, 'not mentioned in the tested engine-query combinations'],
+  [/absent from all knowledge bases/gi, 'not surfaced in the tested evidence'],
   [/no content signals until ([^.]+)/gi, 'limited content signals unless $1'],
   [/a 90-second explainer closes the gap faster than any landing page rewrite/gi, 'a concise explainer may help, but it should support a clear landing page rather than replace it'],
   [/product animations reduced sales cycle/gi, '[Replace with a verified client result]'],
@@ -107,6 +114,11 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bno reddit discussions\b/gi, 'no Reddit discussions were found in the sources returned during this audit'],
   [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the tested sources'],
   [/\bno reddit presence\b/gi, 'no Reddit mentions were found in the tested sources'],
+  [/\bwikipedia\/wikidata page\b/gi, 'independent third-party entity profile'],
+  [/\bwikipedia\b/gi, 'eligible independent third-party source'],
+  [/\bwikidata\b/gi, 'eligible entity database'],
+  [/\baggregaterating\b/gi, 'valid review schema only if first-party guidelines and source data support it'],
+  [/\bunlimited revisions\b/gi, 'clearly scoped revision terms'],
 ]
 
 const UNVERIFIED_RESULT_PATTERNS: RegExp[] = [
@@ -116,6 +128,12 @@ const UNVERIFIED_RESULT_PATTERNS: RegExp[] = [
   /\b(?:two-revision|two revision)\s+guarantee\b/gi,
   /\basset pays for itself in one closed deal\b/gi,
   /\bpays for itself in (?:one|a single|1) closed deal\b/gi,
+  /\bclosed (?:a )?seed round\b(?:[^.?!]*)/gi,
+  /\b(?:influence|influenced|impact|impacted|move|moves|moved)\s+pipeline\b(?:[^.?!]*)/gi,
+  /\b(?:reduced|cut|lowered|decreased)\s+support tickets\b(?:[^.?!]*)/gi,
+  /\b(?:grow|grew|increase|increased|lift|lifted)\s+demo conversions\b(?:[^.?!]*)/gi,
+  /\b(?:20\+|30\+|50\+)\s+(?:client\s+)?logos\b/gi,
+  /\b(?:3|4|5|6|3-6|4-6)\s+weeks?\b/gi,
 ]
 
 /**

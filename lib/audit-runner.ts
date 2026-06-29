@@ -37,6 +37,22 @@ import { sanitizeGeneratedProse } from './sanitize'
 import { attachActionConfidence } from './action-confidence'
 import type { GeoResult } from './schemas'
 
+function buildDataLimitations(geo: GeoResult | null): string[] {
+  const limits = [
+    'This audit does not use GA4, CRM, ad platform, heatmap, or sales-cycle data, so conversion and revenue impact are framed as hypotheses.',
+    'Crawler output may miss visual-only content, gated content, personalized pages, or assets blocked by the target site.',
+    'Recommendations should be reviewed by the business owner before publishing claims, guarantees, case studies, or client results.',
+  ]
+  if (geo) {
+    limits.unshift(
+      `AI visibility findings are limited to ${geo.evidence.length} tested engine-query combinations across ${geo.engines_tested.join(', ')}.`
+    )
+  } else {
+    limits.unshift('Live AI visibility evidence was unavailable for this run.')
+  }
+  return limits
+}
+
 /** Strip invented performance numbers from all human-facing report prose. */
 function sanitizeReportProse(
   clarity: ClarityBlock,
@@ -56,6 +72,12 @@ function sanitizeReportProse(
 
   gap.where_you_lose = gap.where_you_lose.map(clean)
   gap.where_you_win = gap.where_you_win.map(clean)
+  gap.competitor_analysis = gap.competitor_analysis.map((c) => ({
+    ...c,
+    headline: clean(c.headline),
+    strengths: c.strengths.map(clean),
+    weaknesses: c.weaknesses.map(clean),
+  }))
   gap.ai_search.finding = clean(gap.ai_search.finding)
   gap.ai_search.missing_signals = gap.ai_search.missing_signals.map(clean)
 
@@ -65,6 +87,8 @@ function sanitizeReportProse(
     title: clean(f.title),
     description: clean(f.description),
   }))
+  action.ship_first = action.ship_first.map(clean)
+  action.ignore_for_now = action.ignore_for_now.map(clean)
   action.outreach_messages = action.outreach_messages.map((m) => ({
     ...m,
     message: clean(m.message),
@@ -205,6 +229,13 @@ export async function runFullAudit(auditId: string): Promise<void> {
         validate: (d) => ReadyMaterialsLlmSchema.parse(d),
         maxTokens: 2048,
       })
+      llm.meta_title = sanitizeGeneratedProse(llm.meta_title)
+      llm.meta_description = sanitizeGeneratedProse(llm.meta_description)
+      llm.faq = llm.faq.map((f) => ({
+        question: sanitizeGeneratedProse(f.question),
+        answer: sanitizeGeneratedProse(f.answer),
+      }))
+      llm.cta_variants = llm.cta_variants.map((c) => sanitizeGeneratedProse(c))
       readyMaterials = assembleMaterials(brand, audit.url, llm)
     } catch (err) {
       console.warn(`Ready-materials generation failed for ${auditId} (continuing without it):`, err)
@@ -242,6 +273,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       clarity,
       gap,
       action: actionWithConfidence,
+      data_limitations: buildDataLimitations(geo),
       geo,
       technical_findings: technicalFindings,
       ready_materials: readyMaterials,

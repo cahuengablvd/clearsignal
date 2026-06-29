@@ -11,7 +11,7 @@ import { computeTechnicalFindings } from '../lib/findings'
 import { buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
 import { attachActionConfidence } from '../lib/action-confidence'
-import { inferFixOwner } from '../lib/role-assignment'
+import { inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -163,7 +163,7 @@ describe('sample-bounded GEO wording', () => {
 
   it('softens unsupported aggressive language', () => {
     const out = sanitizeGeneratedProse(
-      'The page is functionally invisible and this is a direct and immediate conversion killer. It reads as unproven and unfinished. The site is hemorrhaging leads at every stage with a catastrophic trust gap and actively destroys credibility.',
+      'The page is functionally invisible and this is a direct and immediate conversion killer. It reads as unproven and unfinished. The site is hemorrhaging leads at every stage with a catastrophic trust gap and actively destroys credibility. Social proof is actively damaging and every dollar of paid traffic is wasted.',
       0,
       6
     )
@@ -175,24 +175,30 @@ describe('sample-bounded GEO wording', () => {
     expect(out.toLowerCase()).not.toContain('hemorrhaging')
     expect(out.toLowerCase()).not.toContain('catastrophic')
     expect(out.toLowerCase()).not.toContain('destroys credibility')
+    expect(out.toLowerCase()).not.toContain('actively damaging')
+    expect(out.toLowerCase()).toContain('paid traffic should be tested')
   })
 
   it('replaces unverified business outcomes with placeholders', () => {
     const out = sanitizeGeneratedProse(
-      'Vitrifi reduced sales cycle by 30%. Product videos lift demo request rates. The two-revision guarantee means the asset pays for itself in one closed deal.'
+      'Vitrifi reduced sales cycle by 30%. Product videos lift demo request rates. The two-revision guarantee means the asset pays for itself in one closed deal. Add 20+ client logos and promise it closed a seed round.'
     )
     expect(out).toContain('[Example only - replace with verified client data]')
     expect(out.toLowerCase()).not.toContain('reduced sales cycle')
     expect(out.toLowerCase()).not.toContain('demo request rates')
     expect(out.toLowerCase()).not.toContain('two-revision guarantee')
     expect(out.toLowerCase()).not.toContain('pays for itself')
+    expect(out.toLowerCase()).not.toContain('20+ client logos')
+    expect(out.toLowerCase()).not.toContain('closed a seed round')
   })
 
   it('bounds off-site ecosystem claims to returned sources', () => {
-    const out = sanitizeGeneratedProse('There is no YouTube presence and no Reddit presence. AI engines have no signals.')
+    const out = sanitizeGeneratedProse('There is no YouTube presence and no Reddit presence. AI engines have no signals. BLVD is not recognized as an entity by Claude, Perplexity, or OpenAI.')
     expect(out).toContain('sources returned during this audit')
     expect(out).toContain('tested results')
     expect(out.toLowerCase()).not.toContain('no signals')
+    expect(out.toLowerCase()).not.toContain('not recognized as an entity')
+    expect(out.toLowerCase()).toContain('tested engine-query combinations')
   })
 })
 
@@ -240,6 +246,9 @@ describe('action confidence enrichment', () => {
     const enriched = attachActionConfidence(action, findings, null)
     expect(enriched.top_fixes[0].confidence).toBeGreaterThanOrEqual(90)
     expect(enriched.top_fixes[0].confidence_level).toBe('high')
+    expect(enriched.top_fixes[0].claim_level).toBe('observed')
+    expect(enriched.top_fixes[0].owner).toBe('Copywriter')
+    expect(enriched.top_fixes[0].implementer).toBe('Copywriter')
     expect(enriched.top_fixes[0].control).toBe('high')
     expect(enriched.top_fixes[0].probability).toBe('high')
     expect(enriched.top_fixes[0].confidence_basis).toContain('CTA')
@@ -271,6 +280,40 @@ describe('action confidence enrichment', () => {
     expect(enriched.top_fixes[0].probability).toBe('low')
     expect(enriched.top_fixes[0].description).toContain('lower-control')
   })
+
+  it('downgrades Wikipedia/Wikidata and AggregateRating recommendations', () => {
+    const action = {
+      executive_summary: 'Summary',
+      top_fixes: [
+        {
+          id: 1,
+          title: 'Create a Wikipedia and Wikidata page',
+          description: 'Add an entity profile for AI visibility.',
+          impact: 'medium' as const,
+          effort: 'easy' as const,
+          category: 'ai_search' as const,
+        },
+        {
+          id: 2,
+          title: 'Add AggregateRating schema',
+          description: 'Use Upwork reviews as rating markup.',
+          impact: 'medium' as const,
+          effort: 'easy' as const,
+          category: 'ai_search' as const,
+        },
+      ],
+      ship_first: [],
+      ignore_for_now: [],
+      outreach_messages: [],
+    }
+
+    const enriched = attachActionConfidence(action, [], null)
+    expect(enriched.top_fixes[0].effort).toBe('hard')
+    expect(enriched.top_fixes[0].control).toBe('low')
+    expect(enriched.top_fixes[0].description).toContain('independent notability')
+    expect(enriched.top_fixes[1].effort).toBe('medium')
+    expect(enriched.top_fixes[1].description).toContain('review-source data')
+  })
 })
 
 describe('role assignment', () => {
@@ -282,12 +325,14 @@ describe('role assignment', () => {
     })).toBe('Copywriter')
   })
 
-  it('routes schema and broken logos to developer', () => {
-    expect(inferFixOwner({
+  it('routes schema and broken logos to developer as implementer', () => {
+    const fix = {
       title: 'Fix broken logo rendering and JSON-LD schema',
       description: 'Update HTML and structured data.',
       category: 'proof',
-    })).toBe('Developer')
+    }
+    expect(inferFixOwner(fix)).toBe('Founder / marketing')
+    expect(inferFixImplementer(fix)).toBe('Developer')
   })
 
   it('routes case studies to founder or marketing', () => {

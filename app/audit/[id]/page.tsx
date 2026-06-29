@@ -175,6 +175,19 @@ export default async function AuditPage({
           </CardContent>
         </Card>
 
+        {report.data_limitations && report.data_limitations.length > 0 && (
+          <Card className="mb-8 border-blue-200 bg-blue-50/40">
+            <CardHeader>
+              <CardTitle className="text-lg">Data limitations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                {report.data_limitations.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ========== VERIFIED STRUCTURAL FINDINGS (deterministic) ========== */}
         {report.technical_findings && report.technical_findings.length > 0 && (
           <>
@@ -651,10 +664,12 @@ export default async function AuditPage({
                     <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                       <PriorityBadge bucket={priority.bucket} />
                       <ConfidenceBadge level={fix.confidence_level} />
+                      {fix.claim_level && <Badge variant="outline">{fix.claim_level}</Badge>}
                       <ImpactBadge impact={fix.impact} />
                       <EffortBadge effort={fix.effort} />
                       <Badge variant="outline">{fix.category}</Badge>
-                      {fix.owner && <Badge variant="outline">{fix.owner}</Badge>}
+                      {fix.owner && <Badge variant="outline">Owner: {fix.owner}</Badge>}
+                      {fix.implementer && <Badge variant="outline">Implementer: {fix.implementer}</Badge>}
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>

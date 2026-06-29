@@ -247,6 +247,7 @@ const tierSchema = z.enum(['automated', 'reviewed', 'sprint'])
 const confidenceLevelSchema = z.enum(['high', 'medium', 'low'])
 const controlSchema = z.enum(['high', 'medium', 'low'])
 const probabilitySchema = z.enum(['high', 'medium', 'low'])
+const claimLevelSchema = z.enum(['observed', 'inferred', 'recommended'])
 
 // --- Report Sub-schemas ---
 
@@ -324,6 +325,8 @@ const actionSchema = z.object({
     confidence_level: confidenceLevelSchema.optional(),
     confidence_basis: z.string().optional(),
     owner: z.string().optional(),
+    implementer: z.string().optional(),
+    claim_level: claimLevelSchema.optional(),
     control: controlSchema.optional(),
     probability: probabilitySchema.optional(),
   })),
@@ -353,6 +356,8 @@ export const ClearSignalReportSchema = z.object({
   ready_materials: ReadyMaterialsSchema.optional().nullable(),
   // Ticket-style implementation briefs with acceptance criteria. Optional.
   implementation_briefs: z.array(ImplementationBriefSchema).optional().nullable(),
+  // Evidence boundary shown near the top of the report. Optional for old reports.
+  data_limitations: z.array(z.string()).optional(),
 })
 
 export type ClearSignalReport = z.infer<typeof ClearSignalReportSchema>

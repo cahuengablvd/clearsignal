@@ -1,5 +1,5 @@
 import type { ActionBlock, Finding, GeoResult } from './schemas'
-import { inferFixOwner } from './role-assignment'
+import { inferFixImplementer, inferFixOwner } from './role-assignment'
 
 function textOf(fix: { title: string; description: string }): string {
   return `${fix.title} ${fix.description}`.toLowerCase()
@@ -18,7 +18,7 @@ function confidenceFromFinding(finding: Finding | undefined, fallback: number, f
 }
 
 function isExternalDependency(text: string): boolean {
-  return /\b(backlinks?|roundups?|publications?|journalists?|partners?|competitor article|competitor's article|youtube|reddit|clutch|designrush|g2|capterra|directories|directory|review sites?)\b/i.test(text)
+  return /\b(backlinks?|roundups?|publications?|journalists?|partners?|competitor article|competitor's article|youtube|reddit|clutch|designrush|g2|capterra|directories|directory|review sites?|wikipedia|wikidata)\b/i.test(text)
 }
 
 function confidenceLevel(confidence: number): 'high' | 'medium' | 'low' {
@@ -41,6 +41,25 @@ function probabilityForFix(confidence: number, control: 'high' | 'medium' | 'low
   if (confidence >= 85) return 'high'
   if (confidence >= 55) return 'medium'
   return 'low'
+}
+
+function claimLevelForFix(
+  fix: ActionBlock['top_fixes'][number],
+  confidence: number,
+  findings: Finding[],
+  geo: GeoResult | null
+): 'observed' | 'inferred' | 'recommended' {
+  const text = textOf(fix)
+  const hasDirectFinding =
+    /\b(cta|call[- ]to[- ]action|button|demo)\b/.test(text) && Boolean(findById(findings, 'cta_present')) ||
+    /\b(schema|json-ld|structured data)\b/.test(text) && Boolean(findById(findings, 'json_ld')) ||
+    /\b(faq|question|answer|q&a)\b/.test(text) && Boolean(findById(findings, 'faq_structure')) ||
+    /\b(meta description|meta title|title tag)\b/.test(text) && Boolean(findById(findings, 'meta_description'))
+
+  if (hasDirectFinding && confidence >= 80) return 'observed'
+  if (geo && fix.category === 'ai_search' && !isExternalDependency(text)) return 'observed'
+  if (confidence >= 60) return 'inferred'
+  return 'recommended'
 }
 
 function confidenceForFix(
@@ -130,7 +149,23 @@ function confidenceForFix(
 
 function adjustExternalFix(fix: ActionBlock['top_fixes'][number]): ActionBlock['top_fixes'][number] {
   const text = textOf(fix)
-  if (!isExternalDependency(text)) return fix
+  const isWikipedia = /\b(wikipedia|wikidata)\b/i.test(text)
+  const isAggregateRating = /\baggregaterating\b/i.test(text)
+  if (!isExternalDependency(text) && !isAggregateRating) return fix
+  if (isWikipedia) {
+    return {
+      ...fix,
+      effort: 'hard',
+      description: `${fix.description} Do not treat Wikipedia or Wikidata as a standard SEO task: only pursue if independent notability and reliable third-party sources already exist. Safer alternative: build owned entity pages and credible third-party profiles first.`,
+    }
+  }
+  if (isAggregateRating) {
+    return {
+      ...fix,
+      effort: fix.effort === 'easy' ? 'medium' : fix.effort,
+      description: `${fix.description} Use AggregateRating only when review-source data and schema guidelines support it; otherwise use Organization, Service, FAQPage, and case-study markup.`,
+    }
+  }
   return {
     ...fix,
     effort: fix.effort === 'easy' ? 'medium' : fix.effort,
@@ -154,6 +189,8 @@ export function attachActionConfidence(
         ...confidence,
         confidence_level: confidenceLevel(confidence.confidence),
         owner: inferFixOwner(fix),
+        implementer: inferFixImplementer(fix),
+        claim_level: claimLevelForFix(fix, confidence.confidence, findings, geo),
         control,
         probability: probabilityForFix(confidence.confidence, control),
       }

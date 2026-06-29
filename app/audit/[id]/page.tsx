@@ -647,8 +647,14 @@ export default async function AuditPage({
                   </div>
                   <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>
                   <p className="mt-2 ml-8 text-xs text-muted-foreground">
-                    Priority score: <span className="font-mono">{priority.score}</span> ({priority.formula}; default confidence 75% unless a measured confidence exists).
+                    Priority score: <span className="font-mono">{priority.score}</span> ({priority.formula}
+                    {typeof fix.confidence === 'number' ? `; confidence ${fix.confidence}%` : '; confidence not measured'}).
                   </p>
+                  {fix.confidence_basis && (
+                    <p className="mt-1 ml-8 text-xs text-muted-foreground">
+                      Confidence basis: {fix.confidence_basis}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )

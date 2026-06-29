@@ -4,11 +4,13 @@ import {
   hasUnverifiedNumericClaim,
   redactPerformanceClaims,
   boundSampleClaims,
+  sanitizeGeneratedProse,
 } from '../lib/sanitize'
 import { icpTextSchema, competitorUrlSchema, FindingSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
 import { buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
+import { attachActionConfidence } from '../lib/action-confidence'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -157,6 +159,23 @@ describe('sample-bounded GEO wording', () => {
     const out = boundSampleClaims('The brand is invisible everywhere.')
     expect(out.toLowerCase()).toContain('tested queries')
   })
+
+  it('softens unsupported aggressive language', () => {
+    const out = sanitizeGeneratedProse(
+      'The page is functionally invisible and this is a direct and immediate conversion killer.',
+      0,
+      6
+    )
+    expect(out.toLowerCase()).toContain('0 of 6 tested queries')
+    expect(out.toLowerCase()).toContain('may reduce conversion clarity')
+    expect(out.toLowerCase()).not.toContain('functionally invisible')
+    expect(out.toLowerCase()).not.toContain('conversion killer')
+  })
+
+  it('bounds off-site ecosystem claims to returned sources', () => {
+    const out = sanitizeGeneratedProse('There is no YouTube presence and no Reddit discussions.')
+    expect(out).toContain('sources returned during this audit')
+  })
 })
 
 describe('deterministic action priority', () => {
@@ -173,5 +192,59 @@ describe('deterministic action priority', () => {
     const priority = priorityForFix({ impact: 'medium', effort: 'medium' })
     expect(priority.score).toBe(75)
     expect(priority.formula).toContain('Impact')
+  })
+})
+
+describe('action confidence enrichment', () => {
+  it('attaches evidence-derived confidence to CTA fixes', () => {
+    const findings = computeTechnicalFindings({
+      url: 'https://example.com',
+      html: '<html><body><h1>x</h1><button>Book demo</button></body></html>',
+      markdown: 'Book demo',
+    })
+    const action = {
+      executive_summary: 'Summary',
+      top_fixes: [
+        {
+          id: 1,
+          title: 'Improve the primary CTA',
+          description: 'Make the demo action more specific.',
+          impact: 'high' as const,
+          effort: 'easy' as const,
+          category: 'cta' as const,
+        },
+      ],
+      ship_first: [],
+      ignore_for_now: [],
+      outreach_messages: [],
+    }
+
+    const enriched = attachActionConfidence(action, findings, null)
+    expect(enriched.top_fixes[0].confidence).toBeGreaterThanOrEqual(90)
+    expect(enriched.top_fixes[0].confidence_basis).toContain('CTA')
+  })
+
+  it('downgrades third-party dependent recommendations', () => {
+    const action = {
+      executive_summary: 'Summary',
+      top_fixes: [
+        {
+          id: 1,
+          title: 'Get included in competitor roundups',
+          description: 'Request backlinks from external review sites.',
+          impact: 'high' as const,
+          effort: 'easy' as const,
+          category: 'ai_search' as const,
+        },
+      ],
+      ship_first: [],
+      ignore_for_now: [],
+      outreach_messages: [],
+    }
+
+    const enriched = attachActionConfidence(action, [], null)
+    expect(enriched.top_fixes[0].confidence).toBeLessThanOrEqual(55)
+    expect(enriched.top_fixes[0].effort).toBe('medium')
+    expect(enriched.top_fixes[0].description).toContain('lower-control')
   })
 })

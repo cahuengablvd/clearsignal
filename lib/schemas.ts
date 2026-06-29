@@ -316,6 +316,9 @@ const actionSchema = z.object({
     impact: impactSchema,
     effort: effortSchema,
     category: categorySchema,
+    // Added after generation by deterministic evidence mapping, when possible.
+    confidence: z.number().min(0).max(100).optional(),
+    confidence_basis: z.string().optional(),
   })),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),

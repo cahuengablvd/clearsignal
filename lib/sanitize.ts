@@ -64,11 +64,26 @@ export function redactPerformanceClaims(text: string): string {
 }
 
 const OVERCLAIM_PHRASES = [
+  /functionally invisible/gi,
   /completely invisible(?:\s+everywhere)?/gi,
   /invisible everywhere/gi,
   /(?:not|never)\s+visible\s+anywhere/gi,
   /no visibility at all/gi,
   /totally absent from ai/gi,
+  /entirely absent from (?:all )?(?:source )?ecosystems/gi,
+]
+
+const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/actively destroys credibility/gi, 'may weaken credibility'],
+  [/direct and immediate conversion killer/gi, 'may reduce conversion clarity'],
+  [/\bconversion killer\b/gi, 'potential conversion clarity issue'],
+  [/catastrophically mismatched/gi, 'poorly matched'],
+  [/\bcatastrophic(?:ally)?\b/gi, 'significant'],
+  [/\bkilling conversions\b/gi, 'may reduce conversions'],
+  [/\bdestroys credibility\b/gi, 'may weaken credibility'],
+  [/\bcosting you demo conversions\b/gi, 'may be reducing demo intent'],
+  [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the sources returned during this audit'],
+  [/\bno reddit discussions\b/gi, 'no Reddit discussions were found in the sources returned during this audit'],
 ]
 
 /**
@@ -85,4 +100,19 @@ export function boundSampleClaims(text: string, mentions?: number, total?: numbe
   let out = text
   for (const re of OVERCLAIM_PHRASES) out = out.replace(re, replacement)
   return out
+}
+
+/** Replace unsupported aggressive language with evidence-bounded wording. */
+export function softenUnsupportedClaims(text: string, mentions?: number, total?: number): string {
+  if (!text) return text
+  let out = boundSampleClaims(text, mentions, total)
+  for (const [re, replacement] of TONE_REPLACEMENTS) {
+    out = out.replace(re, replacement)
+  }
+  return out
+}
+
+/** Full prose safety pass for human-facing generated copy. */
+export function sanitizeGeneratedProse(text: string, mentions?: number, total?: number): string {
+  return softenUnsupportedClaims(redactPerformanceClaims(text), mentions, total)
 }

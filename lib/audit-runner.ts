@@ -33,30 +33,54 @@ import {
 import { sendReportEmail } from './resend'
 import { runGeoScan } from './geo'
 import { notify } from './notify'
-import { redactPerformanceClaims } from './sanitize'
+import { sanitizeGeneratedProse } from './sanitize'
+import { attachActionConfidence } from './action-confidence'
 import type { GeoResult } from './schemas'
 
 /** Strip invented performance numbers from all human-facing report prose. */
-function sanitizeReportProse(clarity: ClarityBlock, gap: GapBlock, action: ActionBlock): void {
-  clarity.icp_visibility.finding = redactPerformanceClaims(clarity.icp_visibility.finding)
-  clarity.headline.finding = redactPerformanceClaims(clarity.headline.finding)
-  clarity.cta.finding = redactPerformanceClaims(clarity.cta.finding)
-  clarity.trust_proof.finding = redactPerformanceClaims(clarity.trust_proof.finding)
-  clarity.messaging_fit.finding = redactPerformanceClaims(clarity.messaging_fit.finding)
+function sanitizeReportProse(
+  clarity: ClarityBlock,
+  gap: GapBlock,
+  action: ActionBlock,
+  geo: GeoResult | null
+): void {
+  const mentions = geo?.evidence.filter((e) => e.brand_mentioned).length
+  const total = geo?.evidence.length
+  const clean = (text: string) => sanitizeGeneratedProse(text, mentions, total)
 
-  gap.where_you_lose = gap.where_you_lose.map(redactPerformanceClaims)
-  gap.where_you_win = gap.where_you_win.map(redactPerformanceClaims)
+  clarity.icp_visibility.finding = clean(clarity.icp_visibility.finding)
+  clarity.headline.finding = clean(clarity.headline.finding)
+  clarity.cta.finding = clean(clarity.cta.finding)
+  clarity.trust_proof.finding = clean(clarity.trust_proof.finding)
+  clarity.messaging_fit.finding = clean(clarity.messaging_fit.finding)
 
-  action.executive_summary = redactPerformanceClaims(action.executive_summary)
+  gap.where_you_lose = gap.where_you_lose.map(clean)
+  gap.where_you_win = gap.where_you_win.map(clean)
+  gap.ai_search.finding = clean(gap.ai_search.finding)
+  gap.ai_search.missing_signals = gap.ai_search.missing_signals.map(clean)
+
+  action.executive_summary = clean(action.executive_summary)
   action.top_fixes = action.top_fixes.map((f) => ({
     ...f,
-    title: redactPerformanceClaims(f.title),
-    description: redactPerformanceClaims(f.description),
+    title: clean(f.title),
+    description: clean(f.description),
   }))
   action.outreach_messages = action.outreach_messages.map((m) => ({
     ...m,
-    message: redactPerformanceClaims(m.message),
+    message: clean(m.message),
+    note: clean(m.note),
   }))
+
+  if (geo) {
+    geo.summary = clean(geo.summary)
+    geo.missing_signals = geo.missing_signals.map(clean)
+    geo.recommendations = geo.recommendations.map(clean)
+    geo.source_gap_analysis = geo.source_gap_analysis?.map((s) => ({
+      ...s,
+      why_this_source_gets_cited: clean(s.why_this_source_gets_cited),
+      recommended_fix: clean(s.recommended_fix),
+    })) ?? geo.source_gap_analysis
+  }
 }
 
 function brandFromUrl(url: string): string {
@@ -166,9 +190,10 @@ export async function runFullAudit(auditId: string): Promise<void> {
 
     const geo = await geoPromise
 
-    // 6b. Trust Layer: strip any invented performance numbers the model slipped
-    // into the prose, as a safety net behind the prompt instructions.
-    sanitizeReportProse(clarity, gap, action)
+    // 6b. Trust Layer: strip any invented or over-broad language the model
+    // slipped into prose, then attach deterministic confidence to actions.
+    sanitizeReportProse(clarity, gap, action, geo)
+    const actionWithConfidence = attachActionConfidence(action, technicalFindings, geo)
 
     // 6c. Ready-to-ship materials (meta/FAQ/CTA + deterministic JSON-LD).
     let readyMaterials: ReadyMaterials | null = null
@@ -188,7 +213,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     // 6d. Implementation briefs (acceptance criteria) for the top fixes.
     let implementationBriefs: ImplementationBrief[] | null = null
     try {
-      const topFixes = action.top_fixes.slice(0, 5).map((f) => ({
+      const topFixes = actionWithConfidence.top_fixes.slice(0, 5).map((f) => ({
         title: f.title,
         description: f.description,
         category: f.category,
@@ -216,7 +241,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       },
       clarity,
       gap,
-      action,
+      action: actionWithConfidence,
       geo,
       technical_findings: technicalFindings,
       ready_materials: readyMaterials,
@@ -241,7 +266,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       trust_score: clarity.trust_proof.score,
       // Prefer the live AI-visibility measurement; fall back to the heuristic.
       ai_search_score: geo?.ai_visibility_score ?? gap.ai_search.score,
-      top_issues: action.top_fixes.slice(0, 3).map((f) => f.title),
+      top_issues: actionWithConfidence.top_fixes.slice(0, 3).map((f) => f.title),
       competitor_patterns: gap.where_you_lose.slice(0, 5),
     })
 

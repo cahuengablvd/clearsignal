@@ -12,8 +12,27 @@ const ROLE_BY_CATEGORY: Record<string, string> = {
   copy: 'Copywriter',
   cta: 'Copywriter',
   ai_search: 'SEO',
-  structure: 'Developer',
+  structure: 'SEO',
   proof: 'Founder / marketing',
+}
+
+function inferRole(fix: RoleFix): string {
+  const text = `${fix.title} ${fix.description}`.toLowerCase()
+
+  if (/\b(svg|logo render|broken logo|image|html|css|json-ld|schema|structured data|script|developer|technical|rendered html)\b/.test(text)) {
+    return 'Developer'
+  }
+  if (/\b(use case|web3|service page|comparison|alternatives|faq|keyword|directory|citation|ai visibility|source|indexable|meta title|meta description)\b/.test(text)) {
+    return 'SEO'
+  }
+  if (/\b(headline|copy|message|messaging|positioning|cta|call-to-action|hero|rewrite)\b/.test(text)) {
+    return 'Copywriter'
+  }
+  if (/\b(testimonial|review|customer|case study|proof|g2|capterra|clutch|designrush|partner|roundup)\b/.test(text)) {
+    return 'Founder / marketing'
+  }
+
+  return ROLE_BY_CATEGORY[fix.category] || 'Founder / marketing'
 }
 
 const ROLES: { name: string; icon: typeof PenLine }[] = [
@@ -28,7 +47,7 @@ export function RoleExport({ fixes, label }: { fixes: RoleFix[]; label?: string 
 
   const groups = ROLES.map((r) => ({
     ...r,
-    items: fixes.filter((f) => (ROLE_BY_CATEGORY[f.category] || 'Founder / marketing') === r.name),
+    items: fixes.filter((f) => inferRole(f) === r.name),
   })).filter((g) => g.items.length > 0)
 
   async function copyRole(role: string, items: RoleFix[]) {

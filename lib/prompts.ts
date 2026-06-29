@@ -255,6 +255,29 @@ Produce ready-to-ship materials tailored to this brand and ICP. Return ONLY a JS
 Provide 4-6 FAQ items (the questions buyers actually ask, good for AI-answer citation) and 3-5 CTA variants. No placeholders.`
 }
 
+// --- Implementation briefs (#19) ---
+export const BRIEF_SYSTEM = `You turn audit fixes into concise implementation briefs (developer/marketing tickets).
+For each fix give 2-5 concrete steps and 1-3 acceptance criteria phrased as verifiable "Done when ..." conditions (something a person or tool can objectively check).
+${NO_FABRICATED_NUMBERS}
+Return ONLY valid JSON matching the schema.`
+
+export function briefUserPrompt(
+  brand: string,
+  url: string,
+  fixes: { title: string; description: string; category: string }[]
+): string {
+  const list = fixes
+    .map((f, i) => `${i + 1}. [${f.category}] ${f.title} - ${f.description}`)
+    .join('\n')
+  return `Brand: ${brand} (${url})
+
+Fixes to brief:
+${list}
+
+Return ONLY a JSON object: { "briefs": [ { "fix_title": "<exact fix title>", "steps": ["<step>"], "acceptance_criteria": ["Done when <verifiable condition>"] } ] }
+One brief per fix, in the same order.`
+}
+
 // --- Clarity Block ---
 export const CLARITY_SYSTEM = `You are a senior conversion copywriter and positioning strategist.
 Analyze this B2B SaaS homepage with surgical precision.

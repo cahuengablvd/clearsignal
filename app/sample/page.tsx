@@ -450,6 +450,46 @@ export default function SampleReportPage() {
 
         <section className="mt-8">
           <div className="flex items-center gap-2 mb-1">
+            <Target className="h-5 w-5" />
+            <h2 className="text-xl font-bold">Implementation briefs</h2>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            Each top fix as a ticket - concrete steps and acceptance criteria you can check off.
+          </p>
+          <div className="grid gap-3">
+            {[
+              {
+                title: 'Add Organization + FAQPage schema',
+                steps: ['Generate JSON-LD from the FAQ block', 'Paste it into the homepage <head>'],
+                criteria: ['Done when Google Rich Results Test parses the JSON-LD with no errors'],
+              },
+              {
+                title: 'Publish a "vs Competitor A" comparison page',
+                steps: ['Draft a neutral comparison covering use cases, pricing, and fit', 'Link it from the nav and footer'],
+                criteria: ['Done when the page is live and indexable (returns 200, not noindex)'],
+              },
+            ].map((b) => (
+              <Card key={b.title}>
+                <CardContent className="p-5">
+                  <h3 className="font-semibold mb-3">{b.title}</h3>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Steps</div>
+                  <ol className="list-decimal list-inside text-sm space-y-1 text-slate-600 mb-3">
+                    {b.steps.map((s) => <li key={s}>{s}</li>)}
+                  </ol>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Acceptance criteria</div>
+                  <ul className="text-sm space-y-1">
+                    {b.criteria.map((c) => (
+                      <li key={c} className="flex gap-2"><span className="text-emerald-600">&#9744;</span><span>{c}</span></li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="flex items-center gap-2 mb-1">
             <FileSearch className="h-5 w-5" />
             <h2 className="text-xl font-bold">Ready-to-ship materials</h2>
           </div>

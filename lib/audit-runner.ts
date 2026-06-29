@@ -14,6 +14,8 @@ import {
   type ClearSignalReport,
   ReadyMaterialsLlmSchema,
   type ReadyMaterials,
+  ImplementationBriefsLlmSchema,
+  type ImplementationBrief,
 } from './schemas'
 import {
   MODEL_AUDIT,
@@ -25,6 +27,8 @@ import {
   actionUserPrompt,
   MATERIALS_SYSTEM,
   materialsUserPrompt,
+  BRIEF_SYSTEM,
+  briefUserPrompt,
 } from './prompts'
 import { sendReportEmail } from './resend'
 import { runGeoScan } from './geo'
@@ -181,6 +185,26 @@ export async function runFullAudit(auditId: string): Promise<void> {
       console.warn(`Ready-materials generation failed for ${auditId} (continuing without it):`, err)
     }
 
+    // 6d. Implementation briefs (acceptance criteria) for the top fixes.
+    let implementationBriefs: ImplementationBrief[] | null = null
+    try {
+      const topFixes = action.top_fixes.slice(0, 5).map((f) => ({
+        title: f.title,
+        description: f.description,
+        category: f.category,
+      }))
+      const { briefs } = await callClaudeJSON({
+        model: MODEL_AUDIT,
+        system: BRIEF_SYSTEM,
+        user: briefUserPrompt(brand, audit.url, topFixes),
+        validate: (d) => ImplementationBriefsLlmSchema.parse(d),
+        maxTokens: 2048,
+      })
+      implementationBriefs = briefs
+    } catch (err) {
+      console.warn(`Implementation briefs failed for ${auditId} (continuing without them):`, err)
+    }
+
     // 7. Assemble report
     const report: ClearSignalReport = {
       meta: {
@@ -196,6 +220,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       geo,
       technical_findings: technicalFindings,
       ready_materials: readyMaterials,
+      implementation_briefs: implementationBriefs,
     }
 
     // 8. Save report to audit

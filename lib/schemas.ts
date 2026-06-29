@@ -82,6 +82,20 @@ export const ReadyMaterialsSchema = ReadyMaterialsLlmSchema.extend({
 })
 export type ReadyMaterials = z.infer<typeof ReadyMaterialsSchema>
 
+// --- Implementation briefs (#19) ---
+
+/** A ticket-style brief for one fix: steps + verifiable acceptance criteria. */
+export const ImplementationBriefSchema = z.object({
+  fix_title: z.string(),
+  steps: z.array(z.string()),
+  acceptance_criteria: z.array(z.string()), // verifiable "Done when ..." conditions
+})
+export type ImplementationBrief = z.infer<typeof ImplementationBriefSchema>
+
+export const ImplementationBriefsLlmSchema = z.object({
+  briefs: z.array(ImplementationBriefSchema),
+})
+
 // --- GEO / AEO (Answer Engine Optimization) ---
 
 /**
@@ -298,6 +312,8 @@ export const ClearSignalReportSchema = z.object({
   technical_findings: z.array(FindingSchema).optional().nullable(),
   // Ready-to-ship deliverables (meta, FAQ, JSON-LD, CTA variants). Optional.
   ready_materials: ReadyMaterialsSchema.optional().nullable(),
+  // Ticket-style implementation briefs with acceptance criteria. Optional.
+  implementation_briefs: z.array(ImplementationBriefSchema).optional().nullable(),
 })
 
 export type ClearSignalReport = z.infer<typeof ClearSignalReportSchema>

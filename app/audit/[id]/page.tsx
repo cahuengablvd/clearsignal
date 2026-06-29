@@ -623,6 +623,46 @@ export default async function AuditPage({
           />
         </div>
 
+        {/* Implementation briefs */}
+        {report.implementation_briefs && report.implementation_briefs.length > 0 && (
+          <>
+            <h2 className="text-2xl font-bold mb-1 mt-10">Implementation briefs</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Each top fix as a ticket - concrete steps and acceptance criteria you can check off.
+            </p>
+            <div className="grid gap-3 mb-10">
+              {report.implementation_briefs.map((b, i) => (
+                <Card key={i}>
+                  <CardContent className="p-5">
+                    <h3 className="font-semibold mb-3">{b.fix_title}</h3>
+                    {b.steps.length > 0 && (
+                      <div className="mb-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Steps</div>
+                        <ol className="list-decimal list-inside text-sm space-y-1 text-muted-foreground">
+                          {b.steps.map((s, j) => <li key={j}>{s}</li>)}
+                        </ol>
+                      </div>
+                    )}
+                    {b.acceptance_criteria.length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Acceptance criteria</div>
+                        <ul className="text-sm space-y-1">
+                          {b.acceptance_criteria.map((c, j) => (
+                            <li key={j} className="flex gap-2">
+                              <span className="text-green-600">&#9744;</span>
+                              <span>{c}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Ready-to-ship materials */}
         {report.ready_materials && (
           <>

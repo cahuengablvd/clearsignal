@@ -12,6 +12,49 @@ import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
 import { Download, ArrowLeft } from 'lucide-react'
 
+// Never cache this route. A report link is often opened while the audit is
+// still running; without this, Vercel can cache the in-progress response (or a
+// 404) and serve it even after the report is ready.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+function AuditProcessing({ status }: { status?: string }) {
+  const failed = status === 'failed'
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <Card className="max-w-md w-full">
+        <CardHeader>
+          <CardTitle>
+            {failed ? 'Audit could not be completed' : 'Your audit is being generated'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          {failed ? (
+            <p>
+              Something went wrong while generating this report. Please reply to your
+              confirmation email and we will re-run it for you.
+            </p>
+          ) : (
+            <>
+              <p>This usually takes 2-4 minutes. This page refreshes automatically.</p>
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full w-1/3 bg-primary animate-pulse rounded-full" />
+              </div>
+            </>
+          )}
+          {!failed && (
+            <script
+              dangerouslySetInnerHTML={{
+                __html: 'setTimeout(function(){location.reload()},15000)',
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 function SeverityBadge({ severity }: { severity: string }) {
   const colors: Record<string, string> = {
     critical: 'bg-red-100 text-red-800 border-red-200',
@@ -124,8 +167,15 @@ export default async function AuditPage({
     .eq('id', params.id)
     .single()
 
-  if (error || !audit || !audit.report) {
+  // Genuinely invalid id (or DB error) -> real 404.
+  if (error || !audit) {
     notFound()
+  }
+
+  // Valid link, but the audit is still running (or failed): show a waiting
+  // state with HTTP 200 instead of a 404, so the link never appears broken.
+  if (!audit.report) {
+    return <AuditProcessing status={audit.audit_status as string} />
   }
 
   const report = audit.report as ClearSignalReport

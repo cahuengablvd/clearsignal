@@ -80,6 +80,10 @@ function unique<T>(items: T[]): T[] {
   return [...new Set(items)]
 }
 
+// Never cache: avoids serving a stale 404 for a freshly created score id.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ScoreResultPage({ params }: { params: { id: string } }) {
   const { data: score, error } = await supabaseAdmin
     .from('scores')

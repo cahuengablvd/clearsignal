@@ -63,6 +63,25 @@ export const FindingSchema = z.object({
 })
 export type Finding = z.infer<typeof FindingSchema>
 
+// --- Ready-to-ship materials (#17) ---
+
+export const FaqItemSchema = z.object({ question: z.string(), answer: z.string() })
+
+/** What the LLM produces (meta + FAQ + CTAs). JSON-LD is built deterministically. */
+export const ReadyMaterialsLlmSchema = z.object({
+  meta_title: z.string(),
+  meta_description: z.string(),
+  faq: z.array(FaqItemSchema),
+  cta_variants: z.array(z.string()),
+})
+export type ReadyMaterialsLlm = z.infer<typeof ReadyMaterialsLlmSchema>
+
+/** Stored materials: LLM output plus a deterministically-built JSON-LD snippet. */
+export const ReadyMaterialsSchema = ReadyMaterialsLlmSchema.extend({
+  json_ld: z.string(),
+})
+export type ReadyMaterials = z.infer<typeof ReadyMaterialsSchema>
+
 // --- GEO / AEO (Answer Engine Optimization) ---
 
 /**
@@ -277,6 +296,8 @@ export const ClearSignalReportSchema = z.object({
   // Deterministic, evidence-backed structural findings (Trust Layer). Optional
   // for backward compatibility with reports generated before this existed.
   technical_findings: z.array(FindingSchema).optional().nullable(),
+  // Ready-to-ship deliverables (meta, FAQ, JSON-LD, CTA variants). Optional.
+  ready_materials: ReadyMaterialsSchema.optional().nullable(),
 })
 
 export type ClearSignalReport = z.infer<typeof ClearSignalReportSchema>

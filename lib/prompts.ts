@@ -223,6 +223,38 @@ Return ONLY a JSON object:
 Include one entry in "sources" for every cited source provided, in order.`
 }
 
+// --- Ready-to-ship materials (#17) ---
+export const MATERIALS_SYSTEM = `You are a B2B SaaS conversion copywriter producing ready-to-paste materials from an audit.
+Write concrete, publishable copy the team can use directly - not advice.
+${NO_FABRICATED_NUMBERS}
+Return ONLY valid JSON matching the schema.`
+
+export function materialsUserPrompt(
+  brand: string,
+  url: string,
+  icp: string,
+  clarityOutput: string,
+  geoSummary: string
+): string {
+  return `Brand: ${brand} (${url})
+ICP: ${icp || 'Not provided'}
+
+Messaging analysis:
+${clarityOutput}
+
+AI visibility summary:
+${geoSummary || '(none)'}
+
+Produce ready-to-ship materials tailored to this brand and ICP. Return ONLY a JSON object:
+{
+  "meta_title": "<<= 60 chars, specific, includes the category>",
+  "meta_description": "<<= 155 chars, outcome + ICP, no invented numbers>",
+  "faq": [{ "question": "<a real buyer question>", "answer": "<concise, quotable 1-3 sentence answer>" }],
+  "cta_variants": ["<outcome-oriented CTA button copy>", "..."]
+}
+Provide 4-6 FAQ items (the questions buyers actually ask, good for AI-answer citation) and 3-5 CTA variants. No placeholders.`
+}
+
 // --- Clarity Block ---
 export const CLARITY_SYSTEM = `You are a senior conversion copywriter and positioning strategist.
 Analyze this B2B SaaS homepage with surgical precision.

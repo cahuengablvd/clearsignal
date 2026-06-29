@@ -2,6 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { scrapeUrl, scrapePage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
 import { computeTechnicalFindings } from './findings'
+import { assembleMaterials } from './materials'
 import { callClaudeJSON } from './anthropic'
 import {
   ClarityBlockSchema,
@@ -11,6 +12,8 @@ import {
   type GapBlock,
   type ActionBlock,
   type ClearSignalReport,
+  ReadyMaterialsLlmSchema,
+  type ReadyMaterials,
 } from './schemas'
 import {
   MODEL_AUDIT,
@@ -20,6 +23,8 @@ import {
   gapUserPrompt,
   ACTION_SYSTEM,
   actionUserPrompt,
+  MATERIALS_SYSTEM,
+  materialsUserPrompt,
 } from './prompts'
 import { sendReportEmail } from './resend'
 import { runGeoScan } from './geo'
@@ -161,6 +166,21 @@ export async function runFullAudit(auditId: string): Promise<void> {
     // into the prose, as a safety net behind the prompt instructions.
     sanitizeReportProse(clarity, gap, action)
 
+    // 6c. Ready-to-ship materials (meta/FAQ/CTA + deterministic JSON-LD).
+    let readyMaterials: ReadyMaterials | null = null
+    try {
+      const llm = await callClaudeJSON({
+        model: MODEL_AUDIT,
+        system: MATERIALS_SYSTEM,
+        user: materialsUserPrompt(brand, audit.url, icp, JSON.stringify(clarity), geo?.summary || ''),
+        validate: (d) => ReadyMaterialsLlmSchema.parse(d),
+        maxTokens: 2048,
+      })
+      readyMaterials = assembleMaterials(brand, audit.url, llm)
+    } catch (err) {
+      console.warn(`Ready-materials generation failed for ${auditId} (continuing without it):`, err)
+    }
+
     // 7. Assemble report
     const report: ClearSignalReport = {
       meta: {
@@ -175,6 +195,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       action,
       geo,
       technical_findings: technicalFindings,
+      ready_materials: readyMaterials,
     }
 
     // 8. Save report to audit

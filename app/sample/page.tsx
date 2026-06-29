@@ -3,6 +3,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RoleExport } from '@/components/role-export'
+import { CopyButton } from '@/components/copy-button'
+import { buildJsonLd } from '@/lib/materials'
 import {
   ArrowLeft,
   ArrowRight,
@@ -80,6 +82,17 @@ const citedDomains = [
   ['competitor-a.com', '3x'],
   ['capterra.com', '2x'],
 ]
+
+const sampleJsonLd = buildJsonLd('Example SaaS', 'https://example-saas.com', [
+  {
+    question: 'What is the best deployment platform for mid-market SaaS?',
+    answer: 'Example SaaS focuses on zero-downtime deploys for product and engineering teams of 50-500.',
+  },
+  {
+    question: 'How is Example SaaS different from Competitor A?',
+    answer: 'It pairs zero-downtime releases with a simpler setup aimed at mid-market teams.',
+  },
+])
 
 const sourceGaps = [
   {
@@ -433,6 +446,51 @@ export default function SampleReportPage() {
             label="example-saas.com"
             fixes={fixes.map((f) => ({ title: f.title, description: f.desc, category: f.category }))}
           />
+        </section>
+
+        <section className="mt-8">
+          <div className="flex items-center gap-2 mb-1">
+            <FileSearch className="h-5 w-5" />
+            <h2 className="text-xl font-bold">Ready-to-ship materials</h2>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            Publishable copy you can paste straight in - meta tags, FAQ, JSON-LD and CTA options.
+          </p>
+          <div className="grid gap-3">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <h3 className="font-semibold text-sm">Meta title</h3>
+                  <CopyButton text="Deployment platform for mid-market SaaS teams | Example SaaS" />
+                </div>
+                <p className="text-sm text-slate-600">Deployment platform for mid-market SaaS teams | Example SaaS</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-sm mb-2">FAQ (sample)</h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <p className="font-medium">What is the best deployment platform for mid-market SaaS?</p>
+                    <p className="text-slate-600">Example SaaS focuses on zero-downtime deploys for product and engineering teams of 50-500.</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">How is Example SaaS different from Competitor A?</p>
+                    <p className="text-slate-600">It pairs zero-downtime releases with a simpler setup aimed at mid-market teams.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <h3 className="font-semibold text-sm">Schema.org JSON-LD</h3>
+                  <CopyButton text={sampleJsonLd} />
+                </div>
+                <pre className="text-xs bg-slate-50 rounded p-3 overflow-x-auto whitespace-pre-wrap">{sampleJsonLd}</pre>
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         <section className="mt-10 border rounded-lg bg-slate-950 text-white p-6 grid lg:grid-cols-[1fr_auto] gap-6 items-center">

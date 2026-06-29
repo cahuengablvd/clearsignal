@@ -7,6 +7,7 @@ import {
 } from '../lib/sanitize'
 import { icpTextSchema, competitorUrlSchema, FindingSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
+import { buildJsonLd } from '../lib/materials'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -102,6 +103,28 @@ describe('deterministic technical findings', () => {
       expect(f.confidence).toBeLessThanOrEqual(100)
       expect(f.evidence?.checked_at).toBeTruthy()
     }
+  })
+})
+
+describe('ready-to-ship JSON-LD (deterministic)', () => {
+  it('builds valid Organization + FAQPage JSON-LD', () => {
+    const block = buildJsonLd('Acme', 'https://acme.com', [
+      { question: 'What is Acme?', answer: 'A deploy tool.' },
+    ])
+    expect(block).toContain('application/ld+json')
+    const json = block.replace(/<\/?script[^>]*>/g, '').trim()
+    const parsed = JSON.parse(json) // throws if invalid -> test fails
+    const types = parsed['@graph'].map((g: { '@type': string }) => g['@type'])
+    expect(types).toContain('Organization')
+    expect(types).toContain('FAQPage')
+    expect(parsed['@context']).toBe('https://schema.org')
+  })
+
+  it('omits FAQPage when there are no questions but stays valid JSON', () => {
+    const block = buildJsonLd('Acme', 'https://acme.com', [])
+    const parsed = JSON.parse(block.replace(/<\/?script[^>]*>/g, '').trim())
+    const types = parsed['@graph'].map((g: { '@type': string }) => g['@type'])
+    expect(types).toEqual(['Organization'])
   })
 })
 

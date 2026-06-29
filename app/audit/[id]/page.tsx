@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RoleExport } from '@/components/role-export'
+import { CopyButton } from '@/components/copy-button'
 import { Download, ArrowLeft } from 'lucide-react'
 
 function SeverityBadge({ severity }: { severity: string }) {
@@ -621,6 +622,86 @@ export default async function AuditPage({
             }))}
           />
         </div>
+
+        {/* Ready-to-ship materials */}
+        {report.ready_materials && (
+          <>
+            <h2 className="text-2xl font-bold mb-1 mt-10">Ready-to-ship materials</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Publishable copy you can paste straight in - meta tags, FAQ, JSON-LD and CTA options.
+            </p>
+            <div className="grid gap-3 mb-10">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <h3 className="font-semibold text-sm">Meta title</h3>
+                    <CopyButton text={report.ready_materials.meta_title} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">{report.ready_materials.meta_title}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <h3 className="font-semibold text-sm">Meta description</h3>
+                    <CopyButton text={report.ready_materials.meta_description} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">{report.ready_materials.meta_description}</p>
+                </CardContent>
+              </Card>
+
+              {report.ready_materials.faq.length > 0 && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h3 className="font-semibold text-sm">FAQ ({report.ready_materials.faq.length})</h3>
+                      <CopyButton
+                        label="Copy all"
+                        text={report.ready_materials.faq.map((f) => `${f.question}\n${f.answer}`).join('\n\n')}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      {report.ready_materials.faq.map((f, i) => (
+                        <div key={i}>
+                          <p className="text-sm font-medium">{f.question}</p>
+                          <p className="text-sm text-muted-foreground">{f.answer}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {report.ready_materials.cta_variants.length > 0 && (
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm mb-2">CTA variants</h3>
+                    <div className="space-y-2">
+                      {report.ready_materials.cta_variants.map((c, i) => (
+                        <div key={i} className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-muted-foreground">{c}</span>
+                          <CopyButton text={c} />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <h3 className="font-semibold text-sm">Schema.org JSON-LD</h3>
+                    <CopyButton text={report.ready_materials.json_ld} />
+                  </div>
+                  <pre className="text-xs bg-muted rounded p-3 overflow-x-auto whitespace-pre-wrap">
+                    {report.ready_materials.json_ld}
+                  </pre>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
 
         {/* Outreach Messages */}
         <h3 className="text-lg font-semibold mb-3">Rewritten Outreach Messages</h3>

@@ -64,6 +64,7 @@ export function redactPerformanceClaims(text: string): string {
 }
 
 const OVERCLAIM_PHRASES = [
+  /entirely absent from the ai answer layer/gi,
   /functionally invisible/gi,
   /completely invisible(?:\s+everywhere)?/gi,
   /invisible everywhere/gi,
@@ -74,7 +75,12 @@ const OVERCLAIM_PHRASES = [
 ]
 
 const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/is losing high-intent buyers at every stage/gi, 'may be losing high-intent buyers at several points'],
+  [/reads as unproven and unfinished/gi, 'may appear less established than selected competitors'],
+  [/actively destroying trust/gi, 'is likely to weaken trust'],
   [/actively destroys credibility/gi, 'may weaken credibility'],
+  [/will produce the fastest improvement in conversion/gi, 'is a high-priority conversion clarity improvement'],
+  [/fastest improvement in conversion/gi, 'high-priority conversion clarity improvement'],
   [/direct and immediate conversion killer/gi, 'may reduce conversion clarity'],
   [/\bconversion killer\b/gi, 'potential conversion clarity issue'],
   [/catastrophically mismatched/gi, 'poorly matched'],
@@ -82,6 +88,13 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bkilling conversions\b/gi, 'may reduce conversions'],
   [/\bdestroys credibility\b/gi, 'may weaken credibility'],
   [/\bcosting you demo conversions\b/gi, 'may be reducing demo intent'],
+  [/ai engines have no content signals until ([^.]+)/gi, 'AI engines may need stronger owned-page and third-party signals; $1'],
+  [/no content signals until ([^.]+)/gi, 'limited content signals unless $1'],
+  [/a 90-second explainer closes the gap faster than any landing page rewrite/gi, 'a concise explainer may help, but it should support a clear landing page rather than replace it'],
+  [/product animations reduced sales cycle/gi, '[Replace with a verified client result]'],
+  [/ui motion improved activation rates/gi, '[Replace with a verified client result]'],
+  [/videos used in series a pitch decks/gi, '[Replace with a verified client result]'],
+  [/used in series a pitch decks/gi, '[Replace with a verified client result]'],
   [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the sources returned during this audit'],
   [/\bno reddit discussions\b/gi, 'no Reddit discussions were found in the sources returned during this audit'],
 ]

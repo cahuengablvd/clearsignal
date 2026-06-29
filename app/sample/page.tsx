@@ -465,9 +465,9 @@ export default function SampleReportPage() {
                         <div className="text-xs font-semibold text-slate-500 mb-2">Fix #{index + 1}</div>
                         <h3 className="font-semibold">{fix.title}</h3>
                         <p className="text-sm text-slate-600 mt-2 leading-relaxed">{fix.desc}</p>
-                        <p className="mt-2 text-xs text-slate-500">
-                          Priority score: <span className="font-mono">{priority.score}</span> (Impact x Confidence / Effort).
-                        </p>
+                          <p className="mt-2 text-xs text-slate-500">
+                            Priority score: <span className="font-mono">{priority.score}</span> (Impact x Confidence / Effort; sample confidence 75%).
+                          </p>
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">
                         <Badge className={priorityClass(priority.bucket)}>{priority.bucket}</Badge>

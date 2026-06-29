@@ -1,4 +1,5 @@
 import type { ActionBlock, Finding, GeoResult } from './schemas'
+import { inferFixOwner } from './role-assignment'
 
 function textOf(fix: { title: string; description: string }): string {
   return `${fix.title} ${fix.description}`.toLowerCase()
@@ -18,6 +19,28 @@ function confidenceFromFinding(finding: Finding | undefined, fallback: number, f
 
 function isExternalDependency(text: string): boolean {
   return /\b(backlinks?|roundups?|publications?|journalists?|partners?|competitor article|competitor's article|youtube|reddit|clutch|designrush|g2|capterra|directories|directory|review sites?)\b/i.test(text)
+}
+
+function confidenceLevel(confidence: number): 'high' | 'medium' | 'low' {
+  if (confidence >= 85) return 'high'
+  if (confidence >= 60) return 'medium'
+  return 'low'
+}
+
+function controlForFix(fix: ActionBlock['top_fixes'][number]): 'high' | 'medium' | 'low' {
+  const text = textOf(fix)
+  if (isExternalDependency(text)) return 'low'
+  if (/\b(schema|json-ld|headline|tagline|copy|cta|faq|meta|landing page|service page|case stud|web3)\b/i.test(text)) {
+    return 'high'
+  }
+  return 'medium'
+}
+
+function probabilityForFix(confidence: number, control: 'high' | 'medium' | 'low'): 'high' | 'medium' | 'low' {
+  if (control === 'low') return confidence >= 80 ? 'medium' : 'low'
+  if (confidence >= 85) return 'high'
+  if (confidence >= 55) return 'medium'
+  return 'low'
 }
 
 function confidenceForFix(
@@ -77,7 +100,7 @@ function confidenceForFix(
   if (fix.category === 'ai_search') {
     if (isExternalDependency(text)) {
       return {
-        confidence: geo ? 60 : 50,
+        confidence: geo ? 58 : 45,
         confidence_basis: geo
           ? `AI visibility evidence was measured across ${geo.queries_tested} tested queries, but execution depends on external sources`
           : 'Recommendation depends on external sources and was not directly measured',
@@ -124,9 +147,15 @@ export function attachActionConfidence(
     ...action,
     top_fixes: action.top_fixes.map((rawFix) => {
       const fix = adjustExternalFix(rawFix)
+      const confidence = confidenceForFix(fix, findings, geo)
+      const control = controlForFix(fix)
       return {
         ...fix,
-        ...confidenceForFix(fix, findings, geo),
+        ...confidence,
+        confidence_level: confidenceLevel(confidence.confidence),
+        owner: inferFixOwner(fix),
+        control,
+        probability: probabilityForFix(confidence.confidence, control),
       }
     }),
   }

@@ -11,6 +11,7 @@ import { computeTechnicalFindings } from '../lib/findings'
 import { buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
 import { attachActionConfidence } from '../lib/action-confidence'
+import { inferFixOwner } from '../lib/role-assignment'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -162,14 +163,22 @@ describe('sample-bounded GEO wording', () => {
 
   it('softens unsupported aggressive language', () => {
     const out = sanitizeGeneratedProse(
-      'The page is functionally invisible and this is a direct and immediate conversion killer.',
+      'The page is functionally invisible and this is a direct and immediate conversion killer. It reads as unproven and unfinished.',
       0,
       6
     )
     expect(out.toLowerCase()).toContain('0 of 6 tested queries')
     expect(out.toLowerCase()).toContain('may reduce conversion clarity')
+    expect(out.toLowerCase()).toContain('may appear less established')
     expect(out.toLowerCase()).not.toContain('functionally invisible')
     expect(out.toLowerCase()).not.toContain('conversion killer')
+  })
+
+  it('replaces unverified business outcomes with placeholders', () => {
+    const out = sanitizeGeneratedProse('Product animations reduced sales cycle and UI motion improved activation rates.')
+    expect(out).toContain('[Replace with a verified client result]')
+    expect(out.toLowerCase()).not.toContain('reduced sales cycle')
+    expect(out.toLowerCase()).not.toContain('activation rates')
   })
 
   it('bounds off-site ecosystem claims to returned sources', () => {
@@ -221,6 +230,9 @@ describe('action confidence enrichment', () => {
 
     const enriched = attachActionConfidence(action, findings, null)
     expect(enriched.top_fixes[0].confidence).toBeGreaterThanOrEqual(90)
+    expect(enriched.top_fixes[0].confidence_level).toBe('high')
+    expect(enriched.top_fixes[0].control).toBe('high')
+    expect(enriched.top_fixes[0].probability).toBe('high')
     expect(enriched.top_fixes[0].confidence_basis).toContain('CTA')
   })
 
@@ -244,7 +256,36 @@ describe('action confidence enrichment', () => {
 
     const enriched = attachActionConfidence(action, [], null)
     expect(enriched.top_fixes[0].confidence).toBeLessThanOrEqual(55)
+    expect(enriched.top_fixes[0].confidence_level).toBe('low')
     expect(enriched.top_fixes[0].effort).toBe('medium')
+    expect(enriched.top_fixes[0].control).toBe('low')
+    expect(enriched.top_fixes[0].probability).toBe('low')
     expect(enriched.top_fixes[0].description).toContain('lower-control')
+  })
+})
+
+describe('role assignment', () => {
+  it('routes headline/tagline work to copywriter', () => {
+    expect(inferFixOwner({
+      title: 'Rewrite headline and tagline',
+      description: 'Clarify the hero narrative.',
+      category: 'ai_search',
+    })).toBe('Copywriter')
+  })
+
+  it('routes schema and broken logos to developer', () => {
+    expect(inferFixOwner({
+      title: 'Fix broken logo rendering and JSON-LD schema',
+      description: 'Update HTML and structured data.',
+      category: 'proof',
+    })).toBe('Developer')
+  })
+
+  it('routes case studies to founder or marketing', () => {
+    expect(inferFixOwner({
+      title: 'Create a case study proof section',
+      description: 'Collect customer proof and testimonials.',
+      category: 'structure',
+    })).toBe('Founder / marketing')
   })
 })

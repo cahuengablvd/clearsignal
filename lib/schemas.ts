@@ -244,6 +244,9 @@ const effortSchema = z.enum(['easy', 'medium', 'hard'])
 const categorySchema = z.enum(['copy', 'structure', 'proof', 'cta', 'ai_search'])
 const channelSchema = z.enum(['linkedin', 'email', 'twitter'])
 const tierSchema = z.enum(['automated', 'reviewed', 'sprint'])
+const confidenceLevelSchema = z.enum(['high', 'medium', 'low'])
+const controlSchema = z.enum(['high', 'medium', 'low'])
+const probabilitySchema = z.enum(['high', 'medium', 'low'])
 
 // --- Report Sub-schemas ---
 
@@ -318,7 +321,11 @@ const actionSchema = z.object({
     category: categorySchema,
     // Added after generation by deterministic evidence mapping, when possible.
     confidence: z.number().min(0).max(100).optional(),
+    confidence_level: confidenceLevelSchema.optional(),
     confidence_basis: z.string().optional(),
+    owner: z.string().optional(),
+    control: controlSchema.optional(),
+    probability: probabilitySchema.optional(),
   })),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),

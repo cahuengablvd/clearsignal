@@ -64,6 +64,7 @@ export function redactPerformanceClaims(text: string): string {
 }
 
 const OVERCLAIM_PHRASES = [
+  /absent from (?:the )?(?:ai )?(?:knowledge bases?|answer layer|ecosystem)/gi,
   /entirely absent from the ai answer layer/gi,
   /functionally invisible/gi,
   /completely invisible(?:\s+everywhere)?/gi,
@@ -75,9 +76,19 @@ const OVERCLAIM_PHRASES = [
 ]
 
 const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\bleaking revenue at every stage\b/gi, 'may be losing value at several points'],
+  [/\bdirect revenue leak\b/gi, 'possible conversion clarity issue'],
+  [/\bleaking revenue\b/gi, 'may be reducing conversion clarity'],
+  [/\bactively undermine credibility\b/gi, 'may weaken credibility'],
+  [/\bactively undermines credibility\b/gi, 'may weaken credibility'],
+  [/\bundermine credibility\b/gi, 'may weaken credibility'],
+  [/\bdisqualifying\b/gi, 'may reduce shortlist probability'],
+  [/\bdisqualifies\b/gi, 'may reduce shortlist probability for'],
+  [/every dollar of paid traffic is (?:wasted|should be tested carefully)/gi, 'paid traffic should be tested only after core conversion fixes'],
+  [/\bwasted\b/gi, 'should be tested carefully'],
   [/social proof is actively damaging/gi, 'social proof may weaken trust'],
   [/this single data point likely disqualifies ([^.]+)/gi, 'this signal may reduce shortlist probability for $1'],
-  [/every dollar of paid traffic is wasted/gi, 'paid traffic should be tested only after core conversion fixes'],
+  [/every dollar of paid traffic is should be tested carefully/gi, 'paid traffic should be tested only after core conversion fixes'],
   [/materially close the gap within 30 days/gi, 'likely improve competitive positioning'],
   [/\bhemorrhaging leads at every stage\b/gi, 'may be losing leads at several points'],
   [/\bhemorrhaging leads\b/gi, 'may be losing leads'],
@@ -106,6 +117,10 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/absent from all knowledge bases/gi, 'not surfaced in the tested evidence'],
   [/no content signals until ([^.]+)/gi, 'limited content signals unless $1'],
   [/a 90-second explainer closes the gap faster than any landing page rewrite/gi, 'a concise explainer may help, but it should support a clear landing page rather than replace it'],
+  [/remove web3 from (?:the )?hero/gi, 'test de-emphasizing Web3 in the hero if broader SaaS buyers are the priority'],
+  [/remove upwork (?:completely|entirely)/gi, 'de-emphasize Upwork as the primary proof point while keeping it as supporting evidence'],
+  [/create (?:your|a) own (?:best companies|top companies|ranking|rankings|rating) (?:page|list|article)?/gi, 'publish a transparent comparison guide with clear methodology'],
+  [/stories investors fund and customers buy/gi, '[Example only - replace with verified client data]'],
   [/product animations reduced sales cycle/gi, '[Replace with a verified client result]'],
   [/ui motion improved activation rates/gi, '[Replace with a verified client result]'],
   [/videos used in series a pitch decks/gi, '[Replace with a verified client result]'],
@@ -119,12 +134,16 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bwikidata\b/gi, 'eligible entity database'],
   [/\baggregaterating\b/gi, 'valid review schema only if first-party guidelines and source data support it'],
   [/\bunlimited revisions\b/gi, 'clearly scoped revision terms'],
+  [/\b(?:one|1|two|2|three|3)\s+(?:slot|slots|spot|spots)\s+open\b/gi, '[insert genuine availability only if verified]'],
+  [/\bi have (?:one|1|two|2|three|3)\s+(?:slot|slots|spot|spots)\s+open\b/gi, '[insert genuine availability only if verified]'],
+  [/\blimited (?:slots|spots|availability)\b/gi, '[insert genuine availability only if verified]'],
+  [/\bi'?ll map out exactly what i'?d do\b/gi, 'I can outline a possible improvement plan'],
 ]
 
 const UNVERIFIED_RESULT_PATTERNS: RegExp[] = [
   /\b[A-Z][A-Za-z0-9&.\- ]{1,60}\s+(?:reduced|shortened|cut|lowered)\s+(?:sales cycle|sales cycles|time to close|churn|costs?)\b(?:[^.?!]*)/g,
-  /\b[A-Z][A-Za-z0-9&.\- ]{1,60}\s+(?:increased|improved|lifted|grew|boosted)\s+(?:activation|activation rates?|demo requests?|conversion|conversion rates?|pipeline|revenue|retention)\b(?:[^.?!]*)/g,
-  /\b(?:product videos?|explainer videos?|animations?|ui motion)\s+(?:increase|increased|improve|improved|lift|lifted|boost|boosted|reduce|reduced)\s+[^.?!]*/gi,
+  /\b[A-Z][A-Za-z0-9&.\- ]{1,60}\s+(?:increased|improved|lifted|grew|boosted|drove|accelerated)\s+(?:activation|activation rates?|demo requests?|demo conversions?|trial signups?|conversion|conversion rates?|pipeline|revenue|retention|investor meetings?)\b(?:[^.?!]*)/g,
+  /\b(?:product videos?|explainer videos?|animations?|ui motion|case studies?|landing pages?)\s+(?:increase|increased|improve|improved|lift|lifted|boost|boosted|reduce|reduced|drive|drove|accelerate|accelerated)\s+[^.?!]*/gi,
   /\b(?:two-revision|two revision)\s+guarantee\b/gi,
   /\basset pays for itself in one closed deal\b/gi,
   /\bpays for itself in (?:one|a single|1) closed deal\b/gi,
@@ -132,6 +151,8 @@ const UNVERIFIED_RESULT_PATTERNS: RegExp[] = [
   /\b(?:influence|influenced|impact|impacted|move|moves|moved)\s+pipeline\b(?:[^.?!]*)/gi,
   /\b(?:reduced|cut|lowered|decreased)\s+support tickets\b(?:[^.?!]*)/gi,
   /\b(?:grow|grew|increase|increased|lift|lifted)\s+demo conversions\b(?:[^.?!]*)/gi,
+  /\b(?:improve|improves|improved|increase|increases|increased|lift|lifts|lifted|grow|grows|grew)\s+trial signups?\b(?:[^.?!]*)/gi,
+  /\b(?:influence|influences|influenced|secure|secures|secured|book|books|booked)\s+investor meetings?\b(?:[^.?!]*)/gi,
   /\b(?:20\+|30\+|50\+)\s+(?:client\s+)?logos\b/gi,
   /\b(?:3|4|5|6|3-6|4-6)\s+weeks?\b/gi,
 ]
@@ -145,8 +166,10 @@ export function boundSampleClaims(text: string, mentions?: number, total?: numbe
   if (!text) return text
   const replacement =
     typeof mentions === 'number' && typeof total === 'number'
-      ? `named in ${mentions} of ${total} tested queries`
-      : 'not named in the tested queries'
+      ? mentions === 0
+        ? `not found in ${total} tested query-engine combinations`
+        : `mentioned in ${mentions} of ${total} tested query-engine combinations`
+      : 'not found in the tested query-engine combinations'
   let out = text
   for (const re of OVERCLAIM_PHRASES) out = out.replace(re, replacement)
   return out

@@ -152,13 +152,13 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
 describe('sample-bounded GEO wording', () => {
   it('replaces "completely invisible" with the tested-sample framing', () => {
     const out = boundSampleClaims('The brand is completely invisible.', 0, 6)
-    expect(out.toLowerCase()).toContain('0 of 6 tested queries')
+    expect(out.toLowerCase()).toContain('not found in 6 tested query-engine combinations')
     expect(out.toLowerCase()).not.toContain('completely invisible')
   })
 
   it('falls back to a generic bounded phrase without counts', () => {
     const out = boundSampleClaims('The brand is invisible everywhere.')
-    expect(out.toLowerCase()).toContain('tested queries')
+    expect(out.toLowerCase()).toContain('tested query-engine combinations')
   })
 
   it('softens unsupported aggressive language', () => {
@@ -167,7 +167,7 @@ describe('sample-bounded GEO wording', () => {
       0,
       6
     )
-    expect(out.toLowerCase()).toContain('0 of 6 tested queries')
+    expect(out.toLowerCase()).toContain('not found in 6 tested query-engine combinations')
     expect(out.toLowerCase()).toContain('may reduce conversion clarity')
     expect(out.toLowerCase()).toContain('may appear less established')
     expect(out.toLowerCase()).not.toContain('functionally invisible')
@@ -179,9 +179,22 @@ describe('sample-bounded GEO wording', () => {
     expect(out.toLowerCase()).toContain('paid traffic should be tested')
   })
 
+  it('blocks revenue-leak and scarcity language', () => {
+    const out = sanitizeGeneratedProse(
+      "The site is leaking revenue at every stage, every dollar of paid traffic is wasted, and I have two slots open. I'll map out exactly what I'd do.",
+      0,
+      12
+    )
+    expect(out.toLowerCase()).not.toContain('leaking revenue')
+    expect(out.toLowerCase()).not.toContain('wasted')
+    expect(out.toLowerCase()).not.toContain('two slots open')
+    expect(out).toContain('[insert genuine availability only if verified]')
+    expect(out).toContain('possible improvement plan')
+  })
+
   it('replaces unverified business outcomes with placeholders', () => {
     const out = sanitizeGeneratedProse(
-      'Vitrifi reduced sales cycle by 30%. Product videos lift demo request rates. The two-revision guarantee means the asset pays for itself in one closed deal. Add 20+ client logos and promise it closed a seed round.'
+      'Vitrifi reduced sales cycle by 30%. Product videos lift demo request rates. The two-revision guarantee means the asset pays for itself in one closed deal. Add 20+ client logos and promise it closed a seed round. This improves trial signups and influences investor meetings.'
     )
     expect(out).toContain('[Example only - replace with verified client data]')
     expect(out.toLowerCase()).not.toContain('reduced sales cycle')
@@ -190,15 +203,27 @@ describe('sample-bounded GEO wording', () => {
     expect(out.toLowerCase()).not.toContain('pays for itself')
     expect(out.toLowerCase()).not.toContain('20+ client logos')
     expect(out.toLowerCase()).not.toContain('closed a seed round')
+    expect(out.toLowerCase()).not.toContain('trial signups')
+    expect(out.toLowerCase()).not.toContain('investor meetings')
   })
 
   it('bounds off-site ecosystem claims to returned sources', () => {
-    const out = sanitizeGeneratedProse('There is no YouTube presence and no Reddit presence. AI engines have no signals. BLVD is not recognized as an entity by Claude, Perplexity, or OpenAI.')
+    const out = sanitizeGeneratedProse('There is no YouTube presence and no Reddit presence. AI engines have no signals. BLVD is not recognized as an entity by Claude, Perplexity, or OpenAI. BLVD is absent from knowledge bases.')
     expect(out).toContain('sources returned during this audit')
     expect(out).toContain('tested results')
     expect(out.toLowerCase()).not.toContain('no signals')
     expect(out.toLowerCase()).not.toContain('not recognized as an entity')
     expect(out.toLowerCase()).toContain('tested engine-query combinations')
+    expect(out.toLowerCase()).not.toContain('absent from knowledge bases')
+  })
+
+  it('softens risky strategic recommendations', () => {
+    const out = sanitizeGeneratedProse(
+      'Remove Web3 from the hero. Remove Upwork completely. Create your own best companies ranking page.'
+    )
+    expect(out.toLowerCase()).toContain('test de-emphasizing web3')
+    expect(out.toLowerCase()).toContain('de-emphasize upwork')
+    expect(out.toLowerCase()).toContain('transparent comparison guide')
   })
 })
 
@@ -331,7 +356,7 @@ describe('role assignment', () => {
       description: 'Update HTML and structured data.',
       category: 'proof',
     }
-    expect(inferFixOwner(fix)).toBe('Founder / marketing')
+    expect(inferFixOwner(fix)).toBe('Developer')
     expect(inferFixImplementer(fix)).toBe('Developer')
   })
 

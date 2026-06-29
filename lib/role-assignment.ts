@@ -15,6 +15,9 @@ export const ROLE_BY_CATEGORY: Record<string, string> = {
 export function inferFixOwner(fix: RoleAssignableFix): string {
   const text = `${fix.title} ${fix.description}`.toLowerCase()
 
+  if (/\b(svg|logo render|broken logo|logos? (?:not|don'?t|failed|failing|broken)|image rendering|visual asset)\b/.test(text)) {
+    return 'Developer'
+  }
   if (/\b(testimonial|review|customer|case stud|proof|g2|capterra|clutch|designrush|partner|roundup)\b/.test(text)) {
     return 'Founder / marketing'
   }

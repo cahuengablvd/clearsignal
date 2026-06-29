@@ -163,7 +163,7 @@ describe('sample-bounded GEO wording', () => {
 
   it('softens unsupported aggressive language', () => {
     const out = sanitizeGeneratedProse(
-      'The page is functionally invisible and this is a direct and immediate conversion killer. It reads as unproven and unfinished.',
+      'The page is functionally invisible and this is a direct and immediate conversion killer. It reads as unproven and unfinished. The site is hemorrhaging leads at every stage with a catastrophic trust gap and actively destroys credibility.',
       0,
       6
     )
@@ -172,18 +172,27 @@ describe('sample-bounded GEO wording', () => {
     expect(out.toLowerCase()).toContain('may appear less established')
     expect(out.toLowerCase()).not.toContain('functionally invisible')
     expect(out.toLowerCase()).not.toContain('conversion killer')
+    expect(out.toLowerCase()).not.toContain('hemorrhaging')
+    expect(out.toLowerCase()).not.toContain('catastrophic')
+    expect(out.toLowerCase()).not.toContain('destroys credibility')
   })
 
   it('replaces unverified business outcomes with placeholders', () => {
-    const out = sanitizeGeneratedProse('Product animations reduced sales cycle and UI motion improved activation rates.')
-    expect(out).toContain('[Replace with a verified client result]')
+    const out = sanitizeGeneratedProse(
+      'Vitrifi reduced sales cycle by 30%. Product videos lift demo request rates. The two-revision guarantee means the asset pays for itself in one closed deal.'
+    )
+    expect(out).toContain('[Example only - replace with verified client data]')
     expect(out.toLowerCase()).not.toContain('reduced sales cycle')
-    expect(out.toLowerCase()).not.toContain('activation rates')
+    expect(out.toLowerCase()).not.toContain('demo request rates')
+    expect(out.toLowerCase()).not.toContain('two-revision guarantee')
+    expect(out.toLowerCase()).not.toContain('pays for itself')
   })
 
   it('bounds off-site ecosystem claims to returned sources', () => {
-    const out = sanitizeGeneratedProse('There is no YouTube presence and no Reddit discussions.')
+    const out = sanitizeGeneratedProse('There is no YouTube presence and no Reddit presence. AI engines have no signals.')
     expect(out).toContain('sources returned during this audit')
+    expect(out).toContain('tested results')
+    expect(out.toLowerCase()).not.toContain('no signals')
   })
 })
 

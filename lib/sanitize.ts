@@ -75,10 +75,17 @@ const OVERCLAIM_PHRASES = [
 ]
 
 const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\bhemorrhaging leads at every stage\b/gi, 'may be losing leads at several points'],
+  [/\bhemorrhaging leads\b/gi, 'may be losing leads'],
+  [/\bhemorrhaging buyers\b/gi, 'may be losing buyers'],
+  [/\bhemorrhaging\b/gi, 'may be losing'],
   [/is losing high-intent buyers at every stage/gi, 'may be losing high-intent buyers at several points'],
   [/reads as unproven and unfinished/gi, 'may appear less established than selected competitors'],
+  [/destroying differentiation/gi, 'may weaken differentiation'],
   [/actively destroying trust/gi, 'is likely to weaken trust'],
   [/actively destroys credibility/gi, 'may weaken credibility'],
+  [/actively destroying credibility/gi, 'may weaken credibility'],
+  [/catastrophic trust gap/gi, 'significant trust gap'],
   [/will produce the fastest improvement in conversion/gi, 'is a high-priority conversion clarity improvement'],
   [/fastest improvement in conversion/gi, 'high-priority conversion clarity improvement'],
   [/direct and immediate conversion killer/gi, 'may reduce conversion clarity'],
@@ -89,6 +96,7 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bdestroys credibility\b/gi, 'may weaken credibility'],
   [/\bcosting you demo conversions\b/gi, 'may be reducing demo intent'],
   [/ai engines have no content signals until ([^.]+)/gi, 'AI engines may need stronger owned-page and third-party signals; $1'],
+  [/ai engines have no signals/gi, 'AI engines did not surface strong signals in the tested results'],
   [/no content signals until ([^.]+)/gi, 'limited content signals unless $1'],
   [/a 90-second explainer closes the gap faster than any landing page rewrite/gi, 'a concise explainer may help, but it should support a clear landing page rather than replace it'],
   [/product animations reduced sales cycle/gi, '[Replace with a verified client result]'],
@@ -97,6 +105,17 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/used in series a pitch decks/gi, '[Replace with a verified client result]'],
   [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the sources returned during this audit'],
   [/\bno reddit discussions\b/gi, 'no Reddit discussions were found in the sources returned during this audit'],
+  [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the tested sources'],
+  [/\bno reddit presence\b/gi, 'no Reddit mentions were found in the tested sources'],
+]
+
+const UNVERIFIED_RESULT_PATTERNS: RegExp[] = [
+  /\b[A-Z][A-Za-z0-9&.\- ]{1,60}\s+(?:reduced|shortened|cut|lowered)\s+(?:sales cycle|sales cycles|time to close|churn|costs?)\b(?:[^.?!]*)/g,
+  /\b[A-Z][A-Za-z0-9&.\- ]{1,60}\s+(?:increased|improved|lifted|grew|boosted)\s+(?:activation|activation rates?|demo requests?|conversion|conversion rates?|pipeline|revenue|retention)\b(?:[^.?!]*)/g,
+  /\b(?:product videos?|explainer videos?|animations?|ui motion)\s+(?:increase|increased|improve|improved|lift|lifted|boost|boosted|reduce|reduced)\s+[^.?!]*/gi,
+  /\b(?:two-revision|two revision)\s+guarantee\b/gi,
+  /\basset pays for itself in one closed deal\b/gi,
+  /\bpays for itself in (?:one|a single|1) closed deal\b/gi,
 ]
 
 /**
@@ -121,6 +140,9 @@ export function softenUnsupportedClaims(text: string, mentions?: number, total?:
   let out = boundSampleClaims(text, mentions, total)
   for (const [re, replacement] of TONE_REPLACEMENTS) {
     out = out.replace(re, replacement)
+  }
+  for (const re of UNVERIFIED_RESULT_PATTERNS) {
+    out = out.replace(re, '[Example only - replace with verified client data]')
   }
   return out
 }

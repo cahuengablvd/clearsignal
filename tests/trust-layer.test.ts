@@ -15,6 +15,7 @@ import { attachActionConfidence } from '../lib/action-confidence'
 import { inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
 import { resolveBrandEntity } from '../lib/brand'
 import { clarityUserPrompt, gapUserPrompt, actionUserPrompt } from '../lib/prompts'
+import { validateReport } from '../lib/report-validator'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -670,5 +671,131 @@ describe('evidence-id linking', () => {
     )
     expect(out.top_fixes[0].evidence_ids).toEqual([])
     expect(out.top_fixes[0].evidence_basis).toBe('Based on audit synthesis; no single direct evidence item.')
+  })
+})
+
+describe('pre-PDF contradiction validator', () => {
+  const baseReport = (over: Record<string, unknown>) =>
+    ({
+      meta: { url: 'https://x.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+      clarity: { cta: { finding: '' }, trust_proof: { finding: '' } },
+      gap: { competitor_analysis: [] },
+      action: { executive_summary: '', top_fixes: [] },
+      technical_findings: [],
+      ...over,
+    }) as any
+
+  const finding = (id: string, status: string) => ({
+    id,
+    label: id,
+    classification: status === 'present' ? 'detected' : 'manual_verification',
+    status,
+    confidence: status === 'present' ? 95 : 55,
+    confidence_basis: 'x',
+    detail: 'x',
+  })
+
+  it('qualifies a "no CTA" statement when the CTA finding is present', () => {
+    const r = validateReport(
+      baseReport({
+        technical_findings: [finding('cta_present', 'present')],
+        clarity: { cta: { finding: 'No primary CTA was detected on the page.' } },
+      })
+    )
+    expect(r.report.clarity.cta.finding).toMatch(/hero\/above-the-fold/i)
+    expect(r.warnings.some((w) => w.startsWith('cta:'))).toBe(true)
+  })
+
+  it('corrects a "no FAQ detected" statement when the FAQ finding is present', () => {
+    const r = validateReport(
+      baseReport({
+        technical_findings: [finding('faq_structure', 'present')],
+        clarity: { trust_proof: { finding: 'No FAQ or structured Q&A content was detected.' } },
+      })
+    )
+    expect(r.report.clarity.trust_proof.finding.toLowerCase()).not.toContain('no faq')
+    expect(r.report.clarity.trust_proof.finding).toMatch(/FAQ\/Q&A structure is present/i)
+  })
+
+  it('strips sanitizer placeholders from competitor facts', () => {
+    const r = validateReport(
+      baseReport({
+        gap: {
+          competitor_analysis: [
+            { url: 'c.com', headline: 'h', strengths: ['4.9 stars out of [insert verified data]'], weaknesses: [], clarity_score: 80 },
+          ],
+        },
+      })
+    )
+    expect(r.report.gap.competitor_analysis[0].strengths[0]).not.toContain('[insert verified data]')
+    expect(r.warnings.some((w) => w.startsWith('competitor_analysis:'))).toBe(true)
+  })
+
+  it('removes meta_description from an AI fix and realigns the basis', () => {
+    const r = validateReport(
+      baseReport({
+        action: {
+          executive_summary: '',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'AI visibility',
+              description: '',
+              impact: 'high',
+              effort: 'easy',
+              category: 'ai_search',
+              evidence_ids: ['OBS-META-001', 'GEO-QUERY-001'],
+              evidence_basis: 'Based on: OBS-META-001, GEO-QUERY-001',
+            },
+          ],
+        },
+      })
+    )
+    const fix = r.report.action.top_fixes[0]
+    expect(fix.evidence_ids).toEqual(['GEO-QUERY-001'])
+    expect(fix.evidence_basis).toBe('Based on: GEO-QUERY-001')
+  })
+
+  it('realigns a mismatched basis to its linked ids', () => {
+    const r = validateReport(
+      baseReport({
+        action: {
+          executive_summary: '',
+          top_fixes: [
+            {
+              id: 2,
+              title: 'CTA',
+              description: '',
+              impact: 'high',
+              effort: 'easy',
+              category: 'cta',
+              evidence_ids: ['OBS-CTA-001'],
+              evidence_basis: 'Based on audit synthesis; no single direct evidence item.',
+            },
+          ],
+        },
+      })
+    )
+    expect(r.report.action.top_fixes[0].evidence_basis).toBe('Based on: OBS-CTA-001')
+  })
+
+  it('repairs the known broken entity-advice string', () => {
+    const r = validateReport(
+      baseReport({
+        action: {
+          executive_summary:
+            'We suggest eligible independent third-party source or eligible entity database entity creation for the brand.',
+          top_fixes: [],
+        },
+      })
+    )
+    expect(r.report.action.executive_summary).not.toContain('eligible entity database entity creation')
+    expect(r.report.action.executive_summary).toMatch(/Wikipedia-style entity listings/i)
+  })
+
+  it('never throws and surfaces warnings array', () => {
+    const r = validateReport(baseReport({}))
+    expect(Array.isArray(r.warnings)).toBe(true)
+    expect(Array.isArray(r.errors)).toBe(true)
   })
 })

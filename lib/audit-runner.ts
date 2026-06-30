@@ -2,6 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { scrapeUrl, scrapePage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
 import { resolveBrandEntity } from './brand'
+import { validateReport } from './report-validator'
 import { computeTechnicalFindings } from './findings'
 import { assembleMaterials } from './materials'
 import { callClaudeJSON } from './anthropic'
@@ -286,11 +287,25 @@ export async function runFullAudit(auditId: string): Promise<void> {
       geo?.evidence.length
     )
 
+    // 7b. Deterministic contradiction/artifact validation (post-sanitizer,
+    // pre-save). Repairs in place; never throws on content problems.
+    const validation = validateReport(safeReport)
+    if (validation.warnings.length || validation.errors.length) {
+      console.warn(`Report validation for ${auditId}:`, {
+        warnings: validation.warnings,
+        errors: validation.errors,
+      })
+    }
+    const finalReport: ClearSignalReport = {
+      ...validation.report,
+      validation_warnings: [...validation.errors, ...validation.warnings].slice(0, 50),
+    }
+
     // 8. Save report to audit
     await supabaseAdmin
       .from('audits')
       .update({
-        report: safeReport,
+        report: finalReport,
         audit_status: 'done',
       })
       .eq('id', auditId)

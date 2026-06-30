@@ -369,6 +369,9 @@ export const ClearSignalReportSchema = z.object({
   implementation_briefs: z.array(ImplementationBriefSchema).optional().nullable(),
   // Evidence boundary shown near the top of the report. Optional for old reports.
   data_limitations: z.array(z.string()).optional(),
+  // Deterministic pre-save validation notes (contradictions found/repaired).
+  // Optional / backward compatible.
+  validation_warnings: z.array(z.string()).optional(),
 })
 
 export type ClearSignalReport = z.infer<typeof ClearSignalReportSchema>

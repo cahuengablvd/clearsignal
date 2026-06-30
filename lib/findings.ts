@@ -24,6 +24,22 @@ function firstMatch(re: RegExp, text: string): RegExpExecArray | null {
   return re.exec(text)
 }
 
+/** Short, stable evidence-id slug per finding type (for OBS-* cross-references). */
+const OBS_SLUG: Record<string, string> = {
+  cta_present: 'CTA',
+  h1_present: 'H1',
+  json_ld: 'SCHEMA',
+  meta_description: 'META',
+  social_proof: 'PROOF',
+  faq_structure: 'FAQ',
+}
+
+/** Stable evidence id for a technical finding, e.g. "OBS-CTA-001". */
+export function obsIdForFinding(findingId: string): string {
+  const slug = OBS_SLUG[findingId] || findingId.toUpperCase().replace(/[^A-Z0-9]+/g, '-')
+  return `OBS-${slug}-001`
+}
+
 export function computeTechnicalFindings(input: {
   url: string
   html: string
@@ -237,5 +253,5 @@ export function computeTechnicalFindings(input: {
     })
   }
 
-  return findings
+  return findings.map((f) => ({ ...f, evidence_id: obsIdForFinding(f.id) }))
 }

@@ -82,6 +82,8 @@ export const FindingEvidenceSchema = z.object({
 export const FindingSchema = z.object({
   id: z.string(),
   label: z.string(),
+  // Stable evidence id for cross-referencing from actions (optional / backward compatible).
+  evidence_id: z.string().optional(),
   classification: FindingClassificationSchema,
   // Optional for backward compatibility with older generated reports.
   status: FindingStatusSchema.optional(),
@@ -133,6 +135,8 @@ export const ImplementationBriefsLlmSchema = z.object({
  * report can show the actual answer next to "your status".
  */
 export const GeoEvidenceSchema = z.object({
+  // Stable evidence id for cross-referencing from actions (optional / backward compatible).
+  evidence_id: z.string().optional(),
   engine: z.string(),
   query: z.string(),
   answer_excerpt: z.string(), // trimmed raw answer the engine produced
@@ -333,6 +337,9 @@ const actionSchema = z.object({
     claim_level: claimLevelSchema.optional(),
     control: controlSchema.optional(),
     probability: probabilitySchema.optional(),
+    // Evidence linkage: ids of the findings/GEO items this fix is grounded in.
+    evidence_ids: z.array(z.string()).optional(),
+    evidence_basis: z.string().optional(),
   })),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),

@@ -264,7 +264,12 @@ export default async function AuditPage({
                   <Card key={f.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3 mb-1">
-                        <h3 className="font-semibold text-sm">{f.label}</h3>
+                        <div className="flex items-center gap-2">
+                          {f.evidence_id && (
+                            <span className="text-xs font-mono text-muted-foreground">{f.evidence_id}</span>
+                          )}
+                          <h3 className="font-semibold text-sm">{f.label}</h3>
+                        </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <FindingBadge classification={f.classification} status={f.status} />
                           <span className="text-xs font-mono text-muted-foreground">{f.confidence}%</span>
@@ -745,6 +750,11 @@ export default async function AuditPage({
                   {fix.confidence_basis && (
                     <p className="mt-1 ml-8 text-xs text-muted-foreground">
                       Confidence basis: {fix.confidence_basis}
+                    </p>
+                  )}
+                  {fix.evidence_basis && (
+                    <p className="mt-1 ml-8 text-xs font-mono text-muted-foreground">
+                      {fix.evidence_basis}
                     </p>
                   )}
                 </CardContent>

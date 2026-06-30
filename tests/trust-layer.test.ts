@@ -593,3 +593,82 @@ describe('brand entity normalization', () => {
     expect(actionUserPrompt('{}', '{}', 'icp', 'BLVD Production')).toContain('BLVD Production')
   })
 })
+
+describe('evidence-id linking', () => {
+  const findings = computeTechnicalFindings({
+    url: 'https://example.com',
+    html:
+      '<html><head><title>Acme</title><meta name="description" content="Deploy faster"/>' +
+      '<script type="application/ld+json">{"@type":"Organization","name":"Acme"}</script></head>' +
+      '<body><h1>Ship faster</h1><button>Book a demo</button></body></html>',
+    markdown: 'Ship faster',
+  })
+
+  const actionWith = (fix: {
+    title: string
+    description: string
+    category: 'copy' | 'structure' | 'proof' | 'cta' | 'ai_search'
+  }) => ({
+    executive_summary: '',
+    top_fixes: [{ id: 1, impact: 'high' as const, effort: 'easy' as const, ...fix }],
+    ship_first: [],
+    ignore_for_now: [],
+    outreach_messages: [],
+  })
+
+  it('stamps stable OBS evidence ids on technical findings', () => {
+    const byId = Object.fromEntries(findings.map((f) => [f.id, f.evidence_id]))
+    expect(byId.cta_present).toBe('OBS-CTA-001')
+    expect(byId.json_ld).toBe('OBS-SCHEMA-001')
+    expect(byId.meta_description).toBe('OBS-META-001')
+  })
+
+  it('links a CTA fix to only the CTA evidence', () => {
+    const out = attachActionConfidence(
+      actionWith({ title: 'Improve the primary CTA', description: 'Make the demo button specific', category: 'cta' }),
+      findings,
+      null
+    )
+    expect(out.top_fixes[0].evidence_ids).toEqual(['OBS-CTA-001'])
+    expect(out.top_fixes[0].evidence_basis).toBe('Based on: OBS-CTA-001')
+  })
+
+  it('links a schema fix to only the schema evidence', () => {
+    const out = attachActionConfidence(
+      actionWith({ title: 'Add JSON-LD structured data', description: 'Implement schema.org markup', category: 'structure' }),
+      findings,
+      null
+    )
+    expect(out.top_fixes[0].evidence_ids).toEqual(['OBS-SCHEMA-001'])
+  })
+
+  it('grounds an AI-visibility fix in GEO evidence, never meta_description', () => {
+    const geo = {
+      queries_tested: 6,
+      evidence: [{ evidence_id: 'GEO-QUERY-001' }, { evidence_id: 'GEO-QUERY-002' }],
+    } as any
+    const out = attachActionConfidence(
+      actionWith({
+        title: 'Improve AI visibility and entity signals',
+        description: 'Strengthen brand presence in AI answers',
+        category: 'ai_search',
+      }),
+      findings,
+      geo
+    )
+    const ids = out.top_fixes[0].evidence_ids ?? []
+    expect(ids).not.toContain('OBS-META-001')
+    expect(ids.every((id) => id.startsWith('GEO-'))).toBe(true)
+    expect(ids.length).toBeGreaterThan(0)
+  })
+
+  it('gives an unrelated fix a synthesis fallback, not a fake evidence id', () => {
+    const out = attachActionConfidence(
+      actionWith({ title: 'Improve page load speed', description: 'Optimize images for performance', category: 'structure' }),
+      findings,
+      null
+    )
+    expect(out.top_fixes[0].evidence_ids).toEqual([])
+    expect(out.top_fixes[0].evidence_basis).toBe('Based on audit synthesis; no single direct evidence item.')
+  })
+})

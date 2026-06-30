@@ -172,7 +172,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   }
 
   // 4. Deterministic detection per (engine, query).
-  const evidence: GeoEvidence[] = raw.map((r) => {
+  const evidence: GeoEvidence[] = raw.map((r, i) => {
     const brand_mentioned = textMentions(r.answer, brandVariants.tokens)
     const brand_cited = citationsInclude(r.citations, brandVariants.domain)
 
@@ -191,6 +191,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     }
 
     return {
+      evidence_id: `GEO-QUERY-${String(i + 1).padStart(3, '0')}`,
       engine: r.engine,
       query: r.query,
       answer_excerpt: truncate(r.answer, ANSWER_EXCERPT_LIMIT),

@@ -1,5 +1,8 @@
 import type { ActionBlock, Finding, GeoResult } from './schemas'
 import { inferFixImplementer, inferFixOwner } from './role-assignment'
+import { obsIdForFinding } from './findings'
+
+const NO_DIRECT_EVIDENCE = 'Based on audit synthesis; no single direct evidence item.'
 
 function textOf(fix: { title: string; description: string }): string {
   return `${fix.title} ${fix.description}`.toLowerCase()
@@ -173,6 +176,52 @@ function adjustExternalFix(fix: ActionBlock['top_fixes'][number]): ActionBlock['
   }
 }
 
+/**
+ * Link a fix to ONLY the evidence ids that are actually relevant to it.
+ * Never fabricates an id: if no relevant evidence exists, returns a synthesis
+ * fallback basis with an empty id list.
+ */
+function evidenceForFix(
+  fix: ActionBlock['top_fixes'][number],
+  findings: Finding[],
+  geo: GeoResult | null
+): { evidence_ids: string[]; evidence_basis: string } {
+  const text = textOf(fix)
+
+  // Resolve a finding's stable evidence id only if the finding actually exists.
+  const idFor = (findingId: string): string[] => {
+    const f = findById(findings, findingId)
+    if (!f) return []
+    return [f.evidence_id || obsIdForFinding(findingId)]
+  }
+
+  let ids: string[] = []
+  if (/\b(cta|call[- ]to[- ]action|button|demo)\b/.test(text)) ids = idFor('cta_present')
+  else if (/\b(schema|json-ld|structured data)\b/.test(text)) ids = idFor('json_ld')
+  else if (/\b(faq|question|answer|q&a)\b/.test(text)) ids = idFor('faq_structure')
+  else if (/\b(meta description|meta title|title tag)\b/.test(text)) ids = idFor('meta_description')
+  else if (/\b(proof|testimonial|review|logo|case stud|g2|capterra|clutch|designrush)\b/.test(text))
+    ids = idFor('social_proof')
+  else if (fix.category === 'ai_search') {
+    // AI visibility is grounded in the GEO scan, never a random technical finding.
+    const geoIds = (geo?.evidence ?? [])
+      .slice(0, 3)
+      .map((e, i) => e.evidence_id || `GEO-QUERY-${String(i + 1).padStart(3, '0')}`)
+    if (geoIds.length > 0) {
+      return {
+        evidence_ids: geoIds,
+        evidence_basis: `Based on: ${geoIds.join(', ')} (AI visibility across ${
+          geo?.queries_tested ?? geoIds.length
+        } tested queries)`,
+      }
+    }
+    return { evidence_ids: [], evidence_basis: NO_DIRECT_EVIDENCE }
+  } else if (fix.category === 'copy' || /\b(headline|h1|tagline)\b/.test(text)) ids = idFor('h1_present')
+
+  if (ids.length > 0) return { evidence_ids: ids, evidence_basis: `Based on: ${ids.join(', ')}` }
+  return { evidence_ids: [], evidence_basis: NO_DIRECT_EVIDENCE }
+}
+
 export function attachActionConfidence(
   action: ActionBlock,
   findings: Finding[],
@@ -184,6 +233,7 @@ export function attachActionConfidence(
       const fix = adjustExternalFix(rawFix)
       const confidence = confidenceForFix(fix, findings, geo)
       const control = controlForFix(fix)
+      const evidence = evidenceForFix(fix, findings, geo)
       return {
         ...fix,
         ...confidence,
@@ -193,6 +243,8 @@ export function attachActionConfidence(
         claim_level: claimLevelForFix(fix, confidence.confidence, findings, geo),
         control,
         probability: probabilityForFix(confidence.confidence, control),
+        evidence_ids: evidence.evidence_ids,
+        evidence_basis: evidence.evidence_basis,
       }
     }),
   }

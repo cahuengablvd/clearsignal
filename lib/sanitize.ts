@@ -152,9 +152,15 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bno reddit presence\b/gi, 'no Reddit mentions were found in the tested sources'],
   [/\bno presence on reddit\b/gi, 'no Reddit mentions were found among sources cited in the tested responses'],
   [/\bnone of which currently reference\s+[A-Za-z0-9 ._-]+\b/gi, 'none of the cited sources reviewed in this audit referenced the brand'],
-  [/\bwikipedia\/wikidata page\b/gi, 'independent third-party entity profile'],
-  [/\bwikipedia\b/gi, 'eligible independent third-party source'],
-  [/\bwikidata\b/gi, 'eligible entity database'],
+  // Wikipedia/Wikidata entity-listing advice -> clean, conditional client
+  // wording. Bare-word replacement used to mangle grammar, e.g. "Wikipedia or
+  // Wikidata entity creation" became "eligible independent third-party source
+  // or eligible entity database entity creation".
+  [/\b(?:create|build|set ?up|establish|pursue|add|register|file|submit|obtain|seek|target)\s+(?:a\s+|an\s+|your\s+|the\s+|new\s+)*wiki(?:pedia|data)\b[^.?!]*/gi,
+    'hold off on Wikipedia-style entity listings until the brand has enough independent third-party coverage to qualify'],
+  [/\bwiki(?:pedia|data)(?:\s*(?:\/|,|\bor\b|\band\b)\s*wiki(?:pedia|data))?\s+(?:page|entry|entity|profile|listing)?\s*entity creation\b/gi,
+    'Wikipedia-style entity listings (pursue only once the brand has enough independent coverage to qualify)'],
+  [/\bwiki(?:pedia|data)\s*(?:\/|,|\bor\b|\band\b)\s*wiki(?:pedia|data)\b/gi, 'independent entity databases'],
   [/\baggregaterating\b/gi, 'valid review schema only if first-party guidelines and source data support it'],
   [/\bunlimited revisions\b/gi, 'clearly scoped revision terms'],
   [/\b(?:one|1|two|2|three|3)\s+(?:slot|slots|spot|spots)\s+open\b/gi, '[insert genuine availability only if verified]'],

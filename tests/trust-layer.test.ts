@@ -513,3 +513,39 @@ describe('role assignment', () => {
     })).toBe('Founder / marketing')
   })
 })
+
+describe('internal replacement phrases never leak into client copy', () => {
+  it('rewrites Wikipedia/Wikidata entity advice without grammar artifacts', () => {
+    const cases = [
+      'We recommend Wikipedia or Wikidata entity creation to establish presence.',
+      'Create a Wikipedia page to build brand entity.',
+      'Pursue Wikipedia/Wikidata entity creation now.',
+      'Set up a Wikidata entry for the brand.',
+    ]
+    for (const text of cases) {
+      const out = sanitizeGeneratedProse(text)
+      expect(out).not.toMatch(/eligible independent third-party source/i)
+      expect(out).not.toMatch(/eligible entity database/i)
+      expect(out.toLowerCase()).not.toContain('database entity creation')
+      expect(out.toLowerCase()).toContain('qualify')
+    }
+  })
+
+  it('does not surface internal-only phrases through the full report sanitizer', () => {
+    const report = {
+      action: {
+        top_fixes: [
+          { description: 'We recommend Wikipedia or Wikidata entity creation for BLVD.' },
+        ],
+      },
+    }
+    const safe = JSON.stringify(sanitizeGeneratedReportValue(report)).toLowerCase()
+    for (const phrase of [
+      'eligible independent third-party source',
+      'eligible entity database',
+      'database entity creation',
+    ]) {
+      expect(safe).not.toContain(phrase)
+    }
+  })
+})

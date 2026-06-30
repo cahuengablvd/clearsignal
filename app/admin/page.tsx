@@ -27,12 +27,22 @@ const emptyForm = {
   competitor_2: '',
   competitor_3: '',
   icp_description: '',
+  business_context: {
+    business_model: 'unknown',
+    primary_conversion_goal: 'unknown',
+    purchase_availability: 'unknown',
+    ships_internationally: 'unknown',
+    provenance_or_authentication: 'unknown',
+    target_markets_languages: '',
+    verified_facts: '',
+  },
 }
 
 type AuditPreview = {
   brand: string
   url: string
   icp_description: string
+  business_context?: typeof emptyForm.business_context
   competitors: string[]
   queries: string[]
   scraped: boolean
@@ -239,6 +249,17 @@ export default function AdminPage() {
                   <div className="break-all"><span className="text-muted-foreground">URL:</span> {preview.url}</div>
                   <div className="sm:col-span-2"><span className="text-muted-foreground">ICP:</span> {preview.icp_description || <em className="text-muted-foreground">none</em>}</div>
                   <div className="sm:col-span-2">
+                    <span className="text-muted-foreground">Business context:</span>{' '}
+                    {preview.business_context ? (
+                      <span>
+                        {preview.business_context.business_model} / {preview.business_context.primary_conversion_goal}
+                        {preview.business_context.target_markets_languages ? ` | ${preview.business_context.target_markets_languages}` : ''}
+                      </span>
+                    ) : (
+                      <em className="text-muted-foreground">none</em>
+                    )}
+                  </div>
+                  <div className="sm:col-span-2">
                     <span className="text-muted-foreground">Competitors:</span>{' '}
                     {preview.competitors.length ? preview.competitors.join(', ') : <em className="text-muted-foreground">none</em>}
                   </div>
@@ -348,6 +369,107 @@ export default function AdminPage() {
                 value={form.icp_description}
                 onChange={(e) => setForm({ ...form, icp_description: e.target.value })}
               />
+              <div className="rounded border p-3 space-y-3">
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground">Business context</div>
+                  <p className="text-xs text-muted-foreground">
+                    Used to prevent unverified claims about sales, shipping, certificates, pricing, and markets.
+                  </p>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={form.business_context.business_model}
+                    onChange={(e) => setForm({
+                      ...form,
+                      business_context: { ...form.business_context, business_model: e.target.value },
+                    })}
+                  >
+                    <option value="unknown">Business model unknown</option>
+                    <option value="ecommerce">Ecommerce</option>
+                    <option value="marketplace">Marketplace</option>
+                    <option value="service_business">Service business</option>
+                    <option value="portfolio">Portfolio</option>
+                    <option value="gallery">Gallery</option>
+                    <option value="archive">Archive</option>
+                    <option value="media_content_site">Media/content site</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={form.business_context.primary_conversion_goal}
+                    onChange={(e) => setForm({
+                      ...form,
+                      business_context: { ...form.business_context, primary_conversion_goal: e.target.value },
+                    })}
+                  >
+                    <option value="unknown">Goal unknown</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="inquiry">Inquiry</option>
+                    <option value="booking">Booking</option>
+                    <option value="signup">Signup</option>
+                    <option value="download">Download</option>
+                    <option value="portfolio_viewing">Portfolio viewing</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={form.business_context.purchase_availability}
+                    onChange={(e) => setForm({
+                      ...form,
+                      business_context: { ...form.business_context, purchase_availability: e.target.value },
+                    })}
+                  >
+                    <option value="unknown">Purchase availability unknown</option>
+                    <option value="yes">Available for purchase</option>
+                    <option value="some">Some available</option>
+                    <option value="no">Not directly available</option>
+                  </select>
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={form.business_context.ships_internationally}
+                    onChange={(e) => setForm({
+                      ...form,
+                      business_context: { ...form.business_context, ships_internationally: e.target.value },
+                    })}
+                  >
+                    <option value="unknown">Shipping unknown</option>
+                    <option value="yes">Ships internationally</option>
+                    <option value="no">No international shipping</option>
+                  </select>
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm sm:col-span-2"
+                    value={form.business_context.provenance_or_authentication}
+                    onChange={(e) => setForm({
+                      ...form,
+                      business_context: { ...form.business_context, provenance_or_authentication: e.target.value },
+                    })}
+                  >
+                    <option value="unknown">Certificates/provenance unknown</option>
+                    <option value="yes">Certificates/provenance confirmed</option>
+                    <option value="no">No certificates/provenance</option>
+                    <option value="not_applicable">Not applicable</option>
+                  </select>
+                </div>
+                <Textarea
+                  placeholder="Target markets and languages (e.g. Latvia + international collectors; Latvian and English)"
+                  rows={2}
+                  value={form.business_context.target_markets_languages}
+                  onChange={(e) => setForm({
+                    ...form,
+                    business_context: { ...form.business_context, target_markets_languages: e.target.value },
+                  })}
+                />
+                <Textarea
+                  placeholder="Verified facts ClearSignal may use (e.g. purchase terms, shipping, certificates, pricing, awards). Leave blank if unknown."
+                  rows={2}
+                  value={form.business_context.verified_facts}
+                  onChange={(e) => setForm({
+                    ...form,
+                    business_context: { ...form.business_context, verified_facts: e.target.value },
+                  })}
+                />
+              </div>
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={previewing} className="gap-2">
                   {previewing ? (

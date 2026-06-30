@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
-import { competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
+import { BusinessContextSchema, competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
 import { generateBuyerQueries } from '@/lib/geo'
 import { scrapeUrl } from '@/lib/firecrawl'
 import { normalizeMarkdown } from '@/lib/normalize-markdown'
@@ -14,6 +14,7 @@ const requestSchema = z.object({
   competitor_2: competitorUrlSchema,
   competitor_3: competitorUrlSchema,
   icp_description: icpTextSchema,
+  business_context: BusinessContextSchema.optional(),
 })
 
 function brandFromUrl(url: string): string {
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
       url: input.url,
       icp_description: input.icp_description,
       competitors,
+      business_context: BusinessContextSchema.parse(input.business_context || {}),
       queries,
       scraped: !!raw,
     })

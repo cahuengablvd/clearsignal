@@ -13,6 +13,46 @@ export const ClearSignalScoreSchema = z.object({
 
 export type ClearSignalScore = z.infer<typeof ClearSignalScoreSchema>
 
+// --- Business context / verified facts ---
+
+export const businessModelSchema = z.enum([
+  'ecommerce',
+  'marketplace',
+  'service_business',
+  'portfolio',
+  'gallery',
+  'archive',
+  'media_content_site',
+  'other',
+  'unknown',
+])
+
+export const conversionGoalSchema = z.enum([
+  'purchase',
+  'inquiry',
+  'booking',
+  'signup',
+  'download',
+  'portfolio_viewing',
+  'other',
+  'unknown',
+])
+
+export const availabilitySchema = z.enum(['yes', 'no', 'some', 'unknown'])
+export const triStateSchema = z.enum(['yes', 'no', 'unknown'])
+export const provenanceSchema = z.enum(['yes', 'no', 'unknown', 'not_applicable'])
+
+export const BusinessContextSchema = z.object({
+  business_model: businessModelSchema.optional().default('unknown'),
+  primary_conversion_goal: conversionGoalSchema.optional().default('unknown'),
+  purchase_availability: availabilitySchema.optional().default('unknown'),
+  ships_internationally: triStateSchema.optional().default('unknown'),
+  provenance_or_authentication: provenanceSchema.optional().default('unknown'),
+  target_markets_languages: z.string().max(1000).optional().default(''),
+  verified_facts: z.string().max(2000).optional().default(''),
+})
+export type BusinessContext = z.infer<typeof BusinessContextSchema>
+
 // --- Trust Layer: input validation ---
 
 /** Whole value is a bare URL (so we can keep it OUT of the ICP field). */
@@ -265,6 +305,7 @@ const metaSchema = z.object({
   canonical_brand: z.string().optional(),
   domain: z.string().optional(),
   alternative_brand_forms: z.array(z.string()).optional(),
+  business_context: BusinessContextSchema.optional(),
 })
 
 const claritySchema = z.object({

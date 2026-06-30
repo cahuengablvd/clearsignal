@@ -2,6 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { scrapeUrl, scrapePage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
 import { resolveBrandEntity } from './brand'
+import { normalizeBusinessContext } from './business-context'
 import { validateReport } from './report-validator'
 import { computeTechnicalFindings } from './findings'
 import { assembleMaterials } from './materials'
@@ -18,6 +19,7 @@ import {
   type ReadyMaterials,
   ImplementationBriefsLlmSchema,
   type ImplementationBrief,
+  type BusinessContext,
 } from './schemas'
 import {
   MODEL_AUDIT,
@@ -60,11 +62,12 @@ function sanitizeReportProse(
   clarity: ClarityBlock,
   gap: GapBlock,
   action: ActionBlock,
-  geo: GeoResult | null
+  geo: GeoResult | null,
+  businessContext?: BusinessContext
 ): void {
   const mentions = geo?.evidence.filter((e) => e.brand_mentioned).length
   const total = geo?.evidence.length
-  const clean = (text: string) => sanitizeGeneratedProse(text, mentions, total)
+  const clean = (text: string) => sanitizeGeneratedProse(text, mentions, total, { businessContext })
 
   clarity.icp_visibility.finding = clean(clarity.icp_visibility.finding)
   clarity.headline.finding = clean(clarity.headline.finding)
@@ -155,6 +158,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     }
 
     const icp = audit.icp_description || ''
+    const businessContext = normalizeBusinessContext(audit.business_context)
     // Resolve ONE brand entity from the page (not just the domain label) so the
     // report stops mixing "BLVD Production", "Blvdprod" and "blvdprod.com".
     const brandEntity = resolveBrandEntity({
@@ -188,7 +192,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const clarity = await callClaudeJSON<ClarityBlock>({
       model: MODEL_AUDIT,
       system: CLARITY_SYSTEM,
-      user: clarityUserPrompt(targetMarkdown, icp, brand),
+      user: clarityUserPrompt(targetMarkdown, icp, brand, businessContext),
       validate: (data) => ClarityBlockSchema.parse(data),
       maxTokens: 4096,
     })
@@ -197,7 +201,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const gap = await callClaudeJSON<GapBlock>({
       model: MODEL_AUDIT,
       system: GAP_SYSTEM,
-      user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity), brand),
+      user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity), brand, businessContext),
       validate: (data) => GapBlockSchema.parse(data),
       maxTokens: 4096,
     })
@@ -206,7 +210,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const action = await callClaudeJSON<ActionBlock>({
       model: MODEL_AUDIT,
       system: ACTION_SYSTEM,
-      user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp, brand),
+      user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp, brand, businessContext),
       validate: (data) => ActionBlockSchema.parse(data),
       maxTokens: 4096,
     })
@@ -215,7 +219,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
 
     // 6b. Trust Layer: strip any invented or over-broad language the model
     // slipped into prose, then attach deterministic confidence to actions.
-    sanitizeReportProse(clarity, gap, action, geo)
+    sanitizeReportProse(clarity, gap, action, geo, businessContext)
     const actionWithConfidence = attachActionConfidence(action, technicalFindings, geo)
 
     // 6c. Ready-to-ship materials (meta/FAQ/CTA + deterministic JSON-LD).
@@ -224,17 +228,17 @@ export async function runFullAudit(auditId: string): Promise<void> {
       const llm = await callClaudeJSON({
         model: MODEL_AUDIT,
         system: MATERIALS_SYSTEM,
-        user: materialsUserPrompt(brand, audit.url, icp, JSON.stringify(clarity), geo?.summary || ''),
+        user: materialsUserPrompt(brand, audit.url, icp, JSON.stringify(clarity), geo?.summary || '', businessContext),
         validate: (d) => ReadyMaterialsLlmSchema.parse(d),
         maxTokens: 2048,
       })
-      llm.meta_title = sanitizeGeneratedProse(llm.meta_title)
-      llm.meta_description = sanitizeGeneratedProse(llm.meta_description)
+      llm.meta_title = sanitizeGeneratedProse(llm.meta_title, undefined, undefined, { businessContext })
+      llm.meta_description = sanitizeGeneratedProse(llm.meta_description, undefined, undefined, { businessContext })
       llm.faq = llm.faq.map((f) => ({
-        question: sanitizeGeneratedProse(f.question),
-        answer: sanitizeGeneratedProse(f.answer),
+        question: sanitizeGeneratedProse(f.question, undefined, undefined, { businessContext }),
+        answer: sanitizeGeneratedProse(f.answer, undefined, undefined, { businessContext }),
       }))
-      llm.cta_variants = llm.cta_variants.map((c) => sanitizeGeneratedProse(c))
+      llm.cta_variants = llm.cta_variants.map((c) => sanitizeGeneratedProse(c, undefined, undefined, { businessContext }))
       readyMaterials = assembleMaterials(brand, audit.url, llm)
     } catch (err) {
       console.warn(`Ready-materials generation failed for ${auditId} (continuing without it):`, err)
@@ -251,7 +255,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       const { briefs } = await callClaudeJSON({
         model: MODEL_AUDIT,
         system: BRIEF_SYSTEM,
-        user: briefUserPrompt(brand, audit.url, topFixes),
+        user: briefUserPrompt(brand, audit.url, topFixes, businessContext),
         validate: (d) => ImplementationBriefsLlmSchema.parse(d),
         maxTokens: 2048,
       })
@@ -271,6 +275,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
         canonical_brand: brandEntity.canonical_brand,
         domain: brandEntity.domain,
         alternative_brand_forms: brandEntity.alternative_brand_forms,
+        business_context: businessContext,
       },
       clarity,
       gap,
@@ -284,7 +289,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const safeReport = sanitizeGeneratedReportValue(
       report,
       geo?.evidence.filter((e) => e.brand_mentioned).length,
-      geo?.evidence.length
+      geo?.evidence.length,
+      { businessContext }
     )
 
     // 7b. Deterministic contradiction/artifact validation (post-sanitizer,

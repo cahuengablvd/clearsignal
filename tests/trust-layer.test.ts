@@ -4,10 +4,11 @@ import {
   hasUnverifiedNumericClaim,
   redactPerformanceClaims,
   boundSampleClaims,
+  sanitizeUnsupportedCommercialClaims,
   sanitizeGeneratedProse,
   sanitizeGeneratedReportValue,
 } from '../lib/sanitize'
-import { icpTextSchema, competitorUrlSchema, FindingSchema } from '../lib/schemas'
+import { BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
 import { buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
@@ -42,6 +43,20 @@ describe('input validation', () => {
   it('rejects non-http competitor URLs', () => {
     expect(competitorUrlSchema.safeParse('mailto:sales@example.com').success).toBe(false)
     expect(competitorUrlSchema.safeParse('ftp://example.com').success).toBe(false)
+  })
+
+  it('accepts structured business context defaults', () => {
+    const ctx = BusinessContextSchema.parse({
+      business_model: 'gallery',
+      primary_conversion_goal: 'inquiry',
+      purchase_availability: 'unknown',
+      ships_internationally: 'unknown',
+      provenance_or_authentication: 'unknown',
+      target_markets_languages: 'Latvia and international collectors; Latvian and English',
+      verified_facts: '',
+    })
+    expect(ctx.business_model).toBe('gallery')
+    expect(ctx.purchase_availability).toBe('unknown')
   })
 })
 
@@ -308,6 +323,44 @@ describe('sample-bounded GEO wording', () => {
     expect(out).toContain('[Example only - replace with verified client data]')
     expect(out.toLowerCase()).not.toContain('sales team uses the video')
     expect(out.toLowerCase()).not.toContain('actively repels buyers')
+  })
+
+  it('blocks unsupported commercial claims without verified business context', () => {
+    const ctx = BusinessContextSchema.parse({
+      business_model: 'gallery',
+      primary_conversion_goal: 'inquiry',
+      purchase_availability: 'unknown',
+      ships_internationally: 'unknown',
+      provenance_or_authentication: 'unknown',
+      target_markets_languages: 'Latvian and English',
+      verified_facts: '',
+    })
+    const out = sanitizeUnsupportedCommercialClaims(
+      'All artworks are available to buy and include certificates of authenticity with international shipping and secure payment.',
+      ctx
+    )
+    expect(out.toLowerCase()).not.toContain('available to buy')
+    expect(out.toLowerCase()).not.toContain('certificates of authenticity')
+    expect(out.toLowerCase()).not.toContain('international shipping')
+    expect(out.toLowerCase()).not.toContain('secure payment')
+    expect(out).toContain('Contact the business to confirm availability')
+    expect(out).toContain('authenticity or provenance documentation should be confirmed')
+  })
+
+  it('allows commercial claims explicitly present in verified facts', () => {
+    const ctx = BusinessContextSchema.parse({
+      purchase_availability: 'yes',
+      ships_internationally: 'yes',
+      provenance_or_authentication: 'yes',
+      verified_facts: 'Artworks are available for purchase. International shipping and certificates of authenticity are available.',
+    })
+    const out = sanitizeUnsupportedCommercialClaims(
+      'Artworks are available for purchase with certificates of authenticity and international shipping.',
+      ctx
+    )
+    expect(out).toContain('available for purchase')
+    expect(out).toContain('certificates of authenticity')
+    expect(out).toContain('international shipping')
   })
 })
 
@@ -729,6 +782,54 @@ describe('pre-PDF contradiction validator', () => {
     )
     expect(r.report.gap.competitor_analysis[0].strengths[0]).not.toContain('[insert verified data]')
     expect(r.warnings.some((w) => w.startsWith('competitor_analysis:'))).toBe(true)
+  })
+
+  it('replaces draft placeholders outside competitor facts before the client report', () => {
+    const r = validateReport(
+      baseReport({
+        action: {
+          executive_summary: 'Use [insert verified data] as proof before publishing.',
+          top_fixes: [],
+        },
+      })
+    )
+    expect(r.report.action.executive_summary).not.toContain('[insert verified data]')
+    expect(r.report.action.executive_summary).toContain('verify this claim before publishing')
+    expect(r.warnings.some((w) => w.startsWith('placeholder:'))).toBe(true)
+  })
+
+  it('softens unsupported commercial claims during final validation', () => {
+    const r = validateReport(
+      baseReport({
+        meta: {
+          business_context: BusinessContextSchema.parse({
+            business_model: 'gallery',
+            primary_conversion_goal: 'inquiry',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+          }),
+        },
+        ready_materials: {
+          meta_title: 'Latvian art gallery',
+          meta_description: 'All artworks are available for purchase with international shipping.',
+          faq: [
+            {
+              question: 'Do works include certificates?',
+              answer: 'All works include certificates of authenticity.',
+            },
+          ],
+          cta_variants: ['Ask about availability'],
+          json_ld: '{}',
+        },
+      })
+    )
+    const text = JSON.stringify(r.report.ready_materials)
+    expect(text.toLowerCase()).not.toContain('available for purchase')
+    expect(text.toLowerCase()).not.toContain('international shipping')
+    expect(text.toLowerCase()).not.toContain('certificates of authenticity')
+    expect(text).toContain('Contact the business to confirm availability')
+    expect(r.warnings.some((w) => w.startsWith('commercial_claim:'))).toBe(true)
   })
 
   it('removes meta_description from an AI fix and realigns the basis', () => {

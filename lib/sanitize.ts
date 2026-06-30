@@ -1,3 +1,11 @@
+import {
+  canClaimCommercialPolicy,
+  canClaimInternationalShipping,
+  canClaimProvenance,
+  canClaimPurchaseAvailable,
+} from './business-context'
+import type { BusinessContext } from './schemas'
+
 /**
  * Trust Layer - output/input safety helpers.
  *
@@ -75,8 +83,49 @@ export function redactUnverifiedQuantifiedExamples(text: string): string {
     .trim()
 }
 
+export function sanitizeUnsupportedCommercialClaims(text: string, context?: BusinessContext): string {
+  if (!text || !context) return text
+  let out = text
+
+  if (!canClaimPurchaseAvailable(context)) {
+    out = out
+      .replace(/\b(?:all\s+)?(?:artworks?|works?|products?|pieces?)\s+(?:are|is)\s+(?:available\s+)?(?:to buy|for purchase|for sale|available)\b/gi, 'Contact the business to confirm availability for specific items')
+      .replace(/\b(?:buy|purchase|order)\s+(?:artworks?|works?|products?|pieces?)\s+(?:directly|online|now)\b/gi, 'contact the business to confirm purchase terms')
+  }
+
+  if (!canClaimInternationalShipping(context)) {
+    out = out.replace(/\b(?:international|worldwide|global)\s+shipping\b|\bships?\s+(?:internationally|worldwide|globally)\b/gi, 'shipping options should be confirmed with the business')
+  }
+
+  if (!canClaimProvenance(context)) {
+    out = out.replace(/\b(?:certificates?\s+of\s+authenticity|authenticity\s+certificates?|provenance\s+documentation|authentication\s+documents?)\b/gi, 'authenticity or provenance documentation should be confirmed with the business')
+  }
+
+  if (!canClaimCommercialPolicy(context, 'secure_payment')) {
+    out = out.replace(/\bsecure\s+payments?\b|\bsecure\s+checkout\b|\bcard\s+payments?\s+(?:accepted|supported)\b/gi, 'payment options should be confirmed with the business')
+  }
+
+  if (!canClaimCommercialPolicy(context, 'returns')) {
+    out = out.replace(/\breturn policy\b|\breturns?\s+(?:accepted|available|supported)\b|\brefunds?\s+(?:available|supported)\b/gi, 'return terms should be confirmed with the business')
+  }
+
+  if (!canClaimCommercialPolicy(context, 'pricing')) {
+    out = out.replace(/\b(?:prices?|pricing|price range)\s+(?:is|are|starts?|start|ranges?)\b[^.?!]*/gi, 'pricing should be confirmed with the business')
+  }
+
+  if (!canClaimCommercialPolicy(context, 'awards')) {
+    out = out.replace(/\b(?:award[- ]winning|press[- ]featured|featured in|official partner|affiliated with)\b[^.?!]*/gi, 'third-party recognition should be confirmed before publishing')
+  }
+
+  return out
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .trim()
+}
+
 type ProseSanitizeOptions = {
   redactQuantifiedExamples?: boolean
+  businessContext?: BusinessContext
 }
 
 const OVERCLAIM_PHRASES = [
@@ -231,7 +280,7 @@ export function sanitizeGeneratedProse(
   const numericSafe = redactQuantifiedExamples
     ? redactUnverifiedQuantifiedExamples(withoutPerformanceClaims)
     : withoutPerformanceClaims
-  return softenUnsupportedClaims(numericSafe, mentions, total)
+  return softenUnsupportedClaims(sanitizeUnsupportedCommercialClaims(numericSafe, options.businessContext), mentions, total)
 }
 
 const RAW_STRING_KEYS = new Set([
@@ -276,18 +325,25 @@ function shouldPreserveDetectedNumbers(path: string[]): boolean {
  * choke point before persistence, so new report fields cannot bypass the trust
  * layer just because they were not manually listed in audit-runner.
  */
-export function sanitizeGeneratedReportValue<T>(value: T, mentions?: number, total?: number, path: string[] = []): T {
+export function sanitizeGeneratedReportValue<T>(
+  value: T,
+  mentions?: number,
+  total?: number,
+  options: ProseSanitizeOptions = {},
+  path: string[] = []
+): T {
   if (typeof value === 'string') {
     const key = path[path.length - 1]
     return (shouldSkipGeneratedProseSanitizer(path, key)
       ? value
       : sanitizeGeneratedProse(value, mentions, total, {
           redactQuantifiedExamples: !shouldPreserveDetectedNumbers(path),
+          businessContext: options.businessContext,
         })) as T
   }
 
   if (Array.isArray(value)) {
-    return value.map((item, index) => sanitizeGeneratedReportValue(item, mentions, total, [...path, String(index)])) as T
+    return value.map((item, index) => sanitizeGeneratedReportValue(item, mentions, total, options, [...path, String(index)])) as T
   }
 
   if (value && typeof value === 'object') {
@@ -295,7 +351,7 @@ export function sanitizeGeneratedReportValue<T>(value: T, mentions?: number, tot
     for (const [key, child] of Object.entries(value)) {
       out[key] = shouldSkipGeneratedProseSanitizer([...path, key], key)
         ? child
-        : sanitizeGeneratedReportValue(child, mentions, total, [...path, key])
+        : sanitizeGeneratedReportValue(child, mentions, total, options, [...path, key])
     }
     return out as T
   }

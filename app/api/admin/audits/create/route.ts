@@ -5,7 +5,7 @@ import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { enqueueAudit } from '@/lib/audit-queue'
 import { notify } from '@/lib/notify'
 import { trySignToken } from '@/lib/tokens'
-import { competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
+import { BusinessContextSchema, competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
 
 export const maxDuration = 60
 
@@ -20,6 +20,7 @@ const requestSchema = z.object({
   tier: z.enum(['automated', 'reviewed', 'sprint']).optional().default('automated'),
   // Operator-confirmed buyer-intent queries from the preview/confirmation step.
   queries: z.array(z.string().min(1)).max(12).optional(),
+  business_context: BusinessContextSchema.optional(),
 })
 
 /**
@@ -57,16 +58,17 @@ export async function POST(req: NextRequest) {
     tier: input.tier,
   }
   const queries = input.queries?.length ? input.queries : null
+  const businessContext = BusinessContextSchema.parse(input.business_context || {})
 
   let { data: audit, error: insertError } = await supabaseAdmin
     .from('audits')
-    .insert(queries ? { ...base, geo_queries: queries } : base)
+    .insert({ ...base, ...(queries ? { geo_queries: queries } : {}), business_context: businessContext })
     .select('id')
     .single()
 
   // Graceful fallback if migration 003 (geo_queries column) isn't applied yet.
-  if (insertError && queries && /geo_queries/i.test(insertError.message)) {
-    console.warn('[admin/create] geo_queries column missing - run migration 003. Inserting without it.')
+  if (insertError && (queries || input.business_context) && /(geo_queries|business_context)/i.test(insertError.message)) {
+    console.warn('[admin/create] optional column missing - run latest migrations. Inserting without optional audit context.')
     ;({ data: audit, error: insertError } = await supabaseAdmin
       .from('audits')
       .insert(base)

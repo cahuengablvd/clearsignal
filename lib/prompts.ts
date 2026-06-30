@@ -1,4 +1,6 @@
+import { businessContextPrompt } from './business-context'
 import { untrustedBlock } from './sanitize'
+import type { BusinessContext } from './schemas'
 
 // --- Model IDs ---
 export const MODEL_SCORE = 'claude-haiku-4-5-20251001'
@@ -247,10 +249,12 @@ export function materialsUserPrompt(
   url: string,
   icp: string,
   clarityOutput: string,
-  geoSummary: string
+  geoSummary: string,
+  context?: BusinessContext
 ): string {
   return `Brand: ${brand} (${url})
 ICP: ${icp || 'Not provided'}
+${businessGuidance(context)}
 
 Messaging analysis:
 ${clarityOutput}
@@ -279,12 +283,14 @@ Return ONLY valid JSON matching the schema.`
 export function briefUserPrompt(
   brand: string,
   url: string,
-  fixes: { title: string; description: string; category: string }[]
+  fixes: { title: string; description: string; category: string }[],
+  context?: BusinessContext
 ): string {
   const list = fixes
     .map((f, i) => `${i + 1}. [${f.category}] ${f.title} - ${f.description}`)
     .join('\n')
   return `Brand: ${brand} (${url})
+${businessGuidance(context)}
 
 Fixes to brief:
 ${list}
@@ -311,13 +317,18 @@ function brandGuidance(brand?: string): string {
     : ''
 }
 
-export function clarityUserPrompt(markdown: string, icp: string, brand?: string): string {
+function businessGuidance(context?: BusinessContext): string {
+  return context ? `\n${businessContextPrompt(context)}\n` : ''
+}
+
+export function clarityUserPrompt(markdown: string, icp: string, brand?: string, context?: BusinessContext): string {
   return `Homepage content:
 ${untrustedBlock('HOMEPAGE', markdown)}
 
 ICP description:
 ${icp || 'Not provided'}
 ${brandGuidance(brand)}
+${businessGuidance(context)}
 Return a JSON object with this exact structure:
 {
   "overall_score": <number 1-100>,
@@ -346,7 +357,8 @@ export function gapUserPrompt(
   targetMarkdown: string,
   competitors: { url: string; markdown: string }[],
   clarityOutput: string,
-  brand?: string
+  brand?: string,
+  context?: BusinessContext
 ): string {
   const compSections = competitors
     .map((c, i) => `--- Competitor ${i + 1}: ${c.url} ---\n${untrustedBlock(`COMPETITOR_${i + 1}`, c.markdown)}`)
@@ -355,6 +367,7 @@ export function gapUserPrompt(
   return `Target homepage:
 ${untrustedBlock('TARGET_HOMEPAGE', targetMarkdown)}
 ${brandGuidance(brand)}
+${businessGuidance(context)}
 
 ${compSections ? `Competitors:\n${compSections}` : 'No competitor data available.'}
 
@@ -395,7 +408,8 @@ export function actionUserPrompt(
   clarityOutput: string,
   gapOutput: string,
   icp: string,
-  brand?: string
+  brand?: string,
+  context?: BusinessContext
 ): string {
   return `Clarity analysis:
 ${clarityOutput}
@@ -406,6 +420,7 @@ ${gapOutput}
 ICP description:
 ${icp || 'Not provided'}
 ${brandGuidance(brand)}
+${businessGuidance(context)}
 Return a JSON object with this exact structure:
 {
   "executive_summary": "<string, 3-4 sentences>",

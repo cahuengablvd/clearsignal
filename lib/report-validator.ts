@@ -9,7 +9,8 @@
  *
  * Pure + deterministic: no LLM, fully unit-testable.
  */
-import type { ClearSignalReport, Finding } from './schemas'
+import { sanitizeUnsupportedCommercialClaims } from './sanitize'
+import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
 
 export type ReportValidation = {
   report: ClearSignalReport
@@ -90,6 +91,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const warnings: string[] = []
   const errors: string[] = []
   const warn = (m: string) => warnings.push(m)
+  const businessContext = report.meta.business_context as BusinessContext | undefined
 
   const ctaStatus = findingStatus(report, 'cta_present')
   const faqStatus = findingStatus(report, 'faq_structure')
@@ -129,6 +131,23 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
         warn('competitor_analysis: removed sanitizer placeholder from competitor facts')
         out = next
       }
+    } else {
+      const next = out
+        .replace(PLACEHOLDER_RE, ' verify this claim before publishing ')
+        .replace(/\(\s*\)/g, '')
+        .replace(/\s+([.,;:!?])/g, '$1')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+      if (next !== out) {
+        warn('placeholder: replaced a draft placeholder in client-facing prose')
+        out = next
+      }
+    }
+
+    const commercialSafe = sanitizeUnsupportedCommercialClaims(out, businessContext)
+    if (commercialSafe !== out) {
+      warn('commercial_claim: softened an unsupported commercial claim')
+      out = commercialSafe
     }
 
     // (1) CTA contradiction.

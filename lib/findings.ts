@@ -40,20 +40,32 @@ export function computeTechnicalFindings(input: {
   })
 
   // 1. Primary CTA -------------------------------------------------------------
-  const ctaMatch =
+  const primaryCtaMatch =
     firstMatch(/<button\b[^>]*>([\s\S]*?)<\/button>/i, html) ||
     firstMatch(/<a\b[^>]*class=["'][^"']*(?:btn|button|cta)[^"']*["'][^>]*>([\s\S]*?)<\/a>/i, html) ||
     firstMatch(/<a\b[^>]*>\s*(get started|sign up|start free|book a demo|book demo|request a demo|get a demo|try (?:it )?free|contact sales)\s*<\/a>/i, html)
-  if (ctaMatch) {
+  const contactLinkMatch = firstMatch(/<a\b[^>]*>\s*(contact us|contact)\s*<\/a>/i, html)
+  if (primaryCtaMatch) {
     findings.push({
       id: 'cta_present',
       label: 'Primary call-to-action',
       classification: 'detected',
       status: 'present',
       confidence: 96,
-      confidence_basis: 'Matched a button/CTA element in the rendered HTML',
+      confidence_basis: 'Matched a primary button/CTA element in the rendered HTML',
       detail: 'A primary CTA element is present.',
-      evidence: ev(clip(ctaMatch[1] || ctaMatch[0], 120), ctaMatch[0]),
+      evidence: ev(clip(primaryCtaMatch[1] || primaryCtaMatch[0], 120), primaryCtaMatch[0]),
+    })
+  } else if (contactLinkMatch) {
+    findings.push({
+      id: 'cta_present',
+      label: 'Primary call-to-action',
+      classification: 'manual_verification',
+      status: 'unknown',
+      confidence: 55,
+      confidence_basis: 'A generic contact link was found, but no primary conversion CTA was confirmed in rendered HTML',
+      detail: 'Contact link detected; verify whether a primary hero CTA is visible above the fold.',
+      evidence: ev(clip(contactLinkMatch[1] || contactLinkMatch[0], 120), contactLinkMatch[0]),
     })
   } else {
     findings.push({
@@ -185,16 +197,31 @@ export function computeTechnicalFindings(input: {
   }
 
   // 6. FAQ / Q&A structure (indirect) -----------------------------------------
-  const faqRe = /frequently asked questions|<h[1-4][^>]*>[^<]*\?\s*<\/h[1-4]>|\bFAQ\b/i
-  if (faqRe.test(html) || /frequently asked questions|\bFAQ\b/i.test(markdown)) {
+  const faqJsonLd = /"@type"\s*:\s*"FAQPage"|FAQPage/i
+  const faqQuestionHeading = /<h[1-4][^>]*>[^<]*\?\s*<\/h[1-4]>/i
+  const faqKeyword = /frequently asked questions|\bFAQ\b/i
+  if (faqJsonLd.test(html) || faqQuestionHeading.test(html)) {
     findings.push({
       id: 'faq_structure',
       label: 'FAQ / Q&A structure',
-      classification: 'likely',
+      classification: 'detected',
       status: 'present',
-      confidence: 62,
-      confidence_basis: 'Indirect match for FAQ heading/question structure',
-      detail: 'FAQ-style content appears present; good for answer-engine citation.',
+      confidence: faqJsonLd.test(html) ? 92 : 84,
+      confidence_basis: faqJsonLd.test(html)
+        ? 'Matched FAQPage structured data in the rendered HTML'
+        : 'Matched a question-style heading in the rendered HTML',
+      detail: 'FAQ/Q&A structure was detected.',
+      evidence: ev(),
+    })
+  } else if (faqKeyword.test(html) || faqKeyword.test(markdown)) {
+    findings.push({
+      id: 'faq_structure',
+      label: 'FAQ / Q&A structure',
+      classification: 'manual_verification',
+      status: 'unknown',
+      confidence: 55,
+      confidence_basis: 'FAQ-like language was found, but no question-answer structure or FAQPage schema was confirmed',
+      detail: 'Possible FAQ-like language detected - requires verification.',
       evidence: ev(),
     })
   } else {

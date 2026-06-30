@@ -75,6 +75,10 @@ export function redactUnverifiedQuantifiedExamples(text: string): string {
     .trim()
 }
 
+type ProseSanitizeOptions = {
+  redactQuantifiedExamples?: boolean
+}
+
 const OVERCLAIM_PHRASES = [
   /absent from (?:the )?(?:ai )?(?:knowledge bases?|answer layer|ecosystem)/gi,
   /entirely absent from the ai answer layer/gi,
@@ -146,6 +150,8 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bno reddit discussions\b/gi, 'no Reddit discussions were found in the sources returned during this audit'],
   [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the tested sources'],
   [/\bno reddit presence\b/gi, 'no Reddit mentions were found in the tested sources'],
+  [/\bno presence on reddit\b/gi, 'no Reddit mentions were found among sources cited in the tested responses'],
+  [/\bnone of which currently reference\s+[A-Za-z0-9 ._-]+\b/gi, 'none of the cited sources reviewed in this audit referenced the brand'],
   [/\bwikipedia\/wikidata page\b/gi, 'independent third-party entity profile'],
   [/\bwikipedia\b/gi, 'eligible independent third-party source'],
   [/\bwikidata\b/gi, 'eligible entity database'],
@@ -208,8 +214,18 @@ export function softenUnsupportedClaims(text: string, mentions?: number, total?:
 }
 
 /** Full prose safety pass for human-facing generated copy. */
-export function sanitizeGeneratedProse(text: string, mentions?: number, total?: number): string {
-  return softenUnsupportedClaims(redactUnverifiedQuantifiedExamples(redactPerformanceClaims(text)), mentions, total)
+export function sanitizeGeneratedProse(
+  text: string,
+  mentions?: number,
+  total?: number,
+  options: ProseSanitizeOptions = {}
+): string {
+  const redactQuantifiedExamples = options.redactQuantifiedExamples ?? true
+  const withoutPerformanceClaims = redactPerformanceClaims(text)
+  const numericSafe = redactQuantifiedExamples
+    ? redactUnverifiedQuantifiedExamples(withoutPerformanceClaims)
+    : withoutPerformanceClaims
+  return softenUnsupportedClaims(numericSafe, mentions, total)
 }
 
 const RAW_STRING_KEYS = new Set([
@@ -244,6 +260,11 @@ function shouldSkipGeneratedProseSanitizer(path: string[], key?: string): boolea
   return RAW_PATH_PREFIXES.some((prefix) => joined.startsWith(prefix))
 }
 
+function shouldPreserveDetectedNumbers(path: string[]): boolean {
+  const joined = path.join('.')
+  return joined.startsWith('gap.competitor_analysis.')
+}
+
 /**
  * Recursively sanitize generated human-facing report prose. This is the final
  * choke point before persistence, so new report fields cannot bypass the trust
@@ -254,7 +275,9 @@ export function sanitizeGeneratedReportValue<T>(value: T, mentions?: number, tot
     const key = path[path.length - 1]
     return (shouldSkipGeneratedProseSanitizer(path, key)
       ? value
-      : sanitizeGeneratedProse(value, mentions, total)) as T
+      : sanitizeGeneratedProse(value, mentions, total, {
+          redactQuantifiedExamples: !shouldPreserveDetectedNumbers(path),
+        })) as T
   }
 
   if (Array.isArray(value)) {

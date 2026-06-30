@@ -110,11 +110,44 @@ describe('deterministic technical findings', () => {
     expect(cta.confidence).toBeLessThan(50)
   })
 
+  it('does not treat a generic Contact link as a confirmed primary CTA', () => {
+    const findings = computeTechnicalFindings({
+      url,
+      html: '<html><body><nav><a href="/contact">Contact us</a></nav></body></html>',
+      markdown: 'Contact us',
+    })
+    const cta = findings.find((f) => f.id === 'cta_present')!
+    expect(cta.classification).toBe('manual_verification')
+    expect(cta.status).toBe('unknown')
+    expect(cta.confidence).toBe(55)
+    expect(cta.detail).toContain('Contact link detected')
+  })
+
   it('marks verified absence separately from verified presence', () => {
     const findings = computeTechnicalFindings({ url, html: '<html><body><h1>x</h1></body></html>', markdown: 'x' })
     const jsonLd = findings.find((f) => f.id === 'json_ld')!
     expect(jsonLd.classification).toBe('detected')
     expect(jsonLd.status).toBe('absent')
+  })
+
+  it('requires real FAQ structure or FAQPage schema before marking FAQ present', () => {
+    const keywordOnly = computeTechnicalFindings({
+      url,
+      html: '<html><body><h2>FAQ</h2><p>Ask us anything.</p></body></html>',
+      markdown: 'FAQ Ask us anything.',
+    })
+    const weakFaq = keywordOnly.find((f) => f.id === 'faq_structure')!
+    expect(weakFaq.classification).toBe('manual_verification')
+    expect(weakFaq.status).toBe('unknown')
+
+    const structured = computeTechnicalFindings({
+      url,
+      html: '<html><body><h2>What does Acme do?</h2><p>It helps teams ship.</p></body></html>',
+      markdown: 'What does Acme do? It helps teams ship.',
+    })
+    const faq = structured.find((f) => f.id === 'faq_structure')!
+    expect(faq.classification).toBe('detected')
+    expect(faq.status).toBe('present')
   })
 
   it('every finding matches the schema and carries evidence.checked_at', () => {
@@ -238,6 +271,33 @@ describe('sample-bounded GEO wording', () => {
     expect(out.toLowerCase()).not.toContain('4-6 weeks')
   })
 
+  it('keeps detected competitor numbers while sanitizing other generated report prose', () => {
+    const report = {
+      gap: {
+        competitor_analysis: [
+          {
+            url: 'https://epipheo.com',
+            headline: '4.9 stars and 3,000+ brands',
+            strengths: ['80+ explainer videos delivered'],
+            weaknesses: ['No presence on Reddit'],
+            clarity_score: 90,
+          },
+        ],
+      },
+      action: {
+        executive_summary: 'Use 80+ explainer videos and 4-6 weeks as proof.',
+      },
+    }
+
+    const out = sanitizeGeneratedReportValue(report, 0, 18)
+
+    expect(out.gap.competitor_analysis[0].headline).toContain('4.9 stars')
+    expect(out.gap.competitor_analysis[0].headline).toContain('3,000+ brands')
+    expect(out.gap.competitor_analysis[0].strengths[0]).toContain('80+ explainer videos')
+    expect(out.gap.competitor_analysis[0].weaknesses[0]).toContain('Reddit mentions')
+    expect(out.action.executive_summary).toContain('[insert verified data]')
+  })
+
   it('redacts unverified outreach usage claims', () => {
     const out = sanitizeGeneratedProse(
       'Their sales team uses the video before every enterprise call and the page actively repels buyers.'
@@ -347,8 +407,8 @@ describe('action confidence enrichment', () => {
     expect(enriched.top_fixes[0].confidence).toBeGreaterThanOrEqual(90)
     expect(enriched.top_fixes[0].confidence_level).toBe('high')
     expect(enriched.top_fixes[0].claim_level).toBe('observed')
-    expect(enriched.top_fixes[0].owner).toBe('Copywriter')
-    expect(enriched.top_fixes[0].implementer).toBe('Copywriter')
+    expect(enriched.top_fixes[0].owner).toBe('Founder / marketing')
+    expect(enriched.top_fixes[0].implementer).toBe('Developer')
     expect(enriched.top_fixes[0].control).toBe('high')
     expect(enriched.top_fixes[0].probability).toBe('high')
     expect(enriched.top_fixes[0].confidence_basis).toContain('CTA')
@@ -423,6 +483,16 @@ describe('role assignment', () => {
       description: 'Clarify the hero narrative.',
       category: 'ai_search',
     })).toBe('Copywriter')
+  })
+
+  it('routes CTA ownership to founder/marketing and implementation to developer', () => {
+    const fix = {
+      title: 'Add a clearer CTA button',
+      description: 'Define the offer and publish the button on the homepage.',
+      category: 'cta',
+    }
+    expect(inferFixOwner(fix)).toBe('Founder / marketing')
+    expect(inferFixImplementer(fix)).toBe('Developer')
   })
 
   it('routes schema and broken logos to developer as implementer', () => {

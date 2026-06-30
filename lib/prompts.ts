@@ -304,13 +304,20 @@ ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
 Return ONLY valid JSON matching the ClearSignalReport.clarity schema.`
 
-export function clarityUserPrompt(markdown: string, icp: string): string {
+/** Tell the model the canonical company name so human-facing copy stays consistent. */
+function brandGuidance(brand?: string): string {
+  return brand
+    ? `\nCompany canonical name: ${brand}\nWhen naming the company in any human-facing text, use this exact name. Use the website domain only when referring to the site or a URL.\n`
+    : ''
+}
+
+export function clarityUserPrompt(markdown: string, icp: string, brand?: string): string {
   return `Homepage content:
 ${untrustedBlock('HOMEPAGE', markdown)}
 
 ICP description:
 ${icp || 'Not provided'}
-
+${brandGuidance(brand)}
 Return a JSON object with this exact structure:
 {
   "overall_score": <number 1-100>,
@@ -338,7 +345,8 @@ Return ONLY valid JSON matching the ClearSignalReport.gap schema.`
 export function gapUserPrompt(
   targetMarkdown: string,
   competitors: { url: string; markdown: string }[],
-  clarityOutput: string
+  clarityOutput: string,
+  brand?: string
 ): string {
   const compSections = competitors
     .map((c, i) => `--- Competitor ${i + 1}: ${c.url} ---\n${untrustedBlock(`COMPETITOR_${i + 1}`, c.markdown)}`)
@@ -346,6 +354,7 @@ export function gapUserPrompt(
 
   return `Target homepage:
 ${untrustedBlock('TARGET_HOMEPAGE', targetMarkdown)}
+${brandGuidance(brand)}
 
 ${compSections ? `Competitors:\n${compSections}` : 'No competitor data available.'}
 
@@ -382,7 +391,12 @@ For recommendations that depend on third parties (roundups, backlinks, review si
 Do not recommend Wikipedia or Wikidata as a normal SEO task. Only mention them as low-control options requiring independent notability. Do not recommend AggregateRating unless verified review-source data exists; prefer Organization, Service, FAQPage, and case-study markup.
 Return ONLY valid JSON matching the ClearSignalReport.action schema.`
 
-export function actionUserPrompt(clarityOutput: string, gapOutput: string, icp: string): string {
+export function actionUserPrompt(
+  clarityOutput: string,
+  gapOutput: string,
+  icp: string,
+  brand?: string
+): string {
   return `Clarity analysis:
 ${clarityOutput}
 
@@ -391,7 +405,7 @@ ${gapOutput}
 
 ICP description:
 ${icp || 'Not provided'}
-
+${brandGuidance(brand)}
 Return a JSON object with this exact structure:
 {
   "executive_summary": "<string, 3-4 sentences>",

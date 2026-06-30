@@ -208,7 +208,20 @@ export default async function AuditPage({
         <div className="mb-10">
           <Badge variant="secondary" className="mb-3">{report.meta.tier} audit</Badge>
           <h1 className="text-3xl font-bold mb-2">ClearSignal Audit Report</h1>
-          <p className="text-muted-foreground">{report.meta.url}</p>
+          {report.meta.canonical_brand ? (
+            <>
+              <p className="text-lg font-semibold">{report.meta.canonical_brand}</p>
+              <p className="text-muted-foreground">{report.meta.domain || report.meta.url}</p>
+              {report.meta.alternative_brand_forms &&
+                report.meta.alternative_brand_forms.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Also detected as: {report.meta.alternative_brand_forms.join(', ')}
+                  </p>
+                )}
+            </>
+          ) : (
+            <p className="text-muted-foreground">{report.meta.url}</p>
+          )}
           <p className="text-xs text-muted-foreground mt-1">
             Generated {new Date(report.meta.generated_at).toLocaleDateString()}
             {report.meta.icp_description && ` | ICP: ${report.meta.icp_description}`}

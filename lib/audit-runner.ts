@@ -1,6 +1,7 @@
 import { supabaseAdmin } from './supabase'
 import { scrapeUrl, scrapePage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
+import { resolveBrandEntity } from './brand'
 import { computeTechnicalFindings } from './findings'
 import { assembleMaterials } from './materials'
 import { callClaudeJSON } from './anthropic'
@@ -107,16 +108,6 @@ function sanitizeReportProse(
   }
 }
 
-function brandFromUrl(url: string): string {
-  try {
-    const host = new URL(url).hostname.replace(/^www\./, '')
-    const name = host.split('.')[0]
-    return name.charAt(0).toUpperCase() + name.slice(1)
-  } catch {
-    return url
-  }
-}
-
 export async function runFullAudit(auditId: string): Promise<void> {
   // 1. Fetch audit record
   const { data: audit, error } = await supabaseAdmin
@@ -163,7 +154,14 @@ export async function runFullAudit(auditId: string): Promise<void> {
     }
 
     const icp = audit.icp_description || ''
-    const brand = brandFromUrl(audit.url)
+    // Resolve ONE brand entity from the page (not just the domain label) so the
+    // report stops mixing "BLVD Production", "Blvdprod" and "blvdprod.com".
+    const brandEntity = resolveBrandEntity({
+      url: audit.url,
+      html: targetPage.html,
+      markdown: targetMarkdown,
+    })
+    const brand = brandEntity.canonical_brand
 
     // 3b. Live AI-visibility (GEO/AEO) scan - full breadth across every
     // configured engine. Runs alongside the messaging analysis below.
@@ -189,7 +187,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const clarity = await callClaudeJSON<ClarityBlock>({
       model: MODEL_AUDIT,
       system: CLARITY_SYSTEM,
-      user: clarityUserPrompt(targetMarkdown, icp),
+      user: clarityUserPrompt(targetMarkdown, icp, brand),
       validate: (data) => ClarityBlockSchema.parse(data),
       maxTokens: 4096,
     })
@@ -198,7 +196,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const gap = await callClaudeJSON<GapBlock>({
       model: MODEL_AUDIT,
       system: GAP_SYSTEM,
-      user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity)),
+      user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity), brand),
       validate: (data) => GapBlockSchema.parse(data),
       maxTokens: 4096,
     })
@@ -207,7 +205,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
     const action = await callClaudeJSON<ActionBlock>({
       model: MODEL_AUDIT,
       system: ACTION_SYSTEM,
-      user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp),
+      user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp, brand),
       validate: (data) => ActionBlockSchema.parse(data),
       maxTokens: 4096,
     })
@@ -269,6 +267,9 @@ export async function runFullAudit(auditId: string): Promise<void> {
         icp_description: icp,
         competitors: competitors.map((c) => c.url),
         tier: (audit.tier as 'automated' | 'reviewed' | 'sprint') || 'automated',
+        canonical_brand: brandEntity.canonical_brand,
+        domain: brandEntity.domain,
+        alternative_brand_forms: brandEntity.alternative_brand_forms,
       },
       clarity,
       gap,

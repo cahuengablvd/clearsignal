@@ -257,6 +257,10 @@ const metaSchema = z.object({
   icp_description: z.string(),
   competitors: z.array(z.string()),
   tier: tierSchema,
+  // Brand entity (optional / backward-compatible with older saved reports).
+  canonical_brand: z.string().optional(),
+  domain: z.string().optional(),
+  alternative_brand_forms: z.array(z.string()).optional(),
 })
 
 const claritySchema = z.object({

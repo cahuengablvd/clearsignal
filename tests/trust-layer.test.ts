@@ -13,6 +13,8 @@ import { buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
 import { attachActionConfidence } from '../lib/action-confidence'
 import { inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
+import { resolveBrandEntity } from '../lib/brand'
+import { clarityUserPrompt, gapUserPrompt, actionUserPrompt } from '../lib/prompts'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -547,5 +549,47 @@ describe('internal replacement phrases never leak into client copy', () => {
     ]) {
       expect(safe).not.toContain(phrase)
     }
+  })
+})
+
+describe('brand entity normalization', () => {
+  it('resolves the canonical brand from page text, not just the domain', () => {
+    const html =
+      '<html><head><title>BLVD Production | Explainer Video Studio</title></head>' +
+      '<body><h1>BLVD Production</h1></body></html>'
+    const b = resolveBrandEntity({ url: 'https://blvdprod.com/', html })
+    expect(b.canonical_brand).toBe('BLVD Production')
+    expect(b.domain).toBe('blvdprod.com')
+  })
+
+  it('keeps the domain-derived label as an alternative form, not the main name', () => {
+    const b = resolveBrandEntity({ url: 'https://blvdprod.com/', html: '<title>BLVD Production</title>' })
+    expect(b.canonical_brand).toBe('BLVD Production')
+    expect(b.alternative_brand_forms).toContain('Blvdprod')
+    expect(b.alternative_brand_forms.map((s) => s.toLowerCase())).not.toContain('blvd production')
+  })
+
+  it('prefers a JSON-LD Organization name', () => {
+    const html =
+      '<script type="application/ld+json">{"@type":"Organization","name":"BLVD Production"}</script><title>Home</title>'
+    expect(resolveBrandEntity({ url: 'https://blvdprod.com/', html }).canonical_brand).toBe('BLVD Production')
+  })
+
+  it('uses og:site_name and ignores unrelated taglines', () => {
+    const html = '<meta property="og:site_name" content="BLVD Production"><title>Explainer Video Studio</title>'
+    expect(resolveBrandEntity({ url: 'https://blvdprod.com/', html }).canonical_brand).toBe('BLVD Production')
+  })
+
+  it('falls back to the title-cased domain when the page has no brand signal', () => {
+    const b = resolveBrandEntity({ url: 'https://blvdprod.com/' })
+    expect(b.canonical_brand).toBe('Blvdprod')
+    expect(b.domain).toBe('blvdprod.com')
+    expect(b.alternative_brand_forms).toEqual([])
+  })
+
+  it('passes the canonical brand into the generation prompts (used in human-facing text)', () => {
+    expect(clarityUserPrompt('homepage md', 'icp', 'BLVD Production')).toContain('BLVD Production')
+    expect(gapUserPrompt('target md', [], '{}', 'BLVD Production')).toContain('BLVD Production')
+    expect(actionUserPrompt('{}', '{}', 'icp', 'BLVD Production')).toContain('BLVD Production')
   })
 })

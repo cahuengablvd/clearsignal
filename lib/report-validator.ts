@@ -64,11 +64,20 @@ const BROKEN_STRINGS: Array<[RegExp, string]> = [
   ],
   [/eligible independent third-party source/gi, 'an independent third-party profile'],
   [/eligible entity database/gi, 'an entity database'],
+  // Broken commercial-claim fragments (the commercial sanitizer ran over text
+  // that contained a domain or odd phrasing).
+  // "...confirmed with the business.lv is absent..." (greedy match crossed a domain dot)
+  [/(confirmed with the business)\.[a-z]{2,4}\b[^.?!]*[.?!]?/gi, '$1.'],
+  // "whether Contact the business to confirm availability..." (capitalized verb mid-sentence)
+  [
+    /\b(whether|if|that)\s+Contact the business to confirm availability(?:\s+for specific items)?/gi,
+    '$1 availability for specific items should be confirmed with the business',
+  ],
+  // Duplicated phrases from a non-idempotent pass.
+  [/\bauthenticity or authenticity\b/gi, 'authenticity'],
+  [/(should be confirmed with the business)(?:\s+\1)+/gi, '$1'],
+  [/(to confirm availability for specific items)(?:\s+\1)+/gi, '$1'],
 ]
-
-// Sanitizer placeholders that must not appear inside competitor facts.
-const PLACEHOLDER_RE =
-  /\s*\[(?:insert verified data|Example only - replace with verified client data|Replace with a verified client result|insert genuine availability only if verified|Replace with verified client data|insert genuine availability[^\]]*)\]\s*/gi
 
 // Clipped role labels that may end up in stored data.
 const CLIPPED_ROLE: Record<string, string> = {
@@ -118,28 +127,25 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       }
     }
 
-    // (3) Placeholder leakage inside competitor facts -> strip + tidy.
-    if (inCompetitor) {
+    // (1/3) Strip ANY bracketed internal placeholder / meta-instruction from
+    // client-facing copy: "[Example only ...]", "[Replace with ...]",
+    // "[insert ...]", "[Name]", "[Your name]", "[gallery URL]", and unclosed
+    // "[..." fragments. A client must never see a bracketed editorial note.
+    {
       const next = out
-        .replace(PLACEHOLDER_RE, ' ')
+        .replace(/\s*\[[^\]\n]*\]/g, '') // complete brackets
+        .replace(/\s*\[[^\]\n]{0,160}$/g, '') // trailing unclosed bracket
         .replace(/\(\s*\)/g, '')
-        .replace(/\s+([.,;:!?])/g, '$1')
-        .replace(/\bof\s+(?=[.,;:)]|$)/gi, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim()
-      if (next !== out) {
-        warn('competitor_analysis: removed sanitizer placeholder from competitor facts')
-        out = next
-      }
-    } else {
-      const next = out
-        .replace(PLACEHOLDER_RE, ' verify this claim before publishing ')
-        .replace(/\(\s*\)/g, '')
+        .replace(/\b(?:by|of|with|to|for)\s+(?=[.,;:)]|$)/gi, '')
         .replace(/\s+([.,;:!?])/g, '$1')
         .replace(/\s{2,}/g, ' ')
         .trim()
       if (next !== out) {
-        warn('placeholder: replaced a draft placeholder in client-facing prose')
+        warn(
+          inCompetitor
+            ? 'competitor_analysis: removed bracketed placeholder from competitor facts'
+            : 'placeholder: removed bracketed internal placeholder from client copy'
+        )
         out = next
       }
     }

@@ -98,7 +98,10 @@ export function sanitizeUnsupportedCommercialClaims(text: string, context?: Busi
   }
 
   if (!canClaimProvenance(context)) {
-    out = out.replace(/\b(?:certificates?\s+of\s+authenticity|authenticity\s+certificates?|provenance\s+documentation|authentication\s+documents?)\b/gi, 'authenticity or provenance documentation should be confirmed with the business')
+    // Negative lookahead keeps this idempotent: the replacement itself contains
+    // "provenance documentation", so without it a second pass would re-match and
+    // produce "authenticity or authenticity ... should be confirmed ... twice".
+    out = out.replace(/\b(?:certificates?\s+of\s+authenticity|authenticity\s+certificates?|provenance\s+documentation|authentication\s+documents?)\b(?!\s+should be confirmed)/gi, 'authenticity or provenance documentation should be confirmed with the business')
   }
 
   if (!canClaimCommercialPolicy(context, 'secure_payment')) {

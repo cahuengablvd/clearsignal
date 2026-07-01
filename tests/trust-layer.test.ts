@@ -793,8 +793,8 @@ describe('pre-PDF contradiction validator', () => {
         },
       })
     )
-    expect(r.report.action.executive_summary).not.toContain('[insert verified data]')
-    expect(r.report.action.executive_summary).toContain('verify this claim before publishing')
+    expect(r.report.action.executive_summary).not.toContain('[')
+    expect(r.report.action.executive_summary).toBe('Use as proof before publishing.')
     expect(r.warnings.some((w) => w.startsWith('placeholder:'))).toBe(true)
   })
 
@@ -898,5 +898,80 @@ describe('pre-PDF contradiction validator', () => {
     const r = validateReport(baseReport({}))
     expect(Array.isArray(r.warnings)).toBe(true)
     expect(Array.isArray(r.errors)).toBe(true)
+  })
+})
+
+describe('final PDF polish: bracket placeholders + commercial-claim repair', () => {
+  const baseReport = (over: Record<string, unknown>) =>
+    ({
+      meta: { url: 'https://latvianart.lv', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+      clarity: { cta: { finding: '' }, trust_proof: { finding: '' } },
+      gap: { competitor_analysis: [] },
+      action: { executive_summary: '', top_fixes: [] },
+      technical_findings: [],
+      ...over,
+    }) as any
+
+  it('strips bracketed meta-instructions from suggested rewrites (latvianart case)', () => {
+    const r = validateReport(
+      baseReport({
+        clarity: {
+          cta: {
+            suggested_rewrite:
+              'Browse the Collection or Inquire Directly[Example only - replace with verified positioning language]',
+          },
+        },
+      })
+    )
+    const rw = r.report.clarity.cta.suggested_rewrite
+    expect(rw).not.toContain('[')
+    expect(rw).toBe('Browse the Collection or Inquire Directly')
+  })
+
+  it('removes every bracketed placeholder type from client-facing copy', () => {
+    const r = validateReport(
+      baseReport({
+        action: {
+          executive_summary: '',
+          top_fixes: [],
+          outreach_messages: [
+            { channel: 'email', message: 'Hi [Name], visit [gallery URL] to see [insert verified data] works.', note: '[Your name]' },
+          ],
+        },
+      })
+    )
+    expect(JSON.stringify(r.report.action.outreach_messages[0])).not.toContain('[')
+  })
+
+  it('keeps sanitizeUnsupportedCommercialClaims idempotent (no duplication on a second pass)', () => {
+    const ctx = BusinessContextSchema.parse({})
+    const input = 'We provide certificates of authenticity and international shipping; pricing is shown clearly.'
+    const once = sanitizeUnsupportedCommercialClaims(input, ctx)
+    const twice = sanitizeUnsupportedCommercialClaims(once, ctx)
+    expect(twice).toBe(once)
+    expect(once).not.toMatch(/authenticity or authenticity/i)
+    expect((twice.match(/should be confirmed with the business/gi) || []).length).toBe(
+      (once.match(/should be confirmed with the business/gi) || []).length
+    )
+  })
+
+  it('repairs broken commercial-claim fragments (exact latvianart strings)', () => {
+    const r = validateReport(
+      baseReport({
+        clarity: {
+          cta: { finding: 'pricing should be confirmed with the business.lv is absent from schema.' },
+          trust_proof: { finding: 'It is unclear whether Contact the business to confirm availability for specific items.' },
+          messaging_fit: {
+            finding:
+              'authenticity or authenticity or provenance documentation should be confirmed with the business should be confirmed with the business.',
+          },
+        },
+      })
+    )
+    const c = r.report.clarity
+    expect(c.cta.finding).not.toMatch(/business\.lv/)
+    expect(c.trust_proof.finding).not.toMatch(/whether Contact the business/)
+    expect(c.messaging_fit.finding).not.toMatch(/authenticity or authenticity/)
+    expect(c.messaging_fit.finding).not.toMatch(/(should be confirmed with the business)\s+\1/i)
   })
 })

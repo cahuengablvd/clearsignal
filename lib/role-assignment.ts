@@ -18,6 +18,12 @@ export function inferFixOwner(fix: RoleAssignableFix): string {
   if (/\b(svg|logo render|broken logo|logos? (?:not|don'?t|failed|failing|broken)|image rendering|visual asset)\b/.test(text)) {
     return 'Developer'
   }
+  if (/\b(schema|json-ld|structured data|review-rating|review schema|faqpage|organization schema|artgallery schema|artwork schema)\b/.test(text)) {
+    return 'SEO'
+  }
+  if (/\b(inquiry process|inquiry path|inquiry flow|contact info|contact information|contact details|contact page|contact form|availability inquiry)\b/.test(text)) {
+    return 'Founder / marketing'
+  }
   if (/\b(testimonial|review|customer|case stud|proof|g2|capterra|clutch|designrush|partner|roundup)\b/.test(text)) {
     return 'Founder / marketing'
   }
@@ -37,7 +43,7 @@ export function inferFixOwner(fix: RoleAssignableFix): string {
 export function inferFixImplementer(fix: RoleAssignableFix): string {
   const text = `${fix.title} ${fix.description}`.toLowerCase()
 
-  if (/\b(svg|logo render|broken logo|image|html|css|json-ld|schema|structured data|script|developer|technical|rendered html|implement|publish|build|cta|call-to-action|button)\b/.test(text)) {
+  if (/\b(svg|logo render|broken logo|image|html|css|json-ld|schema|structured data|script|developer|technical|rendered html|implement|publish|build|cta|call-to-action|button|contact info|contact information|contact details|contact page|contact form|inquiry form|inquiry path|inquiry flow)\b/.test(text)) {
     return 'Developer'
   }
   if (/\b(headline|tagline|copy|message|messaging|positioning|cta|call-to-action|hero|rewrite|narrative|case stud|process section)\b/.test(text)) {

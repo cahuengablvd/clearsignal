@@ -552,6 +552,26 @@ describe('role assignment', () => {
     expect(inferFixImplementer(fix)).toBe('Developer')
   })
 
+  it('routes schema ownership to SEO and implementation to developer', () => {
+    const fix = {
+      title: 'Implement Organization and ArtGallery schema markup',
+      description: 'Add JSON-LD structured data to the homepage.',
+      category: 'ai_search',
+    }
+    expect(inferFixOwner(fix)).toBe('SEO')
+    expect(inferFixImplementer(fix)).toBe('Developer')
+  })
+
+  it('routes inquiry/contact process ownership to founder marketing and implementation to developer', () => {
+    const fix = {
+      title: 'Clarify the inquiry process and contact information',
+      description: 'Publish a contact form and explain how collectors can ask about availability.',
+      category: 'structure',
+    }
+    expect(inferFixOwner(fix)).toBe('Founder / marketing')
+    expect(inferFixImplementer(fix)).toBe('Developer')
+  })
+
   it('routes schema and broken logos to developer as implementer', () => {
     const fix = {
       title: 'Fix broken logo rendering and JSON-LD schema',

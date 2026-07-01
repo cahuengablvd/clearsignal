@@ -77,6 +77,20 @@ function ScoreBar({ score, max = 100 }: { score: number; max?: number }) {
   )
 }
 
+function humanizeValue(value?: string | null): string {
+  if (!value) return 'Unknown'
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function yesNoUnknown(value?: string | null): string {
+  if (!value || value === 'unknown') return 'Unknown'
+  if (value === 'not_applicable') return 'Not applicable'
+  return humanizeValue(value)
+}
+
 function ImpactBadge({ impact }: { impact: string }) {
   const colors: Record<string, string> = {
     high: 'bg-red-100 text-red-800',
@@ -237,6 +251,28 @@ export default async function AuditPage({
             <p className="leading-relaxed">{report.action.executive_summary}</p>
           </CardContent>
         </Card>
+
+        {report.meta.business_context && (
+          <Card className="mb-8 border-emerald-200 bg-emerald-50/40">
+            <CardHeader>
+              <CardTitle className="text-lg">Verified business context</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                <div><span className="font-medium text-foreground">Business model:</span> {humanizeValue(report.meta.business_context.business_model)}</div>
+                <div><span className="font-medium text-foreground">Conversion goal:</span> {humanizeValue(report.meta.business_context.primary_conversion_goal)}</div>
+                <div><span className="font-medium text-foreground">Purchase availability:</span> {yesNoUnknown(report.meta.business_context.purchase_availability)}</div>
+                <div><span className="font-medium text-foreground">International shipping:</span> {yesNoUnknown(report.meta.business_context.ships_internationally)}</div>
+                <div><span className="font-medium text-foreground">Provenance/authentication:</span> {yesNoUnknown(report.meta.business_context.provenance_or_authentication)}</div>
+                <div><span className="font-medium text-foreground">Markets/languages:</span> {report.meta.business_context.target_markets_languages || 'Not provided'}</div>
+                <div className="sm:col-span-2">
+                  <span className="font-medium text-foreground">Verified facts supplied:</span>{' '}
+                  {report.meta.business_context.verified_facts || 'None supplied'}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {report.data_limitations && report.data_limitations.length > 0 && (
           <Card className="mb-8 border-blue-200 bg-blue-50/40">
@@ -516,6 +552,9 @@ export default async function AuditPage({
                           <blockquote className="border-l-2 border-muted pl-3 text-sm text-muted-foreground italic leading-relaxed mb-3">
                             {e.answer_excerpt}
                           </blockquote>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            AI-reported answer; not independently verified by ClearSignal.
+                          </p>
                           <div className="text-xs text-muted-foreground space-y-1">
                             {e.competitors_mentioned.length > 0 && (
                               <div>

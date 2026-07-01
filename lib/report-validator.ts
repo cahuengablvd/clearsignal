@@ -82,9 +82,31 @@ const BROKEN_STRINGS: Array<[RegExp, string]> = [
     'No $1 mentions were found among sources cited in the tested responses',
   ],
   [
-    /\bstar score on homestars\b(?:\s*(?:based on reviews|from|based on)\b[^.?!]*)?/gi,
-    'HomeStars rating details were not independently confirmed in this audit',
+    /\b([A-Z][A-Za-z0-9 .&-]{1,80})\s+were cited in of combinations\b/g,
+    '$1 were cited in some tested combinations',
   ],
+  [
+    /\bstar score on homestars\b(?:\s*(?:based on reviews|from|based on)\b[^.?!]*)?/gi,
+    'HomeStars Star Score',
+  ],
+  [
+    /\bHomeStars rating details were not independently confirmed in this audit\b/gi,
+    'HomeStars Star Score',
+  ],
+  [
+    /\bno visible pricing should be confirmed with the business\b/gi,
+    'No visible pricing was confirmed in the crawled content',
+  ],
+  [/\bpricing should be confirmed with the business\b/gi, 'Contact the business to confirm pricing.'],
+  [/\binsurance details should be confirmed with the business\b/gi, 'Contact the business to confirm insurance details.'],
+  [/\bWSIB status should be confirmed with the business\b/gi, 'Contact the business to confirm WSIB status.'],
+  [/\bCVOR status should be confirmed with the business\b/gi, 'Contact the business to confirm CVOR status.'],
+  [/\bHomeStars details should be confirmed with the business\b/gi, 'Contact the business to confirm HomeStars details.'],
+  [/\bpiano moving availability should be confirmed with the business\b/gi, 'Contact the business to confirm piano-moving availability.'],
+  [/\bstorage availability should be confirmed with the business\b/gi, 'Contact the business to confirm storage availability.'],
+  [/\blast-minute availability should be confirmed with the business\b/gi, 'Contact the business to confirm last-minute availability.'],
+  [/\bsingle-item moving availability should be confirmed with the business\b/gi, 'Contact the business to confirm single-item moving availability.'],
+  [/\bservice coverage outside the primary market should be confirmed with the business\b/gi, 'Contact the business to confirm service coverage outside the primary market.'],
   [
     /\bcustomer referral rate\b(?!\s+was not independently confirmed)(?:\s*(?:from|based on|of)\b[^.?!]*)?/gi,
     'Customer referral rate was not independently confirmed in this audit',
@@ -190,9 +212,19 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     {
       const next = out
         .replace(/\bthe primary driver is\b/gi, 'likely contributing factors include')
+        .replace(/\bthe core issue is\b/gi, 'likely contributing factors include')
         .replace(/\bthe core reason is\b/gi, 'likely contributing factors include')
         .replace(/\bthis absence is caused by\b/gi, 'this observed absence may be associated with')
         .replace(/\bai skips you because\b/gi, 'potential factors limiting AI visibility include')
+        .replace(/\bwhere\s+([A-Za-z0-9 ._-]{1,80})\s+has no detectable presence\b/gi, 'where $1 was not observed in the tested responses')
+        .replace(/\bdrive significant AI answer inclusion\b/gi, 'may contribute to AI answer inclusion in this sample')
+        .replace(/\bdirectly feeds AI answer content\b/gi, 'appears in AI answer source material')
+        .replace(/\bget a quote in minutes\b/gi, 'get a quote')
+        .replace(/\bYou can reach us directly at\s+or\s+book online at\b[.]?/gi, 'Contact the business directly to request a quote.')
+        .replace(/\bI noticed you're based in\s*[—-]?\s*/gi, '')
+        .replace(/\bvisit\s*[.]$/gi, 'visit the website.')
+        .replace(/\bor call us now at\s*$/gi, '')
+        .replace(/\bGet a Free Quote in\s*[—-]\s*/gi, 'Get a Free Quote')
       if (next !== out) {
         warn('causality: softened an unsupported causal claim')
         out = next
@@ -226,6 +258,9 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     if (commercialSafe !== out) {
       warn('commercial_claim: softened an unsupported commercial claim')
       out = commercialSafe
+      for (const [re, replacement] of BROKEN_STRINGS) {
+        out = out.replace(re, replacement)
+      }
     }
 
     // (1) CTA contradiction.

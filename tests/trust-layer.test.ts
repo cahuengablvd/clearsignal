@@ -1183,6 +1183,7 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(once).not.toMatch(/responses\.com/i)
     expect(once).not.toMatch(/immediate pricing should be confirmed/i)
     expect(once).not.toMatch(/Star Score on HomeStars/i)
+    expect(once).toContain('HomeStars Star Score')
     expect(once).not.toMatch(/Customer Referral Rate from/i)
   })
 
@@ -1191,13 +1192,111 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
       base({
         geo: {
           summary:
-            'The primary driver is weak entity content. The core reason is citation scarcity. AI skips you because sources are missing.',
+            'The primary driver is weak entity content. The core issue is citation scarcity. AI skips you because sources are missing. Reddit threads drive significant AI answer inclusion and directly feeds AI answer content.',
         },
       })
     )
     expect(r.report.geo?.summary).toContain('likely contributing factors include weak entity content')
     expect(r.report.geo?.summary).toContain('potential factors limiting AI visibility include sources are missing')
     expect(r.report.geo?.summary).not.toMatch(/AI skips you because/i)
+    expect(r.report.geo?.summary).not.toMatch(/core issue|drive significant|directly feeds/i)
+  })
+
+  it('repairs exact az-moving PDF fragments from the live report', () => {
+    const r = validateReport(
+      base({
+        geo: {
+          summary:
+            'Competitors like CARGO CABBIE were cited in of combinations. The core issue is that sources where Az-moving has no detectable presence are being cited.',
+        },
+        ready_materials: {
+          meta_title: 'Az-Moving | Toronto Residential & Commercial Movers',
+          meta_description: 'Get a free quote and book your move online. Fully insured, HomeStars-rated.',
+          faq: [],
+          cta_variants: ['Get a quote in minutes'],
+          json_ld: '{}',
+        },
+      })
+    )
+    expect(r.report.geo?.summary).toContain('CARGO CABBIE were cited in some tested combinations')
+    expect(r.report.geo?.summary).toContain('where Az-moving was not observed in the tested responses')
+    expect(r.report.geo?.summary).not.toMatch(/cited in of|core issue|no detectable presence/i)
+    expect(r.report.ready_materials?.cta_variants[0]).toBe('get a quote')
+  })
+
+  it('softens unverified moving credentials and service claims in ready materials', () => {
+    const r = validateReport(
+      base({
+        meta: {
+          business_context: {
+            business_model: 'service',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+        },
+        ready_materials: {
+          meta_title: 'Az-Moving | Toronto Residential & Commercial Movers',
+          meta_description: 'Get a free quote and book your move online. Fully insured, HomeStars-rated.',
+          faq: [
+            {
+              question: 'Are you licensed and insured to move in Ontario?',
+              answer: 'Az-Moving is fully insured and holds CVOR and WSIB credentials.',
+            },
+            {
+              question: 'Do you offer storage or piano moving?',
+              answer: 'Yes, storage is available and Az-Moving offers piano moving, single-item moving, last-minute moving, and coverage across Ontario and Quebec.',
+            },
+          ],
+          cta_variants: ['Get a quote in minutes'],
+          json_ld: '{}',
+        },
+      })
+    )
+    const text = JSON.stringify(r.report.ready_materials)
+    expect(text).not.toMatch(/fully insured|HomeStars-rated|CVOR credentials|WSIB credentials|storage is available|offers piano moving|across Ontario and Quebec/i)
+    expect(text).toContain('Contact the business to confirm insurance details')
+    expect(text).toContain('Contact the business to confirm HomeStars details')
+    expect(text).toContain('Contact the business to confirm CVOR status')
+    expect(text).toContain('Contact the business to confirm WSIB status')
+    expect(text).toContain('Contact the business to confirm storage availability')
+    expect(text).toContain('Contact the business to confirm service coverage outside the primary market')
+  })
+
+  it('removes empty contact tails from outreach drafts', () => {
+    const r = validateReport(
+      base({
+        action: {
+          executive_summary: '',
+          top_fixes: [],
+          outreach_messages: [
+            {
+              channel: 'email',
+              message: 'You can reach us directly at or book online at.',
+              note: '',
+            },
+            {
+              channel: 'linkedin',
+              message: "I noticed you're based in — visit.",
+              note: '',
+            },
+            {
+              channel: 'twitter',
+              message: 'Get a Free Quote in — or call us now at',
+              note: '',
+            },
+          ],
+        },
+      })
+    )
+    const text = JSON.stringify(r.report.action.outreach_messages)
+    expect(text).not.toMatch(/directly at or book online at|based in|call us now at|Quote in/i)
+    expect(text).toContain('Contact the business directly to request a quote.')
+    expect(text).toContain('visit the website')
+    expect(text).toContain('Get a Free Quote')
   })
 
   it('accepts explicit GEO test counts for configured, expected and successful combinations', () => {

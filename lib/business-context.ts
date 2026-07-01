@@ -64,3 +64,24 @@ export function canClaimCommercialPolicy(ctx: BusinessContext, kind: 'secure_pay
   }
   return hasVerifiedFact(ctx, patterns[kind])
 }
+
+export function canClaimCredential(ctx: BusinessContext, kind: 'insured' | 'wsib' | 'cvor' | 'homestars'): boolean {
+  const patterns = {
+    insured: /\b(?:insured|insurance|fully insured|licensed and insured)\b/i,
+    wsib: /\bwsib\b/i,
+    cvor: /\bcvor\b/i,
+    homestars: /\bhomestars\b/i,
+  }
+  return hasVerifiedFact(ctx, patterns[kind])
+}
+
+export function canClaimServiceAvailability(ctx: BusinessContext, kind: 'piano' | 'storage' | 'last_minute' | 'single_item' | 'ontario_quebec'): boolean {
+  const patterns = {
+    piano: /\b(?:piano moving|piano movers?|move pianos?)\b/i,
+    storage: /\bstorage\b/i,
+    last_minute: /\blast[- ]minute\b/i,
+    single_item: /\bsingle[- ]item\b/i,
+    ontario_quebec: /\b(?:ontario|quebec)\b/i,
+  }
+  return hasVerifiedFact(ctx, patterns[kind])
+}

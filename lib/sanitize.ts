@@ -1,8 +1,10 @@
 import {
+  canClaimCredential,
   canClaimCommercialPolicy,
   canClaimInternationalShipping,
   canClaimProvenance,
   canClaimPurchaseAvailable,
+  canClaimServiceAvailability,
 } from './business-context'
 import type { BusinessContext } from './schemas'
 
@@ -86,6 +88,7 @@ export function redactUnverifiedQuantifiedExamples(text: string): string {
 export function sanitizeUnsupportedCommercialClaims(text: string, context?: BusinessContext): string {
   if (!text || !context) return text
   let out = text
+  const isQuestion = /\?\s*$/.test(out.trim())
 
   if (!canClaimPurchaseAvailable(context)) {
     out = out
@@ -118,6 +121,41 @@ export function sanitizeUnsupportedCommercialClaims(text: string, context?: Busi
 
   if (!canClaimCommercialPolicy(context, 'awards')) {
     out = out.replace(/\b(?:award[- ]winning|press[- ]featured|featured in|official partner|affiliated with)\b[^.?!]*/gi, 'third-party recognition should be confirmed before publishing')
+  }
+
+  if (isQuestion) {
+    return out
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([.,;:!?])/g, '$1')
+      .trim()
+  }
+
+  if (!canClaimCredential(context, 'insured')) {
+    out = out.replace(/\b(?:fully\s+insured|licensed\s+and\s+insured|insured\s+movers?)\b/gi, 'insurance details should be confirmed with the business')
+  }
+  if (!canClaimCredential(context, 'wsib')) {
+    out = out.replace(/\bWSIB(?:[- ]certified| credentials?| certification)?\b/gi, 'WSIB status should be confirmed with the business')
+  }
+  if (!canClaimCredential(context, 'cvor')) {
+    out = out.replace(/\bCVOR(?:[- ]certified| credentials?| certification)?\b/gi, 'CVOR status should be confirmed with the business')
+  }
+  if (!canClaimCredential(context, 'homestars')) {
+    out = out.replace(/\bHomeStars(?:[- ]rated| rating| Star Score| score)?\b/gi, 'HomeStars details should be confirmed with the business')
+  }
+  if (!canClaimServiceAvailability(context, 'piano')) {
+    out = out.replace(/\bpiano\s+moving\b|\bpiano\s+movers?\b|\bmove\s+pianos?\b/gi, 'piano moving availability should be confirmed with the business')
+  }
+  if (!canClaimServiceAvailability(context, 'storage')) {
+    out = out.replace(/\bstorage\s+(?:is\s+)?available\b|\boffer\s+storage\b|\bstorage options\b/gi, 'storage availability should be confirmed with the business')
+  }
+  if (!canClaimServiceAvailability(context, 'last_minute')) {
+    out = out.replace(/\blast[- ]minute\s+moves?\b|\blast[- ]minute\s+moving\b/gi, 'last-minute availability should be confirmed with the business')
+  }
+  if (!canClaimServiceAvailability(context, 'single_item')) {
+    out = out.replace(/\bsingle[- ]item\s+(?:moves?|moving)\b/gi, 'single-item moving availability should be confirmed with the business')
+  }
+  if (!canClaimServiceAvailability(context, 'ontario_quebec')) {
+    out = out.replace(/\b(?:across|serves?|serving|coverage across)\s+Ontario\s+and\s+Quebec\b/gi, 'service coverage outside the primary market should be confirmed with the business')
   }
 
   return out
@@ -186,9 +224,14 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/ai engines have no content signals until ([^.]+)/gi, 'AI engines may need stronger owned-page and third-party signals; $1'],
   [/ai engines have no signals/gi, 'AI engines did not surface strong signals in the tested results'],
   [/\bthe primary driver is\b/gi, 'likely contributing factors include'],
+  [/\bthe core issue is\b/gi, 'likely contributing factors include'],
   [/\bthe core reason is\b/gi, 'likely contributing factors include'],
   [/\bthis absence is caused by\b/gi, 'this observed absence may be associated with'],
   [/\bai skips you because\b/gi, 'potential factors limiting AI visibility include'],
+  [/\bwhere\s+([A-Za-z0-9 ._-]{1,80})\s+has no detectable presence\b/gi, 'where $1 was not observed in the tested responses'],
+  [/\bdrive significant AI answer inclusion\b/gi, 'may contribute to AI answer inclusion in this sample'],
+  [/\bdirectly feeds AI answer content\b/gi, 'appears in AI answer source material'],
+  [/\bget a quote in minutes\b/gi, 'get a quote'],
   [/not recognized as an entity by ([^.]+)/gi, 'not mentioned in the tested engine-query combinations for $1'],
   [/not recognized as an entity/gi, 'not mentioned in the tested engine-query combinations'],
   [/absent from all knowledge bases/gi, 'not surfaced in the tested evidence'],

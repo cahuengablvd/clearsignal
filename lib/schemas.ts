@@ -252,11 +252,22 @@ export const MonitoringDeltaSchema = z.object({
 export type MonitoringDelta = z.infer<typeof MonitoringDeltaSchema>
 
 /** Full GEO result persisted with a score/audit. */
+export const GeoTestCountsSchema = z.object({
+  configured_queries: z.number(),
+  configured_engines: z.number(),
+  expected_combinations: z.number(),
+  successful_combinations: z.number(),
+  failed_combinations: z.number(),
+  skipped_combinations: z.number(),
+})
+export type GeoTestCounts = z.infer<typeof GeoTestCountsSchema>
+
 export const GeoResultSchema = z.object({
   brand: z.string(),
   brand_domain: z.string(),
   queries_tested: z.number(),
   engines_tested: z.array(z.string()),
+  test_counts: GeoTestCountsSchema.optional(),
   // Deterministic metrics
   ai_visibility_score: z.number().min(0).max(100),
   mention_rate: z.number().min(0).max(100),

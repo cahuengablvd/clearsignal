@@ -69,6 +69,26 @@ const BROKEN_STRINGS: Array<[RegExp, string]> = [
   [/valid review schema only if first-party guidelines and source data support it/gi, 'review-rating'],
   // Broken commercial-claim fragments (the commercial sanitizer ran over text
   // that contained a domain or odd phrasing).
+  [
+    /\bexpecting an immediate pricing should be confirmed with the business\b/gi,
+    'expecting an immediate response after pricing is confirmed with the business',
+  ],
+  [
+    /\bmedium,\s*pricing should be confirmed with the business\b/gi,
+    'medium priority; pricing should be confirmed with the business',
+  ],
+  [
+    /\bno\s+([^.;!?]{1,80}?)\s+mentions were found among sources cited in the tested responses\.com\b/gi,
+    'No $1 mentions were found among sources cited in the tested responses',
+  ],
+  [
+    /\bstar score on homestars\b(?:\s*(?:based on reviews|from|based on)\b[^.?!]*)?/gi,
+    'HomeStars rating details were not independently confirmed in this audit',
+  ],
+  [
+    /\bcustomer referral rate\b(?!\s+was not independently confirmed)(?:\s*(?:from|based on|of)\b[^.?!]*)?/gi,
+    'Customer referral rate was not independently confirmed in this audit',
+  ],
   // "...confirmed with the business.lv is absent..." (greedy match crossed a domain dot)
   [/(confirmed with the business)\.[a-z]{2,4}\b[^.?!]*[.?!]?/gi, '$1.'],
   // "whether Contact the business to confirm availability..." (capitalized verb mid-sentence)
@@ -134,13 +154,29 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     // (3b) Sample-bound absolute "No presence on X" absence claims: name the
     // brand and scope it to the tested responses instead of asserting absence.
     {
-      const subject = brand ? `No ${brand} presence` : 'No presence'
-      const next = out.replace(
-        /\bno\s+presence\s+on\b/gi,
-        `${subject} was observed among the tested responses on`
-      )
+      const subject = brand || 'the brand'
+      const next = out
+        .replace(/\bno\s+presence\s+on\b/gi, `No ${subject} presence was observed among the tested responses on`)
+        .replace(/\bnot\s+listed\s+on\s+([^.;!?]{2,80})(?=[.;!?]|$)/gi, `No ${subject} listing on $1 appeared among the sources surfaced in the tested responses`)
+        .replace(/\bno\s+google\s+business\s+profile\b/gi, 'A Google Business Profile was not confirmed in the reviewed sources')
+        .replace(/\bno\s+(?:dedicated\s+)?([a-z][a-z -]{2,50}?\s+(?:moving|service))\s+page\b/gi, 'A dedicated $1 page was not confirmed in the crawled pages reviewed for this audit')
+        .replace(/\bno\s+specialty\s+service\s+pages\b/gi, 'Specialty service pages were not confirmed in the crawled pages reviewed for this audit')
       if (next !== out) {
-        warn('absence: bounded a "no presence on X" claim to the tested responses')
+        warn('absence: bounded an external absence claim to tested/reviewed sources')
+        out = next
+      }
+    }
+
+    // (3c) Remove proven causality when the audit only has public-page and
+    // answer-engine evidence, not analytics/CRM data.
+    {
+      const next = out
+        .replace(/\bthe primary driver is\b/gi, 'likely contributing factors include')
+        .replace(/\bthe core reason is\b/gi, 'likely contributing factors include')
+        .replace(/\bthis absence is caused by\b/gi, 'this observed absence may be associated with')
+        .replace(/\bai skips you because\b/gi, 'potential factors limiting AI visibility include')
+      if (next !== out) {
+        warn('causality: softened an unsupported causal claim')
         out = next
       }
     }

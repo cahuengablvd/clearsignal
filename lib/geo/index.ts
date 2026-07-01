@@ -138,12 +138,13 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       engines.map(async (engine) => ({ engine, query, res: await queryEngine(engine, query, { webSearch }) }))
     )
   )
+  const testCounts = geoTestCounts(queries.length, engines.length, settled.filter((s) => s.res.ok).length, 0)
   const raw = settled
     .filter((s) => s.res.ok)
     .map((s) => ({ engine: s.engine, query: s.query, answer: s.res.answer, citations: s.res.citations }))
 
   if (raw.length === 0) {
-    return emptyResult(brand, brandDomain, queries.length, engines)
+    return emptyResult(brand, brandDomain, queries.length, engines, testCounts)
   }
 
   // 3. Build the competitor set: user-provided + (optionally) discovered names.
@@ -328,6 +329,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     brand_domain: brandDomain,
     queries_tested: queries.length,
     engines_tested: [...new Set(raw.map((r) => r.engine))],
+    test_counts: testCounts,
     ai_visibility_score,
     mention_rate,
     citation_rate,
@@ -370,6 +372,24 @@ function truncate(s: string, n: number): string {
 function prettyName(urlOrName: string): string {
   const s = sld(urlOrName)
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : urlOrName
+}
+
+function geoTestCounts(
+  configuredQueries: number,
+  configuredEngines: number,
+  successfulCombinations: number,
+  skippedCombinations: number
+) {
+  const expectedCombinations = configuredQueries * configuredEngines
+  const failedCombinations = Math.max(0, expectedCombinations - successfulCombinations - skippedCombinations)
+  return {
+    configured_queries: configuredQueries,
+    configured_engines: configuredEngines,
+    expected_combinations: expectedCombinations,
+    successful_combinations: successfulCombinations,
+    failed_combinations: failedCombinations,
+    skipped_combinations: skippedCombinations,
+  }
 }
 
 function deterministicNarrative({
@@ -417,13 +437,15 @@ function emptyResult(
   brand: string,
   brandDomain: string,
   queriesTested: number,
-  engines: EngineId[]
+  engines: EngineId[],
+  testCounts = geoTestCounts(queriesTested, engines.length, 0, 0)
 ): GeoResult {
   return {
     brand,
     brand_domain: brandDomain,
     queries_tested: queriesTested,
     engines_tested: engines,
+    test_counts: testCounts,
     ai_visibility_score: 0,
     mention_rate: 0,
     citation_rate: 0,

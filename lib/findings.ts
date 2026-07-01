@@ -24,6 +24,65 @@ function firstMatch(re: RegExp, text: string): RegExpExecArray | null {
   return re.exec(text)
 }
 
+function attr(el: string, name: string): string {
+  const m = new RegExp(`\\b${name}=["']([^"']*)["']`, 'i').exec(el)
+  return m ? m[1].trim() : ''
+}
+
+function stripTags(fragment: string): string {
+  return fragment
+    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<svg\b[\s\S]*?<\/svg>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function ctaLabel(el: string, inner = ''): string {
+  return stripTags(inner) || attr(el, 'aria-label') || attr(el, 'title') || attr(el, 'value')
+}
+
+function hasActionableHref(el: string): boolean {
+  const href = attr(el, 'href')
+  if (!href) return false
+  return !/^(?:#|javascript:void\(0\)|javascript:;?)$/i.test(href)
+}
+
+function isCtaText(text: string): boolean {
+  return /\b(get started|sign up|start free|book a demo|book demo|request a demo|get a demo|try (?:it )?free|contact sales|get quote|get a quote|request quote|free quote|book now|schedule|call now)\b/i.test(
+    text
+  )
+}
+
+function findPrimaryCta(html: string): { match: string; label: string } | null {
+  const candidates = [
+    /<button\b[^>]*>([\s\S]*?)<\/button>/gi,
+    /<input\b[^>]*type=["'](?:submit|button)["'][^>]*>/gi,
+    /<a\b[^>]*class=["'][^"']*(?:btn|button|cta)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi,
+    /<a\b[^>]*>([\s\S]*?)<\/a>/gi,
+  ]
+  for (const re of candidates) {
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html))) {
+      const el = m[0]
+      const label = ctaLabel(el, m[1] || '')
+      const isAnchor = /^<a\b/i.test(el)
+      const isButton = /^<(?:button|input)\b/i.test(el)
+      if (!label || !isCtaText(label)) continue
+      if (isAnchor && !hasActionableHref(el)) continue
+      if (isButton || isAnchor) return { match: el, label }
+    }
+  }
+  return null
+}
+
+function findGraphicalCtaLike(html: string): RegExpExecArray | null {
+  return firstMatch(/<(?:button|a)\b[^>]*>(?:\s*<svg\b[\s\S]*?<\/svg>\s*)+<\/(?:button|a)>/i, html)
+}
+
 /** Short, stable evidence-id slug per finding type (for OBS-* cross-references). */
 const OBS_SLUG: Record<string, string> = {
   cta_present: 'CTA',
@@ -56,11 +115,9 @@ export function computeTechnicalFindings(input: {
   })
 
   // 1. Primary CTA -------------------------------------------------------------
-  const primaryCtaMatch =
-    firstMatch(/<button\b[^>]*>([\s\S]*?)<\/button>/i, html) ||
-    firstMatch(/<a\b[^>]*class=["'][^"']*(?:btn|button|cta)[^"']*["'][^>]*>([\s\S]*?)<\/a>/i, html) ||
-    firstMatch(/<a\b[^>]*>\s*(get started|sign up|start free|book a demo|book demo|request a demo|get a demo|try (?:it )?free|contact sales)\s*<\/a>/i, html)
-  const contactLinkMatch = firstMatch(/<a\b[^>]*>\s*(contact us|contact)\s*<\/a>/i, html)
+  const primaryCtaMatch = findPrimaryCta(html)
+  const contactLinkMatch = firstMatch(/<a\b[^>]*href=["'][^"']+["'][^>]*>\s*(contact us|contact)\s*<\/a>/i, html)
+  const graphicalCtaLike = findGraphicalCtaLike(html)
   if (primaryCtaMatch) {
     findings.push({
       id: 'cta_present',
@@ -68,9 +125,20 @@ export function computeTechnicalFindings(input: {
       classification: 'detected',
       status: 'present',
       confidence: 96,
-      confidence_basis: 'Matched a primary button/CTA element in the rendered HTML',
+      confidence_basis: 'Matched an actionable CTA element with visible or accessible CTA text in the rendered HTML',
       detail: 'A primary CTA element is present.',
-      evidence: ev(clip(primaryCtaMatch[1] || primaryCtaMatch[0], 120), primaryCtaMatch[0]),
+      evidence: ev(clip(primaryCtaMatch.label, 120), primaryCtaMatch.match),
+    })
+  } else if (graphicalCtaLike) {
+    findings.push({
+      id: 'cta_present',
+      label: 'Primary call-to-action',
+      classification: 'manual_verification',
+      status: 'unknown',
+      confidence: 45,
+      confidence_basis: 'A graphical button/link was found, but no CTA text, href, submit behavior, or accessible label confirmed it as a primary CTA',
+      detail: 'Graphical CTA-like element detected; verify manually whether it is an actionable primary CTA.',
+      evidence: ev(null, graphicalCtaLike[0]),
     })
   } else if (contactLinkMatch) {
     findings.push({

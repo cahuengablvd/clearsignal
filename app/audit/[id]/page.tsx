@@ -380,11 +380,10 @@ export default async function AuditPage({
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-3xl font-bold">{report.geo.queries_tested}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Queries - {report.geo.engines_tested.length} engine
-                    {report.geo.engines_tested.length === 1 ? '' : 's'}
+                  <div className="text-3xl font-bold">
+                    {report.geo.test_counts?.successful_combinations ?? report.geo.evidence.length}
                   </div>
+                  <div className="text-xs text-muted-foreground mt-1">Successful combinations</div>
                 </CardContent>
               </Card>
             </div>
@@ -395,6 +394,15 @@ export default async function AuditPage({
                 <p className="text-xs text-muted-foreground mt-3">
                   Engines tested: {report.geo.engines_tested.join(', ')}
                 </p>
+                {report.geo.test_counts && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Queries configured: {report.geo.test_counts.configured_queries}. Engines configured:{' '}
+                    {report.geo.test_counts.configured_engines}. Expected combinations:{' '}
+                    {report.geo.test_counts.expected_combinations}. Successfully tested:{' '}
+                    {report.geo.test_counts.successful_combinations}. Failed or skipped:{' '}
+                    {report.geo.test_counts.failed_combinations + report.geo.test_counts.skipped_combinations}.
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   Score = {Math.round(report.geo.score_breakdown.weights.mention * 100)}%
                   mention-rate ({Math.round(report.geo.mention_rate)}) +{' '}
@@ -450,7 +458,7 @@ export default async function AuditPage({
               <Card className="mb-6 border-red-200 bg-red-50/50">
                 <CardContent className="p-5">
                   <h3 className="font-semibold text-red-800 mb-2">
-                    Why AI skips you - citation gaps
+                    Potential factors limiting AI visibility
                   </h3>
                   <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
                     {report.geo.missing_signals.map((s, i) => (
@@ -465,7 +473,7 @@ export default async function AuditPage({
               <Card className="mb-8 border-green-200 bg-green-50/50">
                 <CardContent className="p-5">
                   <h3 className="font-semibold text-green-800 mb-2">
-                    How to get cited more
+                    Actions that may improve citation potential
                   </h3>
                   <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
                     {report.geo.recommendations.map((r, i) => (

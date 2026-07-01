@@ -194,7 +194,10 @@ export default async function ScoreResultPage({ params }: { params: { id: string
               <div className="grid grid-cols-3 gap-3 mt-6">
                 <Metric label="Mention rate" value={`${Math.round(geo.mention_rate)}%`} />
                 <Metric label="Share of voice" value={`${Math.round(geo.share_of_voice)}%`} />
-                <Metric label="Queries tested" value={String(geo.queries_tested)} />
+                <Metric
+                  label="Successful combinations"
+                  value={String(geo.test_counts?.successful_combinations ?? geo.evidence.length)}
+                />
               </div>
             ) : (
               <p className="mt-6 text-sm text-slate-600">
@@ -286,7 +289,7 @@ export default async function ScoreResultPage({ params }: { params: { id: string
               <section className="mt-8">
                 <div className="flex items-center gap-2 mb-4">
                   <FileSearch className="h-5 w-5" />
-                  <h2 className="text-xl font-bold">Why AI cites them, not you</h2>
+                  <h2 className="text-xl font-bold">Potential citation factors</h2>
                 </div>
                 <div className="grid md:grid-cols-2 gap-3">
                   {sourceGaps.map((s) => (

@@ -8,7 +8,7 @@ import {
   sanitizeGeneratedProse,
   sanitizeGeneratedReportValue,
 } from '../lib/sanitize'
-import { BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema } from '../lib/schemas'
+import { BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema, GeoResultSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
 import { buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
@@ -140,6 +140,30 @@ describe('deterministic technical findings', () => {
     expect(cta.status).toBe('unknown')
     expect(cta.confidence).toBe(55)
     expect(cta.detail).toContain('Contact link detected')
+  })
+
+  it('does not treat an SVG-only button as a confirmed CTA', () => {
+    const findings = computeTechnicalFindings({
+      url,
+      html: '<html><body><button><svg viewBox="0 0 10 10"><path d="M0 0h10v10"/></svg></button></body></html>',
+      markdown: '',
+    })
+    const cta = findings.find((f) => f.id === 'cta_present')!
+    expect(cta.classification).toBe('manual_verification')
+    expect(cta.status).toBe('unknown')
+    expect(cta.confidence).toBeLessThan(50)
+  })
+
+  it('confirms an actionable submit input with CTA copy', () => {
+    const findings = computeTechnicalFindings({
+      url,
+      html: '<html><body><form action="/quote"><input type="submit" value="Get a quote"/></form></body></html>',
+      markdown: '',
+    })
+    const cta = findings.find((f) => f.id === 'cta_present')!
+    expect(cta.classification).toBe('detected')
+    expect(cta.status).toBe('present')
+    expect(cta.evidence?.extracted_text).toBe('Get a quote')
   })
 
   it('marks verified absence separately from verified presence', () => {
@@ -1060,5 +1084,96 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(r.report.gap.ai_search.finding).toBe(
       'No Latvianart presence was observed among the tested responses on Etsy or Facebook marketplace listings.'
     )
+  })
+
+  it('sample-bounds moving-industry external absence claims', () => {
+    const r = validateReport(
+      base({
+        meta: { canonical_brand: 'Az-moving' },
+        gap: {
+          competitor_analysis: [],
+          ai_search: {
+            finding:
+              'Not listed on Thumbtack. No Google Business Profile. No dedicated piano moving page. No specialty service pages.',
+          },
+        },
+      })
+    )
+    expect(r.report.gap.ai_search.finding).toContain(
+      'No Az-moving listing on Thumbtack appeared among the sources surfaced in the tested responses'
+    )
+    expect(r.report.gap.ai_search.finding).toContain(
+      'A Google Business Profile was not confirmed in the reviewed sources'
+    )
+    expect(r.report.gap.ai_search.finding).toContain(
+      'A dedicated piano moving page was not confirmed in the crawled pages reviewed for this audit'
+    )
+    expect(r.report.gap.ai_search.finding).toContain(
+      'Specialty service pages were not confirmed in the crawled pages reviewed for this audit'
+    )
+  })
+
+  it('repairs az-moving broken commercial and directory fragments idempotently', () => {
+    const input =
+      'Customers expecting an immediate pricing should be confirmed with the business. No Reddit mentions were found among sources cited in the tested responses.com. Star Score on HomeStars based on reviews. Customer Referral Rate from.'
+    const once = validateReport(base({ action: { executive_summary: input, top_fixes: [] } })).report.action
+      .executive_summary
+    const twice = validateReport(base({ action: { executive_summary: once, top_fixes: [] } })).report.action
+      .executive_summary
+    expect(once).toBe(twice)
+    expect(once).not.toMatch(/responses\.com/i)
+    expect(once).not.toMatch(/immediate pricing should be confirmed/i)
+    expect(once).not.toMatch(/Star Score on HomeStars/i)
+    expect(once).not.toMatch(/Customer Referral Rate from/i)
+  })
+
+  it('softens unsupported causal AI visibility language', () => {
+    const r = validateReport(
+      base({
+        geo: {
+          summary:
+            'The primary driver is weak entity content. The core reason is citation scarcity. AI skips you because sources are missing.',
+        },
+      })
+    )
+    expect(r.report.geo?.summary).toContain('likely contributing factors include weak entity content')
+    expect(r.report.geo?.summary).toContain('potential factors limiting AI visibility include sources are missing')
+    expect(r.report.geo?.summary).not.toMatch(/AI skips you because/i)
+  })
+
+  it('accepts explicit GEO test counts for configured, expected and successful combinations', () => {
+    const parsed = GeoResultSchema.parse({
+      brand: 'Az-moving',
+      brand_domain: 'az-moving.com',
+      queries_tested: 6,
+      engines_tested: ['openai', 'perplexity', 'claude'],
+      test_counts: {
+        configured_queries: 6,
+        configured_engines: 3,
+        expected_combinations: 18,
+        successful_combinations: 14,
+        failed_combinations: 4,
+        skipped_combinations: 0,
+      },
+      ai_visibility_score: 0,
+      mention_rate: 0,
+      citation_rate: 0,
+      share_of_voice: 0,
+      avg_position: null,
+      score_breakdown: {
+        mention_rate: 0,
+        citation_rate: 0,
+        position_score: 0,
+        share_of_voice: 0,
+        weights: { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 },
+      },
+      evidence: [],
+      competitor_visibility: [],
+      cited_domains_ranked: [],
+      missing_signals: [],
+      recommendations: [],
+      summary: 'Measured across the configured sample.',
+    })
+    expect(parsed.test_counts?.expected_combinations).toBe(18)
   })
 })

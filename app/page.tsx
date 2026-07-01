@@ -67,7 +67,7 @@ const auditItems = [
 const deliverables = [
   'AI visibility across ChatGPT, Claude, Perplexity and Google AI',
   'Share-of-voice vs up to 3 competitors',
-  'Citation gap analysis: why AI skips you',
+  'Citation gap analysis: factors limiting AI visibility',
   'Full messaging clarity analysis',
   '10 prioritized fixes to get cited',
   'PDF report + web dashboard',
@@ -181,7 +181,7 @@ export default function LandingPage() {
                   <div className="mt-5 border rounded-lg bg-white p-4">
                     <div className="flex items-center gap-2 text-sm font-semibold">
                       <CircleAlert className="h-4 w-4 text-amber-600" />
-                      Why AI skips you
+                      What may limit AI visibility
                     </div>
                     <ul className="mt-3 space-y-2 text-sm text-slate-600">
                       <li>No comparison pages for buyer queries</li>

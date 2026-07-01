@@ -763,12 +763,12 @@ export default async function AuditPage({
             return (
               <Card key={fix.id}>
                 <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono text-muted-foreground w-6">#{fix.id}</span>
-                      <h3 className="font-semibold">{fix.title}</h3>
+                  <div className="mb-2">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <span className="text-sm font-mono text-muted-foreground w-6 shrink-0">#{fix.id}</span>
+                      <h3 className="font-semibold leading-snug min-w-0 break-words">{fix.title}</h3>
                     </div>
-                    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                    <div className="mt-2 ml-8 flex flex-wrap items-center gap-2">
                       <PriorityBadge bucket={priority.bucket} />
                       <ConfidenceBadge level={fix.confidence_level} />
                       {fix.claim_level && <Badge variant="outline">{fix.claim_level}</Badge>}

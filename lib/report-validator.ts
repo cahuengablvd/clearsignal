@@ -10,6 +10,7 @@
  * Pure + deterministic: no LLM, fully unit-testable.
  */
 import { sanitizeUnsupportedCommercialClaims } from './sanitize'
+import { canClaimCredential, canClaimServiceAvailability } from './business-context'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
 
 export type ReportValidation = {
@@ -98,15 +99,16 @@ const BROKEN_STRINGS: Array<[RegExp, string]> = [
     'No visible pricing was confirmed in the crawled content',
   ],
   [/\bpricing should be confirmed with the business\b/gi, 'Contact the business to confirm pricing.'],
-  [/\binsurance details should be confirmed with the business\b/gi, 'Contact the business to confirm insurance details.'],
-  [/\bWSIB status should be confirmed with the business\b/gi, 'Contact the business to confirm WSIB status.'],
-  [/\bCVOR status should be confirmed with the business\b/gi, 'Contact the business to confirm CVOR status.'],
-  [/\bHomeStars details should be confirmed with the business\b/gi, 'Contact the business to confirm HomeStars details.'],
-  [/\bpiano moving availability should be confirmed with the business\b/gi, 'Contact the business to confirm piano-moving availability.'],
-  [/\bstorage availability should be confirmed with the business\b/gi, 'Contact the business to confirm storage availability.'],
-  [/\blast-minute availability should be confirmed with the business\b/gi, 'Contact the business to confirm last-minute availability.'],
-  [/\bsingle-item moving availability should be confirmed with the business\b/gi, 'Contact the business to confirm single-item moving availability.'],
-  [/\bservice coverage outside the primary market should be confirmed with the business\b/gi, 'Contact the business to confirm service coverage outside the primary market.'],
+  [/\binsurance details should be confirmed with the business\b/gi, 'Confirm insurance details before publishing this wording.'],
+  [/\b(WSIB|CVOR) status\.\s*status\.\s*status should be confirmed with the business\b/gi, 'Confirm $1 status before publishing this wording.'],
+  [/\bWSIB status should be confirmed with the business\b/gi, 'Confirm WSIB status before publishing this wording.'],
+  [/\bCVOR status should be confirmed with the business\b/gi, 'Confirm CVOR status before publishing this wording.'],
+  [/\bHomeStars details should be confirmed with the business\b/gi, 'Confirm third-party rating details before publishing this wording.'],
+  [/\bpiano moving availability should be confirmed with the business\b/gi, 'Confirm piano-moving availability before publishing this wording.'],
+  [/\bstorage availability should be confirmed with the business\b/gi, 'Confirm storage availability before publishing this wording.'],
+  [/\blast-minute availability should be confirmed with the business\b/gi, 'Confirm last-minute availability before publishing this wording.'],
+  [/\bsingle-item moving availability should be confirmed with the business\b/gi, 'Confirm single-item moving availability before publishing this wording.'],
+  [/\bservice coverage outside the primary market should be confirmed with the business\b/gi, 'Confirm service coverage outside the primary market before publishing this wording.'],
   [
     /\bcustomer referral rate\b(?!\s+was not independently confirmed)(?:\s*(?:from|based on|of)\b[^.?!]*)?/gi,
     'Customer referral rate was not independently confirmed in this audit',
@@ -142,12 +144,85 @@ const CLIENT_ARTIFACTS: Array<[RegExp, string]> = [
   [/\[[^\]]{1,160}\]/i, 'bracketed placeholder or internal instruction'],
   [/\b(?:Develope|Copywrite|Impleme)\b/i, 'clipped role label'],
   [/(should be confirmed with the business)(?:\s+\1)+/i, 'repeated safe commercial phrase'],
+  [/Contact the business to confirm\s+Contact the business to confirm/i, 'repeated contact-confirmation phrase'],
+  [/\b(status|details)\.\s*\1\.\s*\1\b/i, 'repeated status/details fragment'],
+  [/\bshould be confirmed with the business\b/i, 'internal commercial policy phrase leaked into prose'],
   [/\bvalid review schema only if first-party guidelines\b/i, 'internal review-schema policy leaked into prose'],
 ]
 
 /** Deep clone via JSON round-trip (report is always JSON-serializable). */
 function clone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v)) as T
+}
+
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items[0] || 'details'
+  if (items.length === 2) return `${items[0]} and ${items[1]}`
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
+}
+
+function unsupportedMovingClaims(sentence: string, ctx?: BusinessContext): string[] {
+  if (!ctx || /\?\s*$/.test(sentence.trim())) return []
+  const claims: string[] = []
+  const add = (label: string) => {
+    if (!claims.includes(label)) claims.push(label)
+  }
+
+  if (!canClaimCredential(ctx, 'insured') && /\b(?:fully\s+insured|licensed\s+and\s+insured|insured\s+movers?)\b/i.test(sentence)) {
+    add('insurance details')
+  }
+  if (!canClaimCredential(ctx, 'wsib') && /\bWSIB(?:[- ]certified| credentials?| certification)?\b/i.test(sentence)) {
+    add('WSIB status')
+  }
+  if (!canClaimCredential(ctx, 'cvor') && /\bCVOR(?:[- ]certified| credentials?| certification)?\b/i.test(sentence)) {
+    add('CVOR status')
+  }
+  if (!canClaimCredential(ctx, 'homestars') && /\bHomeStars(?:[- ]rated| rating| Star Score| score)?\b/i.test(sentence)) {
+    add('third-party rating details')
+  }
+  if (!canClaimServiceAvailability(ctx, 'piano') && /\bpiano\s+moving\b|\bpiano\s+movers?\b|\bmove\s+pianos?\b/i.test(sentence)) {
+    add('piano-moving availability')
+  }
+  if (!canClaimServiceAvailability(ctx, 'storage') && /\bstorage\s+(?:is\s+)?available\b|\boffer\s+storage\b|\bstorage options\b/i.test(sentence)) {
+    add('storage availability')
+  }
+  if (!canClaimServiceAvailability(ctx, 'last_minute') && /\blast[- ]minute\s+moves?\b|\blast[- ]minute\s+moving\b/i.test(sentence)) {
+    add('last-minute availability')
+  }
+  if (!canClaimServiceAvailability(ctx, 'single_item') && /\bsingle[- ]item\s+(?:moves?|moving)\b/i.test(sentence)) {
+    add('single-item moving availability')
+  }
+  if (!canClaimServiceAvailability(ctx, 'ontario_quebec') && /\b(?:across|serves?|serving|coverage across)\s+Ontario\s+and\s+Quebec\b/i.test(sentence)) {
+    add('service coverage outside the primary market')
+  }
+
+  return claims
+}
+
+function repairUnsupportedMovingClaimSentences(text: string, ctx?: BusinessContext): string {
+  if (!text || !ctx) return text
+  return (text.match(/[^.!?]+[.!?]?|\s+/g) || [text])
+    .map((part) => {
+      if (/^\s+$/.test(part)) return part
+      const claims = unsupportedMovingClaims(part, ctx)
+      if (claims.length === 0) return part
+      return `Confirm ${joinList(claims)} before publishing this wording.`
+    })
+    .join('')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function cleanupClientPhrasing(text: string): string {
+  return text
+    .replace(/Contact the business to confirm\s+Contact the business to confirm/gi, 'Confirm')
+    .replace(/\b(status|details)\.\s*\1\.\s*\1\b/gi, '$1')
+    .replace(/\b(Confirm [^.?!]+ before publishing this wording\.)\s+\1+/gi, '$1')
+    .replace(/\.(?=Confirm\b)/g, '. ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
 }
 
 export function validateReport(input: ClearSignalReport): ReportValidation {
@@ -262,6 +337,12 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
         out = out.replace(re, replacement)
       }
     }
+    const claimSafe = repairUnsupportedMovingClaimSentences(out, businessContext)
+    if (claimSafe !== out) {
+      warn('commercial_claim: replaced an unsupported moving claim at sentence level')
+      out = claimSafe
+    }
+    out = cleanupClientPhrasing(out)
 
     // (1) CTA contradiction.
     if (ctaStatus === 'present') {

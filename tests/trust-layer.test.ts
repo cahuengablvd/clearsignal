@@ -1258,12 +1258,37 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/fully insured|HomeStars-rated|CVOR credentials|WSIB credentials|storage is available|offers piano moving|across Ontario and Quebec/i)
-    expect(text).toContain('Contact the business to confirm insurance details')
-    expect(text).toContain('Contact the business to confirm HomeStars details')
-    expect(text).toContain('Contact the business to confirm CVOR status')
-    expect(text).toContain('Contact the business to confirm WSIB status')
-    expect(text).toContain('Contact the business to confirm storage availability')
-    expect(text).toContain('Contact the business to confirm service coverage outside the primary market')
+    expect(text).toContain('Confirm insurance details and third-party rating details before publishing this wording.')
+    expect(text).toContain('Confirm insurance details, WSIB status and CVOR status before publishing this wording.')
+    expect(text).toContain(
+      'Confirm piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market before publishing this wording.'
+    )
+  })
+
+  it('is idempotent on repeated credential-safe phrases from the broken PDF', () => {
+    const report = base({
+      meta: {
+        business_context: {
+          business_model: 'service',
+          primary_conversion_goal: 'booking',
+          purchase_availability: 'unknown',
+          ships_internationally: 'unknown',
+          provenance_or_authentication: 'unknown',
+          target_markets_languages: '',
+          verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+        },
+      },
+      action: {
+        executive_summary:
+          'Contact the business to confirm Contact the business to confirm HomeStars details. WSIB status. status. status should be confirmed with the business. CVOR status. status. status should be confirmed with the business.',
+        top_fixes: [],
+      },
+    })
+    const once = validateReport(report).report.action.executive_summary
+    const twice = validateReport(base({ action: { executive_summary: once, top_fixes: [] } })).report.action
+      .executive_summary
+    expect(once).toBe(twice)
+    expect(once).not.toMatch(/Contact the business to confirm Contact the business|status\. status|should be confirmed with the business/i)
   })
 
   it('removes empty contact tails from outreach drafts', () => {

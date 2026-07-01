@@ -302,6 +302,9 @@ export async function runFullAudit(auditId: string): Promise<void> {
         errors: validation.errors,
       })
     }
+    if (validation.errors.length) {
+      throw new Error(`Report validation blocked PDF export: ${validation.errors.slice(0, 5).join('; ')}`)
+    }
     const finalReport: ClearSignalReport = {
       ...validation.report,
       validation_warnings: [...validation.errors, ...validation.warnings].slice(0, 50),

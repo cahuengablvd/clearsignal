@@ -1,10 +1,8 @@
 import {
-  canClaimCredential,
   canClaimCommercialPolicy,
   canClaimInternationalShipping,
   canClaimProvenance,
   canClaimPurchaseAvailable,
-  canClaimServiceAvailability,
 } from './business-context'
 import type { BusinessContext } from './schemas'
 
@@ -88,8 +86,6 @@ export function redactUnverifiedQuantifiedExamples(text: string): string {
 export function sanitizeUnsupportedCommercialClaims(text: string, context?: BusinessContext): string {
   if (!text || !context) return text
   let out = text
-  const isQuestion = /\?\s*$/.test(out.trim())
-
   if (!canClaimPurchaseAvailable(context)) {
     out = out
       .replace(/\b(?:all\s+)?(?:artworks?|works?|products?|pieces?)\s+(?:are|is)\s+(?:available\s+)?(?:to buy|for purchase|for sale|available)\b/gi, 'Contact the business to confirm availability for specific items')
@@ -121,41 +117,6 @@ export function sanitizeUnsupportedCommercialClaims(text: string, context?: Busi
 
   if (!canClaimCommercialPolicy(context, 'awards')) {
     out = out.replace(/\b(?:award[- ]winning|press[- ]featured|featured in|official partner|affiliated with)\b[^.?!]*/gi, 'third-party recognition should be confirmed before publishing')
-  }
-
-  if (isQuestion) {
-    return out
-      .replace(/\s{2,}/g, ' ')
-      .replace(/\s+([.,;:!?])/g, '$1')
-      .trim()
-  }
-
-  if (!canClaimCredential(context, 'insured')) {
-    out = out.replace(/\b(?:fully\s+insured|licensed\s+and\s+insured|insured\s+movers?)\b/gi, 'insurance details should be confirmed with the business')
-  }
-  if (!canClaimCredential(context, 'wsib')) {
-    out = out.replace(/\bWSIB(?:[- ]certified| credentials?| certification)?\b/gi, 'WSIB status should be confirmed with the business')
-  }
-  if (!canClaimCredential(context, 'cvor')) {
-    out = out.replace(/\bCVOR(?:[- ]certified| credentials?| certification)?\b/gi, 'CVOR status should be confirmed with the business')
-  }
-  if (!canClaimCredential(context, 'homestars')) {
-    out = out.replace(/\bHomeStars(?:[- ]rated| rating| Star Score| score)?\b/gi, 'HomeStars details should be confirmed with the business')
-  }
-  if (!canClaimServiceAvailability(context, 'piano')) {
-    out = out.replace(/\bpiano\s+moving\b|\bpiano\s+movers?\b|\bmove\s+pianos?\b/gi, 'piano moving availability should be confirmed with the business')
-  }
-  if (!canClaimServiceAvailability(context, 'storage')) {
-    out = out.replace(/\bstorage\s+(?:is\s+)?available\b|\boffer\s+storage\b|\bstorage options\b/gi, 'storage availability should be confirmed with the business')
-  }
-  if (!canClaimServiceAvailability(context, 'last_minute')) {
-    out = out.replace(/\blast[- ]minute\s+moves?\b|\blast[- ]minute\s+moving\b/gi, 'last-minute availability should be confirmed with the business')
-  }
-  if (!canClaimServiceAvailability(context, 'single_item')) {
-    out = out.replace(/\bsingle[- ]item\s+(?:moves?|moving)\b/gi, 'single-item moving availability should be confirmed with the business')
-  }
-  if (!canClaimServiceAvailability(context, 'ontario_quebec')) {
-    out = out.replace(/\b(?:across|serves?|serving|coverage across)\s+Ontario\s+and\s+Quebec\b/gi, 'service coverage outside the primary market should be confirmed with the business')
   }
 
   return out

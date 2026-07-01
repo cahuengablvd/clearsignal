@@ -31,6 +31,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Audit is already processing' }, { status: 409 })
     }
 
+    // Make regeneration visible immediately in the admin UI. Trigger may take a
+    // few seconds to start the task and flip the row to `processing`.
+    const { error: queueError } = await supabaseAdmin
+      .from('audits')
+      .update({ audit_status: 'queued' })
+      .eq('id', audit_id)
+
+    if (queueError) {
+      console.error('Failed to mark audit queued before regeneration:', queueError)
+      return NextResponse.json({ error: 'Failed to queue audit' }, { status: 500 })
+    }
+
     // Enqueue (Trigger.dev when configured, else in-process for dev).
     await enqueueAudit(audit_id)
 

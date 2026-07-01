@@ -60,6 +60,7 @@ export default function AdminPage() {
   const [preview, setPreview] = useState<AuditPreview | null>(null)
   const [editedQueries, setEditedQueries] = useState<string[]>([])
   const [createMsg, setCreateMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [regenMsg, setRegenMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Simple password gate (check against env via API)
   async function handleLogin(e: React.FormEvent) {
@@ -89,15 +90,23 @@ export default function AdminPage() {
 
   async function regenerateAudit(auditId: string) {
     setRegeneratingId(auditId)
+    setRegenMsg(null)
     try {
-      await fetch('/api/audit', {
+      const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ audit_id: auditId }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setRegenMsg({ ok: true, text: `Audit queued for regeneration: ${auditId}` })
+      } else {
+        setRegenMsg({ ok: false, text: data.error || `Regeneration failed (${res.status})` })
+      }
       await loadAudits()
     } catch (err) {
       console.error('Regeneration failed:', err)
+      setRegenMsg({ ok: false, text: 'Regeneration request failed' })
     }
     setRegeneratingId(null)
   }
@@ -488,6 +497,12 @@ export default function AdminPage() {
             )}
           </CardContent>
         </Card>
+
+        {regenMsg && (
+          <div className={`mb-4 text-sm ${regenMsg.ok ? 'text-green-700' : 'text-red-700'} break-all`}>
+            {regenMsg.text}
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-20">

@@ -16,15 +16,45 @@ function orgName(brand: string, url: string): string {
   }
 }
 
+function isMovingBusiness(brand: string, url: string, faq: { question: string; answer: string }[]): boolean {
+  const haystack = `${brand} ${url} ${faq.map((f) => `${f.question} ${f.answer}`).join(' ')}`.toLowerCase()
+  return /\b(moving|movers?|relocation|relocations|piano moving|commercial move|residential move)\b/.test(haystack)
+}
+
+function areaServedFromText(faq: { question: string; answer: string }[]): string[] {
+  const text = faq.map((f) => `${f.question} ${f.answer}`).join(' ')
+  const areas = ['Toronto', 'Ontario', 'Canada', 'Quebec']
+  return areas.filter((area) => new RegExp(`\\b${area}\\b`, 'i').test(text))
+}
+
 /** Build a valid Organization + FAQPage JSON-LD <script> block from the FAQ. */
 export function buildJsonLd(
   brand: string,
   url: string,
   faq: { question: string; answer: string }[]
 ): string {
+  const name = orgName(brand, url)
+  const moving = isMovingBusiness(brand, url, faq)
+  const areas = moving ? areaServedFromText(faq) : []
   const graph: Record<string, unknown>[] = [
-    { '@type': 'Organization', name: orgName(brand, url), url },
+    moving
+      ? {
+          '@type': 'MovingCompany',
+          name,
+          url,
+          ...(areas.length > 0 ? { areaServed: areas } : {}),
+        }
+      : { '@type': 'Organization', name, url },
   ]
+  if (moving) {
+    graph.push({
+      '@type': 'Service',
+      name: `${name} moving services`,
+      serviceType: 'Moving services',
+      provider: { '@type': 'MovingCompany', name, url },
+      ...(areas.length > 0 ? { areaServed: areas } : {}),
+    })
+  }
   if (faq.length > 0) {
     graph.push({
       '@type': 'FAQPage',

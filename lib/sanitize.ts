@@ -197,6 +197,8 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/remove web3 from (?:the )?hero/gi, 'test de-emphasizing Web3 in the hero if broader SaaS buyers are the priority'],
   [/remove upwork (?:completely|entirely)/gi, 'de-emphasize Upwork as the primary proof point while keeping it as supporting evidence'],
   [/create (?:your|a) own (?:best companies|top companies|ranking|rankings|rating) (?:page|list|article)?/gi, 'publish a transparent comparison guide with clear methodology'],
+  [/\b(?:create|claim|build|add|set up)\s+(?:a\s+)?thumbtack\s+(?:profile|listing|page)\b[^.?!]*/gi, 'Consider validating whether Thumbtack generates meaningful local demand before investing in a profile'],
+  [/\b(?:no|missing)\s+service\s+page\b[^.?!]*\blink(?:ed)?\s+in\s+navigation\b/gi, 'A service page appears to be linked in navigation, but its crawlable content was not confirmed in this audit'],
   [/stories investors fund and customers buy/gi, '[Example only - replace with verified client data]'],
   [/product animations reduced sales cycle/gi, '[Replace with a verified client result]'],
   [/ui motion improved activation rates/gi, '[Replace with a verified client result]'],

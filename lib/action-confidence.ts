@@ -1,5 +1,5 @@
 import type { ActionBlock, Finding, GeoResult } from './schemas'
-import { inferFixImplementer, inferFixOwner } from './role-assignment'
+import { inferFixContributor, inferFixImplementer, inferFixOwner } from './role-assignment'
 import { obsIdForFinding } from './findings'
 
 const NO_DIRECT_EVIDENCE = 'Based on audit synthesis; no single direct evidence item.'
@@ -239,6 +239,7 @@ export function attachActionConfidence(
         ...confidence,
         confidence_level: confidenceLevel(confidence.confidence),
         owner: inferFixOwner(fix),
+        contributor: inferFixContributor(fix),
         implementer: inferFixImplementer(fix),
         claim_level: claimLevelForFix(fix, confidence.confidence, findings, geo),
         control,

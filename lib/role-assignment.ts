@@ -55,3 +55,22 @@ export function inferFixImplementer(fix: RoleAssignableFix): string {
 
   return inferFixOwner(fix)
 }
+
+export function inferFixContributor(fix: RoleAssignableFix): string | undefined {
+  const text = `${fix.title} ${fix.description}`.toLowerCase()
+
+  if (/\b(schema|json-ld|structured data|faqpage|organization schema|localbusiness|movingcompany)\b/.test(text)) {
+    return inferFixOwner(fix) === 'SEO' ? undefined : 'SEO'
+  }
+  if (/\b(inquiry process|inquiry path|inquiry flow|contact info|contact information|contact details|contact page|contact form|availability inquiry)\b/.test(text)) {
+    return 'Copywriter'
+  }
+  if (/\b(service page|landing page|faq|headline|tagline|copy|message|messaging|positioning|case stud|process section)\b/.test(text)) {
+    return inferFixOwner(fix) === 'Copywriter' ? undefined : 'Copywriter'
+  }
+  if (/\b(directory|citation|ai visibility|source|google business profile|homestars|yelp|bbb|thumbtack|reddit|facebook)\b/.test(text)) {
+    return inferFixOwner(fix) === 'SEO' ? undefined : 'SEO'
+  }
+
+  return undefined
+}

@@ -385,6 +385,7 @@ const actionSchema = z.object({
     confidence_level: confidenceLevelSchema.optional(),
     confidence_basis: z.string().optional(),
     owner: z.string().optional(),
+    contributor: z.string().optional(),
     implementer: z.string().optional(),
     claim_level: claimLevelSchema.optional(),
     control: controlSchema.optional(),

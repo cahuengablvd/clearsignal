@@ -137,7 +137,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     const inCompetitor = path.join('.').startsWith('gap.competitor_analysis.')
 
     // (5) Clipped role labels in stored data.
-    if ((key === 'owner' || key === 'implementer' || key === 'role') && CLIPPED_ROLE[out]) {
+    if ((key === 'owner' || key === 'contributor' || key === 'implementer' || key === 'role') && CLIPPED_ROLE[out]) {
       warn(`role: repaired clipped label "${out}" -> "${CLIPPED_ROLE[out]}"`)
       return CLIPPED_ROLE[out]
     }
@@ -161,6 +161,14 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
         .replace(/\bno\s+google\s+business\s+profile\b/gi, 'A Google Business Profile was not confirmed in the reviewed sources')
         .replace(/\bno\s+(?:dedicated\s+)?([a-z][a-z -]{2,50}?\s+(?:moving|service))\s+page\b/gi, 'A dedicated $1 page was not confirmed in the crawled pages reviewed for this audit')
         .replace(/\bno\s+specialty\s+service\s+pages\b/gi, 'Specialty service pages were not confirmed in the crawled pages reviewed for this audit')
+        .replace(
+          /\b(?:create|claim|build|add|set up)\s+(?:a\s+)?thumbtack\s+(?:profile|listing|page)\b[^.?!]*/gi,
+          'Consider validating whether Thumbtack generates meaningful Toronto-area demand before investing in a profile'
+        )
+        .replace(
+          /\b(?:no|missing)\s+service\s+page\b[^.?!]*\blink(?:ed)?\s+in\s+navigation\b/gi,
+          'A service page appears to be linked in navigation, but its crawlable content was not confirmed in this audit'
+        )
       if (next !== out) {
         warn('absence: bounded an external absence claim to tested/reviewed sources')
         out = next

@@ -13,7 +13,7 @@ import { computeTechnicalFindings } from '../lib/findings'
 import { buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
 import { attachActionConfidence } from '../lib/action-confidence'
-import { inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
+import { inferFixContributor, inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
 import { resolveBrandEntity } from '../lib/brand'
 import { clarityUserPrompt, gapUserPrompt, actionUserPrompt } from '../lib/prompts'
 import { validateReport } from '../lib/report-validator'
@@ -223,6 +223,22 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
     const parsed = JSON.parse(block.replace(/<\/?script[^>]*>/g, '').trim())
     const types = parsed['@graph'].map((g: { '@type': string }) => g['@type'])
     expect(types).toEqual(['Organization'])
+  })
+
+  it('builds moving-service schema without inventing phone, address, hours or sameAs', () => {
+    const block = buildJsonLd('A-Z Moving', 'https://az-moving.com', [
+      {
+        question: 'Do you offer Toronto moving services?',
+        answer: 'Contact A-Z Moving to confirm residential and commercial moving availability in Toronto and Ontario.',
+      },
+    ])
+    const parsed = JSON.parse(block.replace(/<\/?script[^>]*>/g, '').trim())
+    const types = parsed['@graph'].map((g: { '@type': string }) => g['@type'])
+    const company = parsed['@graph'][0]
+    expect(types).toContain('MovingCompany')
+    expect(types).toContain('Service')
+    expect(company.areaServed).toEqual(['Toronto', 'Ontario'])
+    expect(JSON.stringify(parsed)).not.toMatch(/telephone|address|openingHours|sameAs/)
   })
 })
 
@@ -583,6 +599,7 @@ describe('role assignment', () => {
       category: 'ai_search',
     }
     expect(inferFixOwner(fix)).toBe('SEO')
+    expect(inferFixContributor(fix)).toBeUndefined()
     expect(inferFixImplementer(fix)).toBe('Developer')
   })
 
@@ -593,6 +610,7 @@ describe('role assignment', () => {
       category: 'structure',
     }
     expect(inferFixOwner(fix)).toBe('Founder / marketing')
+    expect(inferFixContributor(fix)).toBe('Copywriter')
     expect(inferFixImplementer(fix)).toBe('Developer')
   })
 
@@ -603,6 +621,7 @@ describe('role assignment', () => {
       category: 'proof',
     }
     expect(inferFixOwner(fix)).toBe('Developer')
+    expect(inferFixContributor(fix)).toBe('SEO')
     expect(inferFixImplementer(fix)).toBe('Developer')
   })
 
@@ -1110,6 +1129,34 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
     expect(r.report.gap.ai_search.finding).toContain(
       'Specialty service pages were not confirmed in the crawled pages reviewed for this audit'
+    )
+  })
+
+  it('softens Thumbtack profile advice for Toronto moving audits', () => {
+    const r = validateReport(
+      base({
+        action: {
+          executive_summary: 'Create a Thumbtack profile for Toronto moving demand.',
+          top_fixes: [],
+        },
+      })
+    )
+    expect(r.report.action.executive_summary).toBe(
+      'Consider validating whether Thumbtack generates meaningful Toronto-area demand before investing in a profile.'
+    )
+  })
+
+  it('does not state a missing service page when navigation may link it', () => {
+    const r = validateReport(
+      base({
+        action: {
+          executive_summary: 'No service page exists even though it is linked in navigation.',
+          top_fixes: [],
+        },
+      })
+    )
+    expect(r.report.action.executive_summary).toBe(
+      'A service page appears to be linked in navigation, but its crawlable content was not confirmed in this audit.'
     )
   })
 

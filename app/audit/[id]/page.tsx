@@ -786,10 +786,12 @@ export default async function AuditPage({
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>
-                  {(fix.owner || fix.implementer) && (
+                  {(fix.owner || fix.contributor || fix.implementer) && (
                     <p className="mt-2 ml-8 text-xs text-muted-foreground">
                       {fix.owner && <>Owner: {fix.owner}</>}
-                      {fix.owner && fix.implementer && <span className="mx-1">&middot;</span>}
+                      {fix.owner && (fix.contributor || fix.implementer) && <span className="mx-1">&middot;</span>}
+                      {fix.contributor && <>Contributor: {fix.contributor}</>}
+                      {fix.contributor && fix.implementer && <span className="mx-1">&middot;</span>}
                       {fix.implementer && <>Implementer: {fix.implementer}</>}
                     </p>
                   )}

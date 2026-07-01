@@ -213,7 +213,7 @@ const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bwiki(?:pedia|data)(?:\s*(?:\/|,|\bor\b|\band\b)\s*wiki(?:pedia|data))?\s+(?:page|entry|entity|profile|listing)?\s*entity creation\b/gi,
     'Wikipedia-style entity listings (pursue only once the brand has enough independent coverage to qualify)'],
   [/\bwiki(?:pedia|data)\s*(?:\/|,|\bor\b|\band\b)\s*wiki(?:pedia|data)\b/gi, 'independent entity databases'],
-  [/\baggregaterating\b/gi, 'valid review schema only if first-party guidelines and source data support it'],
+  [/\baggregaterating\b/gi, 'review-rating'],
   [/\bunlimited revisions\b/gi, 'clearly scoped revision terms'],
   [/\b(?:one|1|two|2|three|3)\s+(?:slot|slots|spot|spots)\s+open\b/gi, '[insert genuine availability only if verified]'],
   [/\bi have (?:one|1|two|2|three|3)\s+(?:slot|slots|spot|spots)\s+open\b/gi, '[insert genuine availability only if verified]'],

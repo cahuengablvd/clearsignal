@@ -64,6 +64,9 @@ const BROKEN_STRINGS: Array<[RegExp, string]> = [
   ],
   [/eligible independent third-party source/gi, 'an independent third-party profile'],
   [/eligible entity database/gi, 'an entity database'],
+  // "No AggregateRating markup" used to become "No valid review schema only if
+  // first-party guidelines and source data support it markup".
+  [/valid review schema only if first-party guidelines and source data support it/gi, 'review-rating'],
   // Broken commercial-claim fragments (the commercial sanitizer ran over text
   // that contained a domain or odd phrasing).
   // "...confirmed with the business.lv is absent..." (greedy match crossed a domain dot)
@@ -101,6 +104,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const errors: string[] = []
   const warn = (m: string) => warnings.push(m)
   const businessContext = report.meta.business_context as BusinessContext | undefined
+  const brand = (report.meta.canonical_brand || '').trim()
 
   const ctaStatus = findingStatus(report, 'cta_present')
   const faqStatus = findingStatus(report, 'faq_structure')
@@ -123,6 +127,20 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       const next = out.replace(re, replacement)
       if (next !== out) {
         warn('text: repaired broken internal phrasing')
+        out = next
+      }
+    }
+
+    // (3b) Sample-bound absolute "No presence on X" absence claims: name the
+    // brand and scope it to the tested responses instead of asserting absence.
+    {
+      const subject = brand ? `No ${brand} presence` : 'No presence'
+      const next = out.replace(
+        /\bno\s+presence\s+on\b/gi,
+        `${subject} was observed among the tested responses on`
+      )
+      if (next !== out) {
+        warn('absence: bounded a "no presence on X" claim to the tested responses')
         out = next
       }
     }

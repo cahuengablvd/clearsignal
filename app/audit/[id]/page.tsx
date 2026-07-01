@@ -736,11 +736,16 @@ export default async function AuditPage({
                       <ImpactBadge impact={fix.impact} />
                       <EffortBadge effort={fix.effort} />
                       <Badge variant="outline">{fix.category}</Badge>
-                      {fix.owner && <Badge variant="outline">Owner: {fix.owner}</Badge>}
-                      {fix.implementer && <Badge variant="outline">Implementer: {fix.implementer}</Badge>}
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>
+                  {(fix.owner || fix.implementer) && (
+                    <p className="mt-2 ml-8 text-xs text-muted-foreground">
+                      {fix.owner && <>Owner: {fix.owner}</>}
+                      {fix.owner && fix.implementer && <span className="mx-1">&middot;</span>}
+                      {fix.implementer && <>Implementer: {fix.implementer}</>}
+                    </p>
+                  )}
                   <p className="mt-2 ml-8 text-xs text-muted-foreground">
                     Priority score: <span className="font-mono">{priority.score}</span> ({priority.formula}
                     {typeof fix.confidence === 'number' ? `; confidence ${fix.confidence}%` : '; expert hypothesis'}).

@@ -993,3 +993,52 @@ describe('business-context claim guards (regex precedence)', () => {
     expect(canClaimCommercialPolicy(facts('returns accepted within 14 days'), 'returns')).toBe(true)
   })
 })
+
+describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
+  const base = (over: Record<string, unknown>) =>
+    ({
+      meta: {
+        url: 'https://latvianart.lv',
+        generated_at: '',
+        icp_description: '',
+        competitors: [],
+        tier: 'automated',
+        canonical_brand: 'Latvianart',
+      },
+      clarity: { cta: { finding: '' } },
+      gap: { competitor_analysis: [] },
+      action: { executive_summary: '', top_fixes: [] },
+      technical_findings: [],
+      ...over,
+    }) as any
+
+  it('replaces the AggregateRating policy phrase with a short client-safe noun', () => {
+    const out = sanitizeGeneratedProse('Add AggregateRating markup for reviews.')
+    expect(out).toContain('review-rating markup')
+    expect(out).not.toMatch(/only if first-party/i)
+    expect(out).not.toMatch(/markup markup/i)
+  })
+
+  it('backstops an already-mangled review-schema phrase (exact PDF string)', () => {
+    const r = validateReport(
+      base({
+        action: {
+          executive_summary:
+            'No valid review schema only if first-party guidelines and source data support it markup should be added.',
+          top_fixes: [],
+        },
+      })
+    )
+    expect(r.report.action.executive_summary).not.toMatch(/valid review schema only if/i)
+    expect(r.report.action.executive_summary).toBe('No review-rating markup should be added.')
+  })
+
+  it('sample-bounds a "No presence on X" absence claim with the brand', () => {
+    const r = validateReport(
+      base({ gap: { competitor_analysis: [], ai_search: { finding: 'No presence on Etsy or Facebook marketplace listings.' } } })
+    )
+    expect(r.report.gap.ai_search.finding).toBe(
+      'No Latvianart presence was observed among the tested responses on Etsy or Facebook marketplace listings.'
+    )
+  })
+})

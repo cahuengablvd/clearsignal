@@ -113,6 +113,16 @@ const CLIPPED_ROLE: Record<string, string> = {
 
 const NO_DIRECT_EVIDENCE = 'Based on audit synthesis; no single direct evidence item.'
 
+const CLIENT_ARTIFACTS: Array<[RegExp, string]> = [
+  [/\btested responses\.com\b/i, 'stray .com appended to prose'],
+  [/\b(?:from|based on reviews|based on|score|rate)\s*[.?!]$/i, 'dangling unfinished metric phrase'],
+  [/\b(?:confidence|score|rate|reviews?)\s*[:=]?\s*%/i, 'missing numeric value before percent'],
+  [/\[[^\]]{1,160}\]/i, 'bracketed placeholder or internal instruction'],
+  [/\b(?:Develope|Copywrite|Impleme)\b/i, 'clipped role label'],
+  [/(should be confirmed with the business)(?:\s+\1)+/i, 'repeated safe commercial phrase'],
+  [/\bvalid review schema only if first-party guidelines\b/i, 'internal review-schema policy leaked into prose'],
+]
+
 /** Deep clone via JSON round-trip (report is always JSON-serializable). */
 function clone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v)) as T
@@ -309,6 +319,9 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   if (!walked.action || !walked.clarity) {
     errors.push('report is missing required sections (action/clarity)')
   }
+  for (const artifact of collectClientArtifacts(walked)) {
+    errors.push(artifact)
+  }
 
   return { report: walked, warnings, errors }
 }
@@ -332,4 +345,26 @@ function mapProse(value: unknown, repair: Repair, path: string[] = []): unknown 
     return out
   }
   return value
+}
+
+function collectClientArtifacts(value: unknown, path: string[] = []): string[] {
+  const out: string[] = []
+  if (typeof value === 'string') {
+    const key = path[path.length - 1]
+    if (isRawPath(path, key)) return out
+    for (const [re, label] of CLIENT_ARTIFACTS) {
+      if (re.test(value)) out.push(`artifact: ${label} at ${path.join('.') || '<root>'}`)
+    }
+    return out
+  }
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => out.push(...collectClientArtifacts(v, [...path, String(i)])))
+    return out
+  }
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      if (!isRawPath([...path, k], k)) out.push(...collectClientArtifacts(v, [...path, k]))
+    }
+  }
+  return out
 }

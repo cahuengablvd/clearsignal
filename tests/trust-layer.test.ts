@@ -1160,6 +1160,18 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
   })
 
+  it('records validator errors for unrepaired client-facing artifacts', () => {
+    const r = validateReport(
+      base({
+        action: {
+          executive_summary: 'Customer rating score %.',
+          top_fixes: [],
+        },
+      })
+    )
+    expect(r.errors.join('\n')).toContain('missing numeric value before percent')
+  })
+
   it('repairs az-moving broken commercial and directory fragments idempotently', () => {
     const input =
       'Customers expecting an immediate pricing should be confirmed with the business. No Reddit mentions were found among sources cited in the tested responses.com. Star Score on HomeStars based on reviews. Customer Referral Rate from.'

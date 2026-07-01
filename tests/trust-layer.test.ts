@@ -17,6 +17,7 @@ import { inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
 import { resolveBrandEntity } from '../lib/brand'
 import { clarityUserPrompt, gapUserPrompt, actionUserPrompt } from '../lib/prompts'
 import { validateReport } from '../lib/report-validator'
+import { canClaimCommercialPolicy } from '../lib/business-context'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -973,5 +974,22 @@ describe('final PDF polish: bracket placeholders + commercial-claim repair', () 
     expect(c.trust_proof.finding).not.toMatch(/whether Contact the business/)
     expect(c.messaging_fit.finding).not.toMatch(/authenticity or authenticity/)
     expect(c.messaging_fit.finding).not.toMatch(/(should be confirmed with the business)\s+\1/i)
+  })
+})
+
+describe('business-context claim guards (regex precedence)', () => {
+  const facts = (f: string) => BusinessContextSchema.parse({ verified_facts: f })
+
+  it('does not unlock a commercial claim from an unrelated substring', () => {
+    // "eur" in "Europe", "press" in "impressive" must NOT count as verified facts.
+    expect(canClaimCommercialPolicy(facts('We ship to Europe and the US'), 'pricing')).toBe(false)
+    expect(canClaimCommercialPolicy(facts('An impressive collection'), 'awards')).toBe(false)
+    expect(canClaimCommercialPolicy(facts('A costume gallery'), 'pricing')).toBe(false)
+  })
+
+  it('still unlocks a claim from a genuine whole-word fact', () => {
+    expect(canClaimCommercialPolicy(facts('prices listed in EUR'), 'pricing')).toBe(true)
+    expect(canClaimCommercialPolicy(facts('award-winning gallery'), 'awards')).toBe(true)
+    expect(canClaimCommercialPolicy(facts('returns accepted within 14 days'), 'returns')).toBe(true)
   })
 })

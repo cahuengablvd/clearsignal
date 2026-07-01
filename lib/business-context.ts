@@ -41,7 +41,7 @@ export function canClaimPurchaseAvailable(ctx: BusinessContext): boolean {
 }
 
 export function canClaimInternationalShipping(ctx: BusinessContext): boolean {
-  return ctx.ships_internationally === 'yes' || hasVerifiedFact(ctx, /\binternational shipping|ships internationally|worldwide shipping\b/i)
+  return ctx.ships_internationally === 'yes' || hasVerifiedFact(ctx, /\b(?:international shipping|ships internationally|worldwide shipping)\b/i)
 }
 
 export function canClaimProvenance(ctx: BusinessContext): boolean {
@@ -52,11 +52,15 @@ export function canClaimProvenance(ctx: BusinessContext): boolean {
 }
 
 export function canClaimCommercialPolicy(ctx: BusinessContext, kind: 'secure_payment' | 'returns' | 'pricing' | 'awards'): boolean {
+  // Each alternation is wrapped in (?:...) so the \b anchors apply to the whole
+  // set, not just the first/last branch. Without the group, middle branches
+  // matched substrings (e.g. "eur" in "Europe" -> pricing, "press" in
+  // "impressive" -> awards).
   const patterns = {
-    secure_payment: /\bsecure payment|payment accepted|checkout|card payments?|stripe|paypal\b/i,
-    returns: /\breturn policy|returns accepted|refunds?\b/i,
-    pricing: /\bpricing|price|prices|costs?|eur|\u20ac|\$\b/i,
-    awards: /\baward|awards|press|featured in|partner|partnership|affiliated|affiliation\b/i,
+    secure_payment: /\b(?:secure payment|payment accepted|checkout|card payments?|stripe|paypal)\b/i,
+    returns: /\b(?:return policy|returns accepted|refunds?)\b/i,
+    pricing: /\b(?:pricing|price|prices|costs?|eur|\u20ac|\$)\b/i,
+    awards: /\b(?:award|awards|press|featured in|partner|partnership|affiliated|affiliation)\b/i,
   }
   return hasVerifiedFact(ctx, patterns[kind])
 }

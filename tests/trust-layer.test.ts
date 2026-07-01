@@ -1258,11 +1258,12 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/fully insured|HomeStars-rated|CVOR credentials|WSIB credentials|storage is available|offers piano moving|across Ontario and Quebec/i)
-    expect(text).toContain('Confirm insurance details and third-party rating details before publishing this wording.')
-    expect(text).toContain('Confirm insurance details, WSIB status and CVOR status before publishing this wording.')
+    expect(text).toContain('Contact the business to confirm insurance details and third-party rating details before booking.')
+    expect(text).toContain('Contact the business to confirm insurance details, WSIB status and CVOR status before booking.')
     expect(text).toContain(
-      'Confirm piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market before publishing this wording.'
+      'Contact the business to confirm piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market before booking.'
     )
+    expect(text).not.toMatch(/before publishing this wording/i)
   })
 
   it('is idempotent on repeated credential-safe phrases from the broken PDF', () => {
@@ -1288,7 +1289,42 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     const twice = validateReport(base({ action: { executive_summary: once, top_fixes: [] } })).report.action
       .executive_summary
     expect(once).toBe(twice)
-    expect(once).not.toMatch(/Contact the business to confirm Contact the business|status\. status|should be confirmed with the business/i)
+    expect(once).not.toMatch(/Contact the business to confirm Contact the business|status\. status|should be confirmed with the business|before publishing this wording/i)
+  })
+
+  it('does not replace analytical recommendations that mention credentials or services', () => {
+    const r = validateReport(
+      base({
+        meta: {
+          business_context: {
+            business_model: 'service',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+        },
+        action: {
+          executive_summary: 'HomeStars score and credential logos appear as image-rendered proof points.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Render the HomeStars score and WSIB/CVOR badges as text',
+              description: 'Display the actual review count immediately adjacent to the HomeStars badge.',
+              impact: 'high',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
+        },
+      })
+    )
+    const text = JSON.stringify(r.report.action)
+    expect(text).toContain('HomeStars score and credential logos')
+    expect(text).toContain('Display the actual review count')
+    expect(text).not.toMatch(/before publishing this wording|Contact the business to confirm/i)
   })
 
   it('removes empty contact tails from outreach drafts', () => {

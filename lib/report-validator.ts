@@ -142,6 +142,7 @@ const CLIENT_ARTIFACTS: Array<[RegExp, string]> = [
   [/\b(?:from|based on reviews|based on|score|rate)\s*[.?!]$/i, 'dangling unfinished metric phrase'],
   [/\b(?:confidence|score|rate|reviews?)\s*[:=]?\s*%/i, 'missing numeric value before percent'],
   [/\[[^\]]{1,160}\]/i, 'bracketed placeholder or internal instruction'],
+  [/\bbefore publishing this wording\b/i, 'internal publishability instruction leaked into prose'],
   [/\b(?:Develope|Copywrite|Impleme)\b/i, 'clipped role label'],
   [/(should be confirmed with the business)(?:\s+\1)+/i, 'repeated safe commercial phrase'],
   [/Contact the business to confirm\s+Contact the business to confirm/i, 'repeated contact-confirmation phrase'],
@@ -199,14 +200,24 @@ function unsupportedMovingClaims(sentence: string, ctx?: BusinessContext): strin
   return claims
 }
 
+function isRecommendationSentence(sentence: string): boolean {
+  return /^\s*(?:add|display|include|show|list|render|surface|publish|create|claim|optimi[sz]e|mark up|ensure|use|verify|confirm|consider|do not|avoid|keep|replace|rewrite|build|develop|seek|pursue)\b/i.test(sentence)
+}
+
+function isPublishablePath(path: string[]): boolean {
+  const joined = path.join('.')
+  return joined.startsWith('ready_materials.') || joined.startsWith('action.outreach_messages.')
+}
+
 function repairUnsupportedMovingClaimSentences(text: string, ctx?: BusinessContext): string {
   if (!text || !ctx) return text
   return (text.match(/[^.!?]+[.!?]?|\s+/g) || [text])
     .map((part) => {
       if (/^\s+$/.test(part)) return part
+      if (isRecommendationSentence(part)) return part
       const claims = unsupportedMovingClaims(part, ctx)
       if (claims.length === 0) return part
-      return `Confirm ${joinList(claims)} before publishing this wording.`
+      return `Contact the business to confirm ${joinList(claims)} before booking.`
     })
     .join('')
     .replace(/\s+([.,;:!?])/g, '$1')
@@ -218,8 +229,12 @@ function cleanupClientPhrasing(text: string): string {
   return text
     .replace(/Contact the business to confirm\s+Contact the business to confirm/gi, 'Confirm')
     .replace(/\b(status|details)\.\s*\1\.\s*\1\b/gi, '$1')
-    .replace(/\b(Confirm [^.?!]+ before publishing this wording\.)\s+\1+/gi, '$1')
+    .replace(/\bConfirm [^.?!]+ before publishing this wording[.?!]?/gi, '')
     .replace(/\.(?=Confirm\b)/g, '. ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^\s*[.,;:!?]\s*/, '')
+    .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim()
@@ -329,18 +344,20 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       }
     }
 
-    const commercialSafe = sanitizeUnsupportedCommercialClaims(out, businessContext)
-    if (commercialSafe !== out) {
-      warn('commercial_claim: softened an unsupported commercial claim')
-      out = commercialSafe
-      for (const [re, replacement] of BROKEN_STRINGS) {
-        out = out.replace(re, replacement)
+    if (isPublishablePath(path)) {
+      const commercialSafe = sanitizeUnsupportedCommercialClaims(out, businessContext)
+      if (commercialSafe !== out) {
+        warn('commercial_claim: softened an unsupported commercial claim')
+        out = commercialSafe
+        for (const [re, replacement] of BROKEN_STRINGS) {
+          out = out.replace(re, replacement)
+        }
       }
-    }
-    const claimSafe = repairUnsupportedMovingClaimSentences(out, businessContext)
-    if (claimSafe !== out) {
-      warn('commercial_claim: replaced an unsupported moving claim at sentence level')
-      out = claimSafe
+      const claimSafe = repairUnsupportedMovingClaimSentences(out, businessContext)
+      if (claimSafe !== out) {
+        warn('commercial_claim: replaced an unsupported moving claim at sentence level')
+        out = claimSafe
+      }
     }
     out = cleanupClientPhrasing(out)
 

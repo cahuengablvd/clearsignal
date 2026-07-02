@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
 
 /** Live audit-status counts for fulfillment monitoring. */
 async function auditCounts(): Promise<Record<string, number | string>> {
-  const statuses = ['queued', 'processing', 'failed', 'done', 'delivered'] as const
+  const statuses = ['queued', 'processing', 'failed', 'done', 'delivery_failed', 'delivered'] as const
   const out: Record<string, number | string> = {}
   try {
     const cutoff = new Date(Date.now() - STALE_PROCESSING_MS).toISOString()

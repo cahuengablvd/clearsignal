@@ -11,6 +11,7 @@ export type AlertEvent =
   | 'audit_generation_failed'
   | 'audit_recovery_failed'
   | 'anthropic_balance_warning'
+  | 'email_delivery_failed'
 
 export async function notify(event: AlertEvent, details: Record<string, unknown>): Promise<void> {
   const payload = {

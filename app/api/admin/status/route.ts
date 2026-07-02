@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   const { audit_id, audit_status } = await req.json()
 
-  const validStatuses = ['queued', 'processing', 'done', 'delivered', 'failed']
+  const validStatuses = ['queued', 'processing', 'done', 'delivery_failed', 'delivered', 'failed']
   if (!validStatuses.includes(audit_status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }

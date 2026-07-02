@@ -57,6 +57,11 @@ function buildDataLimitations(geo: GeoResult | null): string[] {
   return limits
 }
 
+function appendAdminNote(existing: string | null | undefined, note: string): string {
+  const prefix = existing?.trim() ? `${existing.trim()}\n` : ''
+  return `${prefix}${note}`.slice(-4000)
+}
+
 /** Strip invented performance numbers from all human-facing report prose. */
 function sanitizeReportProse(
   clarity: ClarityBlock,
@@ -341,7 +346,22 @@ export async function runFullAudit(auditId: string): Promise<void> {
         .eq('id', auditId)
     } catch (emailErr) {
       console.error('Failed to send delivery email:', emailErr)
-      // Report is still done, just not delivered via email
+      const errorMessage = emailErr instanceof Error ? emailErr.message : String(emailErr)
+      await supabaseAdmin
+        .from('audits')
+        .update({
+          audit_status: 'delivery_failed',
+          admin_notes: appendAdminNote(
+            audit.admin_notes,
+            `[${new Date().toISOString()}] Email delivery failed: ${errorMessage}`
+          ),
+        })
+        .eq('id', auditId)
+      await notify('email_delivery_failed', {
+        audit_id: auditId,
+        email: audit.email,
+        error: errorMessage,
+      })
     }
   } catch (err) {
     console.error(`Audit generation failed for ${auditId}:`, err)

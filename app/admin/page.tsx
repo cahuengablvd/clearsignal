@@ -220,6 +220,7 @@ export default function AdminPage() {
     queued: 'bg-gray-100 text-gray-800',
     processing: 'bg-blue-100 text-blue-800',
     done: 'bg-green-100 text-green-800',
+    delivery_failed: 'bg-yellow-100 text-yellow-800',
     delivered: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
   }
@@ -535,7 +536,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex items-center gap-2 mb-3">
-                    {['done', 'delivered'].includes(audit.audit_status) && (
+                    {['done', 'delivery_failed', 'delivered'].includes(audit.audit_status) && (
                       <a href={audit.report_url || `/audit/${audit.id}`} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm" className="gap-1">
                           <ExternalLink className="h-3 w-3" /> View Report
@@ -555,7 +556,7 @@ export default function AdminPage() {
                         <><RefreshCw className="h-3 w-3" /> Re-generate</>
                       )}
                     </Button>
-                    {audit.audit_status === 'done' && (
+                    {['done', 'delivery_failed'].includes(audit.audit_status) && (
                       <Button variant="outline" size="sm" onClick={() => markDelivered(audit.id)}>
                         Mark Delivered
                       </Button>

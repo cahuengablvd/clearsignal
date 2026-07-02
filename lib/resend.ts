@@ -10,7 +10,7 @@ function getResend() {
   return _resend
 }
 
-/** Build the delivery email HTML. Pure — handy for previews and tests. */
+/** Build the delivery email HTML. Pure - handy for previews and tests. */
 export function buildReportEmailHtml(url: string, reportLink: string, pdfLink: string): string {
   return `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
@@ -45,12 +45,23 @@ export function reportLinks(auditId: string): { reportLink: string; pdfLink: str
 }
 
 export async function sendReportEmail(email: string, auditId: string, url: string) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is not set')
+  }
   const { reportLink, pdfLink } = reportLinks(auditId)
 
-  await getResend().emails.send({
-    from: 'ClearSignal <reports@clearsignal.dev>',
+  // Resend's send() returns { data, error } and does NOT throw on API errors
+  // (e.g. an unverified sender domain). Surface the error so a failed send is
+  // logged and the audit is not falsely marked "delivered".
+  const { data, error } = await getResend().emails.send({
+    from: process.env.RESEND_FROM || 'ClearSignal <onboarding@resend.dev>',
     to: email,
     subject: `Your AI Visibility report is ready - ${url}`,
     html: buildReportEmailHtml(url, reportLink, pdfLink),
   })
+
+  if (error) {
+    throw new Error(`Resend rejected the delivery email: ${JSON.stringify(error)}`)
+  }
+  return data
 }

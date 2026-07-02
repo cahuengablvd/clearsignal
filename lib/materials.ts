@@ -95,6 +95,7 @@ function neutralMovingMaterials(
 
 function stripUnsupportedPublishableClaims(text: string): string {
   return text
+    .replace(/\bUse verified business data before publishing this example\.?/gi, '')
     .replace(/\b(?:same[- ]day|last[- ]minute)\b[^.?!]*/gi, 'availability')
     .replace(/\bget a free quote (?:online )?in minutes\b/gi, 'request a quote online')
     .replace(/\bfree quote in minutes\b/gi, 'quote request')
@@ -105,6 +106,47 @@ function stripUnsupportedPublishableClaims(text: string): string {
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+function neutralMetaDescription(
+  brand: string,
+  url: string,
+  observed?: ObservedBusinessContext
+): string {
+  const name = orgName(brand, url)
+  const service = observed?.observed_service_category || observed?.inferred_business_type || 'services'
+  const locations = observed?.observed_location?.length ? ` in ${observed.observed_location.slice(0, 2).join(' / ')}` : ''
+  const action = /booking/i.test(observed?.observed_primary_cta || '')
+    ? 'Book a consultation'
+    : /quote/i.test(observed?.observed_primary_cta || '')
+      ? 'Request a quote'
+      : 'Contact the business'
+  return `${name} provides ${service.toLowerCase()}${locations}. ${action} to discuss options, availability, and next steps.`
+}
+
+function safeFaqAnswer(
+  brand: string,
+  url: string,
+  question: string,
+  answer: string,
+  observed?: ObservedBusinessContext
+): string {
+  const cleaned = stripUnsupportedPublishableClaims(answer)
+    .replace(/\barrange your visit the website\b/gi, 'arrange your visit')
+    .replace(/\bvisit the website\b/gi, 'visit')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+  if (cleaned.length >= 24) return cleaned
+
+  const name = orgName(brand, url)
+  if (/\b(how long|timeline|take|receive|ready|delivery)\b/i.test(question)) {
+    return `Contact ${name} directly to confirm the current timeline for your appointment, fitting, and final delivery.`
+  }
+  if (/\b(where|located|visit|address|atelier|studio)\b/i.test(question)) {
+    const locations = observed?.observed_location?.length ? ` in ${observed.observed_location[0]}` : ''
+    return `Contact ${name} directly to confirm the current studio location${locations} and arrange your visit.`
+  }
+  return `Contact ${name} directly to confirm the current details for your appointment.`
 }
 
 function publishableSafeMaterials(
@@ -125,11 +167,11 @@ function publishableSafeMaterials(
 
   return {
     meta_title: stripUnsupportedPublishableClaims(llm.meta_title),
-    meta_description: stripUnsupportedPublishableClaims(llm.meta_description),
+    meta_description: stripUnsupportedPublishableClaims(llm.meta_description) || neutralMetaDescription(brand, url, opts?.observedBusinessContext),
     faq: llm.faq
       .map((f) => ({
         question: stripUnsupportedPublishableClaims(f.question),
-        answer: stripUnsupportedPublishableClaims(f.answer),
+        answer: safeFaqAnswer(brand, url, f.question, f.answer, opts?.observedBusinessContext),
       }))
       .filter((f) => f.question && f.answer),
     cta_variants: llm.cta_variants.map(stripUnsupportedPublishableClaims).filter(Boolean),

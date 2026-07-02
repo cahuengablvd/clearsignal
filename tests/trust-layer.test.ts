@@ -1363,6 +1363,59 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(text).not.toMatch(/Contact the business to confirm|before publishing this wording|before booking/i)
   })
 
+  it('replaces quantified-example safety placeholders in non-moving ready materials', () => {
+    const r = validateReport(
+      base({
+        meta: {
+          canonical_brand: 'Monokelriga',
+          url: 'https://www.monokelriga.lv/',
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: 'Riga, Latvia; Latvian, Russian, English-speaking clients',
+            verified_facts: '',
+          },
+          observed_business_context: {
+            inferred_business_type: 'Tailoring service',
+            observed_primary_cta: 'Booking',
+            observed_service_category: 'Bespoke tailoring services',
+            observed_location: ['Riga', 'Latvia'],
+            observed_services: ['Bespoke suits', 'Tuxedos'],
+          },
+        },
+        ready_materials: {
+          meta_title: 'Bespoke Suits Riga | Monokelriga Atelier',
+          meta_description: 'Use verified business data before publishing this example.',
+          faq: [
+            {
+              question: 'How long does it take to receive a bespoke suit from Monokelriga?',
+              answer: 'Use verified business data before publishing this example.',
+            },
+            {
+              question: 'Where is Monokelriga located and can I visit the atelier in Riga?',
+              answer: 'Contact the atelier directly to confirm the current address and arrange your visit the website.',
+            },
+          ],
+          cta_variants: ['Book a consultation'],
+          json_ld: '{}',
+        },
+      })
+    )
+
+    const text = JSON.stringify(r.report.ready_materials)
+    expect(text).not.toMatch(/Use verified business data before publishing this example|visit the website/i)
+    expect(r.report.ready_materials?.meta_description).toBe(
+      'Monokelriga provides bespoke tailoring services in Riga / Latvia. Book a consultation to discuss options, availability, and next steps.'
+    )
+    expect(r.report.ready_materials?.faq[0].answer).toBe(
+      'Contact Monokelriga directly to confirm the current timeline for your appointment, fitting, and final delivery.'
+    )
+    expect(r.report.ready_materials?.faq[1].answer).toContain('arrange your visit.')
+  })
+
   it('builds a verified facts layer and gates publishable outputs by allowed outputs', () => {
     const facts = buildVerifiedFactsLayer({
       businessContext: {

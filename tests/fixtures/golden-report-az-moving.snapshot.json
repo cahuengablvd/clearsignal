@@ -1,0 +1,246 @@
+{
+  "meta": {
+    "url": "https://az-moving.com/",
+    "canonical_brand": "Az-moving",
+    "domain": "az-moving.com",
+    "business_context": {
+      "business_model": "unknown",
+      "verified_facts": "",
+      "purchase_availability": "unknown",
+      "ships_internationally": "unknown",
+      "primary_conversion_goal": "unknown",
+      "target_markets_languages": "",
+      "provenance_or_authentication": "unknown"
+    }
+  },
+  "geo": {
+    "score": 0,
+    "engines_tested": [
+      "perplexity",
+      "openai",
+      "claude"
+    ],
+    "queries_tested": 6,
+    "test_counts": {
+      "configured_engines": 3,
+      "configured_queries": 6,
+      "failed_combinations": 3,
+      "skipped_combinations": 0,
+      "expected_combinations": 18,
+      "successful_combinations": 15
+    },
+    "evidence_count": 15,
+    "summary": "Az-moving (az-moving.com) was named in 0 of 6 tested engine-query combinations across Perplexity and OpenAI, resulting in a measured AI visibility score of 0/100 while all six tested competitors achieved a share of voice each. The core reason inferred from the evidence is that the brand lacks detectable presence on the platforms AI engines most frequently cited - particularly reddit.com, yelp.com, and thumbtack.com - and does not appear in the editorial roundups or structured service content that enabled competitor mentions. Addressing presence on these high-citation third-party platforms and publishing query-matched, structured content on the brand's own domain are the highest-impact steps to improve citation likelihood in future engine-query combinations."
+  },
+  "executive_summary": "Az-moving's homepage contains meaningful trust signals - a HomeStars score, WSIB and CVOR credentials, and granular GTA service-area coverage - but the current headline, body copy, and structural choices may reduce how quickly the right visitors self-qualify and proceed to contact. The hero headline contains no geographic anchor and leads with generic descriptors that are common across the category, making it harder for a Toronto-area visitor to immediately confirm relevance. Several of the strongest trust elements (credential logos, phone number) are rendered in ways that may not be visible to all users or to text-based crawlers, limiting both human and AI-search recognition. Addressing headline clarity, trust-signal accessibility, form friction, and structured markup represents the highest-leverage opportunity to improve visitor confidence and contact rates.",
+  "top_fixes": [
+    {
+      "id": 1,
+      "title": "Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator",
+      "category": "copy",
+      "owner": "Founder / marketing",
+      "contributor": "Copywriter",
+      "implementer": "Developer",
+      "confidence": 60,
+      "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
+      "evidence_ids": [
+        "OBS-PROOF-001"
+      ],
+      "evidence_basis": "Based on: OBS-PROOF-001"
+    },
+    {
+      "id": 2,
+      "title": "Add LocalBusiness and Service schema markup to the homepage",
+      "category": "ai_search",
+      "owner": "SEO",
+      "implementer": "Developer",
+      "confidence": 88,
+      "confidence_basis": "No application/ld+json script present in the rendered HTML",
+      "evidence_ids": [
+        "OBS-SCHEMA-001"
+      ],
+      "evidence_basis": "Based on: OBS-SCHEMA-001"
+    },
+    {
+      "id": 3,
+      "title": "Make trust credentials visible as text, not only as image elements",
+      "category": "proof",
+      "owner": "Developer",
+      "contributor": "SEO",
+      "implementer": "Developer",
+      "confidence": 65,
+      "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+      "evidence_ids": [],
+      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
+    },
+    {
+      "id": 4,
+      "title": "Add an FAQ section to the homepage addressing common mover-selection questions",
+      "category": "ai_search",
+      "owner": "SEO",
+      "implementer": "Developer",
+      "confidence": 88,
+      "confidence_basis": "No application/ld+json script present in the rendered HTML",
+      "evidence_ids": [
+        "OBS-SCHEMA-001"
+      ],
+      "evidence_basis": "Based on: OBS-SCHEMA-001"
+    },
+    {
+      "id": 5,
+      "title": "Fix the post-form confirmation typo and add a response-time commitment",
+      "category": "cta",
+      "owner": "Copywriter",
+      "implementer": "Copywriter",
+      "confidence": 65,
+      "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+      "evidence_ids": [],
+      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
+    },
+    {
+      "id": 6,
+      "title": "Render the phone number as visible text in the hero section",
+      "category": "cta",
+      "owner": "Developer",
+      "implementer": "Developer",
+      "confidence": 65,
+      "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+      "evidence_ids": [],
+      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
+    },
+    {
+      "id": 7,
+      "title": "Add at least two customer testimonial quotes directly on the homepage",
+      "category": "proof",
+      "owner": "Founder / marketing",
+      "contributor": "SEO",
+      "implementer": "Copywriter",
+      "confidence": 60,
+      "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
+      "evidence_ids": [
+        "OBS-PROOF-001"
+      ],
+      "evidence_basis": "Based on: OBS-PROOF-001"
+    },
+    {
+      "id": 8,
+      "title": "Rewrite the homepage body copy opening to address visitor anxieties first",
+      "category": "copy",
+      "owner": "Copywriter",
+      "implementer": "Copywriter",
+      "confidence": 98,
+      "confidence_basis": "Matched a single <h1> element in the rendered HTML",
+      "evidence_ids": [
+        "OBS-H1-001"
+      ],
+      "evidence_basis": "Based on: OBS-H1-001"
+    },
+    {
+      "id": 9,
+      "title": "Add years in business or total moves completed as a named numeric fact",
+      "category": "proof",
+      "owner": "Founder / marketing",
+      "contributor": "Copywriter",
+      "implementer": "Copywriter",
+      "confidence": 60,
+      "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
+      "evidence_ids": [
+        "OBS-PROOF-001"
+      ],
+      "evidence_basis": "Based on: OBS-PROOF-001"
+    },
+    {
+      "id": 10,
+      "title": "Clarify or remove the Quebec service claim if no supporting content exists",
+      "category": "copy",
+      "owner": "Copywriter",
+      "implementer": "Copywriter",
+      "confidence": 98,
+      "confidence_basis": "Matched a single <h1> element in the rendered HTML",
+      "evidence_ids": [
+        "OBS-H1-001"
+      ],
+      "evidence_basis": "Based on: OBS-H1-001"
+    }
+  ],
+  "ready_materials": {
+    "meta_title": "Toronto Movers - Residential & Commercial | Az-Moving",
+    "meta_description": "Az-Moving serves Toronto and the GTA with residential and commercial moving services.Ask the team about WSIB status for this move. Request a free quote today.",
+    "cta_variants": [
+      "Get Your Free Moving Quote",
+      "Request a Quote - We Respond Same Day",
+      "Book Your Toronto Move",
+      "Talk to a Mover Now",
+      "Check Availability for Your Move Date"
+    ],
+    "faq": [
+      {
+        "answer": "Az-Moving provides residential and commercial moving services across Toronto and the Greater Toronto Area. For specific neighbourhood or city coverage, contact the team directly to confirm availability for your move date and location.",
+        "question": "Does Az-Moving serve all areas within the GTA?"
+      },
+      {
+        "answer": "Ask the team about WSIB status and CVOR status for this move. For details on coverage types and limits relevant to your move - particularly for high-value or commercial relocations - ask the team for details.",
+        "question": "Is Az-Moving insured and certified?"
+      },
+      {
+        "answer": "Az-Moving offers a range of services including residential moves, commercial and office relocations, and specialty item handling. Visit the services section of az-moving.com or call directly to discuss the specifics of your move.",
+        "question": "What types of moves does Az-Moving handle?"
+      },
+      {
+        "answer": "You can request a free quote through the form on az-moving.com. Pricing will depend on your move size, distance, access conditions, and any specialty items - a team member will follow up to confirm the details.",
+        "question": "How do I get a price estimate for my move in Toronto?"
+      },
+      {
+        "answer": "Availability varies by season, with summer and end-of-month dates booking up quickly in the GTA. Contacting Az-Moving as early as possible is advisable, though the team can advise on short-notice availability when you reach out.",
+        "question": "How far in advance should I book a Toronto mover?"
+      },
+      {
+        "answer": "Condo moves in Toronto often require coordinated elevator reservations and building access approvals. Contact Az-Moving with your building's requirements so the team can plan accordingly and help avoid delays on move day.",
+        "question": "Does Az-Moving handle condo moves with elevator booking requirements?"
+      }
+    ]
+  },
+  "implementation_briefs": [
+    {
+      "fix_title": "Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator",
+      "acceptance_criteria": [
+        "Done when the rendered homepage HTML contains exactly one H1 tag and its text includes a Toronto or GTA geographic reference.",
+        "Done when the H1 text references at least one specific, factually accurate differentiator (e.g., a named credential or rating platform) that appears elsewhere on the page.",
+        "Done when a browser view-source check confirms the H1 is a native H1 element, not a CSS-styled div or span."
+      ]
+    },
+    {
+      "fix_title": "Add LocalBusiness and Service schema markup to the homepage",
+      "acceptance_criteria": [
+        "Done when Google's Rich Results Test parses the homepage and returns a valid LocalBusiness entity with no critical errors.",
+        "Done when the JSON-LD block is present in the rendered HTML source and includes all required fields: name, address, telephone, url, and areaServed.",
+        "Done when no review-rating properties appear in the schema unless a verifiable crawlable review source is confirmed and documented."
+      ]
+    },
+    {
+      "fix_title": "Make trust credentials visible as text, not only as image elements",
+      "acceptance_criteria": [
+        "Done when a browser view-source of the live homepage shows a plain-text block near the credentials section naming each credential without requiring image rendering.",
+        "Done when each credential logo image has a non-empty, descriptive alt attribute visible in the HTML source.",
+        "Done when the text block is visible in a browser with images disabled or with lazy-loading blocked."
+      ]
+    },
+    {
+      "fix_title": "Add an FAQ section to the homepage addressing common mover-selection questions",
+      "acceptance_criteria": [
+        "Done when the homepage HTML contains at least four visible FAQ question-and-answer pairs readable without image rendering or JavaScript.",
+        "Done when Google's Rich Results Test returns a valid FAQPage entity with no critical errors for the homepage URL.",
+        "Done when every answer in the FAQ section contains only information confirmed as accurate by the business before publication."
+      ]
+    },
+    {
+      "fix_title": "Fix the post-form confirmation typo and add a response-time commitment",
+      "acceptance_criteria": [
+        "Done when a test form submission on the live site displays a confirmation message with 'possible' spelled correctly and no prior typo visible.",
+        "Done when the confirmation message includes a specific, non-placeholder response-time statement (e.g., a defined number of hours or 'same business day').",
+        "Done when a plain-text search of the homepage and form confirmation HTML finds zero instances of the misspelling 'posible'."
+      ]
+    }
+  ],
+  "validation_warning_count": 28
+}

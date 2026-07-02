@@ -6,6 +6,7 @@ import { sanitizeGeneratedReportValue } from '../lib/sanitize'
 import type { ClearSignalReport } from '../lib/schemas'
 
 const fixturePath = join(process.cwd(), 'tests', 'fixtures', 'golden-report-az-moving.json')
+const snapshotPath = join(process.cwd(), 'tests', 'fixtures', 'golden-report-az-moving.snapshot.json')
 const hasGoldenFixture = existsSync(fixturePath)
 const fixtureIt = hasGoldenFixture ? it : it.skip
 
@@ -18,6 +19,53 @@ function clientSafeGoldenReport(): ClearSignalReport {
   const validation = validateReport(sanitized)
   expect(validation.errors).toHaveLength(0)
   return validation.report
+}
+
+function stableClientSnapshot(report: ClearSignalReport) {
+  return {
+    meta: {
+      url: report.meta.url,
+      canonical_brand: report.meta.canonical_brand,
+      domain: report.meta.domain,
+      business_context: report.meta.business_context,
+    },
+    geo: report.geo
+      ? {
+          score: report.geo.ai_visibility_score,
+          engines_tested: report.geo.engines_tested,
+          queries_tested: report.geo.queries_tested,
+          test_counts: report.geo.test_counts,
+          evidence_count: report.geo.evidence.length,
+          summary: report.geo.summary,
+        }
+      : null,
+    executive_summary: report.action.executive_summary,
+    top_fixes: report.action.top_fixes.map((fix) => ({
+      id: fix.id,
+      title: fix.title,
+      category: fix.category,
+      owner: fix.owner,
+      contributor: fix.contributor,
+      implementer: fix.implementer,
+      confidence: fix.confidence,
+      confidence_basis: fix.confidence_basis,
+      evidence_ids: fix.evidence_ids ?? [],
+      evidence_basis: fix.evidence_basis,
+    })),
+    ready_materials: report.ready_materials
+      ? {
+          meta_title: report.ready_materials.meta_title,
+          meta_description: report.ready_materials.meta_description,
+          cta_variants: report.ready_materials.cta_variants,
+          faq: report.ready_materials.faq,
+        }
+      : null,
+    implementation_briefs: (report.implementation_briefs || []).map((brief) => ({
+      fix_title: brief.fix_title,
+      acceptance_criteria: brief.acceptance_criteria,
+    })),
+    validation_warning_count: report.validation_warnings?.length ?? 0,
+  }
 }
 
 describe('golden-report regression test', () => {
@@ -85,5 +133,10 @@ describe('golden-report regression test', () => {
     expect(jsonLd).not.toMatch(/before booking/i)
     expect(jsonLd).not.toMatch(/holds WSIB and CVOR credentials/i)
     expect(jsonLd).not.toMatch(/carries insurance coverage/i)
+  })
+
+  fixtureIt('matches the stable client-facing golden snapshot', async () => {
+    const snapshot = JSON.stringify(stableClientSnapshot(clientSafeGoldenReport()), null, 2) + '\n'
+    await expect(snapshot).toMatchFileSnapshot(snapshotPath)
   })
 })

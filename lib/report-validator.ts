@@ -210,6 +210,60 @@ function cleanupClientPhrasing(text: string): string {
     .trim()
 }
 
+const PROOF_SAFETY_SENTENCE = /\bProof-related recommendations should be backed by verified source data\./gi
+const RATING_SAFETY_SENTENCE = /\bRating recommendations should use verified review-source data\./gi
+const CREDENTIAL_SAFETY_SENTENCE = /\bCredential claims should use current verified business details\./gi
+const RESPONSE_TIME_SAFETY_SENTENCE = /\bResponse-time wording should be used only when the business has verified it\./gi
+
+function refineStandaloneSafetySentences(text: string, path: string[]): string {
+  if (!text) return text
+  const joined = path.join('.')
+  let out = text
+
+  if (joined === 'action.executive_summary') {
+    return out
+      .replace(PROOF_SAFETY_SENTENCE, '')
+      .replace(RATING_SAFETY_SENTENCE, '')
+      .replace(CREDENTIAL_SAFETY_SENTENCE, '')
+      .replace(RESPONSE_TIME_SAFETY_SENTENCE, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  }
+
+  if (joined.startsWith('geo.source_gap_analysis.')) {
+    out = out
+      .replace(PROOF_SAFETY_SENTENCE, 'Add source-backed proof details in crawlable copy.')
+      .replace(RATING_SAFETY_SENTENCE, 'Add verified review-source context in crawlable copy.')
+      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Add verified credential details in crawlable copy.')
+      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Use response-time wording only when verified.')
+  } else if (/^action\.top_fixes\.\d+\.title$/.test(joined)) {
+    out = out
+      .replace(PROOF_SAFETY_SENTENCE, 'Add source-backed proof details.')
+      .replace(RATING_SAFETY_SENTENCE, 'Add verified review-source context.')
+      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Add verified credential details.')
+      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Use verified response-time wording.')
+  } else if (/^implementation_briefs\.\d+\.(steps|acceptance_criteria)\.\d+$/.test(joined)) {
+    out = out
+      .replace(PROOF_SAFETY_SENTENCE, 'Confirm source data before adding proof claims.')
+      .replace(RATING_SAFETY_SENTENCE, 'Confirm review-source data before adding rating claims.')
+      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Confirm credential details with the business before adding credential claims.')
+      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Confirm response-time details with the business before adding response-time claims.')
+  } else {
+    out = out
+      .replace(PROOF_SAFETY_SENTENCE, 'Use source-backed proof details.')
+      .replace(RATING_SAFETY_SENTENCE, 'Use verified review-source context.')
+      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Use verified credential details.')
+      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Use verified response-time wording.')
+  }
+
+  return out
+    .replace(/\b(Use source-backed proof details\.)\s+\1/gi, '$1')
+    .replace(/\b(Use verified credential details\.)\s+\1/gi, '$1')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 function fallbackForBrokenSentence(path: string[], sentence: string): string {
   const joined = path.join('.')
   if (/clarity\.cta\.suggested_rewrite|ready_materials\.cta_variants/.test(joined)) {
@@ -399,6 +453,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       }
     }
     out = cleanupClientPhrasing(out)
+    out = refineStandaloneSafetySentences(out, path)
     out = repairBrokenSentenceFragments(out, path)
     out = repairWrongDomainMentions(out, domain)
 

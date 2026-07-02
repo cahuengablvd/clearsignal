@@ -1805,7 +1805,7 @@ describe('sentence-level trust engine', () => {
     const text = JSON.stringify(r.report)
     expect(text).not.toMatch(/Pricing was not confirmed|Potential business impact should be treated|add a response-time commitment|confirms it is fully insured|same business day|defined number of hours/i)
     expect(text).toContain('This cited source appears to include pricing/use-case content')
-    expect(r.report.action.top_fixes[0].title).toBe('Proof-related recommendations should be backed by verified source data.')
+    expect(r.report.action.top_fixes[0].title).toBe('Add source-backed proof details.')
     expect(r.report.action.top_fixes[0].description).toContain('add response-time wording only if verified')
     expect(r.report.action.top_fixes[1].description).toContain('describes insurance only if verified by the business')
   })
@@ -1873,13 +1873,55 @@ describe('sentence-level trust engine', () => {
         action: {
           executive_summary:
             'Use verified proof points only. If the business can verify credential details, publish them in crawlable prose.',
-          top_fixes: [],
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Proof-related recommendations should be backed by verified source data.',
+              description:
+                'Credential claims should use current verified business details. This helps visitors understand proof.',
+              impact: 'high',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
         },
+        geo: {
+          source_gap_analysis: [
+            {
+              cited_source: 'example.com',
+              signals_found: [],
+              target_missing_signals: [],
+              why_this_source_gets_cited:
+                'Proof-related recommendations should be backed by verified source data.',
+              recommended_fix:
+                'Credential claims should use current verified business details.',
+            },
+          ],
+        },
+        implementation_briefs: [
+          {
+            fix_title: 'Credential fix',
+            steps: ['Credential claims should use current verified business details.'],
+            acceptance_criteria: ['Proof-related recommendations should be backed by verified source data.'],
+          },
+        ],
       }) as any
     )
     const text = JSON.stringify(r.report)
     expect(text).not.toMatch(/Use verified proof points only|If the business can verify credential details|publish them in crawlable prose/i)
-    expect(text).toContain('Proof-related recommendations should be backed by verified source data')
-    expect(text).toContain('Credential claims should use current verified business details')
+    expect(r.report.action.executive_summary).toBe('')
+    expect(r.report.action.top_fixes[0].title).toBe('Add source-backed proof details.')
+    expect(r.report.geo?.source_gap_analysis?.[0]?.why_this_source_gets_cited).toBe(
+      'Add source-backed proof details in crawlable copy.'
+    )
+    expect(r.report.geo?.source_gap_analysis?.[0]?.recommended_fix).toBe(
+      'Add verified credential details in crawlable copy.'
+    )
+    expect(r.report.implementation_briefs?.[0]?.steps?.[0]).toBe(
+      'Confirm credential details with the business before adding credential claims.'
+    )
+    expect(r.report.implementation_briefs?.[0]?.acceptance_criteria?.[0]).toBe(
+      'Confirm source data before adding proof claims.'
+    )
   })
 })

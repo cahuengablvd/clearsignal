@@ -1909,7 +1909,8 @@ describe('sentence-level trust engine', () => {
     )
     const text = JSON.stringify(r.report)
     expect(text).not.toMatch(/Use verified proof points only|If the business can verify credential details|publish them in crawlable prose/i)
-    expect(r.report.action.executive_summary).toBe('')
+    expect(r.report.action.executive_summary).toContain('Az-moving was reviewed against the crawled page')
+    expect(r.report.action.executive_summary).toContain('Add source-backed proof details')
     expect(r.report.action.top_fixes[0].title).toBe('Add source-backed proof details.')
     expect(r.report.geo?.source_gap_analysis?.[0]?.why_this_source_gets_cited).toBe(
       'Add source-backed proof details in crawlable copy.'

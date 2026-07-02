@@ -513,6 +513,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
+  ensureExecutiveSummary(walked, warn)
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
@@ -566,6 +567,25 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   }
 
   return { report: walked, warnings, errors }
+}
+
+function ensureExecutiveSummary(report: ClearSignalReport, warn: (m: string) => void): void {
+  if (!report.action) return
+  if (typeof report.action.executive_summary === 'string' && report.action.executive_summary.trim()) return
+
+  const brand = report.meta.canonical_brand || report.geo?.brand || 'The site'
+  const fixes = Array.isArray(report.action.top_fixes)
+    ? report.action.top_fixes
+        .map((fix) => (typeof fix.title === 'string' ? fix.title.trim() : ''))
+        .filter(Boolean)
+        .slice(0, 2)
+    : []
+  const focus = fixes.length > 0
+    ? `The highest-priority opportunities are: ${fixes.join('; ')}.`
+    : 'The highest-priority opportunities are to improve crawlable proof, clarify conversion copy, and keep recommendations tied to verified source data.'
+
+  report.action.executive_summary = `${brand} was reviewed against the crawled page, selected competitors, and tested AI responses. ${focus}`
+  warn('executive_summary: rebuilt empty summary from validated action items')
 }
 
 function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => void): void {

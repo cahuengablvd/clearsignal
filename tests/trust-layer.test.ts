@@ -384,8 +384,9 @@ describe('sample-bounded GEO wording', () => {
     expect(out.toLowerCase()).not.toContain('certificates of authenticity')
     expect(out.toLowerCase()).not.toContain('international shipping')
     expect(out.toLowerCase()).not.toContain('secure payment')
-    expect(out).toContain('Contact the business to confirm availability')
-    expect(out).toContain('authenticity or provenance documentation should be confirmed')
+    expect(out).toContain('Ask the business about purchase availability')
+    expect(out).toContain('authenticity or provenance documentation')
+    expect(out).not.toMatch(/Contact the business to confirm|should be confirmed with the business|before publishing/i)
   })
 
   it('allows commercial claims explicitly present in verified facts', () => {
@@ -892,7 +893,7 @@ describe('pre-PDF contradiction validator', () => {
     expect(text.toLowerCase()).not.toContain('available for purchase')
     expect(text.toLowerCase()).not.toContain('international shipping')
     expect(text.toLowerCase()).not.toContain('certificates of authenticity')
-    expect(text).toContain('Ask the team about availability')
+    expect(text).toContain('Ask the business about purchase availability')
     expect(text).not.toMatch(/Contact the business to confirm|should be confirmed with the business|before booking/i)
     expect(r.warnings.some((w) => w.startsWith('commercial_claim:'))).toBe(true)
   })
@@ -1015,9 +1016,17 @@ describe('final PDF polish: bracket placeholders + commercial-claim repair', () 
     const twice = sanitizeUnsupportedCommercialClaims(once, ctx)
     expect(twice).toBe(once)
     expect(once).not.toMatch(/authenticity or authenticity/i)
-    expect((twice.match(/should be confirmed with the business/gi) || []).length).toBe(
-      (once.match(/should be confirmed with the business/gi) || []).length
+    expect(once).not.toMatch(/should be confirmed with the business|Contact the business to confirm/i)
+  })
+
+  it('replaces unsupported commercial claims at sentence level, not word level', () => {
+    const ctx = BusinessContextSchema.parse({})
+    const out = sanitizeUnsupportedCommercialClaims(
+      'Pricing starts at $500. Add pricing details once the operator verifies them.',
+      ctx
     )
+    expect(out).toBe('Pricing was not confirmed in this audit. Add pricing details once the operator verifies them.')
+    expect(out).not.toMatch(/pricing should be confirmed|pricing details once.*confirmed/i)
   })
 
   it('repairs broken commercial-claim fragments (exact latvianart strings)', () => {

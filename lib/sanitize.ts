@@ -5,6 +5,7 @@ import {
   canClaimPurchaseAvailable,
 } from './business-context'
 import type { BusinessContext } from './schemas'
+import { TONE_REPLACEMENTS as SHARED_TONE_REPLACEMENTS } from './trust-phrases'
 
 /**
  * Trust Layer - output/input safety helpers.
@@ -83,41 +84,86 @@ export function redactUnverifiedQuantifiedExamples(text: string): string {
     .trim()
 }
 
+function splitProseParts(text: string): string[] {
+  return text.match(/[^.!?]+[.!?]?|\s+/g) || [text]
+}
+
+function joinLabels(items: string[]): string {
+  if (items.length <= 1) return items[0] || 'details'
+  if (items.length === 2) return `${items[0]} and ${items[1]}`
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
+}
+
+function isInstructionSentence(sentence: string): boolean {
+  return /^\s*(?:add|display|include|show|list|render|surface|publish|create|claim|optimi[sz]e|mark up|ensure|use|verify|confirm|consider|avoid|keep|replace|rewrite|build|develop|seek|pursue|ask)\b/i.test(sentence)
+}
+
+function unsupportedCommercialClaimLabels(sentence: string, context: BusinessContext): string[] {
+  if (isInstructionSentence(sentence) || /\?\s*$/.test(sentence.trim())) return []
+  const labels: string[] = []
+  const add = (label: string) => {
+    if (!labels.includes(label)) labels.push(label)
+  }
+
+  if (
+    !canClaimPurchaseAvailable(context) &&
+    (/\b(?:all\s+)?(?:artworks?|works?|products?|pieces?)\s+(?:are|is)\s+(?:available\s+)?(?:to buy|for purchase|for sale|available)\b/i.test(sentence) ||
+      /\b(?:buy|purchase|order)\s+(?:artworks?|works?|products?|pieces?)\s+(?:directly|online|now)\b/i.test(sentence))
+  ) {
+    add('purchase availability')
+  }
+  if (
+    !canClaimInternationalShipping(context) &&
+    (/\b(?:international|worldwide|global)\s+shipping\b/i.test(sentence) ||
+      /\bships?\s+(?:internationally|worldwide|globally)\b/i.test(sentence))
+  ) {
+    add('shipping options')
+  }
+  if (
+    !canClaimProvenance(context) &&
+    /\b(?:certificates?\s+of\s+authenticity|authenticity\s+certificates?|provenance\s+documentation|authentication\s+documents?)\b/i.test(sentence)
+  ) {
+    add('authenticity or provenance documentation')
+  }
+  if (
+    !canClaimCommercialPolicy(context, 'secure_payment') &&
+    /\bsecure\s+payments?\b|\bsecure\s+checkout\b|\bcard\s+payments?\s+(?:accepted|supported)\b/i.test(sentence)
+  ) {
+    add('payment options')
+  }
+  if (
+    !canClaimCommercialPolicy(context, 'returns') &&
+    /\breturn policy\b|\breturns?\s+(?:accepted|available|supported)\b|\brefunds?\s+(?:available|supported)\b/i.test(sentence)
+  ) {
+    add('return terms')
+  }
+  if (
+    !canClaimCommercialPolicy(context, 'pricing') &&
+    /\b(?:prices?|pricing|price range)\s+(?:is|are|starts?|start|ranges?)\b/i.test(sentence)
+  ) {
+    add('pricing')
+  }
+  if (
+    !canClaimCommercialPolicy(context, 'awards') &&
+    /\b(?:award[- ]winning|press[- ]featured|featured in|official partner|affiliated with)\b/i.test(sentence)
+  ) {
+    add('third-party recognition')
+  }
+
+  return labels
+}
+
 export function sanitizeUnsupportedCommercialClaims(text: string, context?: BusinessContext): string {
   if (!text || !context) return text
-  let out = text
-  if (!canClaimPurchaseAvailable(context)) {
-    out = out
-      .replace(/\b(?:all\s+)?(?:artworks?|works?|products?|pieces?)\s+(?:are|is)\s+(?:available\s+)?(?:to buy|for purchase|for sale|available)\b/gi, 'Contact the business to confirm availability for specific items')
-      .replace(/\b(?:buy|purchase|order)\s+(?:artworks?|works?|products?|pieces?)\s+(?:directly|online|now)\b/gi, 'contact the business to confirm purchase terms')
-  }
-
-  if (!canClaimInternationalShipping(context)) {
-    out = out.replace(/\b(?:international|worldwide|global)\s+shipping\b|\bships?\s+(?:internationally|worldwide|globally)\b/gi, 'shipping options should be confirmed with the business')
-  }
-
-  if (!canClaimProvenance(context)) {
-    // Negative lookahead keeps this idempotent: the replacement itself contains
-    // "provenance documentation", so without it a second pass would re-match and
-    // produce "authenticity or authenticity ... should be confirmed ... twice".
-    out = out.replace(/\b(?:certificates?\s+of\s+authenticity|authenticity\s+certificates?|provenance\s+documentation|authentication\s+documents?)\b(?!\s+should be confirmed)/gi, 'authenticity or provenance documentation should be confirmed with the business')
-  }
-
-  if (!canClaimCommercialPolicy(context, 'secure_payment')) {
-    out = out.replace(/\bsecure\s+payments?\b|\bsecure\s+checkout\b|\bcard\s+payments?\s+(?:accepted|supported)\b/gi, 'payment options should be confirmed with the business')
-  }
-
-  if (!canClaimCommercialPolicy(context, 'returns')) {
-    out = out.replace(/\breturn policy\b|\breturns?\s+(?:accepted|available|supported)\b|\brefunds?\s+(?:available|supported)\b/gi, 'return terms should be confirmed with the business')
-  }
-
-  if (!canClaimCommercialPolicy(context, 'pricing')) {
-    out = out.replace(/\b(?:prices?|pricing|price range)\s+(?:is|are|starts?|start|ranges?)\b[^.?!]*/gi, 'pricing should be confirmed with the business')
-  }
-
-  if (!canClaimCommercialPolicy(context, 'awards')) {
-    out = out.replace(/\b(?:award[- ]winning|press[- ]featured|featured in|official partner|affiliated with)\b[^.?!]*/gi, 'third-party recognition should be confirmed before publishing')
-  }
+  const out = splitProseParts(text)
+    .map((part) => {
+      if (/^\s+$/.test(part)) return part
+      const labels = unsupportedCommercialClaimLabels(part, context)
+      if (labels.length === 0) return part
+      if (labels.length === 1 && labels[0] === 'pricing') return 'Pricing was not confirmed in this audit.'
+      return `Ask the business about ${joinLabels(labels)}.`
+    })
+    .join('')
 
   return out
     .replace(/\s{2,}/g, ' ')
@@ -140,95 +186,6 @@ const OVERCLAIM_PHRASES = [
   /no visibility at all/gi,
   /totally absent from ai/gi,
   /entirely absent from (?:all )?(?:source )?ecosystems/gi,
-]
-
-const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
-  [/\bleaking revenue at every stage\b/gi, 'may be losing value at several points'],
-  [/\bdirect revenue leak\b/gi, 'possible conversion clarity issue'],
-  [/\bleaking revenue\b/gi, 'may be reducing conversion clarity'],
-  [/\bactively undermine credibility\b/gi, 'may weaken credibility'],
-  [/\bactively undermines credibility\b/gi, 'may weaken credibility'],
-  [/\bundermine credibility\b/gi, 'may weaken credibility'],
-  [/\blosing qualified buyers in the first \[insert verified data\]\b/gi, 'may cause some qualified buyers to leave early'],
-  [/\blosing qualified buyers in the first \d+(?:[.,]\d+)?\s*seconds?\b/gi, 'may cause some qualified buyers to leave early'],
-  [/\bimmediately question originality and professionalism\b/gi, 'may question originality and professionalism'],
-  [/\bactively repels buyers\b/gi, 'may reduce fit for some buyers'],
-  [/\bactively repel buyers\b/gi, 'may reduce fit for some buyers'],
-  [/\bdisqualifying\b/gi, 'may reduce shortlist probability'],
-  [/\bdisqualifies\b/gi, 'may reduce shortlist probability for'],
-  [/every dollar of paid traffic is (?:wasted|should be tested carefully)/gi, 'paid traffic should be tested only after core conversion fixes'],
-  [/\bwasted\b/gi, 'should be tested carefully'],
-  [/social proof is actively damaging/gi, 'social proof may weaken trust'],
-  [/this single data point likely disqualifies ([^.]+)/gi, 'this signal may reduce shortlist probability for $1'],
-  [/every dollar of paid traffic is should be tested carefully/gi, 'paid traffic should be tested only after core conversion fixes'],
-  [/materially close the gap within 30 days/gi, 'likely improve competitive positioning'],
-  [/\bhemorrhaging leads at every stage\b/gi, 'may be losing leads at several points'],
-  [/\bhemorrhaging leads\b/gi, 'may be losing leads'],
-  [/\bhemorrhaging buyers\b/gi, 'may be losing buyers'],
-  [/\bhemorrhaging\b/gi, 'may be losing'],
-  [/is losing high-intent buyers at every stage/gi, 'may be losing high-intent buyers at several points'],
-  [/reads as unproven and unfinished/gi, 'may appear less established than selected competitors'],
-  [/destroying differentiation/gi, 'may weaken differentiation'],
-  [/actively destroying trust/gi, 'is likely to weaken trust'],
-  [/actively destroys credibility/gi, 'may weaken credibility'],
-  [/actively destroying credibility/gi, 'may weaken credibility'],
-  [/catastrophic trust gap/gi, 'significant trust gap'],
-  [/will produce the fastest improvement in conversion/gi, 'is a high-priority conversion clarity improvement'],
-  [/fastest improvement in conversion/gi, 'high-priority conversion clarity improvement'],
-  [/direct and immediate conversion killer/gi, 'may reduce conversion clarity'],
-  [/\bconversion killer\b/gi, 'potential conversion clarity issue'],
-  [/catastrophically mismatched/gi, 'poorly matched'],
-  [/\bcatastrophic(?:ally)?\b/gi, 'significant'],
-  [/\bkilling conversions\b/gi, 'may reduce conversions'],
-  [/\bdestroys credibility\b/gi, 'may weaken credibility'],
-  [/\bcosting you demo conversions\b/gi, 'may be reducing demo intent'],
-  [/ai engines have no content signals until ([^.]+)/gi, 'AI engines may need stronger owned-page and third-party signals; $1'],
-  [/ai engines have no signals/gi, 'AI engines did not surface strong signals in the tested results'],
-  [/\bthe primary driver is\b/gi, 'likely contributing factors include'],
-  [/\bthe core issue is\b/gi, 'likely contributing factors include'],
-  [/\bthe core reason is\b/gi, 'likely contributing factors include'],
-  [/\bthis absence is caused by\b/gi, 'this observed absence may be associated with'],
-  [/\bai skips you because\b/gi, 'potential factors limiting AI visibility include'],
-  [/\bwhere\s+([A-Za-z0-9 ._-]{1,80})\s+has no detectable presence\b/gi, 'where $1 was not observed in the tested responses'],
-  [/\bdrive significant AI answer inclusion\b/gi, 'may contribute to AI answer inclusion in this sample'],
-  [/\bdirectly feeds AI answer content\b/gi, 'appears in AI answer source material'],
-  [/\bget a quote in minutes\b/gi, 'get a quote'],
-  [/not recognized as an entity by ([^.]+)/gi, 'not mentioned in the tested engine-query combinations for $1'],
-  [/not recognized as an entity/gi, 'not mentioned in the tested engine-query combinations'],
-  [/absent from all knowledge bases/gi, 'not surfaced in the tested evidence'],
-  [/no content signals until ([^.]+)/gi, 'limited content signals unless $1'],
-  [/a 90-second explainer closes the gap faster than any landing page rewrite/gi, 'a concise explainer may help, but it should support a clear landing page rather than replace it'],
-  [/remove web3 from (?:the )?hero/gi, 'test de-emphasizing Web3 in the hero if broader SaaS buyers are the priority'],
-  [/remove upwork (?:completely|entirely)/gi, 'de-emphasize Upwork as the primary proof point while keeping it as supporting evidence'],
-  [/create (?:your|a) own (?:best companies|top companies|ranking|rankings|rating) (?:page|list|article)?/gi, 'publish a transparent comparison guide with clear methodology'],
-  [/\b(?:create|claim|build|add|set up)\s+(?:a\s+)?thumbtack\s+(?:profile|listing|page)\b[^.?!]*/gi, 'Consider validating whether Thumbtack generates meaningful local demand before investing in a profile'],
-  [/\b(?:no|missing)\s+service\s+page\b[^.?!]*\blink(?:ed)?\s+in\s+navigation\b/gi, 'A service page appears to be linked in navigation, but its crawlable content was not confirmed in this audit'],
-  [/stories investors fund and customers buy/gi, '[Example only - replace with verified client data]'],
-  [/product animations reduced sales cycle/gi, '[Replace with a verified client result]'],
-  [/ui motion improved activation rates/gi, '[Replace with a verified client result]'],
-  [/videos used in series a pitch decks/gi, '[Replace with a verified client result]'],
-  [/used in series a pitch decks/gi, '[Replace with a verified client result]'],
-  [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the sources returned during this audit'],
-  [/\bno reddit discussions\b/gi, 'no Reddit discussions were found in the sources returned during this audit'],
-  [/\bno youtube presence\b/gi, 'no YouTube mentions were found in the tested sources'],
-  [/\bno reddit presence\b/gi, 'no Reddit mentions were found in the tested sources'],
-  [/\bno presence on reddit\b/gi, 'no Reddit mentions were found among sources cited in the tested responses'],
-  [/\bnone of which currently reference\s+[A-Za-z0-9 ._-]+\b/gi, 'none of the cited sources reviewed in this audit referenced the brand'],
-  // Wikipedia/Wikidata entity-listing advice -> clean, conditional client
-  // wording. Bare-word replacement used to mangle grammar, e.g. "Wikipedia or
-  // Wikidata entity creation" became "eligible independent third-party source
-  // or eligible entity database entity creation".
-  [/\b(?:create|build|set ?up|establish|pursue|add|register|file|submit|obtain|seek|target)\s+(?:a\s+|an\s+|your\s+|the\s+|new\s+)*wiki(?:pedia|data)\b[^.?!]*/gi,
-    'hold off on Wikipedia-style entity listings until the brand has enough independent third-party coverage to qualify'],
-  [/\bwiki(?:pedia|data)(?:\s*(?:\/|,|\bor\b|\band\b)\s*wiki(?:pedia|data))?\s+(?:page|entry|entity|profile|listing)?\s*entity creation\b/gi,
-    'Wikipedia-style entity listings (pursue only once the brand has enough independent coverage to qualify)'],
-  [/\bwiki(?:pedia|data)\s*(?:\/|,|\bor\b|\band\b)\s*wiki(?:pedia|data)\b/gi, 'independent entity databases'],
-  [/\baggregaterating\b/gi, 'review-rating'],
-  [/\bunlimited revisions\b/gi, 'clearly scoped revision terms'],
-  [/\b(?:one|1|two|2|three|3)\s+(?:slot|slots|spot|spots)\s+open\b/gi, '[insert genuine availability only if verified]'],
-  [/\bi have (?:one|1|two|2|three|3)\s+(?:slot|slots|spot|spots)\s+open\b/gi, '[insert genuine availability only if verified]'],
-  [/\blimited (?:slots|spots|availability)\b/gi, '[insert genuine availability only if verified]'],
-  [/\bi'?ll map out exactly what i'?d do\b/gi, 'I can outline a possible improvement plan'],
 ]
 
 const UNVERIFIED_RESULT_PATTERNS: RegExp[] = [
@@ -272,7 +229,7 @@ export function boundSampleClaims(text: string, mentions?: number, total?: numbe
 export function softenUnsupportedClaims(text: string, mentions?: number, total?: number): string {
   if (!text) return text
   let out = boundSampleClaims(text, mentions, total)
-  for (const [re, replacement] of TONE_REPLACEMENTS) {
+  for (const [re, replacement] of SHARED_TONE_REPLACEMENTS) {
     out = out.replace(re, replacement)
   }
   for (const re of UNVERIFIED_RESULT_PATTERNS) {

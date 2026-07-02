@@ -20,6 +20,7 @@ import {
   ImplementationBriefsLlmSchema,
   type ImplementationBrief,
   type BusinessContext,
+  GeoResultSchema,
 } from './schemas'
 import {
   MODEL_AUDIT,
@@ -42,7 +43,11 @@ import { attachActionConfidence } from './action-confidence'
 import { CostTracker } from './cost-tracker'
 import type { GeoResult } from './schemas'
 
-function buildDataLimitations(geo: GeoResult | null): string[] {
+export type RunFullAuditOptions = {
+  reuseGeoEvidence?: boolean
+}
+
+function buildDataLimitations(geo: GeoResult | null, reusedGeoEvidence = false): string[] {
   const limits = [
     'This audit does not use GA4, CRM, ad platform, heatmap, or sales-cycle data, so conversion and revenue impact are framed as hypotheses.',
     'Crawler output may miss visual-only content, gated content, personalized pages, or assets blocked by the target site.',
@@ -52,10 +57,21 @@ function buildDataLimitations(geo: GeoResult | null): string[] {
     limits.unshift(
       `AI visibility findings are limited to ${geo.evidence.length} tested engine-query combinations across ${geo.engines_tested.join(', ')}.`
     )
+    if (reusedGeoEvidence) {
+      limits.unshift('AI visibility evidence was reused from the previous completed scan for this audit.')
+    }
   } else {
     limits.unshift('Live AI visibility evidence was unavailable for this run.')
   }
   return limits
+}
+
+export function reusableGeoFromAudit(audit: { report?: unknown }): GeoResult | null {
+  const maybeReport = audit.report as { geo?: unknown } | null | undefined
+  if (!maybeReport?.geo) return null
+  const parsed = GeoResultSchema.safeParse(maybeReport.geo)
+  if (!parsed.success || parsed.data.evidence.length === 0) return null
+  return parsed.data
 }
 
 /** Strip invented performance numbers from all human-facing report prose. */
@@ -113,7 +129,7 @@ function sanitizeReportProse(
   }
 }
 
-export async function runFullAudit(auditId: string): Promise<void> {
+export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = {}): Promise<void> {
   const cost = new CostTracker()
   // 1. Fetch audit record
   const { data: audit, error } = await supabaseAdmin
@@ -174,24 +190,30 @@ export async function runFullAudit(auditId: string): Promise<void> {
 
     // 3b. Live AI-visibility (GEO/AEO) scan - full breadth across every
     // configured engine. Runs alongside the messaging analysis below.
-    const geoPromise: Promise<GeoResult | null> = runGeoScan({
-      brand,
-      url: audit.url,
-      category: targetMarkdown.slice(0, 600),
-      icp,
-      competitors: competitorUrls,
-      queryCount: 6,
-      // Use operator-confirmed queries when present (from the confirmation screen).
-      providedQueries: (audit.geo_queries as string[] | null) || undefined,
-      // Paid audit: also scrape the most-cited sources and explain why they win.
-      analyzeSources: true,
-      maxSources: 6,
-      targetMarkdown,
-      onUsage: (event) => cost.add(event),
-    }).catch((err) => {
-      console.error(`GEO scan failed for ${auditId} (continuing without it):`, err)
-      return null
-    })
+    const reusedGeo = opts.reuseGeoEvidence ? reusableGeoFromAudit(audit) : null
+    if (reusedGeo) {
+      console.log(`[audit-runner] reusing GEO evidence for ${auditId}: ${reusedGeo.evidence.length} combinations`)
+    }
+    const geoPromise: Promise<GeoResult | null> = reusedGeo
+      ? Promise.resolve(reusedGeo)
+      : runGeoScan({
+          brand,
+          url: audit.url,
+          category: targetMarkdown.slice(0, 600),
+          icp,
+          competitors: competitorUrls,
+          queryCount: 6,
+          // Use operator-confirmed queries when present (from the confirmation screen).
+          providedQueries: (audit.geo_queries as string[] | null) || undefined,
+          // Paid audit: also scrape the most-cited sources and explain why they win.
+          analyzeSources: true,
+          maxSources: 6,
+          targetMarkdown,
+          onUsage: (event) => cost.add(event),
+        }).catch((err) => {
+          console.error(`GEO scan failed for ${auditId} (continuing without it):`, err)
+          return null
+        })
 
     // 4. Step 2: Clarity block
     const clarity = await callClaudeJSON<ClarityBlock>({
@@ -295,7 +317,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       clarity,
       gap,
       action: actionWithConfidence,
-      data_limitations: buildDataLimitations(geo),
+      data_limitations: buildDataLimitations(geo, Boolean(reusedGeo)),
       geo,
       technical_findings: technicalFindings,
       ready_materials: readyMaterials,

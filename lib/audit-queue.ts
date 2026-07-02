@@ -3,6 +3,10 @@ import { supabaseAdmin } from './supabase'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
+export type EnqueueAuditOptions = {
+  reuseGeoEvidence?: boolean
+}
+
 /**
  * Kick off a paid audit.
  *
@@ -10,11 +14,11 @@ const isProduction = process.env.NODE_ENV === 'production'
  * If enqueue fails, keep the audit queued and throw so Stripe can retry the
  * webhook. Local development falls back to the old in-process runner.
  */
-export async function enqueueAudit(auditId: string): Promise<void> {
+export async function enqueueAudit(auditId: string, opts: EnqueueAuditOptions = {}): Promise<void> {
   if (process.env.TRIGGER_SECRET_KEY) {
     try {
       const { runAuditTask } = await import('../trigger/audit-task')
-      await runAuditTask.trigger({ auditId })
+      await runAuditTask.trigger({ auditId, reuseGeoEvidence: opts.reuseGeoEvidence ?? false })
       console.log('[audit-queue] enqueued via Trigger.dev:', auditId)
       return
     } catch (err) {
@@ -33,7 +37,7 @@ export async function enqueueAudit(auditId: string): Promise<void> {
     throw new Error('Trigger.dev is not configured in production')
   }
 
-  runFullAudit(auditId).catch((err) => {
+  runFullAudit(auditId, opts).catch((err) => {
     console.error('[audit-queue] in-process runFullAudit failed for', auditId, err)
   })
 }

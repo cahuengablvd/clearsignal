@@ -10,8 +10,8 @@ export const runAuditTask = task({
   id: 'run-full-audit',
   maxDuration: 600,
   retry: { maxAttempts: 2 },
-  run: async (payload: { auditId: string }) => {
-    await runFullAudit(payload.auditId)
+  run: async (payload: { auditId: string; reuseGeoEvidence?: boolean }) => {
+    await runFullAudit(payload.auditId, { reuseGeoEvidence: payload.reuseGeoEvidence ?? false })
     return { auditId: payload.auditId, status: 'done' }
   },
 })

@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { audit_id } = await req.json()
+    const { audit_id, reuse_geo_evidence = true } = await req.json()
 
     if (!audit_id) {
       return NextResponse.json({ error: 'audit_id required' }, { status: 400 })
@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Enqueue (Trigger.dev when configured, else in-process for dev).
-    await enqueueAudit(audit_id)
+    await enqueueAudit(audit_id, { reuseGeoEvidence: Boolean(reuse_geo_evidence) })
 
-    return NextResponse.json({ success: true, audit_id })
+    return NextResponse.json({ success: true, audit_id, reuse_geo_evidence: Boolean(reuse_geo_evidence) })
   } catch (err) {
     console.error('Manual audit trigger error:', err)
     return NextResponse.json(

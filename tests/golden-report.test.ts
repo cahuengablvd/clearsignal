@@ -3,6 +3,7 @@ import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 import { validateReport } from '../lib/report-validator'
 import { sanitizeGeneratedReportValue } from '../lib/sanitize'
+import { reusableGeoFromAudit } from '../lib/audit-runner'
 import type { ClearSignalReport } from '../lib/schemas'
 
 const fixturePath = join(process.cwd(), 'tests', 'fixtures', 'golden-report-az-moving.json')
@@ -123,6 +124,19 @@ describe('golden-report regression test', () => {
     ).toBe(counts?.expected_combinations)
     expect(report.geo?.evidence).toHaveLength(counts?.successful_combinations || 0)
     expect(report.geo?.engines_tested).toEqual(expect.arrayContaining(['perplexity', 'openai', 'claude']))
+  })
+
+  fixtureIt('exposes saved GEO evidence for regeneration reuse', () => {
+    const reused = reusableGeoFromAudit({ report: clientSafeGoldenReport() })
+
+    expect(reused).toBeTruthy()
+    expect(reused?.evidence.length).toBeGreaterThan(0)
+    expect(reused?.test_counts?.successful_combinations).toBe(reused?.evidence.length)
+  })
+
+  it('does not reuse invalid or empty GEO evidence', () => {
+    expect(reusableGeoFromAudit({ report: null })).toBeNull()
+    expect(reusableGeoFromAudit({ report: { geo: { evidence: [] } } })).toBeNull()
   })
 
   fixtureIt('does not put unsupported credential confirmation copy into JSON-LD', () => {

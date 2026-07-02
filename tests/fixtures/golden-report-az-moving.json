@@ -1,0 +1,1162 @@
+{
+  "gap": {
+    "ai_search": {
+      "score": 34,
+      "finding": "Az-moving's homepage presents several structural characteristics that are likely to limit its visibility in AI-assisted search responses. Entity clarity is partial: the business name, a physical address, and a service category (moving company) are present, but the hero headline contains no geographic entity ('Toronto,' 'GTA,' or 'Ontario') in the primary H1, which weakens the page's ability to be unambiguously associated with a specific local service query by language models synthesising answers. The most citable, specific claim on the page \u0432\u0402\u201d ' HomeStars Star Score' \u0432\u0402\u201d is a strong entity signal, but it is the only concrete, attributable data point visible in the crawled homepage text; AI systems favour pages with multiple named, verifiable facts. The body copy that begins 'we redefine the moving experience' is abstract and unlikely to be extracted as a factual answer to a query such as 'best movers in Toronto' or 'who are licensed movers in the GTA.' The credential references (WSIB, CVOR, BBB) are meaningful but are rendered as image elements without visible alt-text or surrounding descriptive prose in the crawled content, meaning an AI crawler parsing text would not encounter the explanatory context needed to treat them as structured facts. Service area coverage is extensive and named explicitly in text, which is a positive structured-content signal \u0432\u0402\u201d this section is the most AI-parseable part of the page. However, there are no FAQ elements, no schema-markup signals visible in the crawled content, no defined service descriptions with pricing or process detail, and no customer-voice quotes that AI systems could excerpt as representative social proof. The combination of a generic headline, image-dependent trust signals, abstract body copy, and absence of FAQ or structured Q&A format results in a page that is unlikely to be selected as a primary source in an AI-generated response to local moving queries, though the geographic entity list and HomeStars citation offer limited positive signals.",
+      "severity": "critical",
+      "is_likely_cited": false,
+      "missing_signals": [
+        "Geographic entity ('Toronto' or 'GTA') absent from the primary H1 headline, reducing location-query relevance for AI parsers",
+        "No FAQ section or structured Q&A content that AI systems can extract as direct answers to common moving questions",
+        "Trust credentials (WSIB, CVOR, BBB) rendered as images without descriptive surrounding text, making them invisible to text-based AI crawlers",
+        "No schema markup signals (LocalBusiness, Service, Review) detected in the crawled content to provide machine-readable entity structure",
+        "No specific service descriptions with process, timing, or differentiating detail \u0432\u0402\u201d copy remains at a generic level that limits excerpt-worthiness",
+        "No customer testimonial text on the homepage for AI systems to treat as third-party social proof",
+        "Years in operation or total moves completed not stated \u0432\u0402\u201d absence of these named numeric facts reduces the page's density of citable specifics",
+        "Insurance coverage described generically ('fully insured') rather than with named policy types, limiting citation value for queries about insured Toronto movers",
+        "Quebec service claim is unsupported by linked content, which may reduce overall page coherence and trustworthiness signals for AI evaluation",
+        "No blog, resource, or editorial content linked from the homepage that would establish topical authority on moving-related questions"
+      ]
+    },
+    "where_you_win": [
+      "The HomeStars Star Score is mentioned twice in text on the homepage (including a live hyperlink), providing a verifiable, platform-backed trust signal that is more specific and credible than generic star ratings many competitors display.",
+      "WSIB and CVOR credentials are referenced alongside BBB accreditation \u0432\u0402\u201d this combination signals regulatory compliance and professional accountability that smaller or newer competitors may not be able to display.",
+      "The service breadth is explicitly listed in navigation (nine distinct services including piano moving, last-minute moving, single-item movers, and storage), giving visitors a strong signal that specialist needs are covered without requiring a separate site visit the website.",
+      "The geographic coverage is exceptionally granular \u0432\u0402\u201d over 40 named municipalities across five GTA regions plus Hamilton and parts of Peterborough County are listed, which may give Az-moving an advantage in long-tail local search queries for smaller towns where competitors may not have dedicated pages.",
+      "A physical address (15 Centennial Road, Etobicoke) is displayed on the homepage, providing a concrete local-business entity signal that supports trustworthiness for visitors wary of non-local or virtual operators.",
+      "The inline quote form is embedded directly in the hero section above the fold, reducing friction for visitors who are ready to initiate contact without navigating to a separate page."
+    ],
+    "where_you_lose": [
+      "Hero headline ('Your reliable, fast and quality Moving Service') contains no geographic anchor, so visitors scanning quickly cannot immediately confirm this is a Toronto/GTA specialist \u0432\u0402\u201d inferred to weaken relevance signals versus competitors whose headlines likely lead with 'Toronto Movers' or similar.",
+      "The phrase 'Book your move in Ontario and Quebec within minutes' broadens geographic scope without supporting Quebec-specific pages in the navigation, which may create a credibility gap and dilute the local-specialist impression that typically drives conversions in local moving searches.",
+      "All four trust-credential logos (HomeStars, BBB, WSIB, CVOR) are rendered as lazy-loaded SVG placeholders in the crawled content; visitors on slower connections or with JavaScript issues may receive no visual third-party validation at all.",
+      "No customer testimonial quotes appear on the homepage itself \u0432\u0402\u201d social proof is siloed to a separate Reviews page, meaning a visitor who does not click through receives only a score number and no narrative confirmation of service quality.",
+      "The quote form requires five fields before any value is communicated (no stated response time, no pricing signal, no indication of what the visitor receives), which may reduce form completion relative to competitors who show a same-day response promise or instant estimate.",
+      "Post-submission confirmation contains a typo ('as soon as posible') which may weaken perceived professionalism at the moment of highest visitor commitment.",
+      "The phone number is rendered via an SVG icon with no visible text in the crawled content, meaning visitors who prefer immediate phone contact may not easily find the number in the hero section.",
+      "Homepage body copy opens with 'we redefine the moving experience' \u0432\u0402\u201d a company-centric, abstract claim that does not address the primary visitor anxieties (on-time arrival, safe handling, transparent pricing) that typically drive moving-service searches.",
+      "No mention of years in business, number of moves completed, or other volume-based social proof on the homepage, leaving credibility anchored only on review-platform scores rather than operational depth.",
+      "Insurance coverage is described only as 'We are fully insured' without specifics (coverage type, liability limits), which may be insufficient for commercial buyers evaluating risk.",
+      "'Quality' used as a bare adjective in the headline ('quality Moving Service') is grammatically awkward, which may subtly reduce perceived professionalism relative to more polished competitor copy."
+    ],
+    "competitor_analysis": []
+  },
+  "geo": {
+    "brand": "Az-moving",
+    "summary": "Az-moving (az-moving.com) was named in 0 of 6 tested engine-query combinations across Perplexity and OpenAI, resulting in a measured AI visibility score of 0/100 while all six tested competitors achieved a share of voice each. The core reason inferred from the evidence is that the brand lacks detectable presence on the platforms AI engines most frequently cited \u0432\u0402\u201d particularly reddit.com, yelp.com, and thumbtack.com \u0432\u0402\u201d and does not appear in the editorial roundups or structured service content that enabled competitor mentions. Addressing presence on these high-citation third-party platforms and publishing query-matched, structured content on the brand's own domain are the highest-impact steps to improve citation likelihood in future engine-query combinations.",
+    "evidence": [
+      {
+        "query": "best residential moving companies in Toronto GTA",
+        "engine": "perplexity",
+        "citations": [
+          "https://www.cargocabbie.ca/",
+          "https://www.gvota.ca/en/5-best-local-moving-companies-in-toronto/",
+          "https://www.reddit.com/r/ontario/comments/12bjs5q/moving_companies_that_are_actually_good/",
+          "https://www.homestars.com/moving/moving-company-pros/toronto",
+          "https://wahi.com/ca/en/learning-centre/real-estate-101/buy/best-moving-companies-toronto-gta/%20",
+          "https://www.facebook.com/groups/Pakistani.GTA/posts/4399210963694300/",
+          "https://rentason.ca/"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-001",
+        "cited_domains": [
+          "cargocabbie.ca",
+          "gvota.ca",
+          "reddit.com",
+          "homestars.com",
+          "wahi.com",
+          "facebook.com",
+          "rentason.ca"
+        ],
+        "answer_excerpt": "The **best residential moving company** in the Toronto GTA is widely recognized as **CARGO CABBIE**, which has been voted the best and awarded the title since 2012, specializing in premium home and condo moving services across the GTA[1][4][5].\n\nOther top-rated residential movers in Toronto include:\n\n| Company | Key Highlights |\n|---------|----------------|\n| **Rent-a-Son** | Award-winning residential moving services for local Toronto moves; recognized as a top mover in the GTA[5][7] |\n| **My Ninja Movers** | One of the top residential movers in Toronto, known for reliable service[2] |\n| **Six Moving** | Highly recommended for both local and long-distance moves up to 3 hours away, based in T...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": [
+          "CARGO CABBIE",
+          "Rent-a-Son",
+          "My Ninja Movers",
+          "Six Moving",
+          "Miracle Movers",
+          "Max Moving Corp.",
+          "CTS Move Company"
+        ]
+      },
+      {
+        "query": "best residential moving companies in Toronto GTA",
+        "engine": "openai",
+        "citations": [
+          "https://www.towermoving.com/",
+          "https://safenestmovers.com/",
+          "https://eddiemovers.ca/",
+          "http://newhousemoving.com/",
+          "https://www.moovy.ca/",
+          "https://heroesmoving.ca/",
+          "http://786movingplus.ca/"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-002",
+        "cited_domains": [
+          "towermoving.com",
+          "safenestmovers.com",
+          "eddiemovers.ca",
+          "newhousemoving.com",
+          "moovy.ca",
+          "heroesmoving.ca",
+          "786movingplus.ca"
+        ],
+        "answer_excerpt": "When selecting a residential moving company in the Greater Toronto Area (GTA), it's essential to choose a service that aligns with your specific needs. Here are some reputable options to consider:\n\n**[Tower Moving Company](https://www.towermoving.com/?utm_medium=organic&utm_campaign=gmb-listing&utm_source=openai)**  \n**Open now \u0412\u00b7 Moving service \u0412\u00b7 4.5 (190 reviews)**  \n_18 King St E, Toronto, ON M5C 1C4, Canada_  \nSpecializes in local and long-distance residential moves, offering services such as condo moving, storage, and packing supplies.\n\n**[SafeNestMovers](https://safenestmovers.com/?utm_campaign=gmb&utm_source=openai)**  \n**Open now \u0412\u00b7 Mover \u0412\u00b7 5.0 (83 reviews)**  \n_102 Ascalon Dr, Maple,...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": [
+          "Tower Moving Company",
+          "SafeNestMovers",
+          "Eddie Movers",
+          "New House Moving",
+          "Moovy"
+        ]
+      },
+      {
+        "query": "how do I find reliable movers for commercial relocation",
+        "engine": "claude",
+        "citations": [
+          "https://www.consumeraffairs.com/movers/",
+          "https://mymovingjourney.com/resource/best-commercial-moving-companies",
+          "https://moveadvisor.com/",
+          "https://realestate.usnews.com/home-services/moving/best-moving-companies",
+          "https://www.nationalvanlines.com/long-distance-moving/commercial-movers/",
+          "https://mygoodmovers.com/best-movers/commercial-moving-companies",
+          "https://threemovers.com/cheap-moving-companies/",
+          "https://www.allied.com/moving-resources/tips/how-to-find-best-moving-company",
+          "https://www.rcsmoving.com/post/different-types-of-moving-companies",
+          "https://www.move.org/best-interstate-moving-companies/"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-003",
+        "cited_domains": [
+          "consumeraffairs.com",
+          "mymovingjourney.com",
+          "moveadvisor.com",
+          "usnews.com",
+          "nationalvanlines.com",
+          "mygoodmovers.com",
+          "threemovers.com",
+          "allied.com",
+          "rcsmoving.com",
+          "move.org"
+        ],
+        "answer_excerpt": "Here is a comprehensive guide on how to find reliable movers for a commercial relocation:\n\n---\n\n## \u0440\u045f\u040f\u045e How to Find Reliable Movers for Commercial Relocation\n\n### 1. **Define Your Moving Needs First**\nBefore choosing a moving company, take time to carefully assess your moving needs \u0432\u0402\u201d how far you're moving (locally, long-distance, cross-country, or overseas), and whether you have any special requirements. For commercial moves, also consider the size of your office, the type of equipment you need moved, and how much downtime your business can afford.\n\n---\n\n### 2. **Look for Commercial Moving Specialists**\nWhen thinking about the type of moving company you want to hire, consider whether you want...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "how do I find reliable movers for commercial relocation",
+        "engine": "perplexity",
+        "citations": [
+          "https://www.imsrelocation.com/",
+          "https://www.brgofficemovers.com/locations/dallas/",
+          "https://www.allmysons.com/texas/dallas/commercial-movers/",
+          "https://atlanticrelocation.com/dallas/movers-in-carrollton",
+          "https://www.3menmovers.com/moving-service-areas/dallas/",
+          "https://www.movesolutions.com/dallas-office-movers-contact/",
+          "https://www.blacktiemoving.com/dallas/carrollton-movers/office/",
+          "https://www.forbes.com/home-improvement/moving-services/local-movers/moving-companies-dallas-tx/",
+          "https://www.yelp.com/search",
+          "https://www.thumbtack.com/tx/dallas/commercial-moving"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-004",
+        "cited_domains": [
+          "imsrelocation.com",
+          "brgofficemovers.com",
+          "allmysons.com",
+          "atlanticrelocation.com",
+          "3menmovers.com",
+          "movesolutions.com",
+          "blacktiemoving.com",
+          "forbes.com",
+          "yelp.com",
+          "thumbtack.com"
+        ],
+        "answer_excerpt": "To find reliable movers for a commercial relocation, you should prioritize companies with **proven industry experience**, **specialized commercial services**, and **strong third-party accreditations** like a high BBB rating or Forbes recognition.\n\n### Key Steps to Identify Reliable Commercial Movers\n\n*   **Verify Specialized Experience**: Look for companies that explicitly list **office moving**, **corporate relocation**, and **logistics** as core services, ensuring they understand business downtime constraints and equipment handling [1][2][3].\n*   **Check Industry Accreditations and Ratings**: Confirm the mover holds a high **BBB rating** (e.g., A++), is **Forbes-recognized**, or holds cert...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "how do I find reliable movers for commercial relocation",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-005",
+        "cited_domains": [],
+        "answer_excerpt": "Finding reliable movers for a commercial relocation involves a few steps to ensure you choose the right company. Here\u0432\u0402\u2122s a guide to help you:\n\n1. **Research and Recommendations:**\n   - Start by asking for recommendations from other businesses or friends.\n   - Look for online reviews on sites like Yelp, Google, or industry-specific forums.\n\n2. **Check Credentials:**\n   - Verify that the movers are licensed and insured, especially for commercial moves. Check with relevant local or national authorities.\n\n3. **Experience and Expertise:**\n   - Ensure the movers have experience with commercial relocations, as these can be more complex than residential moves.\n\n4. **Get Multiple Quotes:**\n   - Contac...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "affordable piano moving services near me",
+        "engine": "claude",
+        "citations": [
+          "https://pianomoversnyc.com/",
+          "https://www.pianomoversinhoustontx.com/",
+          "https://www.yelp.com/biz/affordable-piano-moving-henderson",
+          "https://goodtimemovingandstorage.com/piano-mover-near-me/",
+          "https://twomenandatruck.com/local-moving/pianos",
+          "https://www.angi.com/nearme/piano-moving/",
+          "https://www.portlandpianomoving.com/",
+          "https://move4lessmoving.com/denver/moving-services/piano-movers/",
+          "https://www.pianomoverslosangeles.net/",
+          "https://www.yelp.com/search"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-006",
+        "cited_domains": [
+          "pianomoversnyc.com",
+          "pianomoversinhoustontx.com",
+          "yelp.com",
+          "goodtimemovingandstorage.com",
+          "twomenandatruck.com",
+          "angi.com",
+          "portlandpianomoving.com",
+          "move4lessmoving.com",
+          "pianomoverslosangeles.net"
+        ],
+        "answer_excerpt": "Here's a helpful guide to finding **affordable piano moving services near you**, along with tips and what to expect:\n\n---\n\n## \u0440\u045f\u040b\u2116 How to Find Affordable Piano Movers Near You\n\n### \u0440\u045f\u201d\u040c Best Places to Search\n- **Google** \u0432\u0402\u201c Search \"piano movers near me\" for local results with reviews and ratings\n- **Yelp** \u0432\u0402\u201c Yelp lists top-rated piano movers by city, with reviews and ratings updated regularly\n- **Angi (formerly Angie's List)** \u0432\u0402\u201c Angi lets you hire the best local professional piano moving service pros near you, complete with reviews\n- **Two Men and a Truck** \u0432\u0402\u201c Their movers are specifically trained to pad and stretch wrap all pianos or organs, and they are securely placed on a piano board or 4-whee...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "affordable piano moving services near me",
+        "engine": "perplexity",
+        "citations": [
+          "https://affordablepianomovers.com/",
+          "https://www.lanemusic.com/piano-moving",
+          "https://alloutmoves.com/moving-services/chattanooga-piano-mover/",
+          "https://www.catfishmovingco.com/piano-pricing",
+          "https://www.blacktiemoving.com/nashville/piano-movers/",
+          "https://pianomoversplus.com/",
+          "https://www.reddit.com/r/nashville/comments/tzkeo5/piano_movers/",
+          "https://www.thumbtack.com/tn/brentwood/piano-movers",
+          "https://www.yelp.com/search",
+          "https://www.facebook.com/groups/484632492493973/posts/1884462509177624/"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-007",
+        "cited_domains": [
+          "affordablepianomovers.com",
+          "lanemusic.com",
+          "alloutmoves.com",
+          "catfishmovingco.com",
+          "blacktiemoving.com",
+          "pianomoversplus.com",
+          "reddit.com",
+          "thumbtack.com",
+          "yelp.com",
+          "facebook.com"
+        ],
+        "answer_excerpt": "For affordable piano moving services near you, the best options depend on your location, as moving companies primarily serve specific regions:\n\n**If you are in Orange County, Irvine, or the surrounding area:**\n*   **Affordable Piano Movers & Storage** specializes in piano moving at affordable rates in Orange County, CA, and offers climate-controlled storage[1].\n*   Call them at **(800) 550-5541** for service throughout Orange County, CA[1].\n\n**If you are in Nashville, Brentwood, Franklin, or the Middle Tennessee area:**\n*   **Catfish Moving Co** lists specific affordable rates for Middle TN, including **$450** for a grand piano, **$350** for a baby grand, **$325** for an upright, and **$250*...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "affordable piano moving services near me",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-008",
+        "cited_domains": [],
+        "answer_excerpt": "To help you find affordable piano moving services near you, I would need to know your location. Could you please specify the city or area you are in?",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "what to look for in a packing and unpacking service",
+        "engine": "claude",
+        "citations": [
+          "https://moverswithmanners.com/blog/packing-services-overview/",
+          "https://www.unitedvanlines.com/moving-services/packing-and-unpacking",
+          "https://www.moverswithmanners.com/packing-services-overview",
+          "https://www.3menmovers.com/blog/will-movers-pack-for-you/",
+          "https://timesofsandiego.com/branded-content/2026/04/10/upcoming-move-what-to-look-for-in-moving-company/",
+          "https://www.rocketservicesllc.com/post/effortless-packing-and-unpacking-services-explained-your-guide-to-professional-packing-solutions",
+          "https://www.amazingmoves.com/news-and-events/what-to-expect-with-unpacking-services-when-you-need-them",
+          "https://twomenandatruck.com/unpacking-services",
+          "https://daymakersmoving.com/blog/10-reasons-to-use-a-packing-and-unpacking-service/",
+          "https://twomenandatruck.com/professional-packing-services"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-009",
+        "cited_domains": [
+          "moverswithmanners.com",
+          "unitedvanlines.com",
+          "3menmovers.com",
+          "timesofsandiego.com",
+          "rocketservicesllc.com",
+          "amazingmoves.com",
+          "twomenandatruck.com",
+          "daymakersmoving.com"
+        ],
+        "answer_excerpt": "Here is a comprehensive guide on **what to look for in a packing and unpacking service**:\n\n---\n\n## \u0440\u045f\u201d\u040c What to Look for in a Packing & Unpacking Service\n\n### 1. **Range of Services Offered**\nLook for a company that offers different types of services, including partial packing (if you only need help with certain items or rooms), full unpacking at your new home, and specialty packing for items that require extra care and attention, such as artwork, antiques, or electronics.\n\n### 2. **Experience and Training**\nLook for professionally trained moving teams that are not only experts in home moving but have extensive packing training, which ensures your belongings are safe and secure during the enti...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "what to look for in a packing and unpacking service",
+        "engine": "perplexity",
+        "citations": [
+          "https://www.nationalvanlines.com/blog/what-to-expect-professional-packing-and-unpacking-services/",
+          "https://www.rocketservicesllc.com/post/effortless-packing-and-unpacking-services-explained-your-guide-to-professional-packing-solutions",
+          "https://capitolmoving.com/blog/2025/october/are-packing-and-unpacking-services-worth-the-cost-a-practical-guide-for-your-next-move/",
+          "https://www.unitedvanlines.com/moving-services/packing-and-unpacking",
+          "https://www.youtube.com/watch",
+          "https://www.reddit.com/r/moving/comments/132cqay/anyone_have_the_movers_unpack_your_things_for_you/",
+          "https://www.commandermoving.com/how-do-local-movers-handle-packing-and-unpacking-services"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-010",
+        "cited_domains": [
+          "nationalvanlines.com",
+          "rocketservicesllc.com",
+          "capitolmoving.com",
+          "unitedvanlines.com",
+          "youtube.com",
+          "reddit.com",
+          "commandermoving.com"
+        ],
+        "answer_excerpt": "When looking for a **packing and unpacking service**, prioritize companies that offer **trained movers**, use **professional-grade supplies**, and provide **clear pricing** without hidden fees.\n\n### Key Factors to Evaluate\n\n**1. Service Levels and Customization**\n*   **Full vs. Partial Packing:** Ensure the company offers **full packing** (handling everything from kitchenware to clothing) if you have limited time, or **partial packing** if you only need help with fragile items [1].\n*   **Specialty Options:** Look for **specialty packing** services for high-value items like artwork, antiques, mirrors, and electronics, which require specific materials and methods [1].\n*   **Tailored Unpacking:...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "what to look for in a packing and unpacking service",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-011",
+        "cited_domains": [],
+        "answer_excerpt": "When selecting a packing and unpacking service, consider the following factors:\n\n1. **Reputation and Reviews**: Look for companies with positive customer reviews and strong reputations for reliability and professionalism.\n\n2. **Experience**: Choose a service with ample experience, particularly with the type of items you need packed and moved.\n\n3. **Insurance and Liability**: Ensure they offer insurance coverage for potential damages or losses during the move.\n\n4. **Services Offered**: Check if they provide comprehensive services, including packing materials, specialty packing for fragile items, and unpacking assistance.\n\n5. **Cost and Transparency**: Get multiple quotes and ensure the pricin...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "last minute moving solutions vs booking in advance",
+        "engine": "perplexity",
+        "citations": [
+          "https://www.thisoldhouse.com/moving/best-last-minute-movers",
+          "https://www.movebuddha.com/blog/best-last-minute-moving-companies/",
+          "https://www.getbellhops.com/in/last-minute-movers/",
+          "https://lastminutemoving.llc/",
+          "https://www.thumbtack.com/k/last-minute-movers/near-me",
+          "https://www.lastminutemoversllc.com/",
+          "https://www.wildcatmoving.com/",
+          "https://www.hireahelper.com/movers/lexington_ky/strongman-moving/",
+          "https://www.yelp.com/search"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-012",
+        "cited_domains": [
+          "thisoldhouse.com",
+          "movebuddha.com",
+          "getbellhops.com",
+          "lastminutemoving.llc",
+          "thumbtack.com",
+          "lastminutemoversllc.com",
+          "wildcatmoving.com",
+          "hireahelper.com",
+          "yelp.com"
+        ],
+        "answer_excerpt": "Last-minute moving solutions are typically faster to book but cost more and have limited availability, while booking movers in advance offers lower rates, better company selection, and guaranteed service\u0432\u0402\u201despecially critical during peak times like weekends or end-of-month periods.\n\n**Key Differences at a Glance**\n\n| Factor | Last-Minute Moves | Booking in Advance |\n|--------|-------------------|--------------------|\n| **Cost** | Often 15\u0432\u0402\u201c25% higher due to surcharges for urgency [5][8] | Lower, more competitive rates; avoid last-minute fees [5] |\n| **Availability** | Limited; may depend on crew availability or same-day windows [1][4][8] | Wide; secure preferred dates and top-rated companies [4...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "last minute moving solutions vs booking in advance",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-013",
+        "cited_domains": [],
+        "answer_excerpt": "When deciding between last-minute moving solutions and booking in advance, there are several factors to consider:\n\n### Last-Minute Moving Solutions\n\n**Advantages:**\n- **Flexibility:** You might find companies with sudden availability due to cancellations.\n- **Immediate Needs:** Fits situations where you have unexpected or urgent relocation requirements.\n\n**Disadvantages:**\n- **Higher Costs:** Prices are often higher due to short notice.\n- **Limited Options:** Less availability of preferred moving companies or time slots.\n- **Potential Stress:** More chaotic and rushed, increasing the likelihood of overlooked details.\n\n### Booking in Advance\n\n**Advantages:**\n- **Lower Costs:** Often more econ...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "storage services during a move how do they work",
+        "engine": "perplexity",
+        "citations": [
+          "https://guardianrelocation.com/moving-and-storage-service/",
+          "https://capitolmoving.com/blog/2025/june/benefits-of-using-storage-services-during-a-move-storage-tips-solutions/",
+          "https://www.bekinssf.com/blog/p.190226000/top-benefits-of-storage-services-during-relocation/",
+          "https://www.reddit.com/r/moving/comments/167dfbr/is_there_a_service_that_moves_your_stuff_and_then/",
+          "https://www.kcmovers.com/how-using-a-storage-service-can-save-money-during-your-move",
+          "https://mytownmovers.com/blog/moving-tips-advice/benefits-of-having-a-moving-company-move-you-into-a-storage-facility/",
+          "https://www.unitedvanlines.com/moving-services/storage",
+          "https://unitedprimevanlines.com/blog/when-storage-is-needed-during-a-move"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-014",
+        "cited_domains": [
+          "guardianrelocation.com",
+          "capitolmoving.com",
+          "bekinssf.com",
+          "reddit.com",
+          "kcmovers.com",
+          "mytownmovers.com",
+          "unitedvanlines.com",
+          "unitedprimevanlines.com"
+        ],
+        "answer_excerpt": "Storage services during a move work by providing a secure interim location for your belongings when there is a timing gap between moving out and moving in, or when your new home is not yet ready for delivery [2].\n\n### **How It Works: The Two Main Models**\n\n#### **1. Full-Service Storage (Professional Handling)**\nThis is the most convenient option where the moving company manages the entire process [1].\n*   **Pickup & Inventory:** Movers pick up your belongings from your home, inventory each item, and pad-wrap furniture to prevent damage [1].\n*   **Transport to Vault:** Items are loaded into secure storage vaults within the company\u0432\u0402\u2122s facility; oversized items like sofas and pianos are stored...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "storage services during a move how do they work",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-015",
+        "cited_domains": [],
+        "answer_excerpt": "Storage services during a move are designed to provide safe and secure spaces to store your belongings while transitioning between homes. Here's how they generally work:\n\n1. **Types of Storage**: \n   - **Self-Storage Units**: You rent a unit of a specific size and transport your items to and from the location yourself.\n   - **Portable Storage Containers**: A container is delivered to your location, where you fill it, and then it\u0432\u0402\u2122s stored at a facility or moved to your new home.\n   - **Full-Service Storage**: The company picks up your items, stores them, and delivers them to your new location.\n\n2. **Booking**:\n   - Determine the type of storage you need.\n   - Contact the provider for availabi...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      }
+    ],
+    "test_counts": {
+      "configured_engines": 3,
+      "configured_queries": 6,
+      "failed_combinations": 3,
+      "skipped_combinations": 0,
+      "expected_combinations": 18,
+      "successful_combinations": 15
+    },
+    "avg_position": null,
+    "brand_domain": "az-moving.com",
+    "mention_rate": 0,
+    "citation_rate": 0,
+    "engines_tested": [
+      "perplexity",
+      "openai",
+      "claude"
+    ],
+    "queries_tested": 6,
+    "share_of_voice": 0,
+    "missing_signals": [
+      "Az-moving.com was not mentioned or cited in any of the 6 tested engine-query combinations across Perplexity and OpenAI; no presence detected in the AI answer layer for tested queries",
+      "The brand's domain (az-moving.com) does not appear among the most-cited sources; platforms that do appear \u0432\u0402\u201d reddit.com (4 citations), yelp.com (4 citations), thumbtack.com (3 citations) \u0432\u0402\u201d show no detectable Az-moving content in the measured evidence",
+      "No listing or review content attributed to Az-moving was detected on yelp.com or thumbtack.com, both of which were cited in 3\u0432\u0402\u201c4 of the tested engine answers",
+      "No Reddit mentions were found among sources cited in the tested responses moving-related threads was detected in the crawled evidence, whereas reddit.com was the most-cited source overall (4 citations)",
+      "No brand-level editorial coverage or third-party roundup citations found; competitors such as CARGO CABBIE and Rent-a-Son were surfaced via roundup articles (e.g., wahi.com, gvota.ca) that Az-moving does not appear in based on measured evidence",
+      "No detectable FAQ-style or structured content on the brand's website targeting the query types tested (e.g., 'how to find reliable commercial movers', 'what to look for in packing services', 'storage during a move'), which are the formats AI engines drew on from cited sources like unitedvanlines.com, rocketservicesllc.com, and nationalvanlines.com",
+      "No structured entity signals (e.g., consistent NAP, business category markup, or Knowledge Panel-ready data) detected in the evidence that would help AI engines identify and surface Az-moving in location-specific queries like 'best residential moving companies in Toronto GTA'",
+      "No citations from high-authority moving content hubs (e.g., unitedvanlines.com, 3menmovers.com, blacktiemoving.com, twomenandatruck.com) which collectively accounted for 8 citations in the tested sample"
+    ],
+    "recommendations": [
+      "Claim and fully optimize a Yelp business profile for Az-moving, including service categories, photos, and responses to reviews \u0432\u0402\u201d Yelp was cited in 4 of the tested engine answers and is a primary trust signal for AI engines in this category",
+      "Create and actively maintain a Thumbtack profile with detailed service descriptions, as thumbtack.com was cited 3 times in the tested sample and directly surfaces in AI answers for moving-related queries",
+      "Participate genuinely in relevant Reddit threads (e.g., r/moving, r/ontario, r/toronto) to build an organic community footprint, since reddit.com was the single most-cited source (4 citations) across the tested queries",
+      "Publish long-form, answer-structured blog content on az-moving.com targeting the exact query formats tested \u0432\u0402\u201d 'how to find reliable movers for commercial relocation', 'what to look for in a packing and unpacking service', 'storage services during a move how do they work' \u0432\u0402\u201d modeled on the content formats used by cited sources like unitedvanlines.com and rocketservicesllc.com",
+      "Pursue inclusion in Toronto/GTA moving company roundup articles (e.g., on wahi.com, homestars.com, gvota.ca), as these editorial lists were the primary source for competitor mentions (CARGO CABBIE, Rent-a-Son, My Ninja Movers) in the highest-visibility query tested",
+      "Add FAQ schema markup to service pages on az-moving.com, directly addressing the question-format queries tested, to increase the likelihood of AI engines parsing and citing the content as an authoritative answer source",
+      "Ensure consistent and complete business entity data (business name, address, phone, service area, category) across all directories and the website itself, as AI engines infer trustworthiness from entity consistency when selecting sources for location-specific queries",
+      "Seek coverage or mentions on moving-specific authority sites such as nationalvanlines.com blog, 3menmovers.com, or twomenandatruck.com resource pages \u0432\u0402\u201d these domains collectively received 6 citations in the tested sample and signal category authority to AI engines"
+    ],
+    "score_breakdown": {
+      "weights": {
+        "mention": 0.4,
+        "citation": 0.25,
+        "position": 0.2,
+        "share_of_voice": 0.15
+      },
+      "mention_rate": 0,
+      "citation_rate": 0,
+      "position_score": 0,
+      "share_of_voice": 0
+    },
+    "ai_visibility_score": 0,
+    "source_gap_analysis": [
+      {
+        "cited_source": "yelp.com",
+        "signals_found": [
+          "Clear category language",
+          "Names competitors",
+          "Review / proof signals",
+          "Third-party authority"
+        ],
+        "recommended_fix": "Actively build and maintain an Az-moving Yelp profile with verified customer reviews and complete business details so the brand appears within third-party aggregator listings that AI engines are observed to cite.",
+        "target_missing_signals": [
+          "Names competitors",
+          "Review / proof signals",
+          "Third-party authority"
+        ],
+        "why_this_source_gets_cited": "Yelp is a recognized third-party review aggregator that surfaces multiple competing businesses with star ratings and user reviews, making it a trusted source for AI engines answering 'best movers near me' queries. Its aggregated social proof and business listings provide the breadth and authority AI engines look for when recommending local services."
+      },
+      {
+        "cited_source": "thumbtack.com",
+        "signals_found": [
+          "Clear category language",
+          "Names competitors",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content",
+          "Third-party authority"
+        ],
+        "recommended_fix": "Create a complete Az-moving profile on Thumbtack (or equivalent Canadian marketplace) that includes service categories, specific use-case details such as office size or move distance, and actively solicits customer reviews to build comparable social proof signals.",
+        "target_missing_signals": [
+          "Names competitors",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content",
+          "Third-party authority"
+        ],
+        "why_this_source_gets_cited": "Thumbtack functions as a third-party marketplace with structured filters (office size, move distance, timeline), star ratings, and quoted customer reviews, giving AI engines structured, comparative data to answer buyer-intent queries about commercial movers. Its specific-use-case filters and social proof signals make it highly quotable for transactional questions."
+      },
+      {
+        "cited_source": "twomenandatruck.com",
+        "signals_found": [
+          "FAQ / Q&A structure",
+          "Clear category language",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "recommended_fix": "Expand the Az-moving piano moving page to include an explicit FAQ section that answers 'how much does it cost to move a piano in Toronto?', lists the types of pianos handled, and describes the protective process step by step, mirroring the structured informational depth observed on this cited page.",
+        "target_missing_signals": [
+          "FAQ / Q&A structure",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "why_this_source_gets_cited": "This page directly answers the specific buyer question 'how much does it cost to move a piano?' and explains the process in detail, including instrument types covered, protective techniques used, and pricing context, giving AI engines structured, factual content to quote. Customer testimonials and a clear FAQ-style pricing section further strengthen its citability."
+      },
+      {
+        "cited_source": "unitedvanlines.com",
+        "signals_found": [
+          "Clear category language",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "recommended_fix": "Restructure the Az-moving packing and unpacking service page to explicitly name and describe multiple service tiers (e.g., full packing, partial packing, DIY support) with a brief explanation of each, and add an aggregate customer rating prominently on the page to match the proof and use-case signals observed on this cited source.",
+        "target_missing_signals": [
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "why_this_source_gets_cited": "United Van Lines' packing page clearly delineates distinct service tiers (Full, Partial, DIY, Custom Crating) with explanations of what each includes, paired with a visible aggregate star rating and review count, giving AI engines concrete, structured use-case content to quote when answering packing service questions. Its brand authority and detailed service breakdown reinforce citability."
+      }
+    ],
+    "cited_domains_ranked": [
+      {
+        "count": 4,
+        "domain": "reddit.com"
+      },
+      {
+        "count": 4,
+        "domain": "yelp.com"
+      },
+      {
+        "count": 3,
+        "domain": "thumbtack.com"
+      },
+      {
+        "count": 3,
+        "domain": "unitedvanlines.com"
+      },
+      {
+        "count": 2,
+        "domain": "facebook.com"
+      },
+      {
+        "count": 2,
+        "domain": "nationalvanlines.com"
+      },
+      {
+        "count": 2,
+        "domain": "3menmovers.com"
+      },
+      {
+        "count": 2,
+        "domain": "blacktiemoving.com"
+      },
+      {
+        "count": 2,
+        "domain": "twomenandatruck.com"
+      },
+      {
+        "count": 2,
+        "domain": "rocketservicesllc.com"
+      }
+    ],
+    "competitor_visibility": [
+      {
+        "name": "CARGO CABBIE",
+        "mention_rate": 6.7
+      },
+      {
+        "name": "Rent-a-Son",
+        "mention_rate": 6.7
+      },
+      {
+        "name": "My Ninja Movers",
+        "mention_rate": 6.7
+      },
+      {
+        "name": "Six Moving",
+        "mention_rate": 6.7
+      },
+      {
+        "name": "Tower Moving Company",
+        "mention_rate": 6.7
+      },
+      {
+        "name": "SafeNestMovers",
+        "mention_rate": 6.7
+      }
+    ]
+  },
+  "meta": {
+    "url": "https://az-moving.com/",
+    "tier": "automated",
+    "domain": "az-moving.com",
+    "competitors": [],
+    "generated_at": "2026-07-01T15:28:23.982Z",
+    "canonical_brand": "Az-moving",
+    "icp_description": "People and businesses in Toronto / GTA looking for residential or commercial moving services.",
+    "business_context": {
+      "business_model": "unknown",
+      "verified_facts": "",
+      "purchase_availability": "unknown",
+      "ships_internationally": "unknown",
+      "primary_conversion_goal": "unknown",
+      "target_markets_languages": "",
+      "provenance_or_authentication": "unknown"
+    },
+    "alternative_brand_forms": []
+  },
+  "action": {
+    "top_fixes": [
+      {
+        "id": 1,
+        "owner": "Founder / marketing",
+        "title": "Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator",
+        "effort": "easy",
+        "impact": "high",
+        "control": "high",
+        "category": "copy",
+        "confidence": 60,
+        "claim_level": "inferred",
+        "contributor": "Copywriter",
+        "description": "Replace 'Your reliable, fast and quality Moving Service' with a headline that names the geography and references a verifiable differentiator. Recommended direction: 'Toronto's Trusted Movers \u0432\u0402\u201d Residential & Commercial | Rated on HomeStars'. This is an observed gap: the current H1 contains no geographic entity and no specific proof point. Update the H1 tag in the HTML directly; do not rely on subheadings to carry the location signal.",
+        "implementer": "Developer",
+        "probability": "medium",
+        "evidence_ids": [
+          "OBS-PROOF-001"
+        ],
+        "evidence_basis": "Based on: OBS-PROOF-001",
+        "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
+        "confidence_level": "medium"
+      },
+      {
+        "id": 2,
+        "owner": "SEO",
+        "title": "Add LocalBusiness and Service schema markup to the homepage",
+        "effort": "medium",
+        "impact": "high",
+        "control": "high",
+        "category": "ai_search",
+        "confidence": 88,
+        "claim_level": "observed",
+        "description": "No schema markup signals were detected in the crawled content. Add JSON-LD markup for LocalBusiness (name, address, telephone, areaServed, url) and at least one Service node covering the primary offering. This improves machine-readable entity structure for both search engines and AI crawlers that parse structured data. Do not add review-rating markup unless you can point to a live, crawlable review source. FAQPage schema is also recommended once FAQ content is added (see fix 4).",
+        "implementer": "Developer",
+        "probability": "high",
+        "evidence_ids": [
+          "OBS-SCHEMA-001"
+        ],
+        "evidence_basis": "Based on: OBS-SCHEMA-001",
+        "confidence_basis": "No application/ld+json script present in the rendered HTML",
+        "confidence_level": "high"
+      },
+      {
+        "id": 3,
+        "owner": "Developer",
+        "title": "Make trust credentials visible as text, not only as image elements",
+        "effort": "easy",
+        "impact": "high",
+        "control": "medium",
+        "category": "proof",
+        "confidence": 65,
+        "claim_level": "inferred",
+        "contributor": "SEO",
+        "description": "The WSIB, CVOR, BBB, and HomeStars logos are rendered as lazy-loaded SVG placeholders in the crawled content, with no descriptive surrounding prose detected. Add a short text block near the credentials section \u0432\u0402\u201d for example: 'Az-moving holds WSIB coverage and a CVOR registration, and is BBB-accredited with a HomeStars Star Score.' This ensures the credentials are readable by users on slow connections, screen readers, and text-based AI crawlers regardless of image-load status.",
+        "implementer": "Developer",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+        "confidence_level": "medium"
+      },
+      {
+        "id": 4,
+        "owner": "SEO",
+        "title": "Add an FAQ section to the homepage addressing common mover-selection questions",
+        "effort": "medium",
+        "impact": "high",
+        "control": "high",
+        "category": "ai_search",
+        "confidence": 88,
+        "claim_level": "observed",
+        "description": "No FAQ elements were detected in the crawled content. Add 4\u0432\u0402\u201c6 questions that reflect real pre-purchase anxieties \u0432\u0402\u201d e.g., 'Are you licensed to move in Toronto and the GTA?', 'What does your insurance cover?', 'How quickly can you provide a quote?', 'Do you move pianos or specialty items?' \u0432\u0402\u201d with direct, factual answers. Apply FAQPage schema markup. This creates extractable, structured content that AI-assisted search tools can surface as direct answers to local moving queries.",
+        "implementer": "Developer",
+        "probability": "high",
+        "evidence_ids": [
+          "OBS-SCHEMA-001"
+        ],
+        "evidence_basis": "Based on: OBS-SCHEMA-001",
+        "confidence_basis": "No application/ld+json script present in the rendered HTML",
+        "confidence_level": "high"
+      },
+      {
+        "id": 5,
+        "owner": "Copywriter",
+        "title": "Fix the post-form confirmation typo and add a response-time commitment",
+        "effort": "easy",
+        "impact": "high",
+        "control": "medium",
+        "category": "cta",
+        "confidence": 65,
+        "claim_level": "inferred",
+        "description": "The observed confirmation message reads 'We'll contact you as soon as posible!' \u0432\u0402\u201d correct the spelling. Additionally, add a specific response-time statement such as 'We respond same business day' or 'You'll hear from us within' \u0432\u0402\u201d use only a timeframe you can reliably meet. This sets expectations at the moment of highest visitor commitment and may reduce post-submission uncertainty. Inferred: the absence of a response-time promise may reduce confidence in the quote process.",
+        "implementer": "Copywriter",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+        "confidence_level": "medium"
+      },
+      {
+        "id": 6,
+        "owner": "Developer",
+        "title": "Render the phone number as visible text in the hero section",
+        "effort": "easy",
+        "impact": "high",
+        "control": "medium",
+        "category": "cta",
+        "confidence": 65,
+        "claim_level": "inferred",
+        "description": "The phone number is rendered via an SVG icon with no visible text detected in the crawled content. Add the phone number as a plain-text, tap-to-call link (<a href='tel:...'>) directly visible in or immediately below the hero, alongside the quote form. Visitors who prefer immediate phone contact \u0432\u0402\u201d common in moving searches \u0432\u0402\u201d should not need to hunt for the number.",
+        "implementer": "Developer",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+        "confidence_level": "medium"
+      },
+      {
+        "id": 7,
+        "owner": "Founder / marketing",
+        "title": "Add at least two customer testimonial quotes directly on the homepage",
+        "effort": "easy",
+        "impact": "medium",
+        "control": "medium",
+        "category": "proof",
+        "confidence": 60,
+        "claim_level": "inferred",
+        "contributor": "SEO",
+        "description": "No testimonial text was detected on the homepage in the crawled content; social proof is currently on a separate Reviews page. Pull two or three short, specific quotes from verified reviews (HomeStars or Google) and embed them on the homepage with the reviewer's first name and move type (e.g., 'condo move, Toronto'). This provides narrative confirmation of service quality without requiring a page click, and gives AI crawlers quotable third-party text.",
+        "implementer": "Copywriter",
+        "probability": "medium",
+        "evidence_ids": [
+          "OBS-PROOF-001"
+        ],
+        "evidence_basis": "Based on: OBS-PROOF-001",
+        "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
+        "confidence_level": "medium"
+      },
+      {
+        "id": 8,
+        "owner": "Copywriter",
+        "title": "Rewrite the homepage body copy opening to address visitor anxieties first",
+        "effort": "easy",
+        "impact": "medium",
+        "control": "high",
+        "category": "copy",
+        "confidence": 98,
+        "claim_level": "inferred",
+        "description": "The current opening \u0432\u0402\u201d 'we redefine the moving experience' \u0432\u0402\u201d is company-centric and abstract. Rewrite to lead with the visitor's primary concerns: on-time arrival, safe handling, transparent pricing, and licensed crews. Example direction: 'Moving in Toronto is stressful enough. Az-moving's licensed, insured crews show up on time, handle your belongings with care, and give you a clear quote before anything moves.' This is inferred to improve relevance for visitors in a high-anxiety purchase context.",
+        "implementer": "Copywriter",
+        "probability": "high",
+        "evidence_ids": [
+          "OBS-H1-001"
+        ],
+        "evidence_basis": "Based on: OBS-H1-001",
+        "confidence_basis": "Matched a single <h1> element in the rendered HTML",
+        "confidence_level": "high"
+      },
+      {
+        "id": 9,
+        "owner": "Founder / marketing",
+        "title": "Add years in business or total moves completed as a named numeric fact",
+        "effort": "easy",
+        "impact": "medium",
+        "control": "high",
+        "category": "proof",
+        "confidence": 60,
+        "claim_level": "inferred",
+        "contributor": "Copywriter",
+        "description": "No volume-based social proof (years operating, number of moves completed) was detected in the homepage copy. Add one specific, verifiable operational fact \u0432\u0402\u201d e.g., 'Serving Toronto since' or '+ moves completed across the GTA' \u0432\u0402\u201d using only figures you can substantiate. Named numeric facts increase the page's density of citable specifics and anchor credibility for visitors who weigh operational experience.",
+        "implementer": "Copywriter",
+        "probability": "medium",
+        "evidence_ids": [
+          "OBS-PROOF-001"
+        ],
+        "evidence_basis": "Based on: OBS-PROOF-001",
+        "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
+        "confidence_level": "medium"
+      },
+      {
+        "id": 10,
+        "owner": "Copywriter",
+        "title": "Clarify or remove the Quebec service claim if no supporting content exists",
+        "effort": "easy",
+        "impact": "medium",
+        "control": "high",
+        "category": "copy",
+        "confidence": 98,
+        "claim_level": "inferred",
+        "description": "The hero copy states 'Book your move in Ontario and Quebec within minutes,' but no Quebec-specific service pages or content were detected in the crawled navigation. Either add dedicated Quebec service content to support this claim, or remove it from the hero and limit the geographic scope to the GTA/Ontario area that is already well-supported by named service-area pages. An unsupported geographic claim may create a credibility gap for visitors who investigate further.",
+        "implementer": "Copywriter",
+        "probability": "high",
+        "evidence_ids": [
+          "OBS-H1-001"
+        ],
+        "evidence_basis": "Based on: OBS-H1-001",
+        "confidence_basis": "Matched a single <h1> element in the rendered HTML",
+        "confidence_level": "high"
+      }
+    ],
+    "ship_first": [
+      "Rewrite the H1 headline to include 'Toronto' and reference the HomeStars score (Fix 1)",
+      "Fix the post-form confirmation typo and add a response-time statement (Fix 5)",
+      "Render the phone number as visible tap-to-call text in the hero (Fix 6)",
+      "Add a short text block naming WSIB, CVOR, and BBB credentials in prose near the logo row (Fix 3)",
+      "Add two homepage testimonial quotes pulled from existing verified reviews (Fix 7)"
+    ],
+    "ignore_for_now": [
+      "Deep content expansion for Quebec service area \u0432\u0402\u201d only worth pursuing if Az-moving has verified operational capacity there and can build supporting location pages",
+      "Wikipedia or third-party directory outreach \u0432\u0402\u201d these are low-control channels with unpredictable timelines and independent notability requirements; owned-channel improvements will deliver more reliable results first"
+    ],
+    "executive_summary": "Az-moving's homepage contains meaningful trust signals \u0432\u0402\u201d a HomeStars score, WSIB and CVOR credentials, and granular GTA service-area coverage \u0432\u0402\u201d but the current headline, body copy, and structural choices may reduce how quickly the right visitors self-qualify and proceed to contact. The hero headline contains no geographic anchor and leads with generic descriptors that are common across the category, making it harder for a Toronto-area visitor to immediately confirm relevance. Several of the strongest trust elements (credential logos, phone number) are rendered in ways that may not be visible to all users or to text-based crawlers, limiting both human and AI-search recognition. Addressing headline clarity, trust-signal accessibility, form friction, and structured markup represents the highest-leverage opportunity to improve visitor confidence and contact rates.",
+    "outreach_messages": [
+      {
+        "note": "Recommended for outreach to Az-moving's decision-maker or a digital agency they work with. Does not invent outcomes or scarcity. Replace '' with the contact's actual name.",
+        "channel": "linkedin",
+        "message": "Hi, I came across Az-moving while looking at Toronto-area moving companies and noticed a few quick structural changes on the homepage that could make a meaningful difference in how clearly the right visitors identify you as the right fit \u0432\u0402\u201d starting with the headline, which currently has no geographic anchor.Contact the business to confirm WSIB status, CVOR status and third-party rating details before booking. Happy to share a short breakdown if it's useful."
+      },
+      {
+        "note": "Plain-text email format. Does not invent case studies, conversion figures, or scarcity. Replace '' and '' before sending.",
+        "channel": "email",
+        "message": "Subject: One homepage change that may help more Toronto visitors recognise Az-moving immediately Hi, I reviewed Az-moving's homepage and the single highest-leverage issue I found is straightforward: the main headline \u0432\u0402\u201d 'Your reliable, fast and quality Moving Service' \u0432\u0402\u201d contains no mention of Toronto or the GTA. A visitor who lands without prior context can't confirm in the first second that this is a local specialist.Contact the business to confirm WSIB status, CVOR status and third-party rating details before booking. The issue isn't what you offer \u0432\u0402\u201d it's that the headline doesn't surface it. I also spotted a typo in the quote-form confirmation message and a few structural gaps around schema markup and FAQ content that limit how AI-assisted search tools read the page. If you'd like a concise breakdown of the top five fixes \u0432\u0402\u201d all low-effort \u0432\u0402\u201d I'm glad to send it over. No pitch, just the specifics."
+      },
+      {
+        "note": "Keep under 280 characters if needed \u0432\u0402\u201d trim to the core point. Replace '@' with the verified account handle. Do not post if the handle is unverified.",
+        "channel": "twitter",
+        "message": "Contact the business to confirm WSIB status, CVOR status and third-party rating details before booking. But the H1 headline has no 'Toronto' or 'GTA' mention, so a visitor landing cold can't immediately confirm you're local. Easy fix with a meaningful impact on first-impression clarity. Happy to share the full note if useful."
+      }
+    ]
+  },
+  "clarity": {
+    "cta": {
+      "score": 50,
+      "finding": "The primary CTA is a quote-request form embedded in the hero section with a 'Get a Quote' button. While having the form above the fold is positive, several issues may reduce completion rates. First, the form requests five fields (Full Name, Moving Date, Email, Phone Number, and implicitly service/location details) before any value exchange \u0432\u0402\u201d no indication of response time, Contact the business to confirm pricing.. Second, the confirmation message contains a typo: 'We'll contact you as soon as posible!' which may weaken perceived professionalism at a critical post-submission moment. Third, there is no secondary CTA (e.g., a direct phone call link) visible in the hero for visitors who prefer immediate contact over form submission. The phone number appears in the header contact section but is rendered via an SVG icon with no visible text number in the crawled content, which may make it inaccessible to users scanning quickly.",
+      "severity": "medium",
+      "suggested_rewrite": "Get a Free Quote in \u0432\u0402\u201d or call us directly at. We respond same day."
+    },
+    "headline": {
+      "score": 40,
+      "finding": "The current headline uses three generic descriptors \u0432\u0402\u201d reliable, fast, and quality \u0432\u0402\u201d that are common claims across virtually all moving companies and provide no differentiation. 'Quality' used as an adjective modifying 'Moving Service' is grammatically awkward and may subtly reduce perceived professionalism. There is no geographic signal (Toronto/GTA), no mention of who is being served (homeowners, condo residents, businesses), and no specific proof point or differentiator. The headline does not reference the HomeStars score or the WSIB/CVOR credentials visible lower on the page, leaving the strongest trust signals disconnected from the first impression. This mismatch may reduce the likelihood that a Toronto-area visitor immediately recognises this as the right service for them.",
+      "severity": "critical",
+      "current_headline": "Your reliable, fast and quality Moving Service",
+      "suggested_rewrite": "Toronto's Trusted Movers \u0432\u0402\u201d Residential & Commercial | Rating on HomeStars"
+    },
+    "trust_proof": {
+      "score": 55,
+      "finding": "The page references several credible trust signals: a HomeStars Star Score (linked), BBB seal, WSIB, and CVOR credentials. These are meaningful differentiators in the moving industry. However, all four credential logos are rendered as lazy-loaded SVG placeholders in the crawled content, meaning they may not display for users on slower connections or with JavaScript issues \u0432\u0402\u201d a visitor who never sees these logos receives no third-party validation. The HomeStars score is mentioned twice in text, which partially compensates. There are no customer review excerpts or testimonial quotes visible on the homepage itself (a 'Reviews' page exists but is separate). The years in business, number of moves completed, or any volume-based social proof are not present in the homepage copy. The 'We are fully insured' statement appears without specifics (e.g., liability limits, cargo insurance), which may be less reassuring to higher-value commercial movers.",
+      "severity": "medium",
+      "missing_elements": [
+        "Visible customer testimonial quotes directly on the homepage",
+        "Number of moves completed or years in operation as a social proof anchor",
+        "Specific insurance detail (e.g., type and coverage level) for commercial ICP confidence",
+        "Fallback text or alt-text for credential logos in case images fail to load",
+        "Response-time or guarantee statement near the quote form"
+      ]
+    },
+    "messaging_fit": {
+      "score": 48,
+      "finding": "The homepage body copy ('At A-Z Moving, we redefine the moving experience in Toronto, offering profe...') begins with a company-centric frame ('we redefine') rather than addressing the visitor's primary anxiety \u0432\u0402\u201d typically: will my belongings be handled carefully, will the movers show up on time, and will the price be what I was quoted? The phrase 'redefine the moving experience' is an abstract claim common in service marketing and is unlikely to resonate with someone under the practical stress of organising a move. The service listing in the navigation is comprehensive (nine distinct services) but the homepage body does not appear to connect specific services to specific visitor situations (e.g., condo move-out deadlines, piano handling, last-minute availability). The Quebec mention in the hero ('Book your move in Ontario and Quebec') is not supported by visible Quebec-specific content or service area pages in the crawled navigation, which may create a credibility gap for GTA visitors who notice the disconnect. Overall, the messaging leans on credentials and geography without directly addressing the emotional and logistical concerns most likely driving a moving-services search.",
+      "severity": "critical"
+    },
+    "overall_score": 52,
+    "icp_visibility": {
+      "score": 58,
+      "finding": "The page does reference Toronto and the GTA extensively through service area listings and the heading 'Trusted Moving Experts in Toronto for Homes & Businesses,' which aligns with the ICP. However, the hero headline \u0432\u0402\u201d 'Your reliable, fast and quality Moving Service' \u0432\u0402\u201d omits any geographic anchor, meaning a visitor who lands without prior context may not immediately confirm this is a Toronto/GTA-specific provider. The phrase 'Book your move in Ontario and Quebec within minutes' broadens the geographic scope significantly; for a visitor specifically seeking a local Toronto mover, this dilution may reduce the sense of local specialisation. The residential vs. commercial distinction is present in the navigation and the subheading but is not foregrounded in the hero copy, which could slow self-qualification for business buyers.",
+      "severity": "medium"
+    }
+  },
+  "ready_materials": {
+    "faq": [
+      {
+        "answer": "Az-Moving provides residential and commercial moving services across Toronto and the Greater Toronto Area. For specific neighbourhood or city coverage, contact the team directly to confirm availability for your move date and location.",
+        "question": "Does Az-Moving serve all areas within the GTA?"
+      },
+      {
+        "answer": "Contact the business to confirm WSIB status and CVOR status before booking. For details on coverage types and limits relevant to your move \u0432\u0402\u201d particularly for high-value or commercial relocations \u0432\u0402\u201d contact the team before booking.",
+        "question": "Is Az-Moving insured and certified?"
+      },
+      {
+        "answer": "Az-Moving offers a range of services including residential moves, commercial and office relocations, and specialty item handling. Visit the services section of az-moving.com or call directly to discuss the specifics of your move.",
+        "question": "What types of moves does Az-Moving handle?"
+      },
+      {
+        "answer": "You can request a free quote through the form on az-moving.com. Pricing will depend on your move size, distance, access conditions, and any specialty items \u0432\u0402\u201d a team member will follow up to confirm the details.",
+        "question": "How do I get a price estimate for my move in Toronto?"
+      },
+      {
+        "answer": "Availability varies by season, with summer and end-of-month dates booking up quickly in the GTA. Contacting Az-Moving as early as possible is advisable, though the team can advise on short-notice availability when you reach out.",
+        "question": "How far in advance should I book a Toronto mover?"
+      },
+      {
+        "answer": "Condo moves in Toronto often require coordinated elevator reservations and building access approvals. Contact Az-Moving with your building's requirements so the team can plan accordingly and help avoid delays on move day.",
+        "question": "Does Az-Moving handle condo moves with elevator booking requirements?"
+      }
+    ],
+    "json_ld": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@graph\": [\n    {\n      \"@type\": \"MovingCompany\",\n      \"name\": \"Az-moving\",\n      \"url\": \"https://az-moving.com/\",\n      \"areaServed\": [\n        \"Toronto\"\n      ]\n    },\n    {\n      \"@type\": \"Service\",\n      \"name\": \"Az-moving moving services\",\n      \"serviceType\": \"Moving services\",\n      \"provider\": {\n        \"@type\": \"MovingCompany\",\n        \"name\": \"Az-moving\",\n        \"url\": \"https://az-moving.com/\"\n      },\n      \"areaServed\": [\n        \"Toronto\"\n      ]\n    },\n    {\n      \"@type\": \"FAQPage\",\n      \"mainEntity\": [\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Does Az-Moving serve all areas within the GTA?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Az-Moving provides residential and commercial moving services across Toronto and the Greater Toronto Area. For specific neighbourhood or city coverage, contact the team directly to confirm availability for your move date and location.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Is Az-Moving insured and certified?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Az-Moving holds WSIB and CVOR credentials and carries insurance coverage. For details on coverage types and limits relevant to your move \u0432\u0402\u201d particularly for high-value or commercial relocations \u0432\u0402\u201d contact the team before booking.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"What types of moves does Az-Moving handle?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Az-Moving offers a range of services including residential moves, commercial and office relocations, and specialty item handling. Visit the services section of az-moving.com or call directly to discuss the specifics of your move.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"How do I get a price estimate for my move in Toronto?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"You can request a free quote through the form on az-moving.com. Pricing will depend on your move size, distance, access conditions, and any specialty items \u0432\u0402\u201d a team member will follow up to confirm the details.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"How far in advance should I book a Toronto mover?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Availability varies by season, with summer and end-of-month dates booking up quickly in the GTA. Contacting Az-Moving as early as possible is advisable, though the team can advise on short-notice availability when you reach out.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Does Az-Moving handle condo moves with elevator booking requirements?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Condo moves in Toronto often require coordinated elevator reservations and building access approvals. Contact Az-Moving with your building's requirements so the team can plan accordingly and help avoid delays on move day.\"\n          }\n        }\n      ]\n    }\n  ]\n}\n</script>",
+    "meta_title": "Toronto Movers \u0432\u0402\u201c Residential & Commercial | Az-Moving",
+    "cta_variants": [
+      "Get Your Free Moving Quote",
+      "Request a Quote \u0432\u0402\u201d We Respond Same Day",
+      "Book Your Toronto Move",
+      "Talk to a Mover Now",
+      "Check Availability for Your Move Date"
+    ],
+    "meta_description": "Az-Moving serves Toronto and the GTA with residential and commercial moving services.Contact the business to confirm WSIB status and third-party rating details before booking. Request a free quote today."
+  },
+  "data_limitations": [
+    "AI visibility findings are limited to 15 tested engine-query combinations across perplexity, openai, claude.",
+    "This audit does not use GA4, CRM, ad platform, heatmap, or sales-cycle data, so conversion and revenue impact are framed as hypotheses.",
+    "Crawler output may miss visual-only content, gated content, personalized pages, or assets blocked by the target site.",
+    "Recommendations should be reviewed by the business owner before publishing claims, guarantees, case studies, or client results."
+  ],
+  "technical_findings": [
+    {
+      "id": "cta_present",
+      "label": "Primary call-to-action",
+      "detail": "A primary CTA element is present.",
+      "status": "present",
+      "evidence": {
+        "url": "https://az-moving.com/",
+        "checked_at": "2026-07-01T15:25:35.287Z",
+        "html_snippet": "<a class=\"introMobile__actions__callForm sideMenu__content__item__btn\" href=\"https://az-moving.com/#introMobile__form\" uk-toggle=\"\" aria-expanded=\"true\">Get a Quote</a>",
+        "extracted_text": "Get a Quote"
+      },
+      "confidence": 96,
+      "evidence_id": "OBS-CTA-001",
+      "classification": "detected",
+      "confidence_basis": "Matched an actionable CTA element with visible or accessible CTA text in the rendered HTML"
+    },
+    {
+      "id": "h1_present",
+      "label": "Headline (H1)",
+      "detail": "Your reliable, fast and quality Moving Service",
+      "status": "present",
+      "evidence": {
+        "url": "https://az-moving.com/",
+        "checked_at": "2026-07-01T15:25:35.287Z",
+        "html_snippet": "<h1>Your reliable, fast and quality <span id=\"span-first-block\" style=\"color: #315efb;\">Moving Service</span></h1>",
+        "extracted_text": "Your reliable, fast and quality Moving Service"
+      },
+      "confidence": 98,
+      "evidence_id": "OBS-H1-001",
+      "classification": "detected",
+      "confidence_basis": "Matched a single <h1> element in the rendered HTML"
+    },
+    {
+      "id": "json_ld",
+      "label": "Structured data (schema.org JSON-LD)",
+      "detail": "No JSON-LD structured data found - AI engines have fewer entity signals to cite.",
+      "status": "absent",
+      "evidence": {
+        "url": "https://az-moving.com/",
+        "checked_at": "2026-07-01T15:25:35.287Z",
+        "html_snippet": null,
+        "extracted_text": null
+      },
+      "confidence": 88,
+      "evidence_id": "OBS-SCHEMA-001",
+      "classification": "detected",
+      "confidence_basis": "No application/ld+json script present in the rendered HTML"
+    },
+    {
+      "id": "meta_description",
+      "label": "Meta description",
+      "detail": "No meta description found.",
+      "status": "absent",
+      "evidence": {
+        "url": "https://az-moving.com/",
+        "checked_at": "2026-07-01T15:25:35.287Z",
+        "html_snippet": null,
+        "extracted_text": null
+      },
+      "confidence": 85,
+      "evidence_id": "OBS-META-001",
+      "classification": "detected",
+      "confidence_basis": "No non-empty <meta name=\"description\"> in the rendered HTML"
+    },
+    {
+      "id": "social_proof",
+      "label": "Social proof signals",
+      "detail": "Some social-proof language is present; confirm it is real, named proof.",
+      "status": "present",
+      "evidence": {
+        "url": "https://az-moving.com/",
+        "checked_at": "2026-07-01T15:25:35.287Z",
+        "html_snippet": null,
+        "extracted_text": "Reviews"
+      },
+      "confidence": 60,
+      "evidence_id": "OBS-PROOF-001",
+      "classification": "likely",
+      "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element"
+    },
+    {
+      "id": "faq_structure",
+      "label": "FAQ / Q&A structure",
+      "detail": "Possible FAQ-like language detected - requires verification.",
+      "status": "unknown",
+      "evidence": {
+        "url": "https://az-moving.com/",
+        "checked_at": "2026-07-01T15:25:35.287Z",
+        "html_snippet": null,
+        "extracted_text": null
+      },
+      "confidence": 55,
+      "evidence_id": "OBS-FAQ-001",
+      "classification": "manual_verification",
+      "confidence_basis": "FAQ-like language was found, but no question-answer structure or FAQPage schema was confirmed"
+    }
+  ],
+  "validation_warnings": [
+    "text: repaired broken internal phrasing",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "text: repaired broken internal phrasing",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "causality: softened an unsupported causal claim",
+    "text: repaired broken internal phrasing",
+    "text: repaired broken internal phrasing",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "commercial_claim: replaced an unsupported moving claim at sentence level",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "commercial_claim: replaced an unsupported moving claim at sentence level",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "commercial_claim: replaced an unsupported moving claim at sentence level",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "text: repaired broken internal phrasing",
+    "commercial_claim: replaced an unsupported moving claim at sentence level",
+    "commercial_claim: replaced an unsupported moving claim at sentence level",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy"
+  ],
+  "implementation_briefs": [
+    {
+      "steps": [
+        "Open the homepage template file and locate the existing H1 tag containing 'Your reliable, fast and quality Moving Service'.",
+        "Replace the H1 text with a version that includes a named geography (Toronto / GTA) and at least one verifiable proof point \u0432\u0402\u201d for example: 'Toronto's Trusted Movers \u0432\u0402\u201d Residential & Commercial | Rated on HomeStars'. Confirm the chosen proof point is accurate before publishing.",
+        "Ensure the new text is in the H1 HTML tag directly, not a styled div or subheading, so crawlers read it as the primary page heading.",
+        "Verify no other H1 tag exists on the homepage; each page should have exactly one H1."
+      ],
+      "fix_title": "Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator",
+      "acceptance_criteria": [
+        "Done when the rendered homepage HTML contains exactly one H1 tag and its text includes a Toronto or GTA geographic reference.",
+        "Done when the H1 text references at least one specific, factually accurate differentiator (e.g., a named credential or rating platform) that appears elsewhere on the page.",
+        "Done when a browser view-source check confirms the H1 is a native H1 element, not a CSS-styled div or span."
+      ]
+    },
+    {
+      "steps": [
+        "Create a JSON-LD script block and add it to the homepage <head>. Include a LocalBusiness node with at minimum: name, address (streetAddress, addressLocality, addressRegion, postalCode, addressCountry), telephone, url, and areaServed populated with accurate, verified business data.",
+        "Add at least one Service node nested under or linked from the LocalBusiness, describing the primary moving offering with name and serviceType fields.",
+        "Do not include review-rating markup unless a live, crawlable review source exists and the rating values are current.",
+        "Validate the markup using Google's Rich Results Test and Schema.org validator before deploying. Fix any errors flagged by either tool.",
+        "Once a FAQ section is added (see fix 4), extend the same script block or add a separate FAQPage JSON-LD block referencing those questions."
+      ],
+      "fix_title": "Add LocalBusiness and Service schema markup to the homepage",
+      "acceptance_criteria": [
+        "Done when Google's Rich Results Test parses the homepage and returns a valid LocalBusiness entity with no critical errors.",
+        "Done when the JSON-LD block is present in the rendered HTML source and includes all required fields: name, address, telephone, url, and areaServed.",
+        "Done when no review-rating properties appear in the schema unless a verifiable crawlable review source is confirmed and documented."
+      ]
+    },
+    {
+      "steps": [
+        "Locate the credentials section of the homepage where WSIB, CVOR, BBB, and HomeStars logos appear.",
+        "Add a visible text block adjacent to the logos \u0432\u0402\u201d for example: 'Az-moving holds WSIB coverage and a CVOR registration, and is listed on BBB and HomeStars.' Use only credential claims that are accurate and currently verifiable.",
+        "Ensure the text block is in plain HTML (p or div), not embedded inside an image or rendered only via CSS background, so it is readable by screen readers and text-based crawlers regardless of image-load status.",
+        "Add descriptive alt text to each logo image that names the credential it represents (e.g., alt='WSIB Certificate of Clearance')."
+      ],
+      "fix_title": "Make trust credentials visible as text, not only as image elements",
+      "acceptance_criteria": [
+        "Done when a browser view-source of the live homepage shows a plain-text block near the credentials section naming each credential without requiring image rendering.",
+        "Done when each credential logo image has a non-empty, descriptive alt attribute visible in the HTML source.",
+        "Done when the text block is visible in a browser with images disabled or with lazy-loading blocked."
+      ]
+    },
+    {
+      "steps": [
+        "Draft 4\u0432\u0402\u201c6 FAQ questions that reflect genuine pre-hire concerns, such as: 'Are you licensed to operate in Toronto and the GTA?', 'What does your insurance cover during a move?', 'How quickly can I receive a quote?', 'Do you move specialty items such as pianos or large appliances?'. Write direct, factual answers using only information the business can confirm.",
+        "Add the FAQ content as visible, readable HTML on the homepage \u0432\u0402\u201d use a semantic structure (e.g., <details>/<summary> or heading + paragraph pairs) so content is accessible without JavaScript.",
+        "Author a FAQPage JSON-LD block referencing each question-answer pair and add it to the homepage <head> alongside the LocalBusiness schema (fix 2).",
+        "Validate the FAQPage markup with Google's Rich Results Test and resolve any errors before deploying."
+      ],
+      "fix_title": "Add an FAQ section to the homepage addressing common mover-selection questions",
+      "acceptance_criteria": [
+        "Done when the homepage HTML contains at least four visible FAQ question-and-answer pairs readable without image rendering or JavaScript.",
+        "Done when Google's Rich Results Test returns a valid FAQPage entity with no critical errors for the homepage URL.",
+        "Done when every answer in the FAQ section contains only information confirmed as accurate by the business before publication."
+      ]
+    },
+    {
+      "steps": [
+        "Locate the form-submission confirmation message in the codebase \u0432\u0402\u201d currently reading 'We'll contact you as soon as posible!' \u0432\u0402\u201d and correct 'posible' to 'possible'.",
+        "Agree internally on a response timeframe the team can consistently meet (e.g., 'same business day' or 'within 4 business hours'), and add this commitment to the confirmation message \u0432\u0402\u201d for example: 'We'll contact you as soon as possible. You'll hear from us within on business days.'",
+        "Replace the placeholder with the agreed, realistic timeframe only. Do not publish a timeframe the business cannot reliably honor.",
+        "QA the updated message by submitting a test form entry on staging and confirming the corrected text and response-time statement appear in the confirmation display."
+      ],
+      "fix_title": "Fix the post-form confirmation typo and add a response-time commitment",
+      "acceptance_criteria": [
+        "Done when a test form submission on the live site displays a confirmation message with 'possible' spelled correctly and no prior typo visible.",
+        "Done when the confirmation message includes a specific, non-placeholder response-time statement (e.g., a defined number of hours or 'same business day').",
+        "Done when a plain-text search of the homepage and form confirmation HTML finds zero instances of the misspelling 'posible'."
+      ]
+    }
+  ]
+}

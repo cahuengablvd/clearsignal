@@ -892,7 +892,8 @@ describe('pre-PDF contradiction validator', () => {
     expect(text.toLowerCase()).not.toContain('available for purchase')
     expect(text.toLowerCase()).not.toContain('international shipping')
     expect(text.toLowerCase()).not.toContain('certificates of authenticity')
-    expect(text).toContain('Contact the business to confirm availability')
+    expect(text).toContain('Ask the team about availability')
+    expect(text).not.toMatch(/Contact the business to confirm|should be confirmed with the business|before booking/i)
     expect(r.warnings.some((w) => w.startsWith('commercial_claim:'))).toBe(true)
   })
 
@@ -1258,12 +1259,12 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/fully insured|HomeStars-rated|CVOR credentials|WSIB credentials|storage is available|offers piano moving|across Ontario and Quebec/i)
-    expect(text).toContain('Contact the business to confirm insurance details and third-party rating details before booking.')
-    expect(text).toContain('Contact the business to confirm insurance details, WSIB status and CVOR status before booking.')
+    expect(text).toContain('Ask the team about insurance details and third-party rating details for this move.')
+    expect(text).toContain('Ask the team about insurance details, WSIB status and CVOR status for this move.')
     expect(text).toContain(
-      'Contact the business to confirm piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market before booking.'
+      'Ask the team about piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market for this move.'
     )
-    expect(text).not.toMatch(/before publishing this wording/i)
+    expect(text).not.toMatch(/Contact the business to confirm|before publishing this wording|before booking/i)
   })
 
   it('is idempotent on repeated credential-safe phrases from the broken PDF', () => {
@@ -1341,12 +1342,12 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
             },
             {
               channel: 'linkedin',
-              message: "I noticed you're based in — visit.",
+              message: "I noticed you're based in \u0432\u0402\u201d visit.",
               note: '',
             },
             {
               channel: 'twitter',
-              message: 'Get a Free Quote in — or call us now at',
+              message: 'Get a Free Quote in \u0432\u0402\u201d or call us now at',
               note: '',
             },
           ],

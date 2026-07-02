@@ -11,6 +11,7 @@
  */
 import { sanitizeUnsupportedCommercialClaims } from './sanitize'
 import { canClaimCredential, canClaimServiceAvailability } from './business-context'
+import { buildJsonLd } from './materials'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
 
 export type ReportValidation = {
@@ -98,17 +99,25 @@ const BROKEN_STRINGS: Array<[RegExp, string]> = [
     /\bno visible pricing should be confirmed with the business\b/gi,
     'No visible pricing was confirmed in the crawled content',
   ],
-  [/\bpricing should be confirmed with the business\b/gi, 'Contact the business to confirm pricing.'],
-  [/\binsurance details should be confirmed with the business\b/gi, 'Confirm insurance details before publishing this wording.'],
-  [/\b(WSIB|CVOR) status\.\s*status\.\s*status should be confirmed with the business\b/gi, 'Confirm $1 status before publishing this wording.'],
-  [/\bWSIB status should be confirmed with the business\b/gi, 'Confirm WSIB status before publishing this wording.'],
-  [/\bCVOR status should be confirmed with the business\b/gi, 'Confirm CVOR status before publishing this wording.'],
-  [/\bHomeStars details should be confirmed with the business\b/gi, 'Confirm third-party rating details before publishing this wording.'],
-  [/\bpiano moving availability should be confirmed with the business\b/gi, 'Confirm piano-moving availability before publishing this wording.'],
-  [/\bstorage availability should be confirmed with the business\b/gi, 'Confirm storage availability before publishing this wording.'],
-  [/\blast-minute availability should be confirmed with the business\b/gi, 'Confirm last-minute availability before publishing this wording.'],
-  [/\bsingle-item moving availability should be confirmed with the business\b/gi, 'Confirm single-item moving availability before publishing this wording.'],
-  [/\bservice coverage outside the primary market should be confirmed with the business\b/gi, 'Confirm service coverage outside the primary market before publishing this wording.'],
+  [/\bpricing should be confirmed with the business\b/gi, 'Pricing was not confirmed in this audit.'],
+  [/\binsurance details should be confirmed with the business\b/gi, 'Ask the team about insurance details for this move.'],
+  [/\b(WSIB|CVOR) status\.\s*status\.\s*status should be confirmed with the business\b/gi, 'Ask the team about $1 status for this move.'],
+  [/\bWSIB status should be confirmed with the business\b/gi, 'Ask the team about WSIB status for this move.'],
+  [/\bCVOR status should be confirmed with the business\b/gi, 'Ask the team about CVOR status for this move.'],
+  [/\bHomeStars details should be confirmed with the business\b/gi, 'Ask the team about third-party rating details for this move.'],
+  [/\bpiano moving availability should be confirmed with the business\b/gi, 'Ask the team about piano-moving availability for this move.'],
+  [/\bstorage availability should be confirmed with the business\b/gi, 'Ask the team about storage availability for this move.'],
+  [/\blast-minute availability should be confirmed with the business\b/gi, 'Ask the team about last-minute availability for this move.'],
+  [/\bsingle-item moving availability should be confirmed with the business\b/gi, 'Ask the team about single-item moving availability for this move.'],
+  [/\bservice coverage outside the primary market should be confirmed with the business\b/gi, 'Ask the team about service coverage outside the primary market for this move.'],
+  [
+    /\bContact the business to confirm\s+([^.!?]{1,180}?)\s+before booking[.!?]?/gi,
+    'Ask the team about $1 for this move.',
+  ],
+  [
+    /\bContact the business to confirm\s+([^.!?]{1,180}?)[.!?]/gi,
+    'Ask the team about $1.',
+  ],
   [
     /\bcustomer referral rate\b(?!\s+was not independently confirmed)(?:\s*(?:from|based on|of)\b[^.?!]*)?/gi,
     'Customer referral rate was not independently confirmed in this audit',
@@ -146,6 +155,9 @@ const CLIENT_ARTIFACTS: Array<[RegExp, string]> = [
   [/\b(?:Develope|Copywrite|Impleme)\b/i, 'clipped role label'],
   [/(should be confirmed with the business)(?:\s+\1)+/i, 'repeated safe commercial phrase'],
   [/Contact the business to confirm\s+Contact the business to confirm/i, 'repeated contact-confirmation phrase'],
+  [/\bContact the business to confirm\b/i, 'operator-confirmation instruction leaked into client copy'],
+  [/\bbefore booking\b/i, 'booking-time verification instruction leaked into client copy'],
+  [/[\u0432][\u0402][\u201c\u201d]/i, 'mojibake dash leaked into client copy'],
   [/\b(status|details)\.\s*\1\.\s*\1\b/i, 'repeated status/details fragment'],
   [/\bshould be confirmed with the business\b/i, 'internal commercial policy phrase leaked into prose'],
   [/\bvalid review schema only if first-party guidelines\b/i, 'internal review-schema policy leaked into prose'],
@@ -217,7 +229,7 @@ function repairUnsupportedMovingClaimSentences(text: string, ctx?: BusinessConte
       if (isRecommendationSentence(part)) return part
       const claims = unsupportedMovingClaims(part, ctx)
       if (claims.length === 0) return part
-      return `Contact the business to confirm ${joinList(claims)} before booking.`
+      return `Ask the team about ${joinList(claims)} for this move.`
     })
     .join('')
     .replace(/\s+([.,;:!?])/g, '$1')
@@ -226,10 +238,16 @@ function repairUnsupportedMovingClaimSentences(text: string, ctx?: BusinessConte
 }
 
 function cleanupClientPhrasing(text: string): string {
-  return text
+  return normalizeEncodingArtifacts(text)
     .replace(/Contact the business to confirm\s+Contact the business to confirm/gi, 'Confirm')
     .replace(/\b(status|details)\.\s*\1\.\s*\1\b/gi, '$1')
     .replace(/\bConfirm [^.?!]+ before publishing this wording[.?!]?/gi, '')
+    .replace(/\bContact the business to confirm\s+([^.!?]{1,180}?)\s+before booking[.!?]?/gi, 'Ask the team about $1 for this move.')
+    .replace(/\bContact the business to confirm\s+([^.!?]{1,180}?)[.!?]/gi, 'Ask the team about $1.')
+    .replace(/\b([^.!?]{1,140}?)\s+should be confirmed with the business\b/gi, 'Ask the team about $1')
+    .replace(/\bcontact the team before booking\b/gi, 'ask the team for details')
+    .replace(/\bbefore booking\b/gi, 'for this move')
+    .replace(/[\u0432][\u0402][\u201c\u201d]/g, ' - ')
     .replace(/\.(?=Confirm\b)/g, '. ')
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
@@ -238,6 +256,16 @@ function cleanupClientPhrasing(text: string): string {
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+function normalizeEncodingArtifacts(text: string): string {
+  return text
+    .replace(/[\u0432][\u0402][\u2122]/g, "'")
+    .replace(/[\u0432][\u0402][\u201c\u201d\u2013\u2014]/g, ' - ')
+    .replace(/[\u0432][\u0402]./g, ' - ')
+    .replace(/\u0412\u00b7/g, ' - ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
 }
 
 export function validateReport(input: ClearSignalReport): ReportValidation {
@@ -311,10 +339,10 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
         .replace(/\bdirectly feeds AI answer content\b/gi, 'appears in AI answer source material')
         .replace(/\bget a quote in minutes\b/gi, 'get a quote')
         .replace(/\bYou can reach us directly at\s+or\s+book online at\b[.]?/gi, 'Contact the business directly to request a quote.')
-        .replace(/\bI noticed you're based in\s*[—-]?\s*/gi, '')
+        .replace(/\bI noticed you're based in\s*(?:[\u0432][\u0402][\u201d]|-)?\s*/gi, '')
         .replace(/\bvisit\s*[.]$/gi, 'visit the website.')
         .replace(/\bor call us now at\s*$/gi, '')
-        .replace(/\bGet a Free Quote in\s*[—-]\s*/gi, 'Get a Free Quote')
+        .replace(/\bGet a Free Quote in\s*(?:[\u0432][\u0402][\u201d]|-)\s*/gi, 'Get a Free Quote')
       if (next !== out) {
         warn('causality: softened an unsupported causal claim')
         out = next
@@ -412,6 +440,8 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   }
 
   const walked = mapProse(report, repair) as ClearSignalReport
+  rebuildReadyMaterials(walked, warn)
+  validateGeoCounts(walked, errors)
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
@@ -459,13 +489,61 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   return { report: walked, warnings, errors }
 }
 
+function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => void): void {
+  if (!report.ready_materials) return
+  const brand = report.meta.canonical_brand || report.geo?.brand || ''
+  const url = report.meta.url || ''
+  const rebuilt = buildJsonLd(brand, url, report.ready_materials.faq || [])
+  if (rebuilt !== report.ready_materials.json_ld) {
+    report.ready_materials.json_ld = rebuilt
+    warn('ready_materials: rebuilt JSON-LD from sanitized FAQ copy')
+  }
+}
+
+function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
+  const geo = report.geo
+  const counts = geo?.test_counts
+  if (!geo || !counts) return
+
+  const expected = counts.configured_queries * counts.configured_engines
+  if (counts.expected_combinations !== expected) {
+    errors.push(
+      `geo_counts: expected_combinations ${counts.expected_combinations} does not equal configured_queries * configured_engines (${expected})`
+    )
+  }
+
+  const accounted =
+    counts.successful_combinations + counts.failed_combinations + counts.skipped_combinations
+  if (accounted !== counts.expected_combinations) {
+    errors.push(
+      `geo_counts: successful + failed + skipped (${accounted}) does not equal expected_combinations (${counts.expected_combinations})`
+    )
+  }
+
+  if (geo.evidence.length !== counts.successful_combinations) {
+    errors.push(
+      `geo_counts: evidence length ${geo.evidence.length} does not equal successful_combinations ${counts.successful_combinations}`
+    )
+  }
+
+  const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
+  const cited = geo.evidence.filter((e) => e.brand_cited).length
+  if (mentioned > counts.successful_combinations) {
+    errors.push('geo_counts: mentioned combinations exceed successful combinations')
+  }
+  if (cited > counts.successful_combinations) {
+    errors.push('geo_counts: cited combinations exceed successful combinations')
+  }
+}
+
 type Repair = (text: string, path: string[]) => string
 
 /** Recursively apply a repair to every human-facing string, skipping raw fields. */
 function mapProse(value: unknown, repair: Repair, path: string[] = []): unknown {
   if (typeof value === 'string') {
     const key = path[path.length - 1]
-    return isRawPath(path, key) ? value : repair(value, path)
+    const normalized = normalizeEncodingArtifacts(value)
+    return isRawPath(path, key) ? normalized : repair(normalized, path)
   }
   if (Array.isArray(value)) {
     return value.map((v, i) => mapProse(v, repair, [...path, String(i)]))
@@ -473,7 +551,7 @@ function mapProse(value: unknown, repair: Repair, path: string[] = []): unknown 
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(value)) {
-      out[k] = isRawPath([...path, k], k) ? v : mapProse(v, repair, [...path, k])
+      out[k] = mapProse(v, repair, [...path, k])
     }
     return out
   }

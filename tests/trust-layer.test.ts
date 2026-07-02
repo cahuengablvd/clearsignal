@@ -1506,11 +1506,55 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
         },
         clarity: {
           cta: {
-            suggested_rewrite: 'Get My Free Quote in',
+            suggested_rewrite:
+              "Suggested:Primary CTA label: 'Get My Free Quote in' — consider reducing the form. Add a visible secondary CTA such as 'Or call us now:' directly beneath the form.",
           },
           headline: {
             suggested_rewrite: 'Toronto Movers for Homes and Businesses | get a quote',
           },
+        },
+        geo: {
+          brand: 'Az-moving',
+          brand_domain: 'az-moving.com',
+          queries_tested: 6,
+          engines_tested: ['perplexity', 'openai', 'claude'],
+          test_counts: {
+            configured_queries: 6,
+            configured_engines: 3,
+            expected_combinations: 15,
+            successful_combinations: 15,
+            failed_combinations: 0,
+            skipped_combinations: 0,
+          },
+          ai_visibility_score: 0,
+          mention_rate: 0,
+          citation_rate: 0,
+          share_of_voice: 0,
+          avg_position: null,
+          score_breakdown: {
+            mention_rate: 0,
+            citation_rate: 0,
+            position_score: 0,
+            share_of_voice: 0,
+            weights: { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 },
+          },
+          evidence: Array.from({ length: 15 }, (_, i) => ({
+            evidence_id: `GEO-QUERY-${String(i + 1).padStart(3, '0')}`,
+            engine: i % 3 === 0 ? 'perplexity' : i % 3 === 1 ? 'openai' : 'claude',
+            query: `Query ${i + 1}`,
+            answer_excerpt: 'No Az-moving mention.',
+            citations: [],
+            brand_mentioned: false,
+            brand_cited: false,
+            competitors_mentioned: [],
+            cited_domains: [],
+          })),
+          competitor_visibility: [],
+          cited_domains_ranked: [],
+          missing_signals: [],
+          recommendations: [],
+          summary:
+            'The reused evidence produced an AI visibility score of 0/100, with mention rate and citation rate.',
         },
         action: {
           executive_summary: 'Email subject mentions az-moving.ca by mistake.',
@@ -1522,6 +1566,8 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
               impact: 'medium',
               effort: 'easy',
               category: 'proof',
+              evidence_ids: ['OBS-H1-001'],
+              evidence_basis: 'Based on: OBS-H1-001',
             },
           ],
           outreach_messages: [
@@ -1542,10 +1588,14 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
       })
     )
     const text = JSON.stringify(r.report)
-    expect(r.report.clarity.cta.suggested_rewrite).toBe('Get My Free Quote')
+    expect(r.report.clarity.cta.suggested_rewrite).toContain('Get My Free Quote')
+    expect(r.report.clarity.cta.suggested_rewrite).not.toMatch(/Get My Free Quote in|Or call us now/i)
+    expect(r.report.geo?.summary).toContain('with 0% mention rate and 0% citation rate')
+    expect(r.report.action.top_fixes[0].evidence_ids).toEqual([])
+    expect(r.report.action.top_fixes[0].evidence_basis).toContain('no single direct evidence')
     expect(r.report.clarity.headline.suggested_rewrite).toBe('Toronto Movers for Homes and Businesses')
     expect(text).toContain('az-moving.com')
-    expect(text).not.toMatch(/az-moving\.ca|Quote in|usually within|since'|moves completed|on HomeStars -- reviews|Hey @|sender identity|Or call us now/)
+    expect(text).not.toMatch(/az-moving\.ca|Quote in|usually within|since'|moves completed|on HomeStars -- reviews|Hey @|sender identity|Or call us now|with mention rate and citation rate/)
   })
 
   it('accepts explicit GEO test counts for configured, expected and successful combinations', () => {

@@ -19,6 +19,15 @@ import { Download, ArrowLeft } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+function clientSafeAnswerExcerpt(text: string): string {
+  return text
+    .replace(/^Here is a comprehensive guide[^]*?(?=Look for|When selecting|To find|Finding|For affordable|Storage services|Last-minute|$)/i, '')
+    .replace(/#{1,4}\s*\d*\.?\s*Define Your Moving Needs First[\s\S]*?(?=#{1,4}\s*\d+\.|Look for|When selecting|$)/gi, '')
+    .replace(/#{1,4}\s*[^\n]*(?:Best Places to Search|Key Steps to Identify Reliable|Key Factors to Evaluate)[\s\S]*?(?=#{1,4}\s*\d+\.|When selecting|Look for|$)/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim() || text
+}
+
 function AuditProcessing({ status }: { status?: string }) {
   const failed = status === 'failed'
   return (
@@ -576,7 +585,7 @@ export default async function AuditPage({
                             </div>
                           </div>
                           <blockquote className="border-l-2 border-muted pl-3 text-sm text-muted-foreground italic leading-relaxed mb-3">
-                            {e.answer_excerpt}
+                            {clientSafeAnswerExcerpt(e.answer_excerpt)}
                           </blockquote>
                           <p className="text-xs text-muted-foreground mb-2">
                             AI-reported answer; not independently verified by ClearSignal.

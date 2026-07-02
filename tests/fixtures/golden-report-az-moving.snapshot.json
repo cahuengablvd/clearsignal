@@ -130,10 +130,8 @@
       "implementer": "Copywriter",
       "confidence": 98,
       "confidence_basis": "Matched a single <h1> element in the rendered HTML",
-      "evidence_ids": [
-        "OBS-H1-001"
-      ],
-      "evidence_basis": "Based on: OBS-H1-001"
+      "evidence_ids": [],
+      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
     },
     {
       "id": 9,
@@ -157,10 +155,8 @@
       "implementer": "Copywriter",
       "confidence": 98,
       "confidence_basis": "Matched a single <h1> element in the rendered HTML",
-      "evidence_ids": [
-        "OBS-H1-001"
-      ],
-      "evidence_basis": "Based on: OBS-H1-001"
+      "evidence_ids": [],
+      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
     }
   ],
   "ready_materials": {

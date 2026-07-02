@@ -116,15 +116,18 @@ function cleanupClientPhrasing(text: string): string {
     .replace(/\b([^.!?]{1,140}?)\s+should be confirmed with the business\b/gi, 'Ask the team about $1')
     .replace(/\bcontact the team before booking\b/gi, 'ask the team for details')
     .replace(/\bbefore booking\b/gi, 'for this move')
-    .replace(/\bGet My Free Quote in\s*$/gi, 'Get My Free Quote')
-    .replace(/\bOr call us now\s*:?\s*$/gi, '')
-    .replace(/\bwe'?ll be in touch as soon as possible\s+(?:-|--)?\s*usually within\s*[.?!]?/gi, "We'll be in touch as soon as possible.")
+    .replace(/\bGet My Free Quote in\b/gi, 'Get My Free Quote')
+    .replace(/\bGet a Free Quote in\s*(?:[\u0432][\u0402][\u201d]|-)\s*/gi, 'Get a Free Quote')
+    .replace(/\bAdd a visible secondary CTA such as ['"]?Or call us now:?\s*['"]?\s+directly beneath the form[.?!]?/gi, '')
+    .replace(/\bOr call us now\s*:?\s*/gi, '')
+    .replace(/\bwe'?ll be in touch as soon as possible\s+(?:-|--)?\s*usually within\s*,?\s*[.?!]?/gi, "We'll be in touch as soon as possible.")
+    .replace(/\busually within\s*,\s*(?:substituting|replace)[^.?!]*[.?!]?/gi, '')
     .replace(/['"]Serving Toronto and the GTA since['"]/gi, 'Serving Toronto and the GTA')
     .replace(/['"]\+\s*moves completed['"]/gi, 'completed-move proof')
     .replace(/\bserving Toronto and the GTA since\s*['"]?\s*$/gi, 'Serving Toronto and the GTA')
     .replace(/\+\s*moves completed\b/gi, 'completed moves')
     .replace(/['"]?\s*on HomeStars\s*(?:--|-)\s*reviews['"]?/gi, 'HomeStars reviews')
-    .replace(/\bHey\s+@\s*(?:--|-)\s*/gi, 'Hello, ')
+    .replace(/\bHey\s+@\s*(?:--|-|[\u2013\u2014])?\s*/gi, 'Hello, ')
     .replace(/\bReplace '' with real sender identity[.?!]?/gi, '')
     .replace(/\s+\|\s*get a quote\s*$/gi, '')
     .replace(/[\u0432][\u0402][\u201c\u201d]/g, ' - ')
@@ -399,6 +402,14 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
         warn(`evidence: removed OBS-META-001 from an AI-visibility fix (#${fix.id})`)
       }
 
+      const fixText = `${fix.title || ''} ${fix.description || ''}`.toLowerCase()
+      const isHeadlineFix = fix.category === 'copy' && /\b(headline|h1|tagline|hero title)\b/.test(fixText)
+      if (!isHeadlineFix && ids.includes('OBS-H1-001')) {
+        ids = ids.filter((id) => id !== 'OBS-H1-001')
+        mutatedIds = true
+        warn(`evidence: removed OBS-H1-001 from a non-headline fix (#${fix.id})`)
+      }
+
       let evidence_basis = fix.evidence_basis
       if (ids.length > 0) {
         // Basis must reference every linked id (and no removed one); otherwise
@@ -531,7 +542,8 @@ function repairGeoNarrativeCounts(report: ClearSignalReport, warn: (m: string) =
   const staleCount = /\b\d+\s+of\s+\d+\s+tested engine-query combinations/i.test(geo.summary)
   const staleEngineList = /Perplexity and OpenAI/i.test(geo.summary) && engines.some((e) => e.toLowerCase() === 'claude')
   const forbiddenCause = /the core reason|the primary driver|AI engines skip/i.test(geo.summary)
-  if (!staleCount && !staleEngineList && !forbiddenCause) return
+  const missingRateValues = /\bwith mention rate and citation rate\b/i.test(geo.summary)
+  if (!staleCount && !staleEngineList && !forbiddenCause && !missingRateValues) return
 
   geo.summary = `${geo.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations across ${engineText}. The reused evidence produced an AI visibility score of ${geo.ai_visibility_score}/100, with ${geo.mention_rate}% mention rate and ${geo.citation_rate}% citation rate. Likely contributing factors include limited owned-page answer density, limited citations of ${geo.brand_domain}, and stronger third-party source visibility for competitors in the tested responses.`
   geo.missing_signals = [

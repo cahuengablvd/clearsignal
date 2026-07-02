@@ -20,6 +20,9 @@ type Audit = {
   report_url?: string | null
   validation_repair_count?: number
   api_cost_usd?: number | string | null
+  last_generated_at?: string | null
+  last_rerendered_at?: string | null
+  last_delivered_at?: string | null
 }
 
 const emptyForm = {
@@ -290,6 +293,13 @@ export default function AdminPage() {
     const n = Number(value)
     if (!Number.isFinite(n)) return null
     return `$${n.toFixed(2)}`
+  }
+
+  function formatDate(value?: string | null): string | null {
+    if (!value) return null
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return null
+    return d.toLocaleString()
   }
 
   return (
@@ -582,7 +592,18 @@ export default function AdminPage() {
                       <div className="font-semibold text-sm truncate max-w-md">{audit.url}</div>
                       <div className="text-xs text-muted-foreground">{audit.email}</div>
                       <div className="text-xs text-muted-foreground">
-                        {new Date(audit.created_at).toLocaleString()}
+                        Created: {new Date(audit.created_at).toLocaleString()}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        {formatDate(audit.last_generated_at) && (
+                          <span>Generated: {formatDate(audit.last_generated_at)}</span>
+                        )}
+                        {formatDate(audit.last_rerendered_at) && (
+                          <span>Re-rendered: {formatDate(audit.last_rerendered_at)}</span>
+                        )}
+                        {formatDate(audit.last_delivered_at) && (
+                          <span>Delivered: {formatDate(audit.last_delivered_at)}</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">

@@ -25,7 +25,7 @@ export async function deliverAuditEmail(auditId: string): Promise<void> {
     await sendReportEmail(audit.email, auditId, audit.url)
     await supabaseAdmin
       .from('audits')
-      .update({ audit_status: 'delivered' })
+      .update({ audit_status: 'delivered', last_delivered_at: new Date().toISOString() })
       .eq('id', auditId)
   } catch (emailErr) {
     const errorMessage = emailErr instanceof Error ? emailErr.message : String(emailErr)

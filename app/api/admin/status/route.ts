@@ -14,9 +14,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
 
+  const patch: Record<string, string> = { audit_status }
+  if (audit_status === 'delivered') {
+    patch.last_delivered_at = new Date().toISOString()
+  }
+
   const { error } = await supabaseAdmin
     .from('audits')
-    .update({ audit_status })
+    .update(patch)
     .eq('id', audit_id)
 
   if (error) {

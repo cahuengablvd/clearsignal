@@ -400,6 +400,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       .update({
         report: finalReport,
         audit_status: 'awaiting_review',
+        last_generated_at: new Date().toISOString(),
         api_cost_usd: cost.totalUsd(),
         api_cost_breakdown: cost.breakdown(),
       })

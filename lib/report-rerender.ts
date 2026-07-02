@@ -60,6 +60,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
     .update({
       report: finalReport,
       audit_status: 'awaiting_review',
+      last_rerendered_at: new Date().toISOString(),
     })
     .eq('id', auditId)
 

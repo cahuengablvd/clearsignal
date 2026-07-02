@@ -19,6 +19,7 @@ type Audit = {
   admin_notes: string | null
   report_url?: string | null
   validation_repair_count?: number
+  api_cost_usd?: number | string | null
 }
 
 const emptyForm = {
@@ -255,6 +256,13 @@ export default function AdminPage() {
     pending: 'bg-yellow-100 text-yellow-800',
     paid: 'bg-green-100 text-green-800',
     refunded: 'bg-red-100 text-red-800',
+  }
+
+  function formatCost(value: Audit['api_cost_usd']): string | null {
+    if (value == null) return null
+    const n = Number(value)
+    if (!Number.isFinite(n)) return null
+    return `$${n.toFixed(2)}`
   }
 
   return (
@@ -558,6 +566,11 @@ export default function AdminPage() {
                         {audit.audit_status}
                       </Badge>
                       <Badge variant="outline">{audit.tier}</Badge>
+                      {formatCost(audit.api_cost_usd) && (
+                        <Badge variant="outline" className="bg-slate-50 text-slate-800">
+                          Cost {formatCost(audit.api_cost_usd)}
+                        </Badge>
+                      )}
                       {(audit.validation_repair_count || 0) > 0 && (
                         <Badge variant="outline" className="bg-amber-50 text-amber-800">
                           {audit.validation_repair_count} repairs

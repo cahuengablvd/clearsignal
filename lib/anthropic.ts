@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicUsageEvent, type CostEvent } from './cost-tracker'
 
 let _anthropic: Anthropic | null = null
 
@@ -19,11 +20,13 @@ export async function callClaudeJSON<T>(opts: {
   user: string
   validate: (data: unknown) => T
   maxTokens?: number
+  purpose?: string
+  onUsage?: (event: CostEvent) => void
 }): Promise<T> {
-  const { model, system, user, validate, maxTokens = 4096 } = opts
+  const { model, system, user, validate, maxTokens = 4096, purpose = 'anthropic_json', onUsage } = opts
 
   // First attempt
-  let rawText = await callClaude(model, system, user, maxTokens)
+  let rawText = await callClaude(model, system, user, maxTokens, purpose, onUsage)
   let parsed = tryParseAndValidate(rawText, validate)
   if (parsed.success) return parsed.data
 
@@ -38,20 +41,28 @@ ${rawText.slice(0, 2000)}
 
 Please return ONLY valid JSON matching the exact schema. No commentary, no markdown fences.`
 
-  rawText = await callClaude(model, system, repairPrompt, maxTokens)
+  rawText = await callClaude(model, system, repairPrompt, maxTokens, `${purpose}:repair`, onUsage)
   parsed = tryParseAndValidate(rawText, validate)
   if (parsed.success) return parsed.data
 
   throw new Error(`Claude output failed validation after retry: ${parsed.error}`)
 }
 
-async function callClaude(model: string, system: string, user: string, maxTokens: number): Promise<string> {
+async function callClaude(
+  model: string,
+  system: string,
+  user: string,
+  maxTokens: number,
+  purpose: string,
+  onUsage?: (event: CostEvent) => void
+): Promise<string> {
   const response = await getAnthropic().messages.create({
     model,
     max_tokens: maxTokens,
     system,
     messages: [{ role: 'user', content: user }],
   })
+  onUsage?.(anthropicUsageEvent({ model, purpose, usage: (response as any).usage }))
 
   const textBlock = response.content.find((b) => b.type === 'text')
   if (!textBlock || textBlock.type !== 'text') {

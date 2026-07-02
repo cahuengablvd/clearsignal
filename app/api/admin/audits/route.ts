@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   const { data: audits, error } = await supabaseAdmin
     .from('audits')
-    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, report')
+    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, api_cost_usd, api_cost_breakdown, report')
     .order('created_at', { ascending: false })
     .limit(100)
 

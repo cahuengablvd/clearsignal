@@ -39,6 +39,7 @@ import { runGeoScan } from './geo'
 import { notify } from './notify'
 import { sanitizeGeneratedProse, sanitizeGeneratedReportValue } from './sanitize'
 import { attachActionConfidence } from './action-confidence'
+import { CostTracker } from './cost-tracker'
 import type { GeoResult } from './schemas'
 
 function buildDataLimitations(geo: GeoResult | null): string[] {
@@ -113,6 +114,7 @@ function sanitizeReportProse(
 }
 
 export async function runFullAudit(auditId: string): Promise<void> {
+  const cost = new CostTracker()
   // 1. Fetch audit record
   const { data: audit, error } = await supabaseAdmin
     .from('audits')
@@ -133,6 +135,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
   try {
     // 3. Scrape target (markdown + rendered HTML) + competitors
     const targetPage = await scrapePage(audit.url)
+    cost.addFirecrawlScrape('target_page')
     if (!targetPage) {
       throw new Error(`Failed to scrape target URL: ${audit.url}`)
     }
@@ -150,6 +153,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
 
     for (const compUrl of competitorUrls) {
       const raw = await scrapeUrl(compUrl)
+      cost.addFirecrawlScrape('competitor_page')
       if (raw) {
         competitors.push({ url: compUrl, markdown: normalizeMarkdown(raw) })
       } else {
@@ -183,6 +187,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       analyzeSources: true,
       maxSources: 6,
       targetMarkdown,
+      onUsage: (event) => cost.add(event),
     }).catch((err) => {
       console.error(`GEO scan failed for ${auditId} (continuing without it):`, err)
       return null
@@ -195,6 +200,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
       user: clarityUserPrompt(targetMarkdown, icp, brand, businessContext),
       validate: (data) => ClarityBlockSchema.parse(data),
       maxTokens: 4096,
+      purpose: 'audit:clarity',
+      onUsage: (event) => cost.add(event),
     })
 
     // 5. Step 3: Gap block
@@ -204,6 +211,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
       user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity), brand, businessContext),
       validate: (data) => GapBlockSchema.parse(data),
       maxTokens: 4096,
+      purpose: 'audit:gap',
+      onUsage: (event) => cost.add(event),
     })
 
     // 6. Step 4: Action block
@@ -213,6 +222,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
       user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp, brand, businessContext),
       validate: (data) => ActionBlockSchema.parse(data),
       maxTokens: 4096,
+      purpose: 'audit:action',
+      onUsage: (event) => cost.add(event),
     })
 
     const geo = await geoPromise
@@ -231,6 +242,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
         user: materialsUserPrompt(brand, audit.url, icp, JSON.stringify(clarity), geo?.summary || '', businessContext),
         validate: (d) => ReadyMaterialsLlmSchema.parse(d),
         maxTokens: 2048,
+        purpose: 'audit:ready_materials',
+        onUsage: (event) => cost.add(event),
       })
       llm.meta_title = sanitizeGeneratedProse(llm.meta_title, undefined, undefined, { businessContext })
       llm.meta_description = sanitizeGeneratedProse(llm.meta_description, undefined, undefined, { businessContext })
@@ -258,6 +271,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
         user: briefUserPrompt(brand, audit.url, topFixes, businessContext),
         validate: (d) => ImplementationBriefsLlmSchema.parse(d),
         maxTokens: 2048,
+        purpose: 'audit:implementation_briefs',
+        onUsage: (event) => cost.add(event),
       })
       implementationBriefs = briefs
     } catch (err) {
@@ -316,6 +331,8 @@ export async function runFullAudit(auditId: string): Promise<void> {
       .update({
         report: finalReport,
         audit_status: 'awaiting_review',
+        api_cost_usd: cost.totalUsd(),
+        api_cost_breakdown: cost.breakdown(),
       })
       .eq('id', auditId)
 
@@ -341,7 +358,11 @@ export async function runFullAudit(auditId: string): Promise<void> {
     console.error(`Audit generation failed for ${auditId}:`, err)
     await supabaseAdmin
       .from('audits')
-      .update({ audit_status: 'failed' })
+      .update({
+        audit_status: 'failed',
+        api_cost_usd: cost.totalUsd(),
+        api_cost_breakdown: cost.breakdown(),
+      })
       .eq('id', auditId)
     await notify('audit_generation_failed', {
       audit_id: auditId,

@@ -11,6 +11,7 @@
  */
 import { z } from 'zod'
 import { callClaudeJSON } from '../anthropic'
+import type { CostEvent } from '../cost-tracker'
 import { scrapeUrl } from '../firecrawl'
 import { normalizeMarkdown } from '../normalize-markdown'
 import {
@@ -77,12 +78,13 @@ export interface AnalyzeSourcesOptions {
   targetMarkdown: string
   evidence: GeoEvidence[]
   maxSources: number
+  onUsage?: (event: CostEvent) => void
 }
 
 export async function analyzeCitedSources(
   opts: AnalyzeSourcesOptions
 ): Promise<GeoSourceGap[] | null> {
-  const { brand, targetUrl, targetMarkdown, evidence, maxSources } = opts
+  const { brand, targetUrl, targetMarkdown, evidence, maxSources, onUsage } = opts
   try {
     const urls = topCitedUrls(evidence, maxSources, registrableDomain(targetUrl))
     if (urls.length === 0) return null
@@ -92,6 +94,7 @@ export async function analyzeCitedSources(
       await Promise.all(
         urls.map(async (url) => {
           const raw = await scrapeUrl(url)
+          onUsage?.({ provider: 'firecrawl', purpose: 'geo:cited_source_scrape', scrape_count: 1 })
           return raw ? { url, markdown: normalizeMarkdown(raw) } : null
         })
       )
@@ -105,6 +108,8 @@ export async function analyzeCitedSources(
       user: geoSourcesUserPrompt(brand, targetUrl, targetMarkdown, scraped),
       validate: (d) => SourcesLlmSchema.parse(d),
       maxTokens: 2048,
+      purpose: 'geo:cited_source_analysis',
+      onUsage,
     })
 
     const targetSignals = llm.target_signals

@@ -11,6 +11,7 @@
  * existing ANTHROPIC_API_KEY and is the always-on baseline.
  */
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicUsageEvent, type CostEvent } from '../cost-tracker'
 
 export type EngineId = 'claude' | 'perplexity' | 'openai'
 
@@ -59,16 +60,21 @@ function getAnthropic() {
   return _anthropic
 }
 
-async function queryClaude(question: string, opts: { webSearch?: boolean } = {}): Promise<EngineResponse> {
+async function queryClaude(
+  question: string,
+  opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string } = {}
+): Promise<EngineResponse> {
   try {
     if (opts.webSearch === false) {
+      const model = 'claude-haiku-4-5-20251001'
       const res: any = await getAnthropic().messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model,
         max_tokens: 700,
         system:
           'Answer as a buyer research assistant. Recommend relevant products/vendors when appropriate. Be concise.',
         messages: [{ role: 'user', content: question }],
       } as any)
+      opts.onUsage?.(anthropicUsageEvent({ model, purpose: opts.purpose ?? 'geo:claude', usage: res.usage }))
 
       const answer = (res.content ?? [])
         .filter((block: any) => block.type === 'text')
@@ -81,12 +87,14 @@ async function queryClaude(question: string, opts: { webSearch?: boolean } = {})
 
     // web_search_20260209 supports dynamic filtering on Sonnet 4.6. The server
     // tool runs on Anthropic's infra and returns citations inline.
+    const model = 'claude-sonnet-4-6'
     const res: any = await getAnthropic().messages.create({
-      model: 'claude-sonnet-4-6',
+      model,
       max_tokens: 1500,
       messages: [{ role: 'user', content: question }],
       tools: [{ type: 'web_search_20260209', name: 'web_search' } as any],
     } as any)
+    opts.onUsage?.(anthropicUsageEvent({ model, purpose: opts.purpose ?? 'geo:claude_web', usage: res.usage }))
 
     let answer = ''
     const citations: string[] = []
@@ -121,7 +129,10 @@ async function queryClaude(question: string, opts: { webSearch?: boolean } = {})
 // OpenAI-compatible Chat Completions endpoint. The `sonar` model always grounds
 // its answer in live web sources and returns them in `citations`.
 
-async function queryPerplexity(question: string): Promise<EngineResponse> {
+async function queryPerplexity(
+  question: string,
+  opts: { onUsage?: (event: CostEvent) => void; purpose?: string } = {}
+): Promise<EngineResponse> {
   const key = process.env.PERPLEXITY_API_KEY
   if (!key) {
     return { engine: 'perplexity', ok: false, answer: '', citations: [], error: 'PERPLEXITY_API_KEY not set' }
@@ -137,6 +148,13 @@ async function queryPerplexity(question: string): Promise<EngineResponse> {
     })
     if (!resp.ok) throw new Error(`Perplexity HTTP ${resp.status}: ${await resp.text()}`)
     const data: any = await resp.json()
+    opts.onUsage?.({
+      provider: 'perplexity',
+      model: data?.model ?? 'sonar',
+      purpose: opts.purpose ?? 'geo:perplexity',
+      input_tokens: Number(data?.usage?.prompt_tokens ?? 0),
+      output_tokens: Number(data?.usage?.completion_tokens ?? 0),
+    })
     const answer: string = data?.choices?.[0]?.message?.content ?? ''
     const citations: string[] = data?.citations ?? data?.search_results?.map((s: any) => s?.url) ?? []
     return { engine: 'perplexity', ok: true, answer: answer.trim(), citations: uniqueUrls(citations) }
@@ -155,7 +173,10 @@ async function queryPerplexity(question: string): Promise<EngineResponse> {
 // Responses API with the hosted web_search tool. URL citations come back as
 // annotations on the output_text content.
 
-async function queryOpenAI(question: string): Promise<EngineResponse> {
+async function queryOpenAI(
+  question: string,
+  opts: { onUsage?: (event: CostEvent) => void; purpose?: string } = {}
+): Promise<EngineResponse> {
   const key = process.env.OPENAI_API_KEY
   if (!key) {
     return { engine: 'openai', ok: false, answer: '', citations: [], error: 'OPENAI_API_KEY not set' }
@@ -172,6 +193,13 @@ async function queryOpenAI(question: string): Promise<EngineResponse> {
     })
     if (!resp.ok) throw new Error(`OpenAI HTTP ${resp.status}: ${await resp.text()}`)
     const data: any = await resp.json()
+    opts.onUsage?.({
+      provider: 'openai',
+      model: data?.model ?? 'gpt-4o',
+      purpose: opts.purpose ?? 'geo:openai',
+      input_tokens: Number(data?.usage?.input_tokens ?? data?.usage?.prompt_tokens ?? 0),
+      output_tokens: Number(data?.usage?.output_tokens ?? data?.usage?.completion_tokens ?? 0),
+    })
 
     let answer = ''
     const citations: string[] = []
@@ -202,7 +230,10 @@ async function queryOpenAI(question: string): Promise<EngineResponse> {
   }
 }
 
-const ADAPTERS: Record<EngineId, (q: string) => Promise<EngineResponse>> = {
+const ADAPTERS: Record<
+  EngineId,
+  (q: string, opts?: { onUsage?: (event: CostEvent) => void; purpose?: string }) => Promise<EngineResponse>
+> = {
   claude: queryClaude,
   perplexity: queryPerplexity,
   openai: queryOpenAI,
@@ -220,14 +251,14 @@ export function availableEngines(): EngineId[] {
 export async function queryEngine(
   engine: EngineId,
   question: string,
-  opts: { webSearch?: boolean } = {}
+  opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string } = {}
 ): Promise<EngineResponse> {
   try {
     const timeout = opts.webSearch === false ? FAST_ENGINE_TIMEOUT_MS : ENGINE_TIMEOUT_MS
     const run =
       engine === 'claude'
-        ? queryClaude(question, { webSearch: opts.webSearch })
-        : ADAPTERS[engine](question)
+        ? queryClaude(question, { webSearch: opts.webSearch, onUsage: opts.onUsage, purpose: opts.purpose })
+        : ADAPTERS[engine](question, { onUsage: opts.onUsage, purpose: opts.purpose })
     return await withTimeout(run, timeout, `${engine} query`)
   } catch (err) {
     return {

@@ -12,6 +12,7 @@
  * Every number in the result is reproducible from the saved `evidence`.
  */
 import { callClaudeJSON } from '../anthropic'
+import type { CostEvent } from '../cost-tracker'
 import {
   GeoResultSchema,
   GeoAnalysisSchema,
@@ -84,6 +85,8 @@ export interface RunGeoOptions {
   targetMarkdown?: string
   /** Explicit query set (e.g. user-confirmed). Skips query generation when set. */
   providedQueries?: string[]
+  /** Optional cost/usage hook for audit-level cost tracking. */
+  onUsage?: (event: CostEvent) => void
 }
 
 /**
@@ -96,6 +99,7 @@ export async function generateBuyerQueries(opts: {
   category?: string
   icp?: string
   count: number
+  onUsage?: (event: CostEvent) => void
 }): Promise<string[]> {
   const { queries } = await callClaudeJSON<{ queries: string[] }>({
     model: MODEL_GEO_QUERIES,
@@ -103,6 +107,8 @@ export async function generateBuyerQueries(opts: {
     user: geoQueriesUserPrompt(opts.brand, opts.category ?? '', opts.icp ?? '', opts.count),
     validate: (d) => listValidator<string>('queries')(d) as { queries: string[] },
     maxTokens: 512,
+    purpose: 'geo:query_generation',
+    onUsage: opts.onUsage,
   })
   return queries
 }
@@ -130,12 +136,20 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const queries =
     opts.providedQueries && opts.providedQueries.length > 0
       ? opts.providedQueries.slice(0, 8)
-      : await generateBuyerQueries({ brand, category, icp, count: queryCount })
+      : await generateBuyerQueries({ brand, category, icp, count: queryCount, onUsage: opts.onUsage })
 
   // 2. Fan out: every query against every engine, in parallel.
   const settled = await Promise.all(
     queries.flatMap((query) =>
-      engines.map(async (engine) => ({ engine, query, res: await queryEngine(engine, query, { webSearch }) }))
+      engines.map(async (engine) => ({
+        engine,
+        query,
+        res: await queryEngine(engine, query, {
+          webSearch,
+          onUsage: opts.onUsage,
+          purpose: `geo:${engine}`,
+        }),
+      }))
     )
   )
   const testCounts = geoTestCounts(queries.length, engines.length, settled.filter((s) => s.res.ok).length, 0)
@@ -160,6 +174,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         user: geoCompetitorsUserPrompt(brand, raw.map((r) => ({ query: r.query, answer: r.answer }))),
         validate: (d) => listValidator<string>('competitors')(d) as { competitors: string[] },
         maxTokens: 512,
+        purpose: 'geo:competitor_discovery',
+        onUsage: opts.onUsage,
       })
       for (const name of discovered) {
         const key = sld(name) || name.toLowerCase()
@@ -294,6 +310,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         ),
         validate: (d) => GeoAnalysisSchema.parse(d),
         maxTokens: 1536,
+        purpose: 'geo:narrative',
+        onUsage: opts.onUsage,
       })
     } catch (err) {
       console.warn('GEO narrative generation failed, returning metrics only:', err)
@@ -311,6 +329,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     let targetMd = opts.targetMarkdown
     if (!targetMd) {
       const raw = await scrapeUrl(url).catch(() => null)
+      opts.onUsage?.({ provider: 'firecrawl', purpose: 'geo:target_scrape', scrape_count: 1 })
       targetMd = raw ? normalizeMarkdown(raw) : ''
     }
     if (targetMd) {
@@ -320,6 +339,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         targetMarkdown: targetMd,
         evidence,
         maxSources,
+        onUsage: opts.onUsage,
       })
     }
   }

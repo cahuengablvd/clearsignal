@@ -573,6 +573,36 @@ describe('action confidence enrichment', () => {
     expect(enriched.top_fixes[1].effort).toBe('medium')
     expect(enriched.top_fixes[1].description).toContain('review-source data')
   })
+
+  it('does not attach H1 evidence to non-headline copy fixes', () => {
+    const findings = computeTechnicalFindings({
+      url: 'https://example.com',
+      html: '<html><body><h1>Toronto movers</h1></body></html>',
+      markdown: 'Toronto movers',
+    })
+    const action = {
+      executive_summary: 'Summary',
+      top_fixes: [
+        {
+          id: 1,
+          title: 'Fix the confirmation message typo',
+          description: 'Rewrite the form confirmation message so it is clear after submission.',
+          impact: 'medium' as const,
+          effort: 'easy' as const,
+          category: 'copy' as const,
+        },
+      ],
+      ship_first: [],
+      ignore_for_now: [],
+      outreach_messages: [],
+    }
+
+    const enriched = attachActionConfidence(action, findings, null)
+    expect(enriched.top_fixes[0].evidence_ids).toEqual([])
+    expect(enriched.top_fixes[0].evidence_basis).toContain('no single direct evidence')
+    expect(enriched.top_fixes[0].claim_level).toBe('inferred')
+    expect(enriched.top_fixes[0].confidence).toBeLessThan(90)
+  })
 })
 
 describe('role assignment', () => {
@@ -1456,6 +1486,66 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(text).not.toMatch(/call us directly at|Takes under|GTA\.Ask|Yes\.Ask|online in minutes/i)
     expect(text).toContain('Request a quote to discuss timing, service coverage and move details.')
     expect(text).toContain('How do I request a moving quote')
+  })
+
+  it('removes broken placeholder tails and wrong sibling domains from client prose', () => {
+    const r = validateReport(
+      base({
+        meta: {
+          domain: 'az-moving.com',
+          canonical_brand: 'Az-Moving',
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: '',
+          },
+        },
+        clarity: {
+          cta: {
+            suggested_rewrite: 'Get My Free Quote in',
+          },
+          headline: {
+            suggested_rewrite: 'Toronto Movers for Homes and Businesses | get a quote',
+          },
+        },
+        action: {
+          executive_summary: 'Email subject mentions az-moving.ca by mistake.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Add trust proof',
+              description: "'Serving Toronto and the GTA since' and '+ moves completed' should be completed before publishing.",
+              impact: 'medium',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
+          outreach_messages: [
+            {
+              channel: 'twitter',
+              message: "Hey @ -- Replace '' with real sender identity. Or call us now:",
+              note: '',
+            },
+          ],
+        },
+        implementation_briefs: [
+          {
+            fix_title: 'Review proof',
+            steps: ["Add '[4.9] on HomeStars -- reviews' near the proof block."],
+            acceptance_criteria: ["Done when visitors see ' on HomeStars -- reviews'."],
+          },
+        ],
+      })
+    )
+    const text = JSON.stringify(r.report)
+    expect(r.report.clarity.cta.suggested_rewrite).toBe('Get My Free Quote')
+    expect(r.report.clarity.headline.suggested_rewrite).toBe('Toronto Movers for Homes and Businesses')
+    expect(text).toContain('az-moving.com')
+    expect(text).not.toMatch(/az-moving\.ca|Quote in|usually within|since'|moves completed|on HomeStars -- reviews|Hey @|sender identity|Or call us now/)
   })
 
   it('accepts explicit GEO test counts for configured, expected and successful combinations', () => {

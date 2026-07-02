@@ -160,6 +160,7 @@ Based ONLY on the above, return a JSON object:
 export const GEO_SOURCES_SYSTEM = `You analyze why some web pages get cited by AI answer engines.
 For each page you are given, detect a fixed set of citation-friendly signals (true/false), then explain why the cited source is quotable and how the target site could match it.
 Judge signals only from the provided page text.
+For third-party platforms and directories (Thumbtack, Yelp, Reddit, Facebook groups, roundups, marketplaces), use validate-first language: recommend checking whether that source actually drives relevant local/category demand before investing. Do not present a profile as mandatory top-priority work unless it was directly prominent in the tested cited sources.
 ${UNTRUSTED_GUARD}
 ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
@@ -275,6 +276,7 @@ Provide 4-6 FAQ items (the questions buyers actually ask, good for AI-answer cit
 // --- Implementation briefs (#19) ---
 export const BRIEF_SYSTEM = `You turn audit fixes into concise implementation briefs (developer/marketing tickets).
 For each fix give 2-5 concrete steps and 1-3 acceptance criteria phrased as verifiable "Done when ..." conditions (something a person or tool can objectively check).
+Do not ask implementers to add AggregateRating or review-rating markup unless verified first-party review-source data is explicitly provided. If review data is not verified, use Organization, Service, LocalBusiness/MovingCompany, FAQPage, or plain review/proof copy instead.
 ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
@@ -397,6 +399,7 @@ ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
 In outreach messages and the executive summary, never promise a specific lift (no "increase demo requests by 20%", no "$X revenue", no "3x"). Describe the expected direction of improvement qualitatively only.
+Outreach messages must not claim the page is costing money, losing revenue, wasting ad spend, or causing direct losses. Keep outreach diagnostic, specific, and non-alarmist.
 Outreach messages must not invent first-person company claims. Do not write "we only do X", "it is literally the only thing we do", niche claims, customer proof, or industry focus unless it appears in the provided page or ICP.
 Outreach messages must not invent examples like reduced sales cycle, improved activation, investor pitch use, customer wins, or case-study outcomes. Use "[Replace with a verified client result]" when proof is needed.
 Outreach messages must not invent scarcity. Do not write "one slot open", "two slots open", "limited availability", or similar unless the operator explicitly provided it.

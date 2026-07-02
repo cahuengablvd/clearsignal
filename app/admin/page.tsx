@@ -550,6 +550,13 @@ export default function AdminPage() {
                     business_context: { ...form.business_context, verified_facts: e.target.value },
                   })}
                 />
+                {form.business_context.business_model === 'unknown' &&
+                  form.business_context.primary_conversion_goal === 'unknown' &&
+                  !form.business_context.verified_facts.trim() && (
+                    <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Business context is empty. The audit can still run, but Ready-to-ship copy will avoid claims about credentials, pricing, timing, service availability, and proof until you add verified facts.
+                    </div>
+                  )}
               </div>
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={previewing} className="gap-2">

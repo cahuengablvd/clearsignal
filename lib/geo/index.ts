@@ -277,8 +277,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
-  // 6. LLM narrative only (explanation / recommendations / summary).
-  let narrative = deterministicNarrative({
+  // 6. Deterministic summary + optional LLM explanation/recommendations.
+  const deterministic = deterministicNarrative({
     brand,
     ai_visibility_score,
     rawCount: raw.length,
@@ -287,9 +287,10 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     cited_domains_ranked,
     competitor_visibility,
   })
+  let narrative = deterministic
   if (includeNarrative) {
     try {
-      narrative = await callClaudeJSON({
+      const llmNarrative = await callClaudeJSON({
         model: MODEL_GEO_ANALYSIS,
         system: GEO_ANALYSIS_SYSTEM,
         user: geoAnalysisUserPrompt(
@@ -313,6 +314,10 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         purpose: 'geo:narrative',
         onUsage: opts.onUsage,
       })
+      narrative = {
+        ...llmNarrative,
+        summary: deterministic.summary,
+      }
     } catch (err) {
       console.warn('GEO narrative generation failed, returning metrics only:', err)
     }

@@ -167,7 +167,6 @@ function sanitizeReportProse(
   }))
 
   if (geo) {
-    geo.summary = clean(geo.summary)
     geo.missing_signals = geo.missing_signals.map(clean)
     geo.recommendations = geo.recommendations.map(clean)
     geo.source_gap_analysis = geo.source_gap_analysis?.map((s) => ({

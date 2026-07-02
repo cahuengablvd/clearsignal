@@ -60,7 +60,6 @@ function claimLevelForFix(
     /\b(meta description|meta title|title tag)\b/.test(text) && Boolean(findById(findings, 'meta_description'))
 
   if (hasDirectFinding && confidence >= 80) return 'observed'
-  if (geo && fix.category === 'ai_search' && !isExternalDependency(text)) return 'observed'
   if (confidence >= 60) return 'inferred'
   return 'recommended'
 }
@@ -136,12 +135,19 @@ function confidenceForFix(
     }
   }
 
-  if (fix.category === 'copy') {
+  if (fix.category === 'copy' && /\b(headline|h1|tagline|hero title)\b/.test(text)) {
     return confidenceFromFinding(
       findById(findings, 'h1_present'),
       60,
       'Copy recommendation is a messaging judgment, not a measured conversion fact'
     )
+  }
+
+  if (fix.category === 'copy') {
+    return {
+      confidence: 60,
+      confidence_basis: 'Copy recommendation is based on audit synthesis; no single direct evidence item proves the business impact',
+    }
   }
 
   return {
@@ -216,7 +222,8 @@ function evidenceForFix(
       }
     }
     return { evidence_ids: [], evidence_basis: NO_DIRECT_EVIDENCE }
-  } else if (fix.category === 'copy' || /\b(headline|h1|tagline)\b/.test(text)) ids = idFor('h1_present')
+  } else if (fix.category === 'copy' && /\b(headline|h1|tagline|hero title)\b/.test(text)) ids = idFor('h1_present')
+  else if (fix.category === 'copy') ids = []
 
   if (ids.length > 0) return { evidence_ids: ids, evidence_basis: `Based on: ${ids.join(', ')}` }
   return { evidence_ids: [], evidence_basis: NO_DIRECT_EVIDENCE }

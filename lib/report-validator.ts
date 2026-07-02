@@ -11,7 +11,7 @@
  */
 import { sanitizeUnsupportedCommercialClaims } from './sanitize'
 import { assembleMaterials } from './materials'
-import { repairUnsupportedMovingClaimSentence } from './industry-profiles/moving'
+import { repairUnsupportedMovingClaimSentence, unsupportedMovingClaims } from './industry-profiles/moving'
 import { BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
 import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
@@ -94,6 +94,16 @@ function repairUnsupportedMovingClaimSentences(text: string, ctx?: BusinessConte
     .trim()
 }
 
+function removeUnsupportedMovingClaimSentences(text: string, ctx?: BusinessContext): string {
+  if (!text || !ctx) return text
+  return (text.match(/[^.!?]+[.!?]?|\s+/g) || [text])
+    .filter((part) => /^\s+$/.test(part) || unsupportedMovingClaims(part, ctx).length === 0)
+    .join('')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 function cleanupClientPhrasing(text: string): string {
   return normalizeEncodingArtifacts(text)
     .replace(/([a-z0-9])\.Ask\b/gi, '$1. Ask')
@@ -106,6 +116,17 @@ function cleanupClientPhrasing(text: string): string {
     .replace(/\b([^.!?]{1,140}?)\s+should be confirmed with the business\b/gi, 'Ask the team about $1')
     .replace(/\bcontact the team before booking\b/gi, 'ask the team for details')
     .replace(/\bbefore booking\b/gi, 'for this move')
+    .replace(/\bGet My Free Quote in\s*$/gi, 'Get My Free Quote')
+    .replace(/\bOr call us now\s*:?\s*$/gi, '')
+    .replace(/\bwe'?ll be in touch as soon as possible\s+(?:-|--)?\s*usually within\s*[.?!]?/gi, "We'll be in touch as soon as possible.")
+    .replace(/['"]Serving Toronto and the GTA since['"]/gi, 'Serving Toronto and the GTA')
+    .replace(/['"]\+\s*moves completed['"]/gi, 'completed-move proof')
+    .replace(/\bserving Toronto and the GTA since\s*['"]?\s*$/gi, 'Serving Toronto and the GTA')
+    .replace(/\+\s*moves completed\b/gi, 'completed moves')
+    .replace(/['"]?\s*on HomeStars\s*(?:--|-)\s*reviews['"]?/gi, 'HomeStars reviews')
+    .replace(/\bHey\s+@\s*(?:--|-)\s*/gi, 'Hello, ')
+    .replace(/\bReplace '' with real sender identity[.?!]?/gi, '')
+    .replace(/\s+\|\s*get a quote\s*$/gi, '')
     .replace(/[\u0432][\u0402][\u201c\u201d]/g, ' - ')
     .replace(/\.(?=Confirm\b)/g, '. ')
     .replace(/\s+([.,;:!?])/g, '$1')
@@ -115,6 +136,47 @@ function cleanupClientPhrasing(text: string): string {
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+function fallbackForBrokenSentence(path: string[], sentence: string): string {
+  const joined = path.join('.')
+  if (/clarity\.cta\.suggested_rewrite|ready_materials\.cta_variants/.test(joined)) {
+    return /moving|quote/i.test(sentence) ? 'Request a Moving Quote.' : 'Request a Quote.'
+  }
+  if (/action\.outreach_messages\.|implementation_briefs\./.test(joined)) return ''
+  return ''
+}
+
+function repairBrokenSentenceFragments(text: string, path: string[]): string {
+  const fragments = text.match(/[^.!?]+[.!?]?|\s+/g) || [text]
+  const repaired = fragments.map((part) => {
+    if (/^\s+$/.test(part)) return part
+    const trimmed = part.trim()
+    const broken =
+      /\b(?:in|within|since|at|@|with|for|to|by|of|or|and)\s*[:;,.!?]?$/i.test(trimmed) ||
+      /\busually within\s*[.?!]?$/i.test(trimmed) ||
+      /['"]\s*$/.test(trimmed) ||
+      /\b\+\s*moves completed\b/i.test(trimmed) ||
+      /\bon HomeStars\s*(?:--|-)\s*reviews\b/i.test(trimmed)
+    if (!broken) return part
+    const fallback = fallbackForBrokenSentence(path, trimmed)
+    return fallback ? `${part.match(/^\s*/)?.[0] || ''}${fallback}` : ''
+  }).join('')
+  return repaired
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function repairWrongDomainMentions(text: string, domain?: string): string {
+  if (!domain) return text
+  const normalized = domain.replace(/^www\./i, '').toLowerCase()
+  const parts = normalized.split('.')
+  const sld = parts[0]
+  const tld = parts.slice(1).join('\\.')
+  if (!sld || !tld) return text
+  const escaped = sld.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return text.replace(new RegExp(`\\b${escaped}\\.(?!${tld}\\b)[a-z]{2,}\\b`, 'gi'), normalized)
 }
 
 function normalizeEncodingArtifacts(text: string): string {
@@ -134,6 +196,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const warn = (m: string) => warnings.push(m)
   const businessContext = report.meta.business_context as BusinessContext | undefined
   const brand = (report.meta.canonical_brand || '').trim()
+  const domain = report.meta.domain
   report.meta.verified_facts_layer = buildVerifiedFactsLayer({
     businessContext,
     observedBusinessContext: report.meta.observed_business_context,
@@ -160,6 +223,17 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       const next = out.replace(re, replacement)
       if (next !== out) {
         warn('text: repaired broken internal phrasing')
+        out = next
+      }
+    }
+
+    if (/implementation_briefs\./.test(path.join('.'))) {
+      const next = out.replace(
+        /\b[^.!?]*(?:AggregateRating|review-rating|review schema)[^.!?]*[.!?]?/gi,
+        'Use Organization, Service, LocalBusiness/MovingCompany, or FAQPage schema unless verified review-source data is supplied.'
+      )
+      if (next !== out) {
+        warn('brief: replaced unsupported review-rating schema instruction')
         out = next
       }
     }
@@ -244,13 +318,17 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
           out = out.replace(re, replacement)
         }
       }
-      const claimSafe = repairUnsupportedMovingClaimSentences(out, businessContext)
+      const claimSafe = path.join('.').startsWith('action.outreach_messages.')
+        ? removeUnsupportedMovingClaimSentences(out, businessContext)
+        : repairUnsupportedMovingClaimSentences(out, businessContext)
       if (claimSafe !== out) {
         warn('commercial_claim: replaced an unsupported moving claim at sentence level')
         out = claimSafe
       }
     }
     out = cleanupClientPhrasing(out)
+    out = repairBrokenSentenceFragments(out, path)
+    out = repairWrongDomainMentions(out, domain)
 
     // (1) CTA contradiction.
     if (ctaStatus === 'present') {

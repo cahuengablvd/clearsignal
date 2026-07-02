@@ -200,7 +200,7 @@
       "acceptance_criteria": [
         "Done when Google's Rich Results Test parses the homepage and returns a valid LocalBusiness entity with no critical errors.",
         "Done when the JSON-LD block is present in the rendered HTML source and includes all required fields: name, address, telephone, url, and areaServed.",
-        "Done when no review-rating properties appear in the schema unless a verifiable crawlable review source is confirmed and documented."
+        "Use Organization, Service, LocalBusiness/MovingCompany, or FAQPage schema unless verified review-source data is supplied."
       ]
     },
     {

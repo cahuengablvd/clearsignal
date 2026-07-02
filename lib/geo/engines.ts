@@ -92,7 +92,7 @@ async function queryClaude(
       model,
       max_tokens: 1500,
       messages: [{ role: 'user', content: question }],
-      tools: [{ type: 'web_search_20260209', name: 'web_search' } as any],
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 } as any],
     } as any)
     opts.onUsage?.(anthropicUsageEvent({ model, purpose: opts.purpose ?? 'geo:claude_web', usage: res.usage }))
 

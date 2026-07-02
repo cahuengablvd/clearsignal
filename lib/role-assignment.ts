@@ -5,7 +5,7 @@ export type RoleAssignableFix = {
 }
 
 export const ROLE_BY_CATEGORY: Record<string, string> = {
-  copy: 'Copywriter',
+  copy: 'Founder / marketing',
   cta: 'Founder / marketing',
   ai_search: 'SEO',
   structure: 'SEO',
@@ -30,8 +30,8 @@ export function inferFixOwner(fix: RoleAssignableFix): string {
   if (/\b(cta|call-to-action|button|demo request|book demo|contact sales)\b/.test(text)) {
     return 'Founder / marketing'
   }
-  if (/\b(headline|tagline|copy|message|messaging|positioning|cta|call-to-action|hero|rewrite|narrative)\b/.test(text)) {
-    return 'Copywriter'
+  if (/\b(headline|tagline|copy|message|messaging|positioning|cta|call-to-action|hero|rewrite|narrative|body copy|years in business)\b/.test(text)) {
+    return 'Founder / marketing'
   }
   if (/\b(use case|web3|service page|landing page|comparison|alternatives|faq|keyword|directory|citation|ai visibility|source|indexable|meta title|meta description)\b/.test(text)) {
     return 'SEO'
@@ -46,8 +46,8 @@ export function inferFixImplementer(fix: RoleAssignableFix): string {
   if (/\b(svg|logo render|broken logo|image|html|css|json-ld|schema|structured data|script|developer|technical|rendered html|implement|publish|build|cta|call-to-action|button|contact info|contact information|contact details|contact page|contact form|inquiry form|inquiry path|inquiry flow)\b/.test(text)) {
     return 'Developer'
   }
-  if (/\b(headline|tagline|copy|message|messaging|positioning|cta|call-to-action|hero|rewrite|narrative|case stud|process section)\b/.test(text)) {
-    return 'Copywriter'
+  if (/\b(headline|tagline|copy|message|messaging|positioning|cta|call-to-action|hero|rewrite|narrative|case stud|process section|body copy|years in business|testimonial|review)\b/.test(text)) {
+    return 'Developer'
   }
   if (/\b(use case|web3|service page|landing page|comparison|alternatives|faq|keyword|directory|citation|ai visibility|source|indexable|meta title|meta description)\b/.test(text)) {
     return 'SEO'
@@ -65,8 +65,8 @@ export function inferFixContributor(fix: RoleAssignableFix): string | undefined 
   if (/\b(inquiry process|inquiry path|inquiry flow|contact info|contact information|contact details|contact page|contact form|availability inquiry)\b/.test(text)) {
     return 'Copywriter'
   }
-  if (/\b(service page|landing page|faq|headline|tagline|copy|message|messaging|positioning|case stud|process section)\b/.test(text)) {
-    return inferFixOwner(fix) === 'Copywriter' ? undefined : 'Copywriter'
+  if (/\b(service page|landing page|faq|headline|tagline|copy|message|messaging|positioning|case stud|process section|body copy|years in business)\b/.test(text)) {
+    return 'Copywriter'
   }
   if (/\b(directory|citation|ai visibility|source|google business profile|homestars|yelp|bbb|thumbtack|reddit|facebook)\b/.test(text)) {
     return inferFixOwner(fix) === 'SEO' ? undefined : 'SEO'

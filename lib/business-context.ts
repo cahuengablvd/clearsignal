@@ -1,4 +1,4 @@
-import { BusinessContextSchema, type BusinessContext } from './schemas'
+import { BusinessContextSchema, type BusinessContext, type ObservedBusinessContext } from './schemas'
 
 export function normalizeBusinessContext(value: unknown): BusinessContext {
   const parsed = BusinessContextSchema.safeParse(value || {})
@@ -84,4 +84,38 @@ export function canClaimServiceAvailability(ctx: BusinessContext, kind: 'piano' 
     ontario_quebec: /\b(?:ontario|quebec)\b/i,
   }
   return hasVerifiedFact(ctx, patterns[kind])
+}
+
+export function inferObservedBusinessContext(args: {
+  url: string
+  markdown: string
+  html?: string
+}): ObservedBusinessContext {
+  const text = `${args.url} ${args.markdown} ${args.html || ''}`.replace(/\s+/g, ' ')
+  const lower = text.toLowerCase()
+  const locations = ['Toronto', 'GTA', 'Ontario', 'Quebec', 'Canada'].filter((place) =>
+    new RegExp(`\\b${place.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)
+  )
+  const services: string[] = []
+  const addService = (label: string, re: RegExp) => {
+    if (re.test(text) && !services.includes(label)) services.push(label)
+  }
+  addService('Residential moving', /\bresidential\s+(?:moving|moves?|relocation)\b/i)
+  addService('Commercial moving', /\bcommercial\s+(?:moving|moves?|relocation)\b/i)
+  addService('Condo moving', /\bcondo\s+(?:moving|moves?)\b/i)
+  addService('Piano moving', /\bpiano\s+(?:moving|movers?)\b/i)
+  addService('Packing', /\bpacking\s+(?:services?|help)\b/i)
+  addService('Storage', /\bstorage\b/i)
+
+  const isMoving = /\b(moving company|movers?|relocation|residential moving|commercial moving)\b/i.test(text)
+  const quoteCta = /\b(get|request|book)\s+(?:a\s+)?(?:free\s+)?quote\b|\bquote request\b|\bget quote\b/i.test(text)
+  const bookingCta = /\bbook(?:ing)?\b/i.test(text)
+
+  return {
+    inferred_business_type: isMoving ? 'Moving service' : undefined,
+    observed_primary_cta: quoteCta ? 'Quote request' : bookingCta ? 'Booking/contact request' : undefined,
+    observed_service_category: isMoving ? 'Moving services' : undefined,
+    observed_location: locations.length ? locations : undefined,
+    observed_services: services.length ? services : undefined,
+  }
 }

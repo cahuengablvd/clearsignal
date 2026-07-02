@@ -1,20 +1,29 @@
 import { Resend } from 'resend'
 import { notify } from './notify'
+import { supabaseAdmin } from './supabase'
 
 type BalanceStatus = 'ok' | 'warning' | 'critical' | 'unknown'
 
 export type AnthropicBalanceCheck = {
   balance: number
+  monthly_spend_usd?: number
+  monthly_budget_usd?: number
   status: BalanceStatus
   message: string
 }
 
 const DEFAULT_THRESHOLD = 10
+const DEFAULT_MONTHLY_BUDGET = 50
 const DEFAULT_USAGE_URL = 'https://api.anthropic.com/v1/organizations/usage_report/messages'
 
 function threshold(): number {
   const raw = Number(process.env.ANTHROPIC_BALANCE_ALERT_THRESHOLD ?? DEFAULT_THRESHOLD)
   return Number.isFinite(raw) && raw >= 0 ? raw : DEFAULT_THRESHOLD
+}
+
+function monthlyBudget(): number {
+  const raw = Number(process.env.MONTHLY_BUDGET_USD ?? DEFAULT_MONTHLY_BUDGET)
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_MONTHLY_BUDGET
 }
 
 function adminEmail(): string | undefined {
@@ -93,6 +102,46 @@ async function alertIfNeeded(result: AnthropicBalanceCheck) {
   ])
 }
 
+export async function checkMonthlyAuditBudget(now = new Date()): Promise<AnthropicBalanceCheck> {
+  const budget = monthlyBudget()
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString()
+
+  const { data, error } = await supabaseAdmin
+    .from('audits')
+    .select('api_cost_usd')
+    .gte('created_at', start)
+    .lt('created_at', end)
+    .not('api_cost_usd', 'is', null)
+
+  if (error) {
+    const result = {
+      balance: NaN,
+      monthly_spend_usd: NaN,
+      monthly_budget_usd: budget,
+      status: 'unknown' as const,
+      message: `Monthly audit budget: unknown (${error.message})`,
+    }
+    console.warn(`[anthropic-balance] ${result.message}`)
+    return result
+  }
+
+  const spend = (data || []).reduce((sum, row) => sum + Number(row.api_cost_usd || 0), 0)
+  const remaining = budget - spend
+  const ratio = budget > 0 ? spend / budget : 0
+  const status: BalanceStatus = ratio >= 1 ? 'critical' : ratio >= 0.8 ? 'warning' : 'ok'
+  const result = {
+    balance: remaining,
+    monthly_spend_usd: Math.round(spend * 100) / 100,
+    monthly_budget_usd: budget,
+    status,
+    message: `Monthly audit spend: $${spend.toFixed(2)} / $${budget.toFixed(2)}, remaining: $${remaining.toFixed(2)}, status: ${status.toUpperCase()}`,
+  }
+  console.log(`[anthropic-balance] ${result.message}`)
+  await alertIfNeeded(result)
+  return result
+}
+
 /**
  * Best-effort Anthropic usage/balance guard.
  *
@@ -101,6 +150,10 @@ async function alertIfNeeded(result: AnthropicBalanceCheck) {
  * return `unknown` and never block audit generation.
  */
 export async function checkAnthropicBalance(): Promise<AnthropicBalanceCheck> {
+  if (process.env.USE_ANTHROPIC_ADMIN_BALANCE !== 'true') {
+    return checkMonthlyAuditBudget()
+  }
+
   const key = process.env.ANTHROPIC_ADMIN_API_KEY || process.env.ANTHROPIC_API_KEY
   if (!key) {
     const result = {

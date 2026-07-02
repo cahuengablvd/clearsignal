@@ -10,7 +10,7 @@
  * Pure + deterministic: no LLM, fully unit-testable.
  */
 import { sanitizeUnsupportedCommercialClaims } from './sanitize'
-import { buildJsonLd } from './materials'
+import { assembleMaterials } from './materials'
 import { repairUnsupportedMovingClaimSentence } from './industry-profiles/moving'
 import { BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
@@ -352,10 +352,13 @@ function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => v
   if (!report.ready_materials) return
   const brand = report.meta.canonical_brand || report.geo?.brand || ''
   const url = report.meta.url || ''
-  const rebuilt = buildJsonLd(brand, url, report.ready_materials.faq || [])
-  if (rebuilt !== report.ready_materials.json_ld) {
-    report.ready_materials.json_ld = rebuilt
-    warn('ready_materials: rebuilt JSON-LD from sanitized FAQ copy')
+  const rebuilt = assembleMaterials(brand, url, report.ready_materials, {
+    businessContext: report.meta.business_context,
+    observedBusinessContext: report.meta.observed_business_context,
+  })
+  if (JSON.stringify(rebuilt) !== JSON.stringify(report.ready_materials)) {
+    report.ready_materials = rebuilt
+    warn('ready_materials: rebuilt publishable materials from verified/observed facts')
   }
 }
 

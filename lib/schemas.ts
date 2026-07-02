@@ -53,6 +53,15 @@ export const BusinessContextSchema = z.object({
 })
 export type BusinessContext = z.infer<typeof BusinessContextSchema>
 
+export const ObservedBusinessContextSchema = z.object({
+  inferred_business_type: z.string().optional(),
+  observed_primary_cta: z.string().optional(),
+  observed_service_category: z.string().optional(),
+  observed_location: z.array(z.string()).optional(),
+  observed_services: z.array(z.string()).optional(),
+})
+export type ObservedBusinessContext = z.infer<typeof ObservedBusinessContextSchema>
+
 // --- Trust Layer: input validation ---
 
 /** Whole value is a bare URL (so we can keep it OUT of the ICP field). */
@@ -317,6 +326,7 @@ const metaSchema = z.object({
   domain: z.string().optional(),
   alternative_brand_forms: z.array(z.string()).optional(),
   business_context: BusinessContextSchema.optional(),
+  observed_business_context: ObservedBusinessContextSchema.optional(),
 })
 
 const claritySchema = z.object({

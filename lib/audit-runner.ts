@@ -2,7 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { scrapeUrl, scrapePage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
 import { resolveBrandEntity } from './brand'
-import { normalizeBusinessContext } from './business-context'
+import { inferObservedBusinessContext, normalizeBusinessContext } from './business-context'
 import { validateReport } from './report-validator'
 import { computeTechnicalFindings } from './findings'
 import { assembleMaterials } from './materials'
@@ -42,6 +42,7 @@ import { sanitizeGeneratedProse, sanitizeGeneratedReportValue } from './sanitize
 import { attachActionConfidence } from './action-confidence'
 import { CostTracker } from './cost-tracker'
 import type { GeoResult } from './schemas'
+import { archiveCurrentReportVersion } from './report-versions'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
@@ -226,6 +227,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
 
     const icp = audit.icp_description || ''
     const businessContext = normalizeBusinessContext(audit.business_context)
+    const observedBusinessContext = inferObservedBusinessContext({
+      url: audit.url,
+      markdown: targetMarkdown,
+      html: targetPage.html,
+    })
     // Resolve ONE brand entity from the page (not just the domain label) so the
     // report stops mixing "BLVD Production", "Blvdprod" and "blvdprod.com".
     const brandEntity = resolveBrandEntity({
@@ -321,7 +327,10 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         answer: sanitizeGeneratedProse(f.answer, undefined, undefined, { businessContext }),
       }))
       llm.cta_variants = llm.cta_variants.map((c) => sanitizeGeneratedProse(c, undefined, undefined, { businessContext }))
-      readyMaterials = assembleMaterials(brand, audit.url, llm)
+      readyMaterials = assembleMaterials(brand, audit.url, llm, {
+        businessContext,
+        observedBusinessContext,
+      })
     } catch (err) {
       console.warn(`Ready-materials generation failed for ${auditId} (continuing without it):`, err)
     }
@@ -360,6 +369,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         domain: brandEntity.domain,
         alternative_brand_forms: brandEntity.alternative_brand_forms,
         business_context: businessContext,
+        observed_business_context: observedBusinessContext,
       },
       clarity,
       gap,
@@ -394,7 +404,13 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       validation_warnings: [...validation.errors, ...validation.warnings].slice(0, 50),
     }
 
-    // 8. Save report to audit
+    // 8. Archive the previous report (if any), then save the new report.
+    await archiveCurrentReportVersion({
+      auditId,
+      report: audit.report,
+      auditStatus: audit.audit_status,
+      versionType: opts.reuseGeoEvidence ? 'regenerated' : 'generated',
+    })
     await supabaseAdmin
       .from('audits')
       .update({
@@ -406,8 +422,9 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       })
       .eq('id', auditId)
 
-    // 9. Write audit_insights summary row
-    await supabaseAdmin.from('audit_insights').insert({
+    // 9. Write audit_insights summary row. Upsert prevents regeneration from
+    // creating duplicate insight rows for the same audit.
+    await supabaseAdmin.from('audit_insights').upsert({
       audit_id: auditId,
       icp_clarity: clarity.icp_visibility.score,
       headline_score: clarity.headline.score,
@@ -417,6 +434,8 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       ai_search_score: geo?.ai_visibility_score ?? gap.ai_search.score,
       top_issues: actionWithConfidence.top_fixes.slice(0, 3).map((f) => f.title),
       competitor_patterns: gap.where_you_lose.slice(0, 5),
+    }, {
+      onConflict: 'audit_id',
     })
 
     // 10. Delivery is operator-gated by default. During beta, the admin must

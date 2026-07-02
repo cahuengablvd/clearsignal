@@ -2,6 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { validateReport } from './report-validator'
 import { sanitizeGeneratedReportValue } from './sanitize'
 import { rebuildReusedGeoNarrative } from './audit-runner'
+import { archiveCurrentReportVersion } from './report-versions'
 import type { BusinessContext, ClearSignalReport } from './schemas'
 
 export async function rerenderStoredAuditReport(auditId: string): Promise<{
@@ -9,7 +10,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
 }> {
   const { data: audit, error } = await supabaseAdmin
     .from('audits')
-    .select('id, report, business_context')
+    .select('id, report, business_context, audit_status')
     .eq('id', auditId)
     .single()
 
@@ -54,6 +55,13 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
     ...validation.report,
     validation_warnings: [...validation.errors, ...validation.warnings].slice(0, 50),
   }
+
+  await archiveCurrentReportVersion({
+    auditId,
+    report: audit.report,
+    auditStatus: audit.audit_status,
+    versionType: 'rerendered',
+  })
 
   const { error: updateError } = await supabaseAdmin
     .from('audits')

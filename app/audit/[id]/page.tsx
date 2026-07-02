@@ -253,24 +253,41 @@ export default async function AuditPage({
           </CardContent>
         </Card>
 
-        {report.meta.business_context && (
+        {(report.meta.business_context || report.meta.observed_business_context) && (
           <Card className="mb-8 border-emerald-200 bg-emerald-50/40">
             <CardHeader>
-              <CardTitle className="text-lg">Verified business context</CardTitle>
+              <CardTitle className="text-lg">Business context</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                <div><span className="font-medium text-foreground">Business model:</span> {humanizeValue(report.meta.business_context.business_model)}</div>
-                <div><span className="font-medium text-foreground">Conversion goal:</span> {humanizeValue(report.meta.business_context.primary_conversion_goal)}</div>
-                <div><span className="font-medium text-foreground">Purchase availability:</span> {yesNoUnknown(report.meta.business_context.purchase_availability)}</div>
-                <div><span className="font-medium text-foreground">International shipping:</span> {yesNoUnknown(report.meta.business_context.ships_internationally)}</div>
-                <div><span className="font-medium text-foreground">Provenance/authentication:</span> {yesNoUnknown(report.meta.business_context.provenance_or_authentication)}</div>
-                <div><span className="font-medium text-foreground">Markets/languages:</span> {report.meta.business_context.target_markets_languages || 'Not provided'}</div>
-                <div className="sm:col-span-2">
-                  <span className="font-medium text-foreground">Verified facts supplied:</span>{' '}
-                  {report.meta.business_context.verified_facts || 'None supplied'}
+            <CardContent className="space-y-4">
+              {report.meta.business_context && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">User-verified business context</h3>
+                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                    <div><span className="font-medium text-foreground">Business model:</span> {humanizeValue(report.meta.business_context.business_model)}</div>
+                    <div><span className="font-medium text-foreground">Conversion goal:</span> {humanizeValue(report.meta.business_context.primary_conversion_goal)}</div>
+                    <div><span className="font-medium text-foreground">Purchase availability:</span> {yesNoUnknown(report.meta.business_context.purchase_availability)}</div>
+                    <div><span className="font-medium text-foreground">International shipping:</span> {yesNoUnknown(report.meta.business_context.ships_internationally)}</div>
+                    <div><span className="font-medium text-foreground">Provenance/authentication:</span> {yesNoUnknown(report.meta.business_context.provenance_or_authentication)}</div>
+                    <div><span className="font-medium text-foreground">Markets/languages:</span> {report.meta.business_context.target_markets_languages || 'Not provided'}</div>
+                    <div className="sm:col-span-2">
+                      <span className="font-medium text-foreground">Verified facts supplied:</span>{' '}
+                      {report.meta.business_context.verified_facts || 'None supplied'}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+              {report.meta.observed_business_context && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Observed business context</h3>
+                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                    <div><span className="font-medium text-foreground">Business type:</span> {report.meta.observed_business_context.inferred_business_type || 'Not observed'}</div>
+                    <div><span className="font-medium text-foreground">Primary conversion action:</span> {report.meta.observed_business_context.observed_primary_cta || 'Not observed'}</div>
+                    <div><span className="font-medium text-foreground">Service category:</span> {report.meta.observed_business_context.observed_service_category || 'Not observed'}</div>
+                    <div><span className="font-medium text-foreground">Observed locations:</span> {(report.meta.observed_business_context.observed_location || []).join(', ') || 'Not observed'}</div>
+                    <div className="sm:col-span-2"><span className="font-medium text-foreground">Observed services:</span> {(report.meta.observed_business_context.observed_services || []).join(', ') || 'Not observed'}</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -737,30 +754,31 @@ export default async function AuditPage({
           </Card>
         </div>
 
-        {/* AI Search */}
-        <Card className="mb-8">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold">AI-Search Visibility</h3>
-              <div className="flex items-center gap-2">
-                <SeverityBadge severity={report.gap.ai_search.severity} />
-                <span className="text-sm font-mono">{report.gap.ai_search.score}/100</span>
+        {!report.geo && (
+          <Card className="mb-8">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">AI-Search Visibility</h3>
+                <div className="flex items-center gap-2">
+                  <SeverityBadge severity={report.gap.ai_search.severity} />
+                  <span className="text-sm font-mono">{report.gap.ai_search.score}/100</span>
+                </div>
               </div>
-            </div>
-            <p className="text-sm text-muted-foreground mb-2">{report.gap.ai_search.finding}</p>
-            <p className="text-sm mb-2">
-              Likely to be cited: <strong>{report.gap.ai_search.is_likely_cited ? 'Yes' : 'No'}</strong>
-            </p>
-            {report.gap.ai_search.missing_signals.length > 0 && (
-              <div className="text-sm">
-                <span className="font-medium">Missing signals:</span>
-                <ul className="list-disc list-inside mt-1 text-muted-foreground">
-                  {report.gap.ai_search.missing_signals.map((s, i) => <li key={i}>{s}</li>)}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-sm text-muted-foreground mb-2">{report.gap.ai_search.finding}</p>
+              <p className="text-sm mb-2">
+                Likely to be cited: <strong>{report.gap.ai_search.is_likely_cited ? 'Yes' : 'No'}</strong>
+              </p>
+              {report.gap.ai_search.missing_signals.length > 0 && (
+                <div className="text-sm">
+                  <span className="font-medium">Missing signals:</span>
+                  <ul className="list-disc list-inside mt-1 text-muted-foreground">
+                    {report.gap.ai_search.missing_signals.map((s, i) => <li key={i}>{s}</li>)}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* ========== ACTION BLOCK ========== */}
         <h2 className="text-2xl font-bold mb-4 mt-10">Action Plan</h2>

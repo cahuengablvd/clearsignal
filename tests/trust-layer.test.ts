@@ -575,12 +575,15 @@ describe('action confidence enrichment', () => {
 })
 
 describe('role assignment', () => {
-  it('routes headline/tagline work to copywriter', () => {
-    expect(inferFixOwner({
+  it('routes headline/tagline work to founder with copywriter contribution', () => {
+    const fix = {
       title: 'Rewrite headline and tagline',
       description: 'Clarify the hero narrative.',
       category: 'ai_search',
-    })).toBe('Copywriter')
+    }
+    expect(inferFixOwner(fix)).toBe('Founder / marketing')
+    expect(inferFixContributor(fix)).toBe('Copywriter')
+    expect(inferFixImplementer(fix)).toBe('Developer')
   })
 
   it('routes CTA ownership to founder/marketing and implementation to developer', () => {
@@ -1268,11 +1271,9 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/fully insured|HomeStars-rated|CVOR credentials|WSIB credentials|storage is available|offers piano moving|across Ontario and Quebec/i)
-    expect(text).toContain('Contact AZ Moving to discuss insurance details and third-party rating details for your move.')
-    expect(text).toContain('Contact AZ Moving to discuss insurance details, WSIB status and CVOR status for your move.')
-    expect(text).toContain(
-      'Contact AZ Moving to discuss piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market for your move.'
-    )
+    expect(text).toContain('Request a quote to discuss timing, service coverage and move details.')
+    expect(text).toContain('How do I request a moving quote')
+    expect(text).toContain('Request a Moving Quote')
     expect(text).not.toMatch(/Contact the business to confirm|before publishing this wording|before booking/i)
   })
 
@@ -1395,10 +1396,10 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
     const text = JSON.stringify(r.report)
     expect(r.report.clarity.cta.suggested_rewrite).toBe('Get Your Free Moving Quote')
-    expect(r.report.ready_materials?.cta_variants[0]).toBe('Get Your Free Moving Quote')
+    expect(r.report.ready_materials?.cta_variants[0]).toBe('Request a Moving Quote')
     expect(text).not.toMatch(/call us directly at|Takes under|GTA\.Ask|Yes\.Ask|online in minutes/i)
-    expect(text).toContain('GTA. Contact AZ Moving to discuss insurance details')
-    expect(text).toContain('Contact AZ Moving to discuss insurance details, WSIB status and CVOR status')
+    expect(text).toContain('Request a quote to discuss timing, service coverage and move details.')
+    expect(text).toContain('How do I request a moving quote')
   })
 
   it('accepts explicit GEO test counts for configured, expected and successful combinations', () => {

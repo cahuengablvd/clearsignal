@@ -165,38 +165,24 @@
   ],
   "ready_materials": {
     "meta_title": "Toronto Movers - Residential & Commercial | Az-Moving",
-    "meta_description": "Az-Moving serves Toronto and the GTA with residential and commercial moving services. Contact AZ Moving to discuss WSIB status for your move. Request a free quote today.",
+    "meta_description": "Az-moving provides residential and commercial moving services. Request a quote to discuss timing, service coverage and move details.",
     "cta_variants": [
-      "Get Your Free Moving Quote",
-      "Request a Quote - We Respond Same Day",
-      "Book Your Toronto Move",
-      "Talk to a Mover Now",
-      "Check Availability for Your Move Date"
+      "Request a Moving Quote",
+      "Get My Moving Quote",
+      "Contact Az-moving"
     ],
     "faq": [
       {
-        "answer": "Az-Moving provides residential and commercial moving services across Toronto and the Greater Toronto Area. For specific neighbourhood or city coverage, contact the team directly to confirm availability for your move date and location.",
-        "question": "Does Az-Moving serve all areas within the GTA?"
+        "question": "How do I request a moving quote from Az-moving?",
+        "answer": "Use the website quote or contact form and share your origin, destination, preferred move date, inventory size, and any building access details."
       },
       {
-        "answer": "Contact AZ Moving to discuss WSIB status and CVOR status for your move. For details on coverage types and limits relevant to your move - particularly for high-value or commercial relocations - ask the team for details.",
-        "question": "Is Az-Moving insured and certified?"
+        "question": "What details should I prepare before contacting Az-moving?",
+        "answer": "Prepare the pickup and drop-off addresses, preferred timing, approximate item list, stairs or elevator access, parking details, and any special handling needs."
       },
       {
-        "answer": "Az-Moving offers a range of services including residential moves, commercial and office relocations, and specialty item handling. Visit the services section of az-moving.com or call directly to discuss the specifics of your move.",
-        "question": "What types of moves does Az-Moving handle?"
-      },
-      {
-        "answer": "You can request a free quote through the form on az-moving.com. Pricing will depend on your move size, distance, access conditions, and any specialty items - a team member will follow up to confirm the details.",
-        "question": "How do I get a price estimate for my move in Toronto?"
-      },
-      {
-        "answer": "Availability varies by season, with summer and end-of-month dates booking up quickly in the GTA. Contacting Az-Moving as early as possible is advisable, though the team can advise on short-notice availability when you reach out.",
-        "question": "How far in advance should I book a Toronto mover?"
-      },
-      {
-        "answer": "Condo moves in Toronto often require coordinated elevator reservations and building access approvals. Contact Az-Moving with your building's requirements so the team can plan accordingly and help avoid delays on move day.",
-        "question": "Does Az-Moving handle condo moves with elevator booking requirements?"
+        "question": "How should I confirm service availability for my move?",
+        "answer": "Request a quote with your move details so the team can confirm service coverage, timing, and any requirements specific to your building or items."
       }
     ]
   },

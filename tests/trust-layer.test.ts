@@ -458,7 +458,7 @@ describe('recursive report sanitizer', () => {
     expect(out.clarity.headline.suggested_rewrite.toLowerCase()).not.toContain('trial signups')
     expect(out.clarity.trust_proof.missing_elements[0].toLowerCase()).not.toContain('6 logos')
     expect(out.implementation_briefs[0].fix_title.toLowerCase()).not.toContain('direct revenue leak')
-    expect(out.implementation_briefs[0].steps[0]).toContain('Use verified proof points only')
+    expect(out.implementation_briefs[0].steps[0]).toContain('Proof-related recommendations should be backed by verified source data')
     expect(out.implementation_briefs[0].acceptance_criteria[0].toLowerCase()).not.toContain('actively repels buyers')
   })
 })
@@ -1805,7 +1805,7 @@ describe('sentence-level trust engine', () => {
     const text = JSON.stringify(r.report)
     expect(text).not.toMatch(/Pricing was not confirmed|Potential business impact should be treated|add a response-time commitment|confirms it is fully insured|same business day|defined number of hours/i)
     expect(text).toContain('This cited source appears to include pricing/use-case content')
-    expect(r.report.action.top_fixes[0].title).toBe('Use verified proof points only.')
+    expect(r.report.action.top_fixes[0].title).toBe('Proof-related recommendations should be backed by verified source data.')
     expect(r.report.action.top_fixes[0].description).toContain('add response-time wording only if verified')
     expect(r.report.action.top_fixes[1].description).toContain('describes insurance only if verified by the business')
   })
@@ -1830,9 +1830,9 @@ describe('sentence-level trust engine', () => {
       },
     })
 
-    expect(review).toBe('Use verified rating context only.')
-    expect(sla).toBe('Mention response timing only if the business has verified it.')
-    expect(credential).toBe('Mention credentials only if the business has verified them.')
+    expect(review).toBe('Rating recommendations should use verified review-source data.')
+    expect(sla).toBe('Response-time wording should be used only when the business has verified it.')
+    expect(credential).toBe('Credential claims should use current verified business details.')
   })
 
   it('deduplicates repeated replacement sentences within a single generated field', () => {
@@ -1854,6 +1854,32 @@ describe('sentence-level trust engine', () => {
       }
     )
 
-    expect(out).toBe('Mention credentials only if the business has verified them.')
+    expect(out).toBe('Credential claims should use current verified business details.')
+  })
+
+  it('rewrites old standalone safety phrases during report validation', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://az-moving.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Az-moving',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary:
+            'Use verified proof points only. If the business can verify credential details, publish them in crawlable prose.',
+          top_fixes: [],
+        },
+      }) as any
+    )
+    const text = JSON.stringify(r.report)
+    expect(text).not.toMatch(/Use verified proof points only|If the business can verify credential details|publish them in crawlable prose/i)
+    expect(text).toContain('Proof-related recommendations should be backed by verified source data')
+    expect(text).toContain('Credential claims should use current verified business details')
   })
 })

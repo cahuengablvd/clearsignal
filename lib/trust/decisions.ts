@@ -19,15 +19,15 @@ export type SentenceDecision =
 export const REPLACEMENT_SENTENCES = {
   performanceHypothesis:
     'Potential business impact should be treated as a hypothesis until verified with analytics or operator data.',
-  recommendationHypothesis: 'Use verified proof points only.',
-  reviewProofRecommendation: 'Use verified rating context only.',
+  recommendationHypothesis: 'Proof-related recommendations should be backed by verified source data.',
+  reviewProofRecommendation: 'Rating recommendations should use verified review-source data.',
   quantifiedExample: 'Use verified business data before publishing this example.',
   unsupportedCommitment:
     'Specific service commitments should be published only when the business has verified them.',
   conditionalResponseTime:
-    'Mention response timing only if the business has verified it.',
+    'Response-time wording should be used only when the business has verified it.',
   conditionalCredential:
-    'Mention credentials only if the business has verified them.',
+    'Credential claims should use current verified business details.',
   unsupportedMovingClaim: 'Ask the team about service details for this move.',
 } as const
 

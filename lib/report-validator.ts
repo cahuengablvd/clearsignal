@@ -117,15 +117,23 @@ function cleanupClientPhrasing(text: string): string {
     )
     .replace(
       /\bPotential business impact should be treated as a hypothesis until verified with analytics or operator data\./gi,
-      'Use verified proof points only.'
+      'Proof-related recommendations should be backed by verified source data.'
     )
     .replace(
       /\bClarify this recommendation with verified proof before publishing\./gi,
-      'Use verified proof points only.'
+      'Proof-related recommendations should be backed by verified source data.'
     )
     .replace(
       /\bClarify review proof with verified rating context\./gi,
-      'Use verified rating context only.'
+      'Rating recommendations should use verified review-source data.'
+    )
+    .replace(
+      /\bUse verified proof points only\./gi,
+      'Proof-related recommendations should be backed by verified source data.'
+    )
+    .replace(
+      /\bUse verified rating context only\./gi,
+      'Rating recommendations should use verified review-source data.'
     )
     .replace(
       /\bFix the post-submission confirmation typo and add a response-time commitment\b/gi,
@@ -141,11 +149,19 @@ function cleanupClientPhrasing(text: string): string {
     )
     .replace(
       /\bIf the business can verify a response-time commitment, publish it as conditional supporting copy\./gi,
-      'Mention response timing only if the business has verified it.'
+      'Response-time wording should be used only when the business has verified it.'
     )
     .replace(
       /\bIf the business can verify credential details, publish them in crawlable prose\./gi,
-      'Mention credentials only if the business has verified them.'
+      'Credential claims should use current verified business details.'
+    )
+    .replace(
+      /\bMention response timing only if the business has verified it\./gi,
+      'Response-time wording should be used only when the business has verified it.'
+    )
+    .replace(
+      /\bMention credentials only if the business has verified them\./gi,
+      'Credential claims should use current verified business details.'
     )
     .replace(
       /\bconfirms it is fully insured\b/gi,

@@ -56,6 +56,7 @@ export default function AdminPage() {
   const [audits, setAudits] = useState<Audit[]>([])
   const [loading, setLoading] = useState(false)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
+  const [rerenderingId, setRerenderingId] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [creating, setCreating] = useState(false)
@@ -112,6 +113,32 @@ export default function AdminPage() {
       setRegenMsg({ ok: false, text: 'Regeneration request failed' })
     }
     setRegeneratingId(null)
+  }
+
+  async function rerenderAudit(auditId: string) {
+    setRerenderingId(auditId)
+    setRegenMsg(null)
+    try {
+      const res = await fetch('/api/admin/audits/rerender', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audit_id: auditId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setRegenMsg({
+          ok: true,
+          text: `Report re-rendered without new AI calls: ${auditId} (${data.validation_repair_count || 0} repairs)`,
+        })
+      } else {
+        setRegenMsg({ ok: false, text: data.error || `Re-render failed (${res.status})` })
+      }
+      await loadAudits()
+    } catch (err) {
+      console.error('Re-render failed:', err)
+      setRegenMsg({ ok: false, text: 'Re-render request failed' })
+    }
+    setRerenderingId(null)
   }
 
   // Step 1: preview - generate the queries and show a confirmation screen.
@@ -614,6 +641,21 @@ export default function AdminPage() {
                         <><RefreshCw className="h-3 w-3" /> Re-generate</>
                       )}
                     </Button>
+                    {audit.report_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => rerenderAudit(audit.id)}
+                        disabled={rerenderingId === audit.id}
+                        className="gap-1"
+                      >
+                        {rerenderingId === audit.id ? (
+                          <><Loader2 className="h-3 w-3 animate-spin" /> Re-rendering...</>
+                        ) : (
+                          'Re-render'
+                        )}
+                      </Button>
+                    )}
                     {['done', 'delivery_failed'].includes(audit.audit_status) && (
                       <Button variant="outline" size="sm" onClick={() => markDelivered(audit.id)}>
                         Mark Delivered

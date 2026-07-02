@@ -87,7 +87,7 @@ function formatEngineList(engines: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
-function rebuildReusedGeoNarrative(geo: GeoResult): GeoResult {
+export function rebuildReusedGeoNarrative(geo: GeoResult): GeoResult {
   const total = geo.test_counts?.successful_combinations ?? geo.evidence.length
   const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
   const cited = geo.evidence.filter((e) => e.brand_cited).length

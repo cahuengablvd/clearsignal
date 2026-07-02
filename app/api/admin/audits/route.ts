@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   const { data: audits, error } = await supabaseAdmin
     .from('audits')
-    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes')
+    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, report')
     .order('created_at', { ascending: false })
     .limit(100)
 
@@ -22,11 +22,20 @@ export async function GET(req: NextRequest) {
   // Attach a shareable, signed report link for finished audits (so the admin
   // can copy a URL to send a friend without an admin session).
   const withLinks = (audits || []).map((a) => {
-    if (['done', 'delivered'].includes(a.audit_status)) {
+    const report = a.report as { validation_warnings?: unknown[] } | null
+    const validation_repair_count = Array.isArray(report?.validation_warnings)
+      ? report.validation_warnings.length
+      : 0
+    const { report: _report, ...audit } = a
+    if (['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(a.audit_status)) {
       const token = trySignToken('audit', a.id)
-      return { ...a, report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}` }
+      return {
+        ...audit,
+        validation_repair_count,
+        report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}`,
+      }
     }
-    return { ...a, report_url: null as string | null }
+    return { ...audit, validation_repair_count, report_url: null as string | null }
   })
 
   return NextResponse.json({ audits: withLinks })

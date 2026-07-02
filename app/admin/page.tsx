@@ -18,6 +18,7 @@ type Audit = {
   tier: string
   admin_notes: string | null
   report_url?: string | null
+  validation_repair_count?: number
 }
 
 const emptyForm = {
@@ -54,6 +55,7 @@ export default function AdminPage() {
   const [audits, setAudits] = useState<Audit[]>([])
   const [loading, setLoading] = useState(false)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
+  const [approvingId, setApprovingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [creating, setCreating] = useState(false)
   const [previewing, setPreviewing] = useState(false)
@@ -183,6 +185,29 @@ export default function AdminPage() {
     await loadAudits()
   }
 
+  async function approveAndSend(auditId: string) {
+    setApprovingId(auditId)
+    setRegenMsg(null)
+    try {
+      const res = await fetch('/api/admin/audits/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audit_id: auditId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setRegenMsg({ ok: true, text: `Report approved and emailed: ${auditId}` })
+      } else {
+        setRegenMsg({ ok: false, text: data.error || `Email delivery failed (${res.status})` })
+      }
+      await loadAudits()
+    } catch (err) {
+      console.error('Approve & send failed:', err)
+      setRegenMsg({ ok: false, text: 'Approve & send request failed' })
+    }
+    setApprovingId(null)
+  }
+
   useEffect(() => {
     // Check if already authed
     fetch('/api/admin/audits').then(res => {
@@ -220,6 +245,7 @@ export default function AdminPage() {
     queued: 'bg-gray-100 text-gray-800',
     processing: 'bg-blue-100 text-blue-800',
     done: 'bg-green-100 text-green-800',
+    awaiting_review: 'bg-purple-100 text-purple-800',
     delivery_failed: 'bg-yellow-100 text-yellow-800',
     delivered: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
@@ -532,16 +558,35 @@ export default function AdminPage() {
                         {audit.audit_status}
                       </Badge>
                       <Badge variant="outline">{audit.tier}</Badge>
+                      {(audit.validation_repair_count || 0) > 0 && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-800">
+                          {audit.validation_repair_count} repairs
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mb-3">
-                    {['done', 'delivery_failed', 'delivered'].includes(audit.audit_status) && (
+                    {['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(audit.audit_status) && (
                       <a href={audit.report_url || `/audit/${audit.id}`} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm" className="gap-1">
                           <ExternalLink className="h-3 w-3" /> View Report
                         </Button>
                       </a>
+                    )}
+                    {['awaiting_review', 'delivery_failed'].includes(audit.audit_status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => approveAndSend(audit.id)}
+                        disabled={approvingId === audit.id}
+                      >
+                        {approvingId === audit.id ? (
+                          <><Loader2 className="h-3 w-3 animate-spin" /> Sending...</>
+                        ) : (
+                          'Approve & send'
+                        )}
+                      </Button>
                     )}
                     <Button
                       variant="outline"

@@ -34,7 +34,7 @@ import {
   BRIEF_SYSTEM,
   briefUserPrompt,
 } from './prompts'
-import { sendReportEmail } from './resend'
+import { deliverAuditEmail } from './email-delivery'
 import { runGeoScan } from './geo'
 import { notify } from './notify'
 import { sanitizeGeneratedProse, sanitizeGeneratedReportValue } from './sanitize'
@@ -55,11 +55,6 @@ function buildDataLimitations(geo: GeoResult | null): string[] {
     limits.unshift('Live AI visibility evidence was unavailable for this run.')
   }
   return limits
-}
-
-function appendAdminNote(existing: string | null | undefined, note: string): string {
-  const prefix = existing?.trim() ? `${existing.trim()}\n` : ''
-  return `${prefix}${note}`.slice(-4000)
 }
 
 /** Strip invented performance numbers from all human-facing report prose. */
@@ -320,7 +315,7 @@ export async function runFullAudit(auditId: string): Promise<void> {
       .from('audits')
       .update({
         report: finalReport,
-        audit_status: 'done',
+        audit_status: 'awaiting_review',
       })
       .eq('id', auditId)
 
@@ -337,31 +332,10 @@ export async function runFullAudit(auditId: string): Promise<void> {
       competitor_patterns: gap.where_you_lose.slice(0, 5),
     })
 
-    // 10. Send delivery email
-    try {
-      await sendReportEmail(audit.email, auditId, audit.url)
-      await supabaseAdmin
-        .from('audits')
-        .update({ audit_status: 'delivered' })
-        .eq('id', auditId)
-    } catch (emailErr) {
-      console.error('Failed to send delivery email:', emailErr)
-      const errorMessage = emailErr instanceof Error ? emailErr.message : String(emailErr)
-      await supabaseAdmin
-        .from('audits')
-        .update({
-          audit_status: 'delivery_failed',
-          admin_notes: appendAdminNote(
-            audit.admin_notes,
-            `[${new Date().toISOString()}] Email delivery failed: ${errorMessage}`
-          ),
-        })
-        .eq('id', auditId)
-      await notify('email_delivery_failed', {
-        audit_id: auditId,
-        email: audit.email,
-        error: errorMessage,
-      })
+    // 10. Delivery is operator-gated by default. During beta, the admin must
+    // review the PDF and click "Approve & send" before the client gets email.
+    if (process.env.AUTO_DELIVER_AUDITS === 'true') {
+      await deliverAuditEmail(auditId)
     }
   } catch (err) {
     console.error(`Audit generation failed for ${auditId}:`, err)

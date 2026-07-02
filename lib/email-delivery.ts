@@ -1,0 +1,49 @@
+import { supabaseAdmin } from './supabase'
+import { sendReportEmail } from './resend'
+import { notify } from './notify'
+
+function appendAdminNote(existing: string | null | undefined, note: string): string {
+  const prefix = existing?.trim() ? `${existing.trim()}\n` : ''
+  return `${prefix}${note}`.slice(-4000)
+}
+
+export async function deliverAuditEmail(auditId: string): Promise<void> {
+  const { data: audit, error } = await supabaseAdmin
+    .from('audits')
+    .select('id, email, url, admin_notes, report')
+    .eq('id', auditId)
+    .single()
+
+  if (error || !audit) {
+    throw new Error(`Audit ${auditId} not found: ${error?.message || 'missing row'}`)
+  }
+  if (!audit.report) {
+    throw new Error(`Audit ${auditId} has no report to deliver`)
+  }
+
+  try {
+    await sendReportEmail(audit.email, auditId, audit.url)
+    await supabaseAdmin
+      .from('audits')
+      .update({ audit_status: 'delivered' })
+      .eq('id', auditId)
+  } catch (emailErr) {
+    const errorMessage = emailErr instanceof Error ? emailErr.message : String(emailErr)
+    await supabaseAdmin
+      .from('audits')
+      .update({
+        audit_status: 'delivery_failed',
+        admin_notes: appendAdminNote(
+          audit.admin_notes,
+          `[${new Date().toISOString()}] Email delivery failed: ${errorMessage}`
+        ),
+      })
+      .eq('id', auditId)
+    await notify('email_delivery_failed', {
+      audit_id: auditId,
+      email: audit.email,
+      error: errorMessage,
+    })
+    throw emailErr
+  }
+}

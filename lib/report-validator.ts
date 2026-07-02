@@ -13,6 +13,7 @@ import { sanitizeUnsupportedCommercialClaims } from './sanitize'
 import { assembleMaterials } from './materials'
 import { repairUnsupportedMovingClaimSentence } from './industry-profiles/moving'
 import { BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
+import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
 
 export type ReportValidation = {
@@ -133,6 +134,10 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const warn = (m: string) => warnings.push(m)
   const businessContext = report.meta.business_context as BusinessContext | undefined
   const brand = (report.meta.canonical_brand || '').trim()
+  report.meta.verified_facts_layer = buildVerifiedFactsLayer({
+    businessContext,
+    observedBusinessContext: report.meta.observed_business_context,
+  })
 
   const ctaStatus = findingStatus(report, 'cta_present')
   const faqStatus = findingStatus(report, 'faq_structure')
@@ -299,6 +304,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
 
   const walked = mapProse(report, repair) as ClearSignalReport
   rebuildReadyMaterials(walked, warn)
+  validatePublishableFacts(walked, errors)
   validateGeoCounts(walked, errors)
   repairGeoNarrativeCounts(walked, warn)
 
@@ -355,10 +361,40 @@ function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => v
   const rebuilt = assembleMaterials(brand, url, report.ready_materials, {
     businessContext: report.meta.business_context,
     observedBusinessContext: report.meta.observed_business_context,
+    verifiedFacts: report.meta.verified_facts_layer,
   })
   if (JSON.stringify(rebuilt) !== JSON.stringify(report.ready_materials)) {
     report.ready_materials = rebuilt
     warn('ready_materials: rebuilt publishable materials from verified/observed facts')
+  }
+}
+
+function validatePublishableFacts(report: ClearSignalReport, errors: string[]): void {
+  const materials = report.ready_materials
+  if (!materials) return
+  const facts = report.meta.verified_facts_layer || []
+  const text = [
+    materials.meta_title,
+    materials.meta_description,
+    ...materials.cta_variants,
+    ...materials.faq.flatMap((f) => [f.question, f.answer]),
+    materials.json_ld,
+  ].join(' ')
+
+  const checks: Array<[RegExp, RegExp, string]> = [
+    [/\b(same[- ]day|within\s+\d+\s+(?:minutes?|hours?|business days?))\b/i, /\b(response time|same[- ]day|within\s+\d+\s+(?:minutes?|hours?|business days?))\b/i, 'publishable_copy: unsupported response-time claim'],
+    [/\b(no hidden fees|flat rate|fixed price|price guarantee)\b/i, /\b(pricing|price|no hidden fees|quote wording)\b/i, 'publishable_copy: unsupported pricing claim'],
+    [/\b(fully insured|licensed and insured|insured movers?|insurance coverage)\b/i, /\b(insurance|insured)\b/i, 'publishable_copy: unsupported insurance claim'],
+    [/\bWSIB\b/i, /\bWSIB\b/i, 'publishable_copy: unsupported WSIB claim'],
+    [/\bCVOR\b/i, /\bCVOR\b/i, 'publishable_copy: unsupported CVOR claim'],
+    [/\bHomeStars(?:[- ]rated| rating| star score| score)?\b/i, /\bHomeStars\b/i, 'publishable_copy: unsupported HomeStars claim'],
+    [/\b(condo moves?|elevator reservations?|building management)\b/i, /\b(condo|elevator)\b/i, 'publishable_copy: unsupported condo/elevator claim'],
+  ]
+
+  for (const [claimPattern, factPattern, message] of checks) {
+    if (claimPattern.test(text) && !factAllowed(facts, factPattern, 'ready_copy')) {
+      errors.push(message)
+    }
   }
 }
 

@@ -3,6 +3,7 @@ import { validateReport } from './report-validator'
 import { sanitizeGeneratedReportValue } from './sanitize'
 import { rebuildReusedGeoNarrative } from './audit-runner'
 import { archiveCurrentReportVersion } from './report-versions'
+import { buildVerifiedFactsLayer } from './verified-facts'
 import type { BusinessContext, ClearSignalReport } from './schemas'
 
 export async function rerenderStoredAuditReport(auditId: string): Promise<{
@@ -25,11 +26,16 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
   const existing = audit.report as ClearSignalReport
   const businessContext = (existing.meta.business_context || audit.business_context) as BusinessContext | undefined
   const geo = existing.geo ? rebuildReusedGeoNarrative(existing.geo) : null
+  const verifiedFactsLayer = buildVerifiedFactsLayer({
+    businessContext,
+    observedBusinessContext: existing.meta.observed_business_context,
+  })
   const report: ClearSignalReport = {
     ...existing,
     meta: {
       ...existing.meta,
       business_context: businessContext ?? existing.meta.business_context,
+      verified_facts_layer: verifiedFactsLayer,
     },
     geo,
     data_limitations: [

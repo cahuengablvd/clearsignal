@@ -62,6 +62,18 @@ export const ObservedBusinessContextSchema = z.object({
 })
 export type ObservedBusinessContext = z.infer<typeof ObservedBusinessContextSchema>
 
+export const VerifiedFactSchema = z.object({
+  id: z.string(),
+  claim: z.string(),
+  source_type: z.enum(['user_verified', 'target_page_observed', 'official_external_source', 'ai_reported', 'inferred']),
+  evidence_id: z.string().optional(),
+  source_url: z.string().optional(),
+  confidence: z.number().min(0).max(100),
+  requires_operator_confirmation: z.boolean(),
+  allowed_outputs: z.array(z.enum(['analysis', 'ready_copy', 'faq', 'schema', 'outreach'])),
+})
+export type VerifiedFact = z.infer<typeof VerifiedFactSchema>
+
 // --- Trust Layer: input validation ---
 
 /** Whole value is a bare URL (so we can keep it OUT of the ICP field). */
@@ -327,6 +339,7 @@ const metaSchema = z.object({
   alternative_brand_forms: z.array(z.string()).optional(),
   business_context: BusinessContextSchema.optional(),
   observed_business_context: ObservedBusinessContextSchema.optional(),
+  verified_facts_layer: z.array(VerifiedFactSchema).optional(),
 })
 
 const claritySchema = z.object({

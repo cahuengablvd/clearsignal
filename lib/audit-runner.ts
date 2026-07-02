@@ -43,6 +43,7 @@ import { attachActionConfidence } from './action-confidence'
 import { CostTracker } from './cost-tracker'
 import type { GeoResult } from './schemas'
 import { archiveCurrentReportVersion } from './report-versions'
+import { buildVerifiedFactsLayer } from './verified-facts'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
@@ -232,6 +233,10 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       markdown: targetMarkdown,
       html: targetPage.html,
     })
+    const verifiedFactsLayer = buildVerifiedFactsLayer({
+      businessContext,
+      observedBusinessContext,
+    })
     // Resolve ONE brand entity from the page (not just the domain label) so the
     // report stops mixing "BLVD Production", "Blvdprod" and "blvdprod.com".
     const brandEntity = resolveBrandEntity({
@@ -330,6 +335,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       readyMaterials = assembleMaterials(brand, audit.url, llm, {
         businessContext,
         observedBusinessContext,
+        verifiedFacts: verifiedFactsLayer,
       })
     } catch (err) {
       console.warn(`Ready-materials generation failed for ${auditId} (continuing without it):`, err)
@@ -370,6 +376,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         alternative_brand_forms: brandEntity.alternative_brand_forms,
         business_context: businessContext,
         observed_business_context: observedBusinessContext,
+        verified_facts_layer: verifiedFactsLayer,
       },
       clarity,
       gap,

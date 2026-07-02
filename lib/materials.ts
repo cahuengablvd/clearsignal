@@ -5,7 +5,8 @@
  * DETERMINISTICALLY here from the brand + FAQ so it is always valid schema.org
  * (Organization + FAQPage) rather than hallucinated markup.
  */
-import type { BusinessContext, ObservedBusinessContext, ReadyMaterialsLlm, ReadyMaterials } from './schemas'
+import { buildVerifiedFactsLayer, factAllowed, observedValues } from './verified-facts'
+import type { BusinessContext, ObservedBusinessContext, ReadyMaterialsLlm, ReadyMaterials, VerifiedFact } from './schemas'
 
 function orgName(brand: string, url: string): string {
   if (brand && brand.trim()) return brand.trim()
@@ -29,10 +30,13 @@ function isMovingBusiness(
   return /\b(moving|movers?|relocation|relocations|piano moving|commercial move|residential move)\b/.test(haystack)
 }
 
-function areaServedFromText(
+function areaServedFromFacts(
+  facts: VerifiedFact[],
   faq: { question: string; answer: string }[],
   observed?: ObservedBusinessContext
 ): string[] {
+  const factLocations = observedValues(facts, 'OBS-LOCATION-')
+  if (factLocations.length) return factLocations
   if (observed?.observed_location?.length) return observed.observed_location
   const text = faq.map((f) => `${f.question} ${f.answer}`).join(' ')
   const areas = ['Toronto', 'Ontario', 'Canada', 'Quebec']
@@ -41,6 +45,17 @@ function areaServedFromText(
 
 function hasVerifiedText(ctx: BusinessContext | undefined, pattern: RegExp): boolean {
   return pattern.test(ctx?.verified_facts || '')
+}
+
+function factsFor(opts?: {
+  businessContext?: BusinessContext
+  observedBusinessContext?: ObservedBusinessContext
+  verifiedFacts?: VerifiedFact[]
+}): VerifiedFact[] {
+  return opts?.verifiedFacts || buildVerifiedFactsLayer({
+    businessContext: opts?.businessContext,
+    observedBusinessContext: opts?.observedBusinessContext,
+  })
 }
 
 function neutralMovingMaterials(
@@ -96,13 +111,15 @@ function publishableSafeMaterials(
   brand: string,
   url: string,
   llm: ReadyMaterialsLlm,
-  opts?: { businessContext?: BusinessContext; observedBusinessContext?: ObservedBusinessContext }
+  opts?: { businessContext?: BusinessContext; observedBusinessContext?: ObservedBusinessContext; verifiedFacts?: VerifiedFact[] }
 ): ReadyMaterialsLlm {
+  const facts = factsFor(opts)
   const moving = isMovingBusiness(brand, url, llm.faq, opts?.observedBusinessContext)
   const ctx = opts?.businessContext
   const needsNeutralMoving =
     moving &&
-    !hasVerifiedText(ctx, /\b(insured|insurance|wsib|cvor|homestars|same[- ]day|last[- ]minute|condo|elevator|no hidden fees|minutes)\b/i)
+    !hasVerifiedText(ctx, /\b(insured|insurance|wsib|cvor|homestars|same[- ]day|last[- ]minute|condo|elevator|no hidden fees|minutes)\b/i) &&
+    !factAllowed(facts, /\b(insurance|wsib|cvor|homestars|response time|pricing|condo|elevator)\b/i, 'ready_copy')
 
   if (needsNeutralMoving) return neutralMovingMaterials(brand, url, llm, opts?.observedBusinessContext)
 
@@ -124,11 +141,12 @@ export function buildJsonLd(
   brand: string,
   url: string,
   faq: { question: string; answer: string }[],
-  observed?: ObservedBusinessContext
+  observed?: ObservedBusinessContext,
+  facts: VerifiedFact[] = []
 ): string {
   const name = orgName(brand, url)
   const moving = isMovingBusiness(brand, url, faq, observed)
-  const areas = moving ? areaServedFromText(faq, observed) : []
+  const areas = moving ? areaServedFromFacts(facts, faq, observed) : []
   const graph: Record<string, unknown>[] = [
     moving
       ? {
@@ -167,8 +185,9 @@ export function assembleMaterials(
   brand: string,
   url: string,
   llm: ReadyMaterialsLlm,
-  opts?: { businessContext?: BusinessContext; observedBusinessContext?: ObservedBusinessContext }
+  opts?: { businessContext?: BusinessContext; observedBusinessContext?: ObservedBusinessContext; verifiedFacts?: VerifiedFact[] }
 ): ReadyMaterials {
+  const facts = factsFor(opts)
   const safe = publishableSafeMaterials(brand, url, llm, opts)
-  return { ...safe, json_ld: buildJsonLd(brand, url, safe.faq, opts?.observedBusinessContext) }
+  return { ...safe, json_ld: buildJsonLd(brand, url, safe.faq, opts?.observedBusinessContext, facts) }
 }

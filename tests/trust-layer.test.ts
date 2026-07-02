@@ -18,6 +18,7 @@ import { resolveBrandEntity } from '../lib/brand'
 import { clarityUserPrompt, gapUserPrompt, actionUserPrompt } from '../lib/prompts'
 import { validateReport } from '../lib/report-validator'
 import { canClaimCommercialPolicy } from '../lib/business-context'
+import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -1275,6 +1276,61 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(text).toContain('How do I request a moving quote')
     expect(text).toContain('Request a Moving Quote')
     expect(text).not.toMatch(/Contact the business to confirm|before publishing this wording|before booking/i)
+  })
+
+  it('builds a verified facts layer and gates publishable outputs by allowed outputs', () => {
+    const facts = buildVerifiedFactsLayer({
+      businessContext: {
+        business_model: 'service_business',
+        primary_conversion_goal: 'booking',
+        purchase_availability: 'unknown',
+        ships_internationally: 'unknown',
+        provenance_or_authentication: 'unknown',
+        target_markets_languages: '',
+        verified_facts: 'WSIB and CVOR are verified. Same-day response is verified.',
+      },
+      observedBusinessContext: {
+        inferred_business_type: 'Moving service',
+        observed_primary_cta: 'Quote request',
+        observed_service_category: 'Moving services',
+        observed_location: ['Toronto', 'GTA'],
+        observed_services: ['Residential moving', 'Commercial moving'],
+      },
+    })
+
+    expect(factAllowed(facts, /\bWSIB\b/i, 'schema')).toBe(true)
+    expect(factAllowed(facts, /\bsame[- ]day|response time\b/i, 'ready_copy')).toBe(true)
+    expect(facts.some((f) => f.id === 'OBS-BUSINESS-TYPE-001')).toBe(true)
+    expect(facts.filter((f) => f.source_type === 'inferred').every((f) => !f.allowed_outputs.includes('schema'))).toBe(true)
+  })
+
+  it('blocks publishable copy if unsupported facts survive material rebuilding', () => {
+    const r = validateReport(
+      base({
+        meta: {
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+        },
+        ready_materials: {
+          meta_title: 'Az-Moving | Toronto Movers',
+          meta_description: 'Az-Moving offers insured crews and same-day quotes with no hidden fees.',
+          faq: [{ question: 'Are you insured?', answer: 'Yes, Az-Moving is fully insured and WSIB certified.' }],
+          cta_variants: ['Get a same-day quote'],
+          json_ld: '<script>{"description":"fully insured WSIB movers"}</script>',
+        },
+      })
+    )
+
+    const text = JSON.stringify(r.report.ready_materials)
+    expect(text).not.toMatch(/same-day|no hidden fees|fully insured|WSIB certified|insured crews/i)
+    expect(text).toContain('Request a quote to discuss timing, service coverage and move details.')
   })
 
   it('is idempotent on repeated credential-safe phrases from the broken PDF', () => {

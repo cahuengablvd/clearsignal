@@ -13,6 +13,10 @@ export const INTERNAL_CLIENT_ARTIFACTS: Array<[RegExp, string]> = [
   [/\b(status|details)\.\s*\1\.\s*\1\b/i, 'repeated status/details fragment'],
   [/\bshould be confirmed with the business\b/i, 'internal commercial policy phrase leaked into prose'],
   [/\bvalid review schema only if first-party guidelines\b/i, 'internal review-schema policy leaked into prose'],
+  [/\bcall us directly at\s*[.?!]/i, 'phone CTA without a phone number'],
+  [/\bTakes under\s*[.?!]/i, 'CTA timing claim without a duration'],
+  [/\bYes\.Ask\b/i, 'missing space / broken yes+ask sentence'],
+  [/[a-z0-9]\.Ask\b/i, 'missing space before Ask sentence'],
 ]
 
 export const BROKEN_TEXT_REPAIRS: Array<[RegExp, string]> = [
@@ -82,6 +86,15 @@ export const BROKEN_TEXT_REPAIRS: Array<[RegExp, string]> = [
   [/\bauthenticity or authenticity\b/gi, 'authenticity'],
   [/(should be confirmed with the business)(?:\s+\1)+/gi, '$1'],
   [/(to confirm availability for specific items)(?:\s+\1)+/gi, '$1'],
+  [/\bGet Your Free Moving Quote\s+(?:-|--)\s+or call us directly at\.\s*Takes under\.?/gi, 'Get Your Free Moving Quote'],
+  [/\bGet Your Free Moving Quote\s+\u2014\s+or call us directly at\.\s*Takes under\.?/gi, 'Get Your Free Moving Quote'],
+  [/\bor call us directly at\s*[.?!]?/gi, ''],
+  [/\bcall us directly at\s*[.?!]?/gi, 'contact us directly'],
+  [/\bTakes under\s*[.?!]?/gi, ''],
+  [/\bGet a free quote online in minutes\b/gi, 'Request a free quote online'],
+  [/\bYes\.Ask the team about\b/gi, 'Contact AZ Moving to discuss'],
+  [/([a-z0-9])\.Ask the team about/gi, '$1. Contact AZ Moving to discuss'],
+  [/\bAsk the team about ([^.?!]+?) for this move[.?!]?/gi, 'Contact AZ Moving to discuss $1 for your move.'],
 ]
 
 export const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
@@ -128,6 +141,7 @@ export const TONE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/ai engines have no signals/gi, 'AI engines did not surface strong signals in the tested results'],
   [/\bthe primary driver is\b/gi, 'likely contributing factors include'],
   [/\bthe core issue is\b/gi, 'likely contributing factors include'],
+  [/\bthe core reason inferred from the evidence is\b/gi, 'likely contributing factors include'],
   [/\bthe core reason is\b/gi, 'likely contributing factors include'],
   [/\bthis absence is caused by\b/gi, 'this observed absence may be associated with'],
   [/\bai skips you because\b/gi, 'potential factors limiting AI visibility include'],

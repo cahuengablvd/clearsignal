@@ -1268,10 +1268,10 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     )
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/fully insured|HomeStars-rated|CVOR credentials|WSIB credentials|storage is available|offers piano moving|across Ontario and Quebec/i)
-    expect(text).toContain('Ask the team about insurance details and third-party rating details for this move.')
-    expect(text).toContain('Ask the team about insurance details, WSIB status and CVOR status for this move.')
+    expect(text).toContain('Contact AZ Moving to discuss insurance details and third-party rating details for your move.')
+    expect(text).toContain('Contact AZ Moving to discuss insurance details, WSIB status and CVOR status for your move.')
     expect(text).toContain(
-      'Ask the team about piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market for this move.'
+      'Contact AZ Moving to discuss piano-moving availability, storage availability, last-minute availability, single-item moving availability and service coverage outside the primary market for your move.'
     )
     expect(text).not.toMatch(/Contact the business to confirm|before publishing this wording|before booking/i)
   })
@@ -1368,6 +1368,37 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(text).toContain('Contact the business directly to request a quote.')
     expect(text).toContain('visit the website')
     expect(text).toContain('Get a Free Quote')
+  })
+
+  it('repairs AZ Moving regenerated-PDF CTA and ready-copy fragments', () => {
+    const r = validateReport(
+      base({
+        clarity: {
+          cta: {
+            suggested_rewrite: 'Get Your Free Moving Quote \u2014 or call us directly at. Takes under.',
+          },
+        },
+        ready_materials: {
+          meta_title: 'AZ Moving - Toronto Movers',
+          meta_description:
+            'AZ Moving serves homes and businesses across the GTA.Ask the team about insurance details and third-party rating details for this move. Get a free quote online in minutes or call to book your move.',
+          faq: [
+            {
+              question: 'Are you licensed and insured for moves in Ontario?',
+              answer: 'Yes.Ask the team about insurance details, WSIB status and CVOR status for this move.',
+            },
+          ],
+          cta_variants: ['Get Your Free Moving Quote \u2014 or call us directly at. Takes under.'],
+          json_ld: '{}',
+        },
+      })
+    )
+    const text = JSON.stringify(r.report)
+    expect(r.report.clarity.cta.suggested_rewrite).toBe('Get Your Free Moving Quote')
+    expect(r.report.ready_materials?.cta_variants[0]).toBe('Get Your Free Moving Quote')
+    expect(text).not.toMatch(/call us directly at|Takes under|GTA\.Ask|Yes\.Ask|online in minutes/i)
+    expect(text).toContain('GTA. Contact AZ Moving to discuss insurance details')
+    expect(text).toContain('Contact AZ Moving to discuss insurance details, WSIB status and CVOR status')
   })
 
   it('accepts explicit GEO test counts for configured, expected and successful combinations', () => {

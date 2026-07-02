@@ -95,6 +95,8 @@ function repairUnsupportedMovingClaimSentences(text: string, ctx?: BusinessConte
 
 function cleanupClientPhrasing(text: string): string {
   return normalizeEncodingArtifacts(text)
+    .replace(/([a-z0-9])\.Ask\b/gi, '$1. Ask')
+    .replace(/\bAsk the team about ([^.?!]+?) for this move[.?!]?/gi, 'Contact AZ Moving to discuss $1 for your move.')
     .replace(/Contact the business to confirm\s+Contact the business to confirm/gi, 'Confirm')
     .replace(/\b(status|details)\.\s*\1\.\s*\1\b/gi, '$1')
     .replace(/\bConfirm [^.?!]+ before publishing this wording[.?!]?/gi, '')
@@ -298,6 +300,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const walked = mapProse(report, repair) as ClearSignalReport
   rebuildReadyMaterials(walked, warn)
   validateGeoCounts(walked, errors)
+  repairGeoNarrativeCounts(walked, warn)
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
@@ -390,6 +393,39 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
   if (cited > counts.successful_combinations) {
     errors.push('geo_counts: cited combinations exceed successful combinations')
   }
+}
+
+function repairGeoNarrativeCounts(report: ClearSignalReport, warn: (m: string) => void): void {
+  const geo = report.geo
+  if (!geo?.test_counts || !geo.summary) return
+  const successful = geo.test_counts.successful_combinations
+  const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
+  const cited = geo.evidence.filter((e) => e.brand_cited).length
+  const engines = geo.engines_tested.length ? geo.engines_tested : [...new Set(geo.evidence.map((e) => e.engine))]
+  const engineText = engines
+    .map((e) => {
+      const normalized = e.toLowerCase()
+      if (normalized === 'openai') return 'OpenAI'
+      if (normalized === 'perplexity') return 'Perplexity'
+      if (normalized === 'claude') return 'Claude'
+      return e.charAt(0).toUpperCase() + e.slice(1)
+    })
+    .join(', ')
+  const staleCount = /\b\d+\s+of\s+\d+\s+tested engine-query combinations/i.test(geo.summary)
+  const staleEngineList = /Perplexity and OpenAI/i.test(geo.summary) && engines.some((e) => e.toLowerCase() === 'claude')
+  const forbiddenCause = /the core reason|the primary driver|AI engines skip/i.test(geo.summary)
+  if (!staleCount && !staleEngineList && !forbiddenCause) return
+
+  geo.summary = `${geo.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations across ${engineText}. The reused evidence produced an AI visibility score of ${geo.ai_visibility_score}/100, with ${geo.mention_rate}% mention rate and ${geo.citation_rate}% citation rate. Likely contributing factors include limited owned-page answer density, limited citations of ${geo.brand_domain}, and stronger third-party source visibility for competitors in the tested responses.`
+  geo.missing_signals = [
+    mentioned === 0
+      ? `${geo.brand} was not mentioned in any successfully tested engine-query combinations.`
+      : `${geo.brand} was mentioned in ${mentioned} of ${successful} successfully tested engine-query combinations.`,
+    cited === 0
+      ? `${geo.brand_domain} was not cited in the successfully tested responses.`
+      : `${geo.brand_domain} was cited in ${cited} of ${successful} successfully tested responses.`,
+  ]
+  warn('geo: rebuilt stale or causal GEO narrative from stored evidence counts')
 }
 
 type Repair = (text: string, path: string[]) => string

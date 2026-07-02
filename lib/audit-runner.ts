@@ -71,7 +71,54 @@ export function reusableGeoFromAudit(audit: { report?: unknown }): GeoResult | n
   if (!maybeReport?.geo) return null
   const parsed = GeoResultSchema.safeParse(maybeReport.geo)
   if (!parsed.success || parsed.data.evidence.length === 0) return null
-  return parsed.data
+  return rebuildReusedGeoNarrative(parsed.data)
+}
+
+function formatEngineList(engines: string[]): string {
+  const names = engines.map((e) => {
+    const normalized = e.toLowerCase()
+    if (normalized === 'openai') return 'OpenAI'
+    if (normalized === 'perplexity') return 'Perplexity'
+    if (normalized === 'claude') return 'Claude'
+    return e.charAt(0).toUpperCase() + e.slice(1)
+  })
+  if (names.length <= 1) return names[0] || 'configured engines'
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+function rebuildReusedGeoNarrative(geo: GeoResult): GeoResult {
+  const total = geo.test_counts?.successful_combinations ?? geo.evidence.length
+  const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
+  const cited = geo.evidence.filter((e) => e.brand_cited).length
+  const engines = geo.engines_tested.length ? geo.engines_tested : [...new Set(geo.evidence.map((e) => e.engine))]
+  const citedDomains = geo.cited_domains_ranked.slice(0, 3).map((d) => d.domain)
+  const competitorNames = geo.competitor_visibility.slice(0, 3).map((c) => c.name)
+
+  const missingSignals = [
+    `${geo.brand} was not mentioned in ${mentioned === 0 ? 'any' : `${total - mentioned} of ${total}`} successfully tested engine-query combinations.`,
+    cited === 0
+      ? `${geo.brand_domain} was not cited in the successfully tested responses.`
+      : `${geo.brand_domain} was cited in ${cited} of ${total} successfully tested responses.`,
+    citedDomains.length
+      ? `Cited sources surfaced in the tested responses included ${citedDomains.join(', ')}.`
+      : 'No cited-source pattern was available in the reused evidence.',
+    competitorNames.length
+      ? `Competitors surfaced in the tested responses included ${competitorNames.join(', ')}.`
+      : '',
+  ].filter(Boolean)
+
+  return {
+    ...geo,
+    summary: `${geo.brand} was named in ${mentioned} of ${total} successfully tested engine-query combinations across ${formatEngineList(engines)}. The reused evidence produced an AI visibility score of ${geo.ai_visibility_score}/100, with ${geo.mention_rate}% mention rate and ${geo.citation_rate}% citation rate. Likely contributing factors include limited owned-page answer density, limited citations of ${geo.brand_domain}, and stronger third-party source visibility for competitors in the tested responses.`,
+    missing_signals: missingSignals,
+    recommendations: [
+      'Strengthen owned-page content around the buyer questions used in this scan.',
+      'Add structured FAQ and service/entity markup that matches the tested query set.',
+      'Prioritize third-party profiles or local sources that appeared in the tested responses.',
+      'Re-run a fresh GEO scan after content and source improvements are live.',
+    ],
+  }
 }
 
 /** Strip invented performance numbers from all human-facing report prose. */

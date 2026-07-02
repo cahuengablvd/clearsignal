@@ -132,6 +132,9 @@ describe('golden-report regression test', () => {
     expect(reused).toBeTruthy()
     expect(reused?.evidence.length).toBeGreaterThan(0)
     expect(reused?.test_counts?.successful_combinations).toBe(reused?.evidence.length)
+    expect(reused?.summary).toContain(`${reused?.evidence.length} successfully tested engine-query combinations`)
+    expect(reused?.summary).toMatch(/Claude/i)
+    expect(reused?.summary).not.toMatch(/0 of 6 tested|Perplexity and OpenAI|core reason/i)
   })
 
   it('does not reuse invalid or empty GEO evidence', () => {

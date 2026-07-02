@@ -107,6 +107,42 @@ function removeUnsupportedMovingClaimSentences(text: string, ctx?: BusinessConte
 
 function cleanupClientPhrasing(text: string): string {
   return normalizeEncodingArtifacts(text)
+    .replace(
+      /\bPricing was not confirmed in this audit\.?['"]?\s+Its\b/gi,
+      'This cited source appears to include pricing/use-case content. Its'
+    )
+    .replace(
+      /\bPricing was not confirmed in this audit\.?['"]?/gi,
+      'This cited source appears to include pricing/use-case content.'
+    )
+    .replace(
+      /\bPotential business impact should be treated as a hypothesis until verified with analytics or operator data\./gi,
+      'Clarify this recommendation with verified proof before publishing.'
+    )
+    .replace(
+      /\bFix the post-submission confirmation typo and add a response-time commitment\b/gi,
+      'Fix the post-submission confirmation typo; add response-time wording only if verified'
+    )
+    .replace(
+      /\badd a response-time commitment\b/gi,
+      'add response-time wording only if the business can verify it'
+    )
+    .replace(
+      /\bincludes a specific, non-placeholder response-time statement \(e\.g\., a defined number of hours or 'same business day'\)/gi,
+      'uses response-time wording only if the business has verified it; otherwise no response-time promise is shown'
+    )
+    .replace(
+      /\bconfirms it is fully insured\b/gi,
+      'describes insurance only if verified by the business'
+    )
+    .replace(
+      /\bToronto's Fully Insured Movers\b/gi,
+      'Toronto Movers'
+    )
+    .replace(
+      /\bfully insured Toronto-based moving company\b/gi,
+      'Toronto-based moving company'
+    )
     .replace(/([a-z0-9])\.Ask\b/gi, '$1. Ask')
     .replace(/\bAsk the team about ([^.?!]+?) for this move[.?!]?/gi, 'Contact AZ Moving to discuss $1 for your move.')
     .replace(/Contact the business to confirm\s+Contact the business to confirm/gi, 'Confirm')

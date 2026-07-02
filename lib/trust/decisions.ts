@@ -19,9 +19,15 @@ export type SentenceDecision =
 export const REPLACEMENT_SENTENCES = {
   performanceHypothesis:
     'Potential business impact should be treated as a hypothesis until verified with analytics or operator data.',
+  recommendationHypothesis: 'Clarify this recommendation with verified proof before publishing.',
+  reviewProofRecommendation: 'Clarify review proof with verified rating context.',
   quantifiedExample: 'Use verified business data before publishing this example.',
   unsupportedCommitment:
     'Specific service commitments should be published only when the business has verified them.',
+  conditionalResponseTime:
+    'If the business can verify a response-time commitment, publish it as conditional supporting copy.',
+  conditionalCredential:
+    'If the business can verify credential details, publish them in crawlable prose.',
   unsupportedMovingClaim: 'Ask the team about service details for this move.',
 } as const
 
@@ -61,7 +67,12 @@ function applyToneSwaps(sentence: string): string {
 }
 
 function hasUnverifiedNumericClaim(sentence: string): boolean {
-  return PERCENT_CLAIM.test(sentence) || REVENUE_CLAIM.test(sentence) || MULTIPLIER_CLAIM.test(sentence)
+  return (
+    PERCENT_CLAIM.test(sentence) ||
+    REVENUE_CLAIM.test(sentence) ||
+    MULTIPLIER_CLAIM.test(sentence) ||
+    /\b\d+(?:[.,]\d+)?\/\d+\b/.test(sentence)
+  )
 }
 
 function boundVisibilityClaims(sentence: string, mentions?: number, total?: number): string {
@@ -78,6 +89,32 @@ function boundVisibilityClaims(sentence: string, mentions?: number, total?: numb
 
 function isRecommendation(sentence: string): boolean {
   return /^\s*(?:add|display|include|show|list|render|surface|publish|create|claim|optimi[sz]e|mark up|ensure|use|verify|confirm|consider|avoid|keep|replace|rewrite|build|develop|seek|pursue)\b/i.test(sentence)
+}
+
+function recommendationReplacement(sentence: string): string {
+  if (/\b(?:respond|reply|response[- ]time|within hours|within\s+\d+\s*(?:minutes?|hours?|business days?))\b/i.test(sentence)) {
+    return REPLACEMENT_SENTENCES.conditionalResponseTime
+  }
+  if (/\b(HomeStars|rating|rated|review|score|testimonial)\b/i.test(sentence)) {
+    return REPLACEMENT_SENTENCES.reviewProofRecommendation
+  }
+  return REPLACEMENT_SENTENCES.recommendationHypothesis
+}
+
+function commitmentReplacement(sentence: string, scope: ContentScope): string {
+  if (/\b(?:respond|reply|response[- ]time|within hours|within\s+\d+\s*(?:minutes?|hours?|business days?))\b/i.test(sentence)) {
+    return REPLACEMENT_SENTENCES.conditionalResponseTime
+  }
+  return scope === 'recommendation'
+    ? REPLACEMENT_SENTENCES.recommendationHypothesis
+    : REPLACEMENT_SENTENCES.unsupportedCommitment
+}
+
+function credentialRecommendationReplacement(labels: string[]): string {
+  if (labels.some((label) => /insurance|WSIB|CVOR|rating|credential/i.test(label))) {
+    return REPLACEMENT_SENTENCES.conditionalCredential
+  }
+  return REPLACEMENT_SENTENCES.unsupportedMovingClaim
 }
 
 export function decideSentence(
@@ -99,22 +136,51 @@ export function decideSentence(
     if (UNVERIFIED_BUSINESS_OUTCOME.test(sentence)) {
       return ctx.audience === 'outreach'
         ? { action: 'drop' }
-        : { action: 'replace', text: REPLACEMENT_SENTENCES.performanceHypothesis }
+        : {
+            action: 'replace',
+            text:
+              ctx.scope === 'recommendation'
+                ? recommendationReplacement(sentence)
+                : REPLACEMENT_SENTENCES.performanceHypothesis,
+          }
     }
     if (hasUnverifiedNumericClaim(sentence)) {
       return ctx.audience === 'outreach'
         ? { action: 'drop' }
-        : { action: 'replace', text: REPLACEMENT_SENTENCES.performanceHypothesis }
+        : {
+            action: 'replace',
+            text:
+              ctx.scope === 'recommendation'
+                ? recommendationReplacement(sentence)
+                : REPLACEMENT_SENTENCES.performanceHypothesis,
+          }
     }
     if (UNVERIFIED_QUANTIFIED_EXAMPLE.test(sentence)) {
       return ctx.audience === 'outreach'
         ? { action: 'drop' }
-        : { action: 'replace', text: REPLACEMENT_SENTENCES.quantifiedExample }
+        : {
+            action: 'replace',
+            text:
+              ctx.scope === 'recommendation'
+                ? recommendationReplacement(sentence)
+                : REPLACEMENT_SENTENCES.quantifiedExample,
+          }
     }
     if (UNSUPPORTED_COMMITMENT.test(sentence)) {
       return ctx.audience === 'outreach' || ctx.scope === 'publishable_copy'
         ? { action: 'drop' }
-        : { action: 'replace', text: REPLACEMENT_SENTENCES.unsupportedCommitment }
+        : { action: 'replace', text: commitmentReplacement(sentence, ctx.scope) }
+    }
+  }
+
+  if (
+    ctx.scope === 'recommendation' &&
+    ctx.businessContext &&
+    unsupportedMovingClaims(sentence, ctx.businessContext).length > 0
+  ) {
+    return {
+      action: 'replace',
+      text: credentialRecommendationReplacement(unsupportedMovingClaims(sentence, ctx.businessContext)),
     }
   }
 

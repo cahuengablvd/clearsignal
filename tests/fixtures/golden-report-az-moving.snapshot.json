@@ -88,7 +88,7 @@
     },
     {
       "id": 5,
-      "title": "Fix the post-form confirmation typo and add a response-time commitment",
+      "title": "Fix the post-form confirmation typo and add response-time wording only if the business can verify it",
       "category": "cta",
       "owner": "Copywriter",
       "implementer": "Copywriter",
@@ -216,10 +216,10 @@
       ]
     },
     {
-      "fix_title": "Fix the post-form confirmation typo and add a response-time commitment",
+      "fix_title": "Fix the post-form confirmation typo and add response-time wording only if the business can verify it",
       "acceptance_criteria": [
         "Done when a test form submission on the live site displays a confirmation message with 'possible' spelled correctly and no prior typo visible.",
-        "Done when the confirmation message includes a specific, non-placeholder response-time statement (e.g., a defined number of hours or 'same business day').",
+        "Done when the confirmation message uses response-time wording only if the business has verified it; otherwise no response-time promise is shown.",
         "Done when a plain-text search of the homepage and form confirmation HTML finds zero instances of the misspelling 'posible'."
       ]
     }

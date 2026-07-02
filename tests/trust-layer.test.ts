@@ -458,7 +458,7 @@ describe('recursive report sanitizer', () => {
     expect(out.clarity.headline.suggested_rewrite.toLowerCase()).not.toContain('trial signups')
     expect(out.clarity.trust_proof.missing_elements[0].toLowerCase()).not.toContain('6 logos')
     expect(out.implementation_briefs[0].fix_title.toLowerCase()).not.toContain('direct revenue leak')
-    expect(out.implementation_briefs[0].steps[0]).toContain('Potential business impact should be treated as a hypothesis')
+    expect(out.implementation_briefs[0].steps[0]).toContain('Clarify this recommendation with verified proof')
     expect(out.implementation_briefs[0].acceptance_criteria[0].toLowerCase()).not.toContain('actively repels buyers')
   })
 })
@@ -1740,5 +1740,98 @@ describe('sentence-level trust engine', () => {
     const text = report.geo.source_gap_analysis[0].recommended_fix
     expect(text).toContain('publishes pricing data')
     expect(text).not.toMatch(/Pricing was not confirmed|Ask the business/i)
+  })
+
+  it('repairs stored source-gap and action-plan artifacts from AZ Moving v3', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://az-moving.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Az-moving',
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: '',
+          },
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: '',
+          top_fixes: [
+            {
+              id: 2,
+              title: 'Potential business impact should be treated as a hypothesis until verified with analytics or operator data.',
+              description:
+                "Potential business impact should be treated as a hypothesis until verified with analytics or operator data. Done when the confirmation message includes a specific, non-placeholder response-time statement (e.g., a defined number of hours or 'same business day'). Fix the post-submission confirmation typo and add a response-time commitment.",
+              impact: 'high',
+              effort: 'easy',
+              category: 'proof',
+            },
+            {
+              id: 4,
+              title: 'Replace badge-only insurance claim with prose specifying coverage type',
+              description:
+                'Write a sentence that confirms it is fully insured and includes WSIB credentials.',
+              impact: 'medium',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
+        },
+        geo: {
+          source_gap_analysis: [
+            {
+              cited_source: 'wahi.com',
+              signals_found: [],
+              target_missing_signals: [],
+              why_this_source_gets_cited:
+                "Pricing was not confirmed in this audit.' Its third-party authority and multi-signal richness make it quotable.",
+              recommended_fix:
+                "Pricing was not confirmed in this audit.' Publish a dedicated guide.",
+            },
+          ],
+        },
+      }) as any
+    )
+    const text = JSON.stringify(r.report)
+    expect(text).not.toMatch(/Pricing was not confirmed|Potential business impact should be treated|add a response-time commitment|confirms it is fully insured|same business day|defined number of hours/i)
+    expect(text).toContain('This cited source appears to include pricing/use-case content')
+    expect(r.report.action.top_fixes[0].title).toBe('Clarify this recommendation with verified proof before publishing.')
+    expect(r.report.action.top_fixes[0].description).toContain('add response-time wording only if verified')
+    expect(r.report.action.top_fixes[1].description).toContain('describes insurance only if verified by the business')
+  })
+
+  it('uses recommendation-specific replacements instead of generic safety text', () => {
+    const review = sanitizeGeneratedProse('Add a Rated 4.9/5 from HomeStars proof block.', 0, 15, {
+      scope: 'recommendation',
+    })
+    const sla = sanitizeGeneratedProse('Add a response-time commitment: We respond within 2 hours.', 0, 15, {
+      scope: 'recommendation',
+    })
+    const credential = sanitizeGeneratedProse('Publish that crews are fully insured and WSIB-certified.', 0, 15, {
+      scope: 'recommendation',
+      businessContext: {
+        business_model: 'service_business',
+        primary_conversion_goal: 'booking',
+        purchase_availability: 'unknown',
+        ships_internationally: 'unknown',
+        provenance_or_authentication: 'unknown',
+        target_markets_languages: '',
+        verified_facts: '',
+      },
+    })
+
+    expect(review).toBe('Clarify review proof with verified rating context.')
+    expect(sla).toBe('If the business can verify a response-time commitment, publish it as conditional supporting copy.')
+    expect(credential).toBe('If the business can verify credential details, publish them in crawlable prose.')
   })
 })

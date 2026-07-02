@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
+import { footerText } from '@/lib/pdf-footer'
 import { Download, ArrowLeft } from 'lucide-react'
 
 // Never cache this route. A report link is often opened while the audit is
@@ -986,6 +987,12 @@ export default async function AuditPage({
             </Card>
           ))}
         </div>
+
+        {isPdf && (
+          <footer className="mt-10 border-t pt-3 text-[10px] leading-relaxed text-muted-foreground">
+            {footerText()}
+          </footer>
+        )}
       </div>
     </div>
   )

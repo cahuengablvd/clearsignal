@@ -458,7 +458,7 @@ describe('recursive report sanitizer', () => {
     expect(out.clarity.headline.suggested_rewrite.toLowerCase()).not.toContain('trial signups')
     expect(out.clarity.trust_proof.missing_elements[0].toLowerCase()).not.toContain('6 logos')
     expect(out.implementation_briefs[0].fix_title.toLowerCase()).not.toContain('direct revenue leak')
-    expect(out.implementation_briefs[0].steps[0]).toContain('Clarify this recommendation with verified proof')
+    expect(out.implementation_briefs[0].steps[0]).toContain('Use verified proof points only')
     expect(out.implementation_briefs[0].acceptance_criteria[0].toLowerCase()).not.toContain('actively repels buyers')
   })
 })
@@ -1805,7 +1805,7 @@ describe('sentence-level trust engine', () => {
     const text = JSON.stringify(r.report)
     expect(text).not.toMatch(/Pricing was not confirmed|Potential business impact should be treated|add a response-time commitment|confirms it is fully insured|same business day|defined number of hours/i)
     expect(text).toContain('This cited source appears to include pricing/use-case content')
-    expect(r.report.action.top_fixes[0].title).toBe('Clarify this recommendation with verified proof before publishing.')
+    expect(r.report.action.top_fixes[0].title).toBe('Use verified proof points only.')
     expect(r.report.action.top_fixes[0].description).toContain('add response-time wording only if verified')
     expect(r.report.action.top_fixes[1].description).toContain('describes insurance only if verified by the business')
   })
@@ -1830,8 +1830,30 @@ describe('sentence-level trust engine', () => {
       },
     })
 
-    expect(review).toBe('Clarify review proof with verified rating context.')
-    expect(sla).toBe('If the business can verify a response-time commitment, publish it as conditional supporting copy.')
-    expect(credential).toBe('If the business can verify credential details, publish them in crawlable prose.')
+    expect(review).toBe('Use verified rating context only.')
+    expect(sla).toBe('Mention response timing only if the business has verified it.')
+    expect(credential).toBe('Mention credentials only if the business has verified them.')
+  })
+
+  it('deduplicates repeated replacement sentences within a single generated field', () => {
+    const out = sanitizeGeneratedProse(
+      'Publish that crews are fully insured. Publish that crews are WSIB-certified. Publish that crews are CVOR-certified.',
+      0,
+      15,
+      {
+        scope: 'recommendation',
+        businessContext: {
+          business_model: 'service_business',
+          primary_conversion_goal: 'booking',
+          purchase_availability: 'unknown',
+          ships_internationally: 'unknown',
+          provenance_or_authentication: 'unknown',
+          target_markets_languages: '',
+          verified_facts: '',
+        },
+      }
+    )
+
+    expect(out).toBe('Mention credentials only if the business has verified them.')
   })
 })

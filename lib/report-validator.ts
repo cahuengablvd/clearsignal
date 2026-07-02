@@ -117,7 +117,15 @@ function cleanupClientPhrasing(text: string): string {
     )
     .replace(
       /\bPotential business impact should be treated as a hypothesis until verified with analytics or operator data\./gi,
-      'Clarify this recommendation with verified proof before publishing.'
+      'Use verified proof points only.'
+    )
+    .replace(
+      /\bClarify this recommendation with verified proof before publishing\./gi,
+      'Use verified proof points only.'
+    )
+    .replace(
+      /\bClarify review proof with verified rating context\./gi,
+      'Use verified rating context only.'
     )
     .replace(
       /\bFix the post-submission confirmation typo and add a response-time commitment\b/gi,
@@ -130,6 +138,14 @@ function cleanupClientPhrasing(text: string): string {
     .replace(
       /\bincludes a specific, non-placeholder response-time statement \(e\.g\., a defined number of hours or 'same business day'\)/gi,
       'uses response-time wording only if the business has verified it; otherwise no response-time promise is shown'
+    )
+    .replace(
+      /\bIf the business can verify a response-time commitment, publish it as conditional supporting copy\./gi,
+      'Mention response timing only if the business has verified it.'
+    )
+    .replace(
+      /\bIf the business can verify credential details, publish them in crawlable prose\./gi,
+      'Mention credentials only if the business has verified them.'
     )
     .replace(
       /\bconfirms it is fully insured\b/gi,

@@ -253,6 +253,7 @@ export function sanitizeGeneratedProse(
   const scope = options.scope ?? 'client_business_claim'
   const redactQuantifiedExamples = options.redactQuantifiedExamples ?? true
   const parts = splitSentences(text)
+  const emittedReplacementSentences = new Set<string>()
 
   const out = parts
     .map((part) => {
@@ -271,6 +272,9 @@ export function sanitizeGeneratedProse(
       const trailing = part.match(/\s*$/)?.[0] || ''
       const replacement = decision.text.trim()
       const punctuated = /[.!?]$/.test(replacement) ? replacement : `${replacement}.`
+      const normalizedReplacement = punctuated.toLowerCase()
+      if (emittedReplacementSentences.has(normalizedReplacement)) return ''
+      emittedReplacementSentences.add(normalizedReplacement)
       return `${leading}${punctuated}${trailing}`
     })
     .join('')

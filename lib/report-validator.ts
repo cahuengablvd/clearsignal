@@ -14,6 +14,7 @@ import { assembleMaterials } from './materials'
 import { repairUnsupportedMovingClaimSentence, unsupportedMovingClaims } from './industry-profiles/moving'
 import { BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
 import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
+import { buildGeoSummary } from './geo'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
 
 export type ReportValidation = {
@@ -387,7 +388,8 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   rebuildReadyMaterials(walked, warn)
   validatePublishableFacts(walked, errors)
   validateGeoCounts(walked, errors)
-  repairGeoNarrativeCounts(walked, warn)
+  rebuildGeoSummary(walked, warn)
+  dropNarrativeMetricCounts(walked, warn)
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
@@ -523,38 +525,75 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
   }
 }
 
-function repairGeoNarrativeCounts(report: ClearSignalReport, warn: (m: string) => void): void {
+function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void): void {
   const geo = report.geo
-  if (!geo?.test_counts || !geo.summary) return
-  const successful = geo.test_counts.successful_combinations
+  if (!geo?.test_counts) return
   const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
   const cited = geo.evidence.filter((e) => e.brand_cited).length
   const engines = geo.engines_tested.length ? geo.engines_tested : [...new Set(geo.evidence.map((e) => e.engine))]
-  const engineText = engines
-    .map((e) => {
-      const normalized = e.toLowerCase()
-      if (normalized === 'openai') return 'OpenAI'
-      if (normalized === 'perplexity') return 'Perplexity'
-      if (normalized === 'claude') return 'Claude'
-      return e.charAt(0).toUpperCase() + e.slice(1)
-    })
-    .join(', ')
-  const staleCount = /\b\d+\s+of\s+\d+\s+tested engine-query combinations/i.test(geo.summary)
-  const staleEngineList = /Perplexity and OpenAI/i.test(geo.summary) && engines.some((e) => e.toLowerCase() === 'claude')
-  const forbiddenCause = /the core reason|the primary driver|AI engines skip/i.test(geo.summary)
-  const missingRateValues = /\bwith mention rate and citation rate\b/i.test(geo.summary)
-  if (!staleCount && !staleEngineList && !forbiddenCause && !missingRateValues) return
-
-  geo.summary = `${geo.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations across ${engineText}. The reused evidence produced an AI visibility score of ${geo.ai_visibility_score}/100, with ${geo.mention_rate}% mention rate and ${geo.citation_rate}% citation rate. Likely contributing factors include limited owned-page answer density, limited citations of ${geo.brand_domain}, and stronger third-party source visibility for competitors in the tested responses.`
+  const reused = /reused|previous completed scan/i.test(geo.summary || '')
+  const expected = buildGeoSummary({
+    brand: geo.brand,
+    brandDomain: geo.brand_domain,
+    test_counts: geo.test_counts,
+    mention_rate: geo.mention_rate,
+    citation_rate: geo.citation_rate,
+    ai_visibility_score: geo.ai_visibility_score,
+    mentionedCombinations: mentioned,
+    engines,
+    evidenceReused: reused,
+  })
+  if (geo.summary !== expected) {
+    geo.summary = expected
+    warn('geo: rebuilt summary from metrics')
+  }
   geo.missing_signals = [
     mentioned === 0
-      ? `${geo.brand} was not mentioned in any successfully tested engine-query combinations.`
-      : `${geo.brand} was mentioned in ${mentioned} of ${successful} successfully tested engine-query combinations.`,
+      ? `${geo.brand} was not mentioned in the successfully tested engine-query combinations.`
+      : `${geo.brand} was mentioned in part of the successfully tested engine-query sample.`,
     cited === 0
       ? `${geo.brand_domain} was not cited in the successfully tested responses.`
-      : `${geo.brand_domain} was cited in ${cited} of ${successful} successfully tested responses.`,
+      : `${geo.brand_domain} was cited in part of the successfully tested responses.`,
   ]
-  warn('geo: rebuilt stale or causal GEO narrative from stored evidence counts')
+}
+
+function dropMetricCountSentences(text: string): string {
+  if (!text) return text
+  const metricCount = /\d+\s*(%|tested|successfully|results?|combinations?|citations?|queries|engines?)/i
+  const kept = text
+    .match(/[^.!?]+[.!?]?|\s+/g)
+    ?.filter((part) => /^\s+$/.test(part) || !metricCount.test(part))
+    .join('') ?? text
+  return kept
+    .replace(/\b(?:and|or|but|because|so|while)\s*([.!?])/gi, '$1')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function dropNarrativeMetricCounts(report: ClearSignalReport, warn: (m: string) => void): void {
+  const clean = (value: string) => {
+    const next = dropMetricCountSentences(value)
+    if (next !== value) warn('metrics: dropped numeric test-run sentence from narrative field')
+    return next
+  }
+
+  if (report.geo) {
+    if (Array.isArray(report.geo.missing_signals)) {
+      report.geo.missing_signals = report.geo.missing_signals.map(clean).filter(Boolean)
+    }
+    if (Array.isArray(report.geo.recommendations)) {
+      report.geo.recommendations = report.geo.recommendations.map(clean).filter(Boolean)
+    }
+  }
+  if (report.gap?.ai_search) {
+    if (typeof report.gap.ai_search.finding === 'string') {
+      report.gap.ai_search.finding = clean(report.gap.ai_search.finding)
+    }
+    if (Array.isArray(report.gap.ai_search.missing_signals)) {
+      report.gap.ai_search.missing_signals = report.gap.ai_search.missing_signals.map(clean).filter(Boolean)
+    }
+  }
 }
 
 type Repair = (text: string, path: string[]) => string

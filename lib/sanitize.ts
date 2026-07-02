@@ -282,6 +282,7 @@ const RAW_PATH_PREFIXES = [
 function shouldSkipGeneratedProseSanitizer(path: string[], key?: string): boolean {
   if (key && RAW_STRING_KEYS.has(key)) return true
   const joined = path.join('.')
+  if (joined === 'geo.summary') return true
   return RAW_PATH_PREFIXES.some((prefix) => joined.startsWith(prefix))
 }
 

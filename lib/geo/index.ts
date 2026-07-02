@@ -18,6 +18,7 @@ import {
   GeoAnalysisSchema,
   type GeoResult,
   type GeoEvidence,
+  type GeoTestCounts,
 } from '../schemas'
 import {
   MODEL_GEO_QUERIES,
@@ -46,6 +47,46 @@ import {
 
 const SCORE_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
 const ANSWER_EXCERPT_LIMIT = 700
+
+export function formatEngineList(engines: string[]): string {
+  const names = engines.map((e) => {
+    const normalized = e.toLowerCase()
+    if (normalized === 'openai') return 'OpenAI'
+    if (normalized === 'perplexity') return 'Perplexity'
+    if (normalized === 'claude') return 'Claude'
+    return e.charAt(0).toUpperCase() + e.slice(1)
+  })
+  if (names.length <= 1) return names[0] || 'configured engines'
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+export function buildGeoSummary(input: {
+  brand: string
+  brandDomain?: string
+  test_counts: GeoTestCounts
+  mention_rate: number
+  citation_rate: number
+  ai_visibility_score: number
+  mentionedCombinations?: number
+  engines?: string[]
+  evidenceReused?: boolean
+}): string {
+  const successful = input.test_counts.successful_combinations
+  const mentioned =
+    typeof input.mentionedCombinations === 'number'
+      ? input.mentionedCombinations
+      : Math.round((input.mention_rate / 100) * successful)
+  const engineText = input.engines?.length ? ` across ${formatEngineList(input.engines)}` : ''
+  const reuseDisclosure = input.evidenceReused
+    ? ' AI visibility evidence was reused from the previous completed scan.'
+    : ''
+  const domainClause = input.brandDomain
+    ? ` Likely contributing factors include limited owned-page answer density, limited citations of ${input.brandDomain}, and stronger third-party source visibility for competitors in the tested responses.`
+    : ''
+
+  return `${input.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations${engineText}. The measured AI visibility score was ${input.ai_visibility_score}/100; mention rate was ${input.mention_rate}% and citation rate was ${input.citation_rate}%.${reuseDisclosure}${domainClause}`
+}
 
 function listValidator<T extends string>(key: string) {
   return (data: unknown): Record<string, T[]> => {
@@ -280,10 +321,13 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   // 6. Deterministic summary + optional LLM explanation/recommendations.
   const deterministic = deterministicNarrative({
     brand,
+    brandDomain,
     ai_visibility_score,
-    rawCount: raw.length,
+    test_counts: testCounts,
     mention_rate,
     citation_rate,
+    mentionedCombinations: brandMentions,
+    engines,
     cited_domains_ranked,
     competitor_visibility,
   })
@@ -419,18 +463,24 @@ function geoTestCounts(
 
 function deterministicNarrative({
   brand,
+  brandDomain,
   ai_visibility_score,
-  rawCount,
+  test_counts,
   mention_rate,
   citation_rate,
+  mentionedCombinations,
+  engines,
   cited_domains_ranked,
   competitor_visibility,
 }: {
   brand: string
+  brandDomain: string
   ai_visibility_score: number
-  rawCount: number
+  test_counts: GeoTestCounts
   mention_rate: number
   citation_rate: number
+  mentionedCombinations: number
+  engines: string[]
   cited_domains_ranked: { domain: string; count: number }[]
   competitor_visibility: { name: string; mention_rate: number }[]
 }) {
@@ -454,7 +504,16 @@ function deterministicNarrative({
   return {
     missing_signals: missing_signals.slice(0, 4),
     recommendations,
-    summary: `Measured AI visibility ${ai_visibility_score}/100 for ${brand} across ${rawCount} answer-engine result${rawCount === 1 ? '' : 's'}. Mention rate was ${mention_rate}% and citation rate was ${citation_rate}%, based on stored evidence from the scan.`,
+    summary: buildGeoSummary({
+      brand,
+      brandDomain,
+      test_counts,
+      mention_rate,
+      citation_rate,
+      ai_visibility_score,
+      mentionedCombinations,
+      engines,
+    }),
   }
 }
 

@@ -36,7 +36,7 @@ import {
   briefUserPrompt,
 } from './prompts'
 import { deliverAuditEmail } from './email-delivery'
-import { runGeoScan } from './geo'
+import { buildGeoSummary, runGeoScan } from './geo'
 import { notify } from './notify'
 import { sanitizeGeneratedProse, sanitizeGeneratedReportValue } from './sanitize'
 import { attachActionConfidence } from './action-confidence'
@@ -76,19 +76,6 @@ export function reusableGeoFromAudit(audit: { report?: unknown }): GeoResult | n
   return rebuildReusedGeoNarrative(parsed.data)
 }
 
-function formatEngineList(engines: string[]): string {
-  const names = engines.map((e) => {
-    const normalized = e.toLowerCase()
-    if (normalized === 'openai') return 'OpenAI'
-    if (normalized === 'perplexity') return 'Perplexity'
-    if (normalized === 'claude') return 'Claude'
-    return e.charAt(0).toUpperCase() + e.slice(1)
-  })
-  if (names.length <= 1) return names[0] || 'configured engines'
-  if (names.length === 2) return `${names[0]} and ${names[1]}`
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
-}
-
 export function rebuildReusedGeoNarrative(geo: GeoResult): GeoResult {
   const total = geo.test_counts?.successful_combinations ?? geo.evidence.length
   const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
@@ -112,7 +99,25 @@ export function rebuildReusedGeoNarrative(geo: GeoResult): GeoResult {
 
   return {
     ...geo,
-    summary: `${geo.brand} was named in ${mentioned} of ${total} successfully tested engine-query combinations across ${formatEngineList(engines)}. The reused evidence produced an AI visibility score of ${geo.ai_visibility_score}/100, with ${geo.mention_rate}% mention rate and ${geo.citation_rate}% citation rate. Likely contributing factors include limited owned-page answer density, limited citations of ${geo.brand_domain}, and stronger third-party source visibility for competitors in the tested responses.`,
+    summary: buildGeoSummary({
+      brand: geo.brand,
+      brandDomain: geo.brand_domain,
+      test_counts:
+        geo.test_counts ?? {
+          configured_queries: geo.queries_tested,
+          configured_engines: engines.length,
+          expected_combinations: geo.queries_tested * engines.length,
+          successful_combinations: total,
+          failed_combinations: Math.max(0, geo.queries_tested * engines.length - total),
+          skipped_combinations: 0,
+        },
+      mention_rate: geo.mention_rate,
+      citation_rate: geo.citation_rate,
+      ai_visibility_score: geo.ai_visibility_score,
+      mentionedCombinations: mentioned,
+      engines,
+      evidenceReused: true,
+    }),
     missing_signals: missingSignals,
     recommendations: [
       'Strengthen owned-page content around the buyer questions used in this scan.',

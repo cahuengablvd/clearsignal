@@ -99,6 +99,7 @@ Return ONLY a JSON object: { "competitors": ["<name>", ...] } (max 12, most prom
 export const GEO_ANALYSIS_SYSTEM = `You are an AEO (Answer Engine Optimization) analyst.
 You are given a brand's already-measured AI visibility: which engines mentioned/cited it, its competitors' visibility, and the sources engines cite most.
 The facts and numbers are fixed and computed deterministically - do NOT dispute, recompute, or invent them.
+Do not write numeric counts, percentages, or totals about the test run; metrics are rendered separately from typed data.
 Your job is only to explain WHY the brand is (in)visible and HOW to improve, grounded in the cited sources and evidence provided.
 Bound every visibility statement to the tested sample (e.g. "named in 0 of 6 tested queries"). NEVER claim the brand is "completely invisible", "invisible everywhere", or absent beyond the queries actually tested.
 Use the phrase "engine-query combinations" when summarizing total AI visibility evidence.
@@ -346,6 +347,7 @@ Return a JSON object with this exact structure:
 export const GAP_SYSTEM = `You are a competitive intelligence analyst for B2B SaaS.
 Compare the target homepage against competitors.
 Identify specific messaging gaps, positioning advantages, and AI-search visibility heuristics.
+Do not write numeric counts, percentages, or totals about the test run; metrics are rendered separately from typed data.
 Be concrete. Quote short phrases from pages when useful.
 Assess AI-search visibility heuristically based on content clarity, specificity, entity signals, citation-worthiness, and structured cues.
 Do not claim actual indexing or actual citation status unless directly verified.
@@ -398,6 +400,7 @@ Write fixes as specific actions, not vague advice.
 ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
+Do not write numeric counts, percentages, or totals about the AI visibility test run; metrics are rendered separately from typed data.
 In outreach messages and the executive summary, never promise a specific lift (no "increase demo requests by 20%", no "$X revenue", no "3x"). Describe the expected direction of improvement qualitatively only.
 Outreach messages must not claim the page is costing money, losing revenue, wasting ad spend, or causing direct losses. Keep outreach diagnostic, specific, and non-alarmist.
 Outreach messages must not invent first-person company claims. Do not write "we only do X", "it is literally the only thing we do", niche claims, customer proof, or industry focus unless it appears in the provided page or ICP.

@@ -1235,15 +1235,68 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     const r = validateReport(
       base({
         geo: {
+          brand: 'Az-moving',
+          brand_domain: 'az-moving.com',
+          queries_tested: 2,
+          engines_tested: ['openai', 'claude'],
+          test_counts: {
+            configured_queries: 2,
+            configured_engines: 2,
+            expected_combinations: 4,
+            successful_combinations: 4,
+            failed_combinations: 0,
+            skipped_combinations: 0,
+          },
+          ai_visibility_score: 0,
+          mention_rate: 0,
+          citation_rate: 0,
+          share_of_voice: 0,
+          avg_position: null,
+          score_breakdown: {
+            mention_rate: 0,
+            citation_rate: 0,
+            position_score: 0,
+            share_of_voice: 0,
+            weights: { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 },
+          },
+          evidence: Array.from({ length: 4 }, (_, i) => ({
+            evidence_id: `GEO-QUERY-${String(i + 1).padStart(3, '0')}`,
+            engine: i % 2 === 0 ? 'openai' : 'claude',
+            query: `Query ${i + 1}`,
+            answer_excerpt: 'No Az-moving mention.',
+            citations: [],
+            brand_mentioned: false,
+            brand_cited: false,
+            competitors_mentioned: [],
+            cited_domains: [],
+          })),
+          competitor_visibility: [],
+          cited_domains_ranked: [],
+          missing_signals: [
+            'The brand was not cited in any of the 6 tested combinations across all 13 results. Owned-page content is limited.',
+          ],
+          recommendations: ['Improve pages. This affects 6 tested queries. Add FAQ content.'],
           summary:
             'The primary driver is weak entity content. The core issue is citation scarcity. AI skips you because sources are missing. Reddit threads drive significant AI answer inclusion and directly feeds AI answer content.',
         },
+        gap: {
+          competitor_analysis: [],
+          ai_search: {
+            score: 0,
+            finding: 'Not cited in any of the 6 tested combinations. The page lacks FAQ content.',
+            is_likely_cited: false,
+            missing_signals: ['Missing across 13 results. FAQ content was not confirmed.'],
+            severity: 'medium',
+          },
+        },
       })
     )
-    expect(r.report.geo?.summary).toContain('likely contributing factors include weak entity content')
-    expect(r.report.geo?.summary).toContain('potential factors limiting AI visibility include sources are missing')
-    expect(r.report.geo?.summary).not.toMatch(/AI skips you because/i)
-    expect(r.report.geo?.summary).not.toMatch(/core issue|drive significant|directly feeds/i)
+    expect(r.report.geo?.summary).toContain('mention rate was 0% and citation rate was 0%')
+    expect(r.report.geo?.summary).not.toMatch(/AI skips you because|core issue|directly feeds/i)
+    expect(r.report.geo?.missing_signals.join(' ')).not.toMatch(/\d+\s*(tested|results|combinations)/i)
+    expect(r.report.geo?.recommendations.join(' ')).not.toMatch(/\d+\s*(tested|queries)/i)
+    expect(r.report.gap.ai_search.finding).toBe('The page lacks FAQ content.')
+    expect(r.report.gap.ai_search.missing_signals.join(' ')).toBe('FAQ content was not confirmed.')
   })
 
   it('repairs exact az-moving PDF fragments from the live report', () => {
@@ -1590,7 +1643,7 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     const text = JSON.stringify(r.report)
     expect(r.report.clarity.cta.suggested_rewrite).toContain('Get My Free Quote')
     expect(r.report.clarity.cta.suggested_rewrite).not.toMatch(/Get My Free Quote in|Or call us now/i)
-    expect(r.report.geo?.summary).toContain('with 0% mention rate and 0% citation rate')
+    expect(r.report.geo?.summary).toContain('mention rate was 0% and citation rate was 0%')
     expect(r.report.action.top_fixes[0].evidence_ids).toEqual([])
     expect(r.report.action.top_fixes[0].evidence_basis).toContain('no single direct evidence')
     expect(r.report.clarity.headline.suggested_rewrite).toBe('Toronto Movers for Homes and Businesses')

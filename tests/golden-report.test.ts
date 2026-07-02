@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { validateReport } from '../lib/report-validator'
 import { sanitizeGeneratedReportValue } from '../lib/sanitize'
 import { reusableGeoFromAudit } from '../lib/audit-runner'
+import { buildGeoSummary } from '../lib/geo'
 import type { ClearSignalReport } from '../lib/schemas'
 
 const fixturePath = join(process.cwd(), 'tests', 'fixtures', 'golden-report-az-moving.json')
@@ -133,8 +134,26 @@ describe('golden-report regression test', () => {
     expect(reused?.evidence.length).toBeGreaterThan(0)
     expect(reused?.test_counts?.successful_combinations).toBe(reused?.evidence.length)
     expect(reused?.summary).toContain(`${reused?.evidence.length} successfully tested engine-query combinations`)
+    expect(reused?.summary).toContain('AI visibility evidence was reused from the previous completed scan')
     expect(reused?.summary).toMatch(/Claude/i)
     expect(reused?.summary).not.toMatch(/0 of 6 tested|Perplexity and OpenAI|core reason/i)
+  })
+
+  fixtureIt('renders GEO summary from typed metrics only', () => {
+    const report = clientSafeGoldenReport()
+    expect(report.geo?.summary).toBe(
+      buildGeoSummary({
+        brand: report.geo!.brand,
+        brandDomain: report.geo!.brand_domain,
+        test_counts: report.geo!.test_counts!,
+        mention_rate: report.geo!.mention_rate,
+        citation_rate: report.geo!.citation_rate,
+        ai_visibility_score: report.geo!.ai_visibility_score,
+        mentionedCombinations: report.geo!.evidence.filter((e) => e.brand_mentioned).length,
+        engines: report.geo!.engines_tested,
+      })
+    )
+    expect(report.geo?.summary).toMatch(/mention rate was \d+% and citation rate was \d+%/)
   })
 
   it('does not reuse invalid or empty GEO evidence', () => {

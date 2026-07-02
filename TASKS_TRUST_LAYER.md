@@ -218,6 +218,10 @@ export function scopeForPath(path: string[]): ContentScope
   - commercial-claims rules run ONLY on `client_business_claim` and `publishable_copy` —
     **never** on `third_party_source_description` (root cause of the wahi.com defect: "wahi
     publishes pricing data" is a fact about the source, not a client claim).
+  - Reused `geo.source_gap_analysis` saved before this fix may already contain broken
+    fragments. D1 acceptance must include either regenerating/cleaning stored source-gap prose
+    during re-render or forcing a fresh source-analysis scan; otherwise reused evidence can
+    keep dragging old artifacts into otherwise fixed reports.
   - `internal_note` allows operator instructions but still runs the incomplete-sentence
     detector (fixes "Replace and before sending.").
   - `publishable_copy` is strictest: artifacts there are always blocking errors.

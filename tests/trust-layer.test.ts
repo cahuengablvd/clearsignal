@@ -19,6 +19,7 @@ import { clarityUserPrompt, gapUserPrompt, actionUserPrompt } from '../lib/promp
 import { validateReport } from '../lib/report-validator'
 import { canClaimCommercialPolicy } from '../lib/business-context'
 import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
+import { splitSentences } from '../lib/trust/sentences'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -286,11 +287,11 @@ describe('sample-bounded GEO wording', () => {
     expect(out).toContain('possible improvement plan')
   })
 
-  it('replaces unverified business outcomes with placeholders', () => {
+  it('replaces unverified business outcomes with sentence-level safe text', () => {
     const out = sanitizeGeneratedProse(
       'Vitrifi reduced sales cycle by 30%. Product videos lift demo request rates. The two-revision guarantee means the asset pays for itself in one closed deal. Add 20+ client logos and promise it closed a seed round. This improves trial signups and influences investor meetings.'
     )
-    expect(out).toContain('[Example only - replace with verified client data]')
+    expect(out).toContain('Potential business impact should be treated as a hypothesis')
     expect(out.toLowerCase()).not.toContain('reduced sales cycle')
     expect(out.toLowerCase()).not.toContain('demo request rates')
     expect(out.toLowerCase()).not.toContain('two-revision guarantee')
@@ -324,7 +325,8 @@ describe('sample-bounded GEO wording', () => {
     const out = sanitizeGeneratedProse(
       'Use 80+ explainer videos, add minimum 6 logos, promise a 90 seconds video and a 4-6 weeks rollout.'
     )
-    expect(out).toContain('[insert verified data]')
+    expect(out).toContain('Use verified business data before publishing this example.')
+    expect(out).not.toContain('[insert verified data]')
     expect(out.toLowerCase()).not.toContain('80+ explainer videos')
     expect(out.toLowerCase()).not.toContain('6 logos')
     expect(out.toLowerCase()).not.toContain('90 seconds')
@@ -355,14 +357,14 @@ describe('sample-bounded GEO wording', () => {
     expect(out.gap.competitor_analysis[0].headline).toContain('3,000+ brands')
     expect(out.gap.competitor_analysis[0].strengths[0]).toContain('80+ explainer videos')
     expect(out.gap.competitor_analysis[0].weaknesses[0]).toContain('Reddit mentions')
-    expect(out.action.executive_summary).toContain('[insert verified data]')
+    expect(out.action.executive_summary).toContain('Use verified business data before publishing this example.')
   })
 
   it('redacts unverified outreach usage claims', () => {
     const out = sanitizeGeneratedProse(
       'Their sales team uses the video before every enterprise call and the page actively repels buyers.'
     )
-    expect(out).toContain('[Example only - replace with verified client data]')
+    expect(out).toContain('Potential business impact should be treated as a hypothesis')
     expect(out.toLowerCase()).not.toContain('sales team uses the video')
     expect(out.toLowerCase()).not.toContain('actively repels buyers')
   })
@@ -452,11 +454,11 @@ describe('recursive report sanitizer', () => {
     expect(out.clarity.headline.current_headline).toBe('Original headline with 80+ videos')
     expect(out.ready_materials.json_ld).toContain('80+ videos')
     expect(out.geo.evidence[0].answer_excerpt).toContain('wasted')
-    expect(out.clarity.headline.suggested_rewrite).toContain('[insert verified data]')
+    expect(out.clarity.headline.suggested_rewrite).toContain('Potential business impact should be treated as a hypothesis')
     expect(out.clarity.headline.suggested_rewrite.toLowerCase()).not.toContain('trial signups')
     expect(out.clarity.trust_proof.missing_elements[0].toLowerCase()).not.toContain('6 logos')
     expect(out.implementation_briefs[0].fix_title.toLowerCase()).not.toContain('direct revenue leak')
-    expect(out.implementation_briefs[0].steps[0]).toContain('[Example only - replace with verified client data]')
+    expect(out.implementation_briefs[0].steps[0]).toContain('Potential business impact should be treated as a hypothesis')
     expect(out.implementation_briefs[0].acceptance_criteria[0].toLowerCase()).not.toContain('actively repels buyers')
   })
 })
@@ -1685,5 +1687,58 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
       summary: 'Measured across the configured sample.',
     })
     expect(parsed.test_counts?.expected_combinations).toBe(18)
+  })
+})
+
+describe('sentence-level trust engine', () => {
+  it('splits prose without breaking abbreviations, decimals or domains', () => {
+    const text = 'Use e.g. examples from az-moving.com. Rated 4.5 stars. No. 1 result vs. generic prose.'
+    const parts = splitSentences(text)
+    expect(parts.join('')).toBe(text)
+    expect(parts).toHaveLength(3)
+    expect(parts[0]).toBe('Use e.g. examples from az-moving.com. ')
+    expect(parts[1]).toBe('Rated 4.5 stars. ')
+  })
+
+  it('drops broken CTA tails and unverified SLA commitments at sentence level', () => {
+    const safe = sanitizeGeneratedProse(
+      "Suggested: 'Rated 4.9/5 from'. Prefer to talk? Call us directly: Get Your Free Quote - We Respond Within Hours. We'll reply within 2 hours.",
+      0,
+      15,
+      { scope: 'publishable_copy' }
+    )
+    expect(safe).not.toMatch(/Rated 4\.9\/5 from|Call us directly|Within Hours|2 hours/i)
+    expect(safe).not.toMatch(/\[insert verified data\]/i)
+  })
+
+  it('does not verify-gate third-party source descriptions', () => {
+    const report = sanitizeGeneratedReportValue(
+      {
+        geo: {
+          source_gap_analysis: [
+            {
+              recommended_fix:
+                'Match wahi.com source depth: it publishes pricing data and credential examples (e.g. pricing tables, ratings, and market guides).',
+            },
+          ],
+        },
+      },
+      0,
+      15,
+      {
+        businessContext: {
+          business_model: 'service_business',
+          primary_conversion_goal: 'booking',
+          purchase_availability: 'unknown',
+          ships_internationally: 'unknown',
+          provenance_or_authentication: 'unknown',
+          target_markets_languages: '',
+          verified_facts: '',
+        },
+      }
+    ) as any
+    const text = report.geo.source_gap_analysis[0].recommended_fix
+    expect(text).toContain('publishes pricing data')
+    expect(text).not.toMatch(/Pricing was not confirmed|Ask the business/i)
   })
 })

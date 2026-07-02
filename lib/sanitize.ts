@@ -6,6 +6,8 @@ import {
 } from './business-context'
 import type { BusinessContext } from './schemas'
 import { TONE_REPLACEMENTS as SHARED_TONE_REPLACEMENTS } from './trust-phrases'
+import { decideSentence, type Audience, type ContentScope } from './trust/decisions'
+import { splitSentences } from './trust/sentences'
 
 /**
  * Trust Layer - output/input safety helpers.
@@ -174,6 +176,8 @@ export function sanitizeUnsupportedCommercialClaims(text: string, context?: Busi
 type ProseSanitizeOptions = {
   redactQuantifiedExamples?: boolean
   businessContext?: BusinessContext
+  audience?: Audience
+  scope?: ContentScope
 }
 
 const OVERCLAIM_PHRASES = [
@@ -245,12 +249,38 @@ export function sanitizeGeneratedProse(
   total?: number,
   options: ProseSanitizeOptions = {}
 ): string {
+  const audience = options.audience ?? 'client_report'
+  const scope = options.scope ?? 'client_business_claim'
   const redactQuantifiedExamples = options.redactQuantifiedExamples ?? true
-  const withoutPerformanceClaims = redactPerformanceClaims(text)
-  const numericSafe = redactQuantifiedExamples
-    ? redactUnverifiedQuantifiedExamples(withoutPerformanceClaims)
-    : withoutPerformanceClaims
-  return softenUnsupportedClaims(sanitizeUnsupportedCommercialClaims(numericSafe, options.businessContext), mentions, total)
+  const parts = splitSentences(text)
+
+  const out = parts
+    .map((part) => {
+      if (!part.trim()) return part
+      const decision = decideSentence(part, {
+        audience,
+        scope,
+        businessContext: options.businessContext,
+        mentions,
+        total,
+      })
+      if (decision.action === 'keep') return part
+      if (decision.action === 'drop') return ''
+
+      const leading = part.match(/^\s*/)?.[0] || ''
+      const trailing = part.match(/\s*$/)?.[0] || ''
+      const replacement = decision.text.trim()
+      const punctuated = /[.!?]$/.test(replacement) ? replacement : `${replacement}.`
+      return `${leading}${punctuated}${trailing}`
+    })
+    .join('')
+
+  // Temporary compatibility pass for low-risk adjective swaps and sample bounds
+  // not yet migrated into A2. Do not reintroduce placeholder insertion.
+  return (redactQuantifiedExamples ? out : softenUnsupportedClaims(out, mentions, total))
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
 }
 
 const RAW_STRING_KEYS = new Set([
@@ -291,6 +321,20 @@ function shouldPreserveDetectedNumbers(path: string[]): boolean {
   return joined.startsWith('gap.competitor_analysis.')
 }
 
+function scopeForGeneratedPath(path: string[]): ContentScope {
+  const joined = path.join('.')
+  if (joined.startsWith('geo.source_gap_analysis.')) return 'third_party_source_description'
+  if (joined.startsWith('gap.competitor_analysis.')) return 'third_party_source_description'
+  if (joined.startsWith('ready_materials.') || joined.startsWith('action.outreach_messages.')) return 'publishable_copy'
+  if (joined.startsWith('implementation_briefs.') || joined.startsWith('action.top_fixes.') || joined.startsWith('geo.recommendations.')) return 'recommendation'
+  if (joined.startsWith('action.outreach_messages') && joined.endsWith('.note')) return 'internal_note'
+  return 'client_business_claim'
+}
+
+function audienceForGeneratedPath(path: string[]): Audience {
+  return path.join('.').startsWith('action.outreach_messages.') ? 'outreach' : 'client_report'
+}
+
 /**
  * Recursively sanitize generated human-facing report prose. This is the final
  * choke point before persistence, so new report fields cannot bypass the trust
@@ -307,9 +351,11 @@ export function sanitizeGeneratedReportValue<T>(
     const key = path[path.length - 1]
     return (shouldSkipGeneratedProseSanitizer(path, key)
       ? value
-      : sanitizeGeneratedProse(value, mentions, total, {
+        : sanitizeGeneratedProse(value, mentions, total, {
           redactQuantifiedExamples: !shouldPreserveDetectedNumbers(path),
           businessContext: options.businessContext,
+          audience: audienceForGeneratedPath(path),
+          scope: scopeForGeneratedPath(path),
         })) as T
   }
 

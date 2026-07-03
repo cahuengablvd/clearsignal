@@ -307,6 +307,11 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       warn(`text: dropped standalone replacement sentence at ${path.join('.') || '<root>'}`)
       out = withoutStandaloneRepair
     }
+    const withoutBlockedRepairPhrases = stripBlockedRepairPhrases(out)
+    if (withoutBlockedRepairPhrases !== out) {
+      warn(`text: removed blocked replacement phrase at ${path.join('.') || '<root>'}`)
+      out = withoutBlockedRepairPhrases
+    }
 
     if (/implementation_briefs\./.test(path.join('.'))) {
       const next = out.replace(
@@ -580,12 +585,33 @@ function normalizedPhrase(value: string): string {
   return value.replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function isBlockedRepairPhrase(value: string): boolean {
   const normalized = normalizedPhrase(value).replace(/[.!?]+$/, '')
   return BLOCKED_CLIENT_REPAIR_PHRASES.some((phrase) => {
     const p = normalizedPhrase(phrase).replace(/[.!?]+$/, '')
     return normalized === p
   })
+}
+
+function stripBlockedRepairPhrases(text: string): string {
+  if (!text) return text
+  let out = text
+  const phrases = [...BLOCKED_CLIENT_REPAIR_PHRASES].sort((a, b) => b.length - a.length)
+  for (const phrase of phrases) {
+    const core = normalizedPhrase(phrase).replace(/[.!?]+$/, '')
+    if (!core) continue
+    const re = new RegExp(`(^|\\s+)${escapeRegExp(core)}[.!?]?\\s*`, 'gi')
+    out = out.replace(re, (_match, leading: string) => (leading ? ' ' : ''))
+  }
+  return out
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/^[,;:]\s*/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
 }
 
 function stripBlockedRepairOnlySentences(text: string): string {

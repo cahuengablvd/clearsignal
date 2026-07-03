@@ -2184,7 +2184,7 @@ describe('sentence-level trust engine', () => {
     expect(r.report.implementation_briefs?.[0]?.acceptance_criteria).toEqual([])
   })
 
-  it('still blocks replacement phrases glued into other client text', () => {
+  it('removes replacement phrases glued into other client text', () => {
     const r = validateReport(
       ({
         meta: {
@@ -2213,9 +2213,9 @@ describe('sentence-level trust engine', () => {
       }) as any
     )
 
-    expect(r.errors).toEqual(expect.arrayContaining([
-      expect.stringContaining('Use source-backed proof details.'),
-    ]))
+    expect(r.errors).toEqual([])
+    expect(r.report.action.top_fixes[0].description).not.toMatch(/Use source-backed proof details/i)
+    expect(r.report.action.top_fixes[0].description).toContain('Before the next section')
   })
 
   it('drops duplicate outreach channels from stored reports', () => {
@@ -2359,6 +2359,62 @@ describe('sentence-level trust engine', () => {
       'The Google Rating (5.0) signal adds a quotable proof point.'
     )
     expect(r.report.action.top_fixes[0].description).toContain('If these images do not load')
+  })
+
+  it('removes blocked replacement phrases even when glued into useful prose', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://az-moving.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Az-moving',
+        },
+        clarity: {},
+        gap: {
+          competitor_analysis: [],
+          ai_search: { missing_signals: ['Use source-backed proof details.'] },
+          where_you_win: [
+            'Use source-backed proof details. A granular service-area taxonomy is visible on the site.',
+          ],
+        },
+        geo: {
+          source_gap_analysis: [
+            {
+              cited_source: 'example.com',
+              signals_found: [],
+              target_missing_signals: [],
+              recommended_fix: 'Add source-backed proof details in crawlable copy.',
+              why_this_source_gets_cited:
+                'Add source-backed proof details in crawlable copy. The Google Rating (5.0) signal adds a quotable proof point.',
+            },
+          ],
+        },
+        action: {
+          executive_summary: 'Az-moving was reviewed.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Make trust proof crawlable',
+              description:
+                'Use verified credential details. If these images do not load, visitors receive none of the trust signals those badges represent. Use source-backed proof details. This ensures crawlable proof.',
+              impact: 'high',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
+        },
+      }) as any
+    )
+
+    const text = JSON.stringify(r.report)
+    expect(r.errors).toEqual([])
+    expect(text).not.toMatch(/Use source-backed proof details|Add source-backed proof details|Use verified credential details/i)
+    expect(text).toContain('A granular service-area taxonomy is visible on the site.')
+    expect(text).toContain('The Google Rating (5.0) signal adds a quotable proof point.')
+    expect(text).toContain('If these images do not load')
   })
 })
 

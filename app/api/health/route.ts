@@ -26,7 +26,10 @@ export async function GET(req: NextRequest) {
 
   // Public: simple liveness only.
   if (!authorized) {
-    return NextResponse.json({ status: 'ok' }, { status: 200 })
+    return NextResponse.json({
+      status: 'ok',
+      deployment: publicDeploymentInfo(),
+    }, { status: 200 })
   }
 
   // --- Authorized detailed diagnostics ---
@@ -92,6 +95,14 @@ function deploymentInfo(): Record<string, string | null> {
     commit_short: commit ? commit.slice(0, 7) : null,
     vercel_env: process.env.VERCEL_ENV || null,
     vercel_url: process.env.VERCEL_URL || null,
+  }
+}
+
+function publicDeploymentInfo(): Record<string, string | null> {
+  const commit = process.env.VERCEL_GIT_COMMIT_SHA || null
+  return {
+    commit_short: commit ? commit.slice(0, 7) : null,
+    vercel_env: process.env.VERCEL_ENV || null,
   }
 }
 

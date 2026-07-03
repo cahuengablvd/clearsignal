@@ -2448,3 +2448,21 @@ describe('stored validation_warnings never re-trigger the artifact detector', ()
     expect(r.report.validation_warnings).toEqual([warning])
   })
 })
+
+describe('LLM call contract guards', () => {
+  it('repair prompt restates the full original request (schema survives the retry)', async () => {
+    const { buildRepairPrompt } = await import('../lib/anthropic')
+    const user = 'Return a JSON object with this exact structure: {"category": "copy"|"cta"}'
+    const out = buildRepairPrompt(user, 'invalid_enum_value', '{"category":"content"}')
+    expect(out).toContain(user)
+    expect(out).toContain('invalid_enum_value')
+  })
+
+  it('action prompt and ActionBlockSchema agree on outreach channel requirements', () => {
+    const prompt = actionUserPrompt('{}', '{}', 'icp', 'Brand')
+    expect(prompt).toMatch(/EXACTLY 3 outreach messages/i)
+    for (const channel of ['linkedin', 'email', 'twitter']) {
+      expect(prompt).toContain(channel)
+    }
+  })
+})

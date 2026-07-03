@@ -436,5 +436,5 @@ Return a JSON object with this exact structure:
   "outreach_messages": [{ "channel": "linkedin"|"email"|"twitter", "message": "<string>", "note": "<string>" }]
 }
 
-Provide 5-10 fixes, only as many as the evidence supports. Each fix must cite a concrete page finding, competitor comparison, or GEO evidence item. Provide 3-5 ship_first items, 2-3 ignore_for_now items, and only outreach messages that fit the business context and evidence.`
+Provide 5-10 fixes, only as many as the evidence supports. Each fix must cite a concrete page finding, competitor comparison, or GEO evidence item. Provide 3-5 ship_first items, 2-3 ignore_for_now items, and EXACTLY 3 outreach messages - one "linkedin", one "email", one "twitter" (adapt tone and content to the business context, but always produce all three channels).`
 }

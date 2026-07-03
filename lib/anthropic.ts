@@ -32,20 +32,33 @@ export async function callClaudeJSON<T>(opts: {
 
   // Retry with repair prompt
   console.warn('First attempt failed validation, retrying with repair prompt...')
-  const repairPrompt = `The previous response was not valid JSON or did not match the required schema.
-
-Error: ${parsed.error}
-
-Original response (first 2000 chars):
-${rawText.slice(0, 2000)}
-
-Please return ONLY valid JSON matching the exact schema. No commentary, no markdown fences.`
-
-  rawText = await callClaude(model, system, repairPrompt, maxTokens, `${purpose}:repair`, onUsage)
+  rawText = await callClaude(model, system, buildRepairPrompt(user, parsed.error, rawText), maxTokens, `${purpose}:repair`, onUsage)
   parsed = tryParseAndValidate(rawText, validate)
   if (parsed.success) return parsed.data
 
   throw new Error(`Claude output failed validation after retry: ${parsed.error}`)
+}
+
+/**
+ * The repair prompt MUST restate the original request: without it the model
+ * reconstructs the JSON from the 2000-char excerpt alone and loses every
+ * schema constraint (invented enum values, dropped required fields) - which
+ * turned any transient first-attempt failure into a guaranteed audit failure.
+ */
+export function buildRepairPrompt(user: string, error: string, rawText: string): string {
+  return `Your previous response was not valid JSON or did not match the required schema.
+
+Validation error:
+${error}
+
+Your previous response (first 2000 chars):
+${rawText.slice(0, 2000)}
+
+The ORIGINAL REQUEST is repeated below. Follow its schema and instructions exactly.
+Return ONLY valid JSON. No commentary, no markdown fences.
+
+--- ORIGINAL REQUEST ---
+${user}`
 }
 
 async function callClaude(

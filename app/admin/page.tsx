@@ -55,6 +55,152 @@ type AuditPreview = {
   scraped: boolean
 }
 
+const CUSTOM_OPTION = '__custom__'
+
+type BusinessContextKey = keyof typeof emptyForm.business_context
+
+type SelectOption = {
+  value: string
+  label: string
+}
+
+const businessContextOptions: Record<
+  Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>,
+  { label: string; error: string; options: SelectOption[] }
+> = {
+  business_model: {
+    label: 'Business model',
+    error: 'Enter a custom business model or select another option.',
+    options: [
+      { value: 'unknown', label: 'Unknown / not confirmed' },
+      { value: 'service_business', label: 'Service business' },
+      { value: 'product_business', label: 'Product business' },
+      { value: 'saas_software', label: 'SaaS / software' },
+      { value: 'marketplace', label: 'Marketplace' },
+      { value: 'two_sided_marketplace', label: 'Two-sided marketplace' },
+      { value: 'ecommerce', label: 'E-commerce' },
+      { value: 'gallery', label: 'Gallery' },
+      { value: 'agency_studio', label: 'Agency / studio' },
+      { value: 'local_business', label: 'Local business' },
+      { value: 'nonprofit', label: 'Nonprofit' },
+      { value: 'media_publication', label: 'Media / publication' },
+      { value: 'not_applicable', label: 'Not applicable' },
+      { value: CUSTOM_OPTION, label: 'Other / Custom' },
+    ],
+  },
+  primary_conversion_goal: {
+    label: 'Primary conversion goal',
+    error: 'Enter a custom conversion goal or select another option.',
+    options: [
+      { value: 'unknown', label: 'Unknown / not confirmed' },
+      { value: 'inquiry', label: 'Inquiry' },
+      { value: 'booking', label: 'Booking' },
+      { value: 'purchase', label: 'Purchase' },
+      { value: 'app_download', label: 'App download' },
+      { value: 'registration_signup', label: 'Registration / sign-up' },
+      { value: 'lead_generation', label: 'Lead generation' },
+      { value: 'quote_request', label: 'Quote request' },
+      { value: 'demo_booking', label: 'Demo booking' },
+      { value: 'subscription', label: 'Subscription' },
+      { value: 'contact', label: 'Contact' },
+      { value: 'job_application', label: 'Job application' },
+      { value: 'provider_onboarding', label: 'Provider onboarding' },
+      { value: 'not_applicable', label: 'Not applicable' },
+      { value: CUSTOM_OPTION, label: 'Other / Custom' },
+    ],
+  },
+  purchase_availability: {
+    label: 'Purchase / booking availability',
+    error: 'Enter custom purchase or booking availability, or select another option.',
+    options: [
+      { value: 'unknown', label: 'Unknown / not confirmed' },
+      { value: 'available_website', label: 'Available directly on the website' },
+      { value: 'available_app', label: 'Available through a mobile app' },
+      { value: 'available_inquiry', label: 'Available through an inquiry' },
+      { value: 'available_quote', label: 'Available through a quote request' },
+      { value: 'available_appointment', label: 'Available by appointment' },
+      { value: 'third_party_platforms', label: 'Available through third-party platforms' },
+      { value: 'not_currently_available', label: 'Not currently available' },
+      { value: 'not_applicable', label: 'Not applicable' },
+      { value: CUSTOM_OPTION, label: 'Other / Custom' },
+    ],
+  },
+  ships_internationally: {
+    label: 'Shipping / service availability',
+    error: 'Enter custom shipping or service availability, or select another option.',
+    options: [
+      { value: 'unknown', label: 'Unknown / not confirmed' },
+      { value: 'local_only', label: 'Local only' },
+      { value: 'national', label: 'National' },
+      { value: 'international', label: 'International' },
+      { value: 'selected_regions', label: 'Selected countries or regions' },
+      { value: 'digital_delivery', label: 'Digital delivery' },
+      { value: 'on_site_service', label: 'On-site service' },
+      { value: 'service_no_shipping', label: 'No shipping - service business' },
+      { value: 'not_applicable', label: 'Not applicable' },
+      { value: CUSTOM_OPTION, label: 'Other / Custom' },
+    ],
+  },
+  provenance_or_authentication: {
+    label: 'Certificates / provenance / verification',
+    error: 'Enter custom verification details, or select another option.',
+    options: [
+      { value: 'unknown', label: 'Unknown / not confirmed' },
+      { value: 'verified_certificates', label: 'Verified certificates available' },
+      { value: 'professional_licences', label: 'Professional licences or qualifications' },
+      { value: 'provider_identity_verification', label: 'Provider identity verification' },
+      { value: 'background_checks', label: 'Background checks' },
+      { value: 'product_provenance', label: 'Product provenance available' },
+      { value: 'authentication_documentation', label: 'Authentication documentation available' },
+      { value: 'no_formal_verification', label: 'No formal verification stated' },
+      { value: 'not_applicable', label: 'Not applicable' },
+      { value: CUSTOM_OPTION, label: 'Other / Custom' },
+    ],
+  },
+}
+
+function isCustomOption(value: string): boolean {
+  return value.startsWith(`${CUSTOM_OPTION}:`)
+}
+
+function customValue(value: string): string {
+  return isCustomOption(value) ? value.slice(CUSTOM_OPTION.length + 1) : ''
+}
+
+function selectValue(value: string, options: SelectOption[]): string {
+  if (isCustomOption(value)) return CUSTOM_OPTION
+  return options.some((o) => o.value === value) ? value : CUSTOM_OPTION
+}
+
+function resolvedBusinessContextValue(value: string): string {
+  return isCustomOption(value) ? customValue(value).trim() : value
+}
+
+function setBusinessContextValue(
+  current: typeof emptyForm,
+  key: Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>,
+  value: string
+) {
+  return {
+    ...current,
+    business_context: {
+      ...current.business_context,
+      [key]: value,
+    },
+  }
+}
+
+function resolvedBusinessContext(context: typeof emptyForm.business_context): typeof emptyForm.business_context {
+  return {
+    ...context,
+    business_model: resolvedBusinessContextValue(context.business_model),
+    primary_conversion_goal: resolvedBusinessContextValue(context.primary_conversion_goal),
+    purchase_availability: resolvedBusinessContextValue(context.purchase_availability),
+    ships_internationally: resolvedBusinessContextValue(context.ships_internationally),
+    provenance_or_authentication: resolvedBusinessContextValue(context.provenance_or_authentication),
+  }
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -70,6 +216,13 @@ export default function AdminPage() {
   const [editedQueries, setEditedQueries] = useState<string[]>([])
   const [createMsg, setCreateMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [regenMsg, setRegenMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  function businessContextErrors(): string[] {
+    return (Object.entries(businessContextOptions) as Array<[Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>, typeof businessContextOptions.business_model]>)
+      .filter(([key]) => selectValue(form.business_context[key], businessContextOptions[key].options) === CUSTOM_OPTION)
+      .filter(([key]) => !customValue(form.business_context[key]).trim())
+      .map(([, config]) => config.error)
+  }
 
   // Simple password gate (check against env via API)
   async function handleLogin(e: React.FormEvent) {
@@ -165,13 +318,22 @@ export default function AdminPage() {
   // Step 1: preview - generate the queries and show a confirmation screen.
   async function previewAudit(e: React.FormEvent) {
     e.preventDefault()
+    const errors = businessContextErrors()
+    if (errors.length) {
+      setCreateMsg({ ok: false, text: errors[0] })
+      return
+    }
     setPreviewing(true)
     setCreateMsg(null)
+    const payload = {
+      ...form,
+      business_context: resolvedBusinessContext(form.business_context),
+    }
     try {
       const res = await fetch('/api/admin/audits/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (res.ok) {
@@ -195,11 +357,15 @@ export default function AdminPage() {
     }
     setCreating(true)
     setCreateMsg(null)
+    const payload = {
+      ...form,
+      business_context: resolvedBusinessContext(form.business_context),
+    }
     try {
       const res = await fetch('/api/admin/audits/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, queries: finalQueries }),
+        body: JSON.stringify({ ...payload, queries: finalQueries }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -321,6 +487,47 @@ export default function AdminPage() {
     return d.toLocaleString()
   }
 
+  function renderBusinessContextSelect(
+    key: Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>
+  ) {
+    const config = businessContextOptions[key]
+    const raw = form.business_context[key]
+    const selected = selectValue(raw, config.options)
+    const custom = customValue(raw)
+    const showError = selected === CUSTOM_OPTION && !custom.trim()
+
+    return (
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-slate-700">{config.label}</label>
+        <select
+          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          value={selected}
+          onChange={(e) => {
+            const nextValue = e.target.value === CUSTOM_OPTION ? `${CUSTOM_OPTION}:` : e.target.value
+            setForm(setBusinessContextValue(form, key, nextValue))
+          }}
+        >
+          {config.options.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+        {selected === CUSTOM_OPTION && (
+          <>
+            <Input
+              value={custom}
+              maxLength={120}
+              placeholder={`Custom ${config.label.toLowerCase()}`}
+              onChange={(e) => {
+                setForm(setBusinessContextValue(form, key, `${CUSTOM_OPTION}:${e.target.value.slice(0, 120)}`))
+              }}
+            />
+            {showError && <p className="text-xs text-red-700">{config.error}</p>}
+          </>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen">
       <nav className="border-b">
@@ -351,10 +558,16 @@ export default function AdminPage() {
                   <div className="sm:col-span-2">
                     <span className="text-muted-foreground">Business context:</span>{' '}
                     {preview.business_context ? (
-                      <span>
-                        {preview.business_context.business_model} / {preview.business_context.primary_conversion_goal}
-                        {preview.business_context.target_markets_languages ? ` | ${preview.business_context.target_markets_languages}` : ''}
-                      </span>
+                      <div className="mt-1 grid sm:grid-cols-2 gap-x-4 gap-y-1">
+                        <div>Business model: {preview.business_context.business_model}</div>
+                        <div>Conversion goal: {preview.business_context.primary_conversion_goal}</div>
+                        <div>Purchase / booking availability: {preview.business_context.purchase_availability}</div>
+                        <div>Shipping / service availability: {preview.business_context.ships_internationally}</div>
+                        <div className="sm:col-span-2">Verification: {preview.business_context.provenance_or_authentication}</div>
+                        {preview.business_context.target_markets_languages && (
+                          <div className="sm:col-span-2">Markets/languages: {preview.business_context.target_markets_languages}</div>
+                        )}
+                      </div>
                     ) : (
                       <em className="text-muted-foreground">none</em>
                     )}
@@ -477,79 +690,13 @@ export default function AdminPage() {
                   </p>
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
-                  <select
-                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={form.business_context.business_model}
-                    onChange={(e) => setForm({
-                      ...form,
-                      business_context: { ...form.business_context, business_model: e.target.value },
-                    })}
-                  >
-                    <option value="unknown">Business model unknown</option>
-                    <option value="ecommerce">Ecommerce</option>
-                    <option value="marketplace">Marketplace</option>
-                    <option value="service_business">Service business</option>
-                    <option value="portfolio">Portfolio</option>
-                    <option value="gallery">Gallery</option>
-                    <option value="archive">Archive</option>
-                    <option value="media_content_site">Media/content site</option>
-                    <option value="other">Other</option>
-                  </select>
-                  <select
-                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={form.business_context.primary_conversion_goal}
-                    onChange={(e) => setForm({
-                      ...form,
-                      business_context: { ...form.business_context, primary_conversion_goal: e.target.value },
-                    })}
-                  >
-                    <option value="unknown">Goal unknown</option>
-                    <option value="purchase">Purchase</option>
-                    <option value="inquiry">Inquiry</option>
-                    <option value="booking">Booking</option>
-                    <option value="signup">Signup</option>
-                    <option value="download">Download</option>
-                    <option value="portfolio_viewing">Portfolio viewing</option>
-                    <option value="other">Other</option>
-                  </select>
-                  <select
-                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={form.business_context.purchase_availability}
-                    onChange={(e) => setForm({
-                      ...form,
-                      business_context: { ...form.business_context, purchase_availability: e.target.value },
-                    })}
-                  >
-                    <option value="unknown">Purchase availability unknown</option>
-                    <option value="yes">Available for purchase</option>
-                    <option value="some">Some available</option>
-                    <option value="no">Not directly available</option>
-                  </select>
-                  <select
-                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={form.business_context.ships_internationally}
-                    onChange={(e) => setForm({
-                      ...form,
-                      business_context: { ...form.business_context, ships_internationally: e.target.value },
-                    })}
-                  >
-                    <option value="unknown">Shipping unknown</option>
-                    <option value="yes">Ships internationally</option>
-                    <option value="no">No international shipping</option>
-                  </select>
-                  <select
-                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm sm:col-span-2"
-                    value={form.business_context.provenance_or_authentication}
-                    onChange={(e) => setForm({
-                      ...form,
-                      business_context: { ...form.business_context, provenance_or_authentication: e.target.value },
-                    })}
-                  >
-                    <option value="unknown">Certificates/provenance unknown</option>
-                    <option value="yes">Certificates/provenance confirmed</option>
-                    <option value="no">No certificates/provenance</option>
-                    <option value="not_applicable">Not applicable</option>
-                  </select>
+                  {renderBusinessContextSelect('business_model')}
+                  {renderBusinessContextSelect('primary_conversion_goal')}
+                  {renderBusinessContextSelect('purchase_availability')}
+                  {renderBusinessContextSelect('ships_internationally')}
+                  <div className="sm:col-span-2">
+                    {renderBusinessContextSelect('provenance_or_authentication')}
+                  </div>
                 </div>
                 <Textarea
                   placeholder="Target markets and languages (e.g. Latvia + international collectors; Latvian and English)"

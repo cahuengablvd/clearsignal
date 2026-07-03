@@ -274,9 +274,9 @@ export default async function AuditPage({
                   <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
                     <div><span className="font-medium text-foreground">Business model:</span> {humanizeValue(report.meta.business_context.business_model)}</div>
                     <div><span className="font-medium text-foreground">Conversion goal:</span> {humanizeValue(report.meta.business_context.primary_conversion_goal)}</div>
-                    <div><span className="font-medium text-foreground">Purchase availability:</span> {yesNoUnknown(report.meta.business_context.purchase_availability)}</div>
-                    <div><span className="font-medium text-foreground">International shipping:</span> {yesNoUnknown(report.meta.business_context.ships_internationally)}</div>
-                    <div><span className="font-medium text-foreground">Provenance/authentication:</span> {yesNoUnknown(report.meta.business_context.provenance_or_authentication)}</div>
+                    <div><span className="font-medium text-foreground">Purchase / booking availability:</span> {yesNoUnknown(report.meta.business_context.purchase_availability)}</div>
+                    <div><span className="font-medium text-foreground">Shipping / service availability:</span> {yesNoUnknown(report.meta.business_context.ships_internationally)}</div>
+                    <div><span className="font-medium text-foreground">Certificates / provenance / verification:</span> {yesNoUnknown(report.meta.business_context.provenance_or_authentication)}</div>
                     <div><span className="font-medium text-foreground">Markets/languages:</span> {report.meta.business_context.target_markets_languages || 'Not provided'}</div>
                     <div className="sm:col-span-2">
                       <span className="font-medium text-foreground">Verified facts supplied:</span>{' '}

@@ -17,7 +17,7 @@ import { inferFixContributor, inferFixImplementer, inferFixOwner } from '../lib/
 import { resolveBrandEntity } from '../lib/brand'
 import { clarityUserPrompt, gapUserPrompt, actionUserPrompt, materialsUserPrompt } from '../lib/prompts'
 import { validateReport } from '../lib/report-validator'
-import { canClaimCommercialPolicy } from '../lib/business-context'
+import { canClaimCommercialPolicy, canClaimInternationalShipping, canClaimProvenance, canClaimPurchaseAvailable } from '../lib/business-context'
 import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
 import { splitSentences } from '../lib/trust/sentences'
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from '../lib/trust/decisions'
@@ -96,6 +96,33 @@ describe('input validation', () => {
     })
     expect(ctx.business_model).toBe('gallery')
     expect(ctx.purchase_availability).toBe('unknown')
+  })
+
+  it('accepts custom operator-supplied business context strings', () => {
+    const ctx = BusinessContextSchema.parse({
+      business_model: 'Two-sided marketplace / mobile service-booking platform',
+      primary_conversion_goal: 'App download followed by completed cleaning booking',
+      purchase_availability: 'Available through the Rozie mobile app',
+      ships_internationally: 'On-site service in Malta; no shipping',
+      provenance_or_authentication: 'Service-provider onboarding and verification requirements',
+      target_markets_languages: 'Malta; English',
+      verified_facts: '',
+    })
+
+    expect(ctx.business_model).toBe('Two-sided marketplace / mobile service-booking platform')
+    expect(ctx.primary_conversion_goal).toBe('App download followed by completed cleaning booking')
+    expect(ctx.purchase_availability).toBe('Available through the Rozie mobile app')
+    expect(ctx.ships_internationally).toBe('On-site service in Malta; no shipping')
+    expect(ctx.provenance_or_authentication).toBe('Service-provider onboarding and verification requirements')
+    expect(canClaimPurchaseAvailable(ctx)).toBe(true)
+    expect(canClaimInternationalShipping(ctx)).toBe(false)
+    expect(canClaimProvenance(ctx)).toBe(true)
+  })
+
+  it('rejects overlong custom business context strings', () => {
+    expect(BusinessContextSchema.safeParse({
+      business_model: 'x'.repeat(121),
+    }).success).toBe(false)
   })
 })
 

@@ -42,12 +42,18 @@ export const availabilitySchema = z.enum(['yes', 'no', 'some', 'unknown'])
 export const triStateSchema = z.enum(['yes', 'no', 'unknown'])
 export const provenanceSchema = z.enum(['yes', 'no', 'unknown', 'not_applicable'])
 
+const customBusinessContextValueSchema = z.string().trim().min(1).max(120)
+
+function enumOrCustom<T extends z.ZodEnum<[string, ...string[]]>>(schema: T) {
+  return z.union([schema, customBusinessContextValueSchema])
+}
+
 export const BusinessContextSchema = z.object({
-  business_model: businessModelSchema.optional().default('unknown'),
-  primary_conversion_goal: conversionGoalSchema.optional().default('unknown'),
-  purchase_availability: availabilitySchema.optional().default('unknown'),
-  ships_internationally: triStateSchema.optional().default('unknown'),
-  provenance_or_authentication: provenanceSchema.optional().default('unknown'),
+  business_model: enumOrCustom(businessModelSchema).optional().default('unknown'),
+  primary_conversion_goal: enumOrCustom(conversionGoalSchema).optional().default('unknown'),
+  purchase_availability: enumOrCustom(availabilitySchema).optional().default('unknown'),
+  ships_internationally: enumOrCustom(triStateSchema).optional().default('unknown'),
+  provenance_or_authentication: enumOrCustom(provenanceSchema).optional().default('unknown'),
   target_markets_languages: z.string().max(1000).optional().default(''),
   verified_facts: z.string().max(2000).optional().default(''),
 })

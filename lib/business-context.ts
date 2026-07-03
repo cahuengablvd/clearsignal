@@ -9,9 +9,9 @@ export function businessContextPrompt(ctx: BusinessContext): string {
   const lines = [
     `Business model: ${ctx.business_model}`,
     `Primary conversion goal: ${ctx.primary_conversion_goal}`,
-    `Products/services directly available for purchase: ${ctx.purchase_availability}`,
-    `Ships internationally: ${ctx.ships_internationally}`,
-    `Certificates/provenance/authentication: ${ctx.provenance_or_authentication}`,
+    `Purchase / booking availability: ${ctx.purchase_availability}`,
+    `Shipping / service availability: ${ctx.ships_internationally}`,
+    `Certificates / provenance / verification: ${ctx.provenance_or_authentication}`,
     `Target markets/languages: ${ctx.target_markets_languages || 'Not provided'}`,
     `Verified facts operator allows ClearSignal to use: ${ctx.verified_facts || 'None provided'}`,
   ]
@@ -21,7 +21,7 @@ export function businessContextPrompt(ctx: BusinessContext): string {
     ...lines,
     '',
     'Commercial-claim rules:',
-    '- Do not state that products are for sale unless purchase availability is yes/some or verified facts say so.',
+    '- Do not state that products are for sale unless purchase / booking availability or verified facts explicitly support it.',
     '- Do not state international shipping, certificates, provenance, secure payment, returns, pricing, awards, affiliations, or scarcity unless verified facts explicitly say so.',
     '- If a buyer would need those details, write that they should contact the business to confirm availability, pricing, authenticity documentation, purchase terms, and shipping.',
   ].join('\n')
@@ -33,20 +33,29 @@ export function hasVerifiedFact(ctx: BusinessContext, pattern: RegExp): boolean 
 }
 
 export function canClaimPurchaseAvailable(ctx: BusinessContext): boolean {
+  const availability = String(ctx.purchase_availability || '').toLowerCase()
   return (
     ctx.purchase_availability === 'yes' ||
     ctx.purchase_availability === 'some' ||
+    (!!availability && !['unknown', 'no', 'not_applicable', 'not_currently_available'].includes(availability)) ||
     hasVerifiedFact(ctx, /\b(for sale|available to buy|available for purchase|purchase|buy online)\b/i)
   )
 }
 
 export function canClaimInternationalShipping(ctx: BusinessContext): boolean {
-  return ctx.ships_internationally === 'yes' || hasVerifiedFact(ctx, /\b(?:international shipping|ships internationally|worldwide shipping)\b/i)
+  const availability = String(ctx.ships_internationally || '').toLowerCase()
+  return (
+    ctx.ships_internationally === 'yes' ||
+    availability === 'international' ||
+    hasVerifiedFact(ctx, /\b(?:international shipping|ships internationally|worldwide shipping)\b/i)
+  )
 }
 
 export function canClaimProvenance(ctx: BusinessContext): boolean {
+  const verification = String(ctx.provenance_or_authentication || '').toLowerCase()
   return (
     ctx.provenance_or_authentication === 'yes' ||
+    (!!verification && !['unknown', 'no', 'not_applicable', 'no_formal_verification'].includes(verification)) ||
     hasVerifiedFact(ctx, /\b(certificate|certificates|provenance|authentication|authenticated|authenticity)\b/i)
   )
 }

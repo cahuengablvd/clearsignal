@@ -32,6 +32,10 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
   })
   const report: ClearSignalReport = {
     ...existing,
+    // Stale warnings from the previous run quote blocked phrases verbatim
+    // (`replacement_phrase: "..."`), so carrying them into this pass would
+    // re-trigger the artifact detector on the validator's own output.
+    validation_warnings: [],
     meta: {
       ...existing.meta,
       business_context: businessContext ?? existing.meta.business_context,

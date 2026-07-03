@@ -49,7 +49,10 @@ const RAW_KEYS = new Set([
   'icp_description',
   'competitors',
 ])
-const RAW_PREFIXES = ['meta.', 'geo.evidence.', 'technical_findings.']
+// validation_warnings is operator metadata (never rendered client-side) and its
+// entries quote blocked phrases verbatim - scanning it would make any report
+// that once recorded a replacement_phrase error fail every later validation.
+const RAW_PREFIXES = ['meta.', 'geo.evidence.', 'technical_findings.', 'validation_warnings']
 
 function isRawPath(path: string[], key?: string): boolean {
   if (key && RAW_KEYS.has(key)) return true

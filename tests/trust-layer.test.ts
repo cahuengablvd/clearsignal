@@ -2361,3 +2361,34 @@ describe('sentence-level trust engine', () => {
     expect(r.report.action.top_fixes[0].description).toContain('If these images do not load')
   })
 })
+
+describe('stored validation_warnings never re-trigger the artifact detector', () => {
+  const baseReport = (over: Record<string, unknown>) =>
+    ({
+      meta: { url: 'https://x.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+      clarity: { cta: { finding: '' }, trust_proof: { finding: '' } },
+      gap: { competitor_analysis: [] },
+      action: { executive_summary: '', top_fixes: [] },
+      technical_findings: [],
+      ...over,
+    }) as any
+
+  it('does not fail validation when warnings quote blocked phrases verbatim', () => {
+    const r = validateReport(
+      baseReport({
+        validation_warnings: [
+          'replacement_phrase: "Use source-backed proof details." at gap.ai_search.missing_signals.0: "Use source-backed proof details."',
+          'text: dropped standalone replacement sentence at gap.where_you_win.0',
+        ],
+      })
+    )
+    expect(r.errors).toEqual([])
+  })
+
+  it('leaves warning texts untouched (operator metadata, not client prose)', () => {
+    const warning =
+      'replacement_phrase: "Add source-backed proof details in crawlable copy." at geo.source_gap_analysis.3.recommended_fix: "..."'
+    const r = validateReport(baseReport({ validation_warnings: [warning] }))
+    expect(r.report.validation_warnings).toEqual([warning])
+  })
+})

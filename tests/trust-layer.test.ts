@@ -22,6 +22,7 @@ import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
 import { splitSentences } from '../lib/trust/sentences'
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from '../lib/trust/decisions'
 import { buildVariants, textMentions } from '../lib/geo/detect'
+import { rebuildReusedGeoNarrative } from '../lib/audit-runner'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -309,6 +310,39 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
     expect(materials.json_ld).toContain('"@type": "Organization"')
   })
 
+  it('uses verified business context for neutral meta fallback instead of "provides services"', () => {
+    const materials = assembleMaterials(
+      'Monokelriga',
+      'https://monokelriga.lv',
+      {
+        meta_title: 'Bespoke Suits Riga | Monokelriga Atelier',
+        meta_description: 'Use verified business data before publishing this example.',
+        faq: [
+          { question: 'How do I book?', answer: 'Contact the atelier to book a consultation.' },
+          { question: 'Where is it?', answer: 'The atelier is in Riga.' },
+          { question: 'What do they make?', answer: 'They make bespoke suits.' },
+          { question: 'What should I bring?', answer: 'Bring appointment details.' },
+        ],
+        cta_variants: ['Book a Consultation', 'Contact the Atelier', 'Request Information'],
+      },
+      {
+        businessContext: {
+          business_model: 'service_business',
+          primary_conversion_goal: 'booking',
+          purchase_availability: 'unknown',
+          ships_internationally: 'unknown',
+          provenance_or_authentication: 'unknown',
+          target_markets_languages: 'Riga, Latvia',
+          verified_facts: 'Business type: bespoke menswear atelier / custom tailoring service. Primary conversion goal: booking a consultation or fitting.',
+        },
+      }
+    )
+
+    expect(materials.meta_description).toMatch(/bespoke tailoring atelier/i)
+    expect(materials.meta_description).toMatch(/Book a consultation/i)
+    expect(materials.meta_description).not.toMatch(/provides services/i)
+  })
+
   it('blocks moving schema and moving copy for non-moving reports', () => {
     const r = validateReport(
       ({
@@ -361,6 +395,64 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
 })
 
 describe('sample-bounded GEO wording', () => {
+  it('recomputes reused GEO evidence with current alias detection', () => {
+    const rebuilt = rebuildReusedGeoNarrative(
+      ({
+        brand: 'Monokelriga',
+        brand_domain: 'monokelriga.lv',
+        queries_tested: 1,
+        engines_tested: ['perplexity'],
+        test_counts: {
+          configured_queries: 1,
+          configured_engines: 1,
+          expected_combinations: 1,
+          successful_combinations: 1,
+          failed_combinations: 0,
+          skipped_combinations: 0,
+        },
+        ai_visibility_score: 0,
+        mention_rate: 0,
+        citation_rate: 0,
+        share_of_voice: 0,
+        avg_position: null,
+        score_breakdown: {
+          mention_rate: 0,
+          citation_rate: 0,
+          position_score: 0,
+          share_of_voice: 0,
+          weights: { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 },
+        },
+        evidence: [
+          {
+            engine: 'perplexity',
+            query: 'best custom tailored suits in Riga for men',
+            answer_excerpt:
+              'The best custom-tailored suits for men in Riga are offered by Monokel Riga and BG Suits.',
+            citations: ['https://monokelriga.lv'],
+            brand_mentioned: false,
+            brand_cited: false,
+            brand_position: null,
+            competitors_mentioned: ['BG Suits'],
+            cited_domains: ['monokelriga.lv'],
+          },
+        ],
+        competitor_visibility: [{ name: 'BG Suits', mention_rate: 100 }],
+        cited_domains_ranked: [{ domain: 'monokelriga.lv', count: 1 }],
+        missing_signals: [],
+        recommendations: [],
+        summary: '',
+      }) as any,
+      { canonicalBrand: 'Monokelriga', alternativeBrandForms: ['Monokel Riga'] }
+    )
+
+    expect(rebuilt.evidence[0].brand_mentioned).toBe(true)
+    expect(rebuilt.evidence[0].brand_cited).toBe(true)
+    expect(rebuilt.evidence[0].brand_position).toBe(1)
+    expect(rebuilt.mention_rate).toBe(100)
+    expect(rebuilt.ai_visibility_score).toBeGreaterThan(0)
+    expect(rebuilt.summary).toContain('1 of 1 successfully tested engine-query combinations')
+  })
+
   it('replaces "completely invisible" with the tested-sample framing', () => {
     const out = boundSampleClaims('The brand is completely invisible.', 0, 6)
     expect(out.toLowerCase()).toContain('not found in 6 tested query-engine combinations')
@@ -1286,6 +1378,41 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(r.report.action.executive_summary).toBe('No review-rating markup should be added.')
   })
 
+  it('uses category-aware schema guidance in implementation briefs', () => {
+    const r = validateReport(
+      base({
+        meta: {
+          url: 'https://monokelriga.lv',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Monokelriga',
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: 'Riga',
+            verified_facts: 'Business type: bespoke menswear atelier / custom tailoring service.',
+          },
+        },
+        implementation_briefs: [
+          {
+            fix_title: 'Add schema',
+            steps: ['Add AggregateRating schema unless review data is verified.'],
+            acceptance_criteria: ['Done when review schema is added only if verified.'],
+          },
+        ],
+      })
+    )
+
+    const text = JSON.stringify(r.report.implementation_briefs)
+    expect(text).toMatch(/ProfessionalService|LocalBusiness|Service|FAQPage/)
+    expect(text).not.toMatch(/MovingCompany/)
+  })
+
   it('sample-bounds a "No presence on X" absence claim with the brand', () => {
     const r = validateReport(
       base({ gap: { competitor_analysis: [], ai_search: { finding: 'No presence on Etsy or Facebook marketplace listings.' } } })
@@ -1599,7 +1726,7 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/Use verified business data before publishing this example|visit the website/i)
     expect(r.report.ready_materials?.meta_description).toBe(
-      'Monokelriga provides bespoke tailoring services in Riga and across Latvia. Book a consultation to discuss options, availability, and next steps.'
+      'Monokelriga is a bespoke tailoring atelier in Riga and across Latvia. Book a consultation to discuss fit, fabric, timing, and appointment details.'
     )
     expect(r.report.ready_materials?.faq[0].answer).toBe(
       'Contact Monokelriga directly to confirm the current timeline for your appointment, fitting, and final delivery.'

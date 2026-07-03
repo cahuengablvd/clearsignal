@@ -37,6 +37,7 @@ import {
 } from './prompts'
 import { deliverAuditEmail } from './email-delivery'
 import { buildGeoSummary, runGeoScan } from './geo'
+import { buildVariants, citationsInclude, textMentions, firstMentionIndex } from './geo/detect'
 import { notify } from './notify'
 import { sanitizeGeneratedProse, sanitizeGeneratedReportValue } from './sanitize'
 import { attachActionConfidence } from './action-confidence'
@@ -62,6 +63,7 @@ function buildDataLimitations(geo: GeoResult | null, reusedGeoEvidence = false):
     )
     if (reusedGeoEvidence) {
       limits.unshift('AI visibility evidence was reused from the previous completed scan for this audit.')
+      limits.unshift('Reused AI visibility evidence was rechecked with the current brand-alias detector over stored answer excerpts; this can recover missed mentions in excerpts but cannot prove absence beyond the stored excerpt.')
     }
   } else {
     limits.unshift('Live AI visibility evidence was unavailable for this run.')
@@ -70,14 +72,142 @@ function buildDataLimitations(geo: GeoResult | null, reusedGeoEvidence = false):
 }
 
 export function reusableGeoFromAudit(audit: { report?: unknown }): GeoResult | null {
-  const maybeReport = audit.report as { geo?: unknown } | null | undefined
+  const maybeReport = audit.report as { geo?: unknown; meta?: { canonical_brand?: string; alternative_brand_forms?: string[] } } | null | undefined
   if (!maybeReport?.geo) return null
   const parsed = GeoResultSchema.safeParse(maybeReport.geo)
   if (!parsed.success || parsed.data.evidence.length === 0) return null
-  return rebuildReusedGeoNarrative(parsed.data)
+  return rebuildReusedGeoNarrative(parsed.data, {
+    canonicalBrand: maybeReport.meta?.canonical_brand,
+    alternativeBrandForms: maybeReport.meta?.alternative_brand_forms,
+  })
 }
 
-export function rebuildReusedGeoNarrative(geo: GeoResult): GeoResult {
+const REUSED_GEO_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
+
+function pct(n: number, d: number): number {
+  return d > 0 ? Math.round((n / d) * 1000) / 10 : 0
+}
+
+function round(n: number, digits = 1): number {
+  const m = 10 ** digits
+  return Math.round(n * m) / m
+}
+
+function combinedBrandVariants(args: {
+  name?: string
+  url?: string
+  alternatives?: string[]
+}): { domain: string | null; tokens: string[] } {
+  const base = buildVariants({ name: args.name, url: args.url })
+  const tokens = new Set(base.tokens)
+  for (const alt of args.alternatives || []) {
+    for (const token of buildVariants({ name: alt }).tokens) tokens.add(token)
+  }
+  return { domain: base.domain, tokens: [...tokens] }
+}
+
+export function recomputeReusedGeoEvidence(
+  geo: GeoResult,
+  opts: { canonicalBrand?: string; alternativeBrandForms?: string[] } = {}
+): GeoResult {
+  const brand = opts.canonicalBrand || geo.brand
+  const brandVariants = combinedBrandVariants({
+    name: brand,
+    url: geo.brand_domain,
+    alternatives: opts.alternativeBrandForms,
+  })
+  const competitorNames = [
+    ...geo.competitor_visibility.map((c) => c.name),
+    ...geo.evidence.flatMap((e) => e.competitors_mentioned),
+  ].filter(Boolean)
+  const competitorList = [...new Set(competitorNames)]
+    .filter((name) => !textMentions(name, brandVariants.tokens))
+    .map((name) => ({ name, variants: buildVariants({ name }) }))
+
+  const evidence = geo.evidence.map((e) => {
+    const answer = e.answer_excerpt || ''
+    const brand_mentioned = textMentions(answer, brandVariants.tokens)
+    const brand_cited = citationsInclude(e.citations || [], brandVariants.domain)
+    const positions: { name: string; index: number; isBrand: boolean }[] = []
+    const brandIndex = firstMentionIndex(answer, brandVariants.tokens)
+    if (brandIndex >= 0) positions.push({ name: brand, index: brandIndex, isBrand: true })
+    for (const c of competitorList) {
+      const index = firstMentionIndex(answer, c.variants.tokens)
+      if (index >= 0) positions.push({ name: c.name, index, isBrand: false })
+    }
+    positions.sort((a, b) => a.index - b.index)
+    const brand_position = brand_mentioned
+      ? positions.findIndex((p) => p.isBrand) + 1 || null
+      : null
+    return {
+      ...e,
+      brand_mentioned,
+      brand_cited,
+      brand_position,
+      competitors_mentioned: positions.filter((p) => !p.isBrand).map((p) => p.name),
+    }
+  })
+
+  const total = evidence.length
+  const brandMentions = evidence.filter((e) => e.brand_mentioned).length
+  const brandCitations = evidence.filter((e) => e.brand_cited).length
+  const competitorMentionsTotal = evidence.reduce((sum, e) => sum + e.competitors_mentioned.length, 0)
+  const mentionPositions = evidence
+    .filter((e) => e.brand_position != null)
+    .map((e) => e.brand_position as number)
+  const avg_position = mentionPositions.length
+    ? round(mentionPositions.reduce((a, b) => a + b, 0) / mentionPositions.length, 2)
+    : null
+  const positionScore01 = mentionPositions.length
+    ? mentionPositions.reduce((sum, p) => sum + Math.max(0, 1 - (p - 1) / 5), 0) / mentionPositions.length
+    : 0
+  const mention_rate = pct(brandMentions, total)
+  const citation_rate = pct(brandCitations, total)
+  const share_of_voice = brandMentions + competitorMentionsTotal > 0
+    ? round((brandMentions / (brandMentions + competitorMentionsTotal)) * 100, 1)
+    : 0
+  const position_score = round(positionScore01 * 100, 1)
+  const ai_visibility_score = Math.round(
+    100 *
+    (REUSED_GEO_WEIGHTS.mention * (mention_rate / 100) +
+      REUSED_GEO_WEIGHTS.citation * (citation_rate / 100) +
+      REUSED_GEO_WEIGHTS.position * positionScore01 +
+      REUSED_GEO_WEIGHTS.share_of_voice * (share_of_voice / 100))
+  )
+  const competitor_visibility = competitorList
+    .map((c) => ({
+      name: c.name,
+      mention_rate: pct(evidence.filter((e) => textMentions(e.answer_excerpt, c.variants.tokens)).length, total),
+    }))
+    .filter((c) => c.mention_rate > 0)
+    .sort((a, b) => b.mention_rate - a.mention_rate)
+    .slice(0, 10)
+
+  return {
+    ...geo,
+    brand,
+    evidence,
+    ai_visibility_score,
+    mention_rate,
+    citation_rate,
+    share_of_voice,
+    avg_position,
+    competitor_visibility,
+    score_breakdown: {
+      mention_rate,
+      citation_rate,
+      position_score,
+      share_of_voice,
+      weights: REUSED_GEO_WEIGHTS,
+    },
+  }
+}
+
+export function rebuildReusedGeoNarrative(
+  input: GeoResult,
+  opts: { canonicalBrand?: string; alternativeBrandForms?: string[] } = {}
+): GeoResult {
+  const geo = recomputeReusedGeoEvidence(input, opts)
   const total = geo.test_counts?.successful_combinations ?? geo.evidence.length
   const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
   const cited = geo.evidence.filter((e) => e.brand_cited).length

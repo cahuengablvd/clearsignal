@@ -316,7 +316,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     if (/implementation_briefs\./.test(path.join('.'))) {
       const next = out.replace(
         /\b[^.!?]*(?:AggregateRating|review-rating|review schema)[^.!?]*[.!?]?/gi,
-        'Use Organization, Service, LocalBusiness/MovingCompany, or FAQPage schema unless verified review-source data is supplied.'
+        schemaGuidanceForReport(report)
       )
       if (next !== out) {
         warn('brief: replaced unsupported review-rating schema instruction')
@@ -762,6 +762,15 @@ function schemaAllowlist(category: MaterialCategory): Set<string> {
     default: ['Organization', 'FAQPage'],
   }
   return new Set(lists[category])
+}
+
+function schemaGuidanceForReport(report: ClearSignalReport): string {
+  const category = materialCategoryForContext(
+    report.meta.business_context as BusinessContext | undefined,
+    report.meta.observed_business_context
+  )
+  const types = [...schemaAllowlist(category)].filter((type) => !/AggregateRating|Review/i.test(type))
+  return `Use ${types.join(', ')} schema unless verified review-source data is supplied.`
 }
 
 function validateReadyMaterialsCategory(report: ClearSignalReport, errors: string[]): void {

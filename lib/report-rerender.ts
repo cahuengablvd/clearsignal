@@ -26,7 +26,10 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
 
   const existing = audit.report as ClearSignalReport
   const businessContext = (existing.meta.business_context || audit.business_context) as BusinessContext | undefined
-  const geo = existing.geo ? rebuildReusedGeoNarrative(existing.geo) : null
+  const geo = existing.geo ? rebuildReusedGeoNarrative(existing.geo, {
+    canonicalBrand: existing.meta.canonical_brand,
+    alternativeBrandForms: existing.meta.alternative_brand_forms,
+  }) : null
   const verifiedFactsLayer = buildVerifiedFactsLayer({
     businessContext,
     observedBusinessContext: existing.meta.observed_business_context,
@@ -45,8 +48,9 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
     geo,
     data_limitations: [
       ...(geo ? ['AI visibility evidence was reused from the previous completed scan for this audit.'] : []),
+      ...(geo ? ['Reused AI visibility evidence was rechecked with the current brand-alias detector over stored answer excerpts; this can recover missed mentions in excerpts but cannot prove absence beyond the stored excerpt.'] : []),
       ...(existing.data_limitations || []).filter(
-        (line) => !/AI visibility evidence was reused from the previous completed scan/i.test(line)
+        (line) => !/AI visibility evidence was reused from the previous completed scan|Reused AI visibility evidence was rechecked/i.test(line)
       ),
     ],
   }

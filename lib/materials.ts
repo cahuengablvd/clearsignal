@@ -34,6 +34,19 @@ export function materialCategoryForContext(
 ): MaterialCategory {
   if (businessContext?.business_model === 'gallery') return 'art_gallery'
 
+  const contextText = [
+    businessContext?.verified_facts,
+    observed?.inferred_business_type,
+    observed?.observed_service_category,
+    ...(observed?.observed_services || []),
+  ].join(' ').toLowerCase()
+  if (/\b(moving|movers?|relocation|piano moving|moving quote)\b/.test(contextText)) return 'moving_service'
+  if (/\b(video production|motion design|explainer video|product video|animation studio)\b/.test(contextText)) {
+    return 'video_production'
+  }
+  if (/\b(bespoke|tailor|tailoring|atelier|menswear|suits?)\b/.test(contextText)) return 'tailoring_atelier'
+  if (/\b(art gallery|gallery|artworks?|visual art|artist)\b/.test(contextText)) return 'art_gallery'
+
   const labels = [
     normalizedLabel(observed?.inferred_business_type),
     normalizedLabel(observed?.observed_service_category),
@@ -155,12 +168,13 @@ function neutralGenericMaterials(
   brand: string,
   url: string,
   llm: ReadyMaterialsLlm,
+  businessContext?: BusinessContext,
   observed?: ObservedBusinessContext
 ): ReadyMaterialsLlm {
   const name = orgName(brand, url)
   return {
     meta_title: llm.meta_title || `${name} | Official Website`,
-    meta_description: neutralMetaDescription(brand, url, observed),
+    meta_description: neutralMetaDescription(brand, url, businessContext, observed),
     faq: [
       {
         question: `How do I contact ${name}?`,
@@ -206,17 +220,34 @@ function containsPublishablePlaceholder(text: string): boolean {
 function neutralMetaDescription(
   brand: string,
   url: string,
+  businessContext?: BusinessContext,
   observed?: ObservedBusinessContext
 ): string {
   const name = orgName(brand, url)
-  const service = observed?.observed_service_category || observed?.inferred_business_type || 'services'
+  const category = materialCategoryForContext(businessContext, observed)
   const locations = locationsToProse(observed?.observed_location)
-  const action = /booking/i.test(observed?.observed_primary_cta || '')
+  const action = /booking/i.test(observed?.observed_primary_cta || '') || businessContext?.primary_conversion_goal === 'booking'
     ? 'Book a consultation'
     : /quote/i.test(observed?.observed_primary_cta || '')
       ? 'Request a quote'
-      : 'Contact the business'
-  return `${name} provides ${service.toLowerCase()}${locations ? ` ${locations}` : ''}. ${action} to discuss options, availability, and next steps.`
+      : businessContext?.primary_conversion_goal === 'inquiry'
+        ? 'Send an inquiry'
+        : 'Contact the team'
+
+  const locationPhrase = locations ? ` ${locations}` : ''
+  if (category === 'tailoring_atelier') {
+    return `${name} is a bespoke tailoring atelier${locationPhrase}. ${action} to discuss fit, fabric, timing, and appointment details.`
+  }
+  if (category === 'art_gallery') {
+    return `${name} presents artwork and artist information${locationPhrase}. ${action} to ask about availability, acquisition, or gallery details.`
+  }
+  if (category === 'video_production') {
+    return `${name} creates video, animation, and motion-design work${locationPhrase}. ${action} to discuss the brief, scope, and next steps.`
+  }
+  if (category === 'moving_service') {
+    return `${name} provides moving services${locationPhrase}. ${action} to discuss timing, service coverage, and move details.`
+  }
+  return `${name} - ${action.toLowerCase()} to discuss options, availability, and next steps.`
 }
 
 function safeFaqAnswer(
@@ -268,7 +299,7 @@ function publishableSafeMaterials(
   const safeMetaDescription =
     cleanedMetaDescription && !containsPublishablePlaceholder(cleanedMetaDescription)
       ? cleanedMetaDescription
-      : neutralMetaDescription(brand, url, opts?.observedBusinessContext)
+      : neutralMetaDescription(brand, url, opts?.businessContext, opts?.observedBusinessContext)
 
   const safe = {
     meta_title: stripUnsupportedPublishableClaims(llm.meta_title),
@@ -283,11 +314,11 @@ function publishableSafeMaterials(
   }
 
   if (!moving && containsMovingServiceVocabulary(safe)) {
-    return neutralGenericMaterials(brand, url, llm, opts?.observedBusinessContext)
+    return neutralGenericMaterials(brand, url, llm, opts?.businessContext, opts?.observedBusinessContext)
   }
 
   if (!safe.meta_description && safe.faq.length === 0 && safe.cta_variants.length === 0) {
-    return neutralGenericMaterials(brand, url, llm, opts?.observedBusinessContext)
+    return neutralGenericMaterials(brand, url, llm, opts?.businessContext, opts?.observedBusinessContext)
   }
 
   return safe

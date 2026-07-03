@@ -277,7 +277,7 @@ Provide 4-6 FAQ items (the questions buyers actually ask, good for AI-answer cit
 // --- Implementation briefs (#19) ---
 export const BRIEF_SYSTEM = `You turn audit fixes into concise implementation briefs (developer/marketing tickets).
 For each fix give 2-5 concrete steps and 1-3 acceptance criteria phrased as verifiable "Done when ..." conditions (something a person or tool can objectively check).
-Do not ask implementers to add AggregateRating or review-rating markup unless verified first-party review-source data is explicitly provided. If review data is not verified, use Organization, Service, LocalBusiness/MovingCompany, FAQPage, or plain review/proof copy instead.
+Do not ask implementers to add AggregateRating or review-rating markup unless verified first-party review-source data is explicitly provided. If review data is not verified, use only schema types that match the business category (for example Organization, Service, LocalBusiness/ProfessionalService, ArtGallery, VisualArtwork, or FAQPage), or use plain review/proof copy instead.
 ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}

@@ -540,10 +540,10 @@ export default function SampleReportPage() {
         <section className="mt-8">
           <div className="flex items-center gap-2 mb-1">
             <FileSearch className="h-5 w-5" />
-            <h2 className="text-xl font-bold">Ready-to-ship materials</h2>
+            <h2 className="text-xl font-bold">Draft copy for operator review</h2>
           </div>
           <p className="text-sm text-slate-600 mb-4">
-            Publishable copy you can paste straight in - meta tags, FAQ, JSON-LD and CTA options.
+            Review these meta tags, FAQ, JSON-LD and CTA options before publishing.
           </p>
           <div className="grid gap-3">
             <Card>

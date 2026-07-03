@@ -2315,8 +2315,7 @@ describe('sentence-level trust engine', () => {
     expect(r.report.action.top_fixes[0].description).toBe('This helps visitors understand proof.')
     expect(r.report.geo?.source_gap_analysis?.[0]?.why_this_source_gets_cited).toBe('')
     expect(r.report.geo?.source_gap_analysis?.[0]?.recommended_fix).toBe('')
-    expect(r.report.implementation_briefs?.[0]?.steps).toEqual([])
-    expect(r.report.implementation_briefs?.[0]?.acceptance_criteria).toEqual([])
+    expect(r.report.implementation_briefs).toEqual([])
   })
 
   it('removes replacement phrases glued into other client text', () => {
@@ -2351,6 +2350,159 @@ describe('sentence-level trust engine', () => {
     expect(r.errors).toEqual([])
     expect(r.report.action.top_fixes[0].description).not.toMatch(/Use source-backed proof details/i)
     expect(r.report.action.top_fixes[0].description).toContain('Before the next section')
+  })
+
+  it('removes client-visible outreach instructions and keeps outreach notes internal', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://az-moving.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Az-moving',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Az-moving was reviewed.',
+          top_fixes: [],
+          outreach_messages: [
+            {
+              channel: 'linkedin',
+              message:
+                'These are all fixable quickly. Keep the tone diagnostic. Do not invent scarcity or case-study outcomes.',
+              note: 'Do not tag the account without permission. Replace "" with the contact name.',
+            },
+          ],
+        },
+      }) as any
+    )
+
+    expect(r.errors).toEqual([])
+    expect(r.report.action.outreach_messages[0].message).toBe('These are all fixable quickly.')
+    expect(JSON.stringify(r.report.action.outreach_messages[0].message)).not.toMatch(/Keep the tone|Do not invent/i)
+  })
+
+  it('removes AZ contact replacement phrases from source-gap text', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://az-moving.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Az-moving',
+        },
+        clarity: {},
+        gap: {
+          competitor_analysis: [],
+        },
+        action: {
+          executive_summary: 'Az-moving was reviewed.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Proof fix',
+              description: 'Contact AZ Moving to discuss third-party rating details for your move. The page also names specific move types.',
+              impact: 'high',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
+        },
+        geo: {
+          source_gap_analysis: [
+            {
+              cited_source: 'rentason.ca',
+              signals_found: [],
+              target_missing_signals: [],
+              why_this_source_gets_cited:
+                'Contact AZ Moving to discuss third-party rating details for your move. The page also names specific move types.',
+              recommended_fix: 'Contact AZ Moving to discuss third-party rating details for your move.',
+            },
+          ],
+        },
+      }) as any
+    )
+
+    const text = JSON.stringify(r.report)
+    expect(r.errors).toEqual([])
+    expect(text).not.toMatch(/Contact AZ Moving to discuss/i)
+    expect(r.report.action.top_fixes[0].description).toBe('The page also names specific move types.')
+    expect(r.report.geo?.source_gap_analysis?.[0]?.why_this_source_gets_cited).toBe('The page also names specific move types.')
+    expect(r.report.geo?.source_gap_analysis?.[0]?.recommended_fix).toBe('')
+  })
+
+  it('rewrites community seeding language to transparent participation', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://www.monokelriga.lv/',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Monokelriga',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Monokelriga was reviewed.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Community proof',
+              description:
+                'Seed brand mentions in high-traffic Reddit and Facebook communities where authentic expertise would help buyers.',
+              impact: 'medium',
+              effort: 'medium',
+              category: 'ai_search',
+            },
+          ],
+        },
+      }) as any
+    )
+
+    expect(r.errors).toEqual([])
+    expect(r.report.action.top_fixes[0].description).toContain('Participate transparently in relevant communities')
+    expect(r.report.action.top_fixes[0].description).not.toMatch(/\bSeed brand mentions\b/i)
+  })
+
+  it('drops empty action and implementation-brief items before rendering', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://example.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Example',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Example was reviewed.',
+          top_fixes: [
+            { id: 1, title: '', description: '', impact: 'high', effort: 'easy', category: 'proof' },
+          ],
+        },
+        implementation_briefs: [
+          { fix_title: '', steps: [], acceptance_criteria: [] },
+        ],
+      }) as any
+    )
+
+    expect(r.errors).toEqual([])
+    expect(r.report.action.top_fixes).toEqual([])
+    expect(r.report.implementation_briefs).toEqual([])
+    expect(r.warnings).toEqual(expect.arrayContaining([
+      'action.top_fixes: dropped empty action item',
+      'implementation_briefs: dropped empty brief',
+    ]))
   })
 
   it('drops duplicate outreach channels from stored reports', () => {

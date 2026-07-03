@@ -108,6 +108,32 @@ const BLOCKED_CLIENT_REPAIR_PHRASES = [
   'If the business can verify credential details, publish them in crawlable prose.',
   'Mention response timing only if the business has verified it.',
   'Mention credentials only if the business has verified them.',
+  'Contact AZ Moving to discuss third-party rating details for your move.',
+  'Contact AZ Moving to discuss piano-moving availability for your move.',
+]
+
+const INTERNAL_INSTRUCTION_SENTENCE_PATTERNS = [
+  /(?:^|[.!?]\s+)\s*Keep the tone\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*Do not\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*No invented outcomes\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*No revenue claims\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*No scarcity\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*Twitter\/X tone\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*The three points cited\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*Replace ['"][^'"]*['"](?:\s+and\s+['"][^'"]*['"])? before sending\b[^.?!]*[.?!]?/gi,
+  /(?:^|[.!?]\s+)\s*Replace ['"][^'"]*['"] with\b[^.?!]*[.?!]?/gi,
+]
+
+const CLIENT_ARTIFACT_PATTERNS: Array<[RegExp, string]> = [
+  [/\bKeep the tone\b/i, 'internal instruction'],
+  [/\bDo not (?:claim|invent|add|tag)\b/i, 'internal instruction'],
+  [/\bNo invented outcomes\b/i, 'internal instruction'],
+  [/\bNo revenue claims\b/i, 'internal instruction'],
+  [/\bTwitter\/X tone\b/i, 'internal instruction'],
+  [/\bContact\s+[A-Z][A-Za-z0-9 -]{1,60}\s+to discuss\s+(?:third-party rating|credential|proof|piano-moving availability)[^.?!]*[.?!]?/i, 'replacement contact instruction'],
+  [/\bFix:\s*(?:$|\n|---|Owner:|Priority score:)/i, 'empty fix'],
+  [/\b(?:labelled|labeled|placeholder)\s+''\b/i, 'empty placeholder'],
+  [/\be\.g\.,?\s*Use (?:MovingCompany|Organization|Service|FAQPage|LocalBusiness|ProfessionalService)[^.!?]*(?:unless verified|schema unless)/i, 'schema guidance leak'],
 ]
 
 /** Deep clone via JSON round-trip (report is always JSON-serializable). */
@@ -145,6 +171,18 @@ function removeUnsupportedMovingClaimSentences(text: string, ctx?: BusinessConte
 
 function cleanupClientPhrasing(text: string): string {
   return normalizeEncodingArtifacts(text)
+    .replace(
+      /\bSeed brand mentions in high-traffic Reddit and Facebook communities\b/gi,
+      'Participate transparently in relevant communities where the business can provide genuinely useful expertise'
+    )
+    .replace(
+      /\be\.g\.,?\s*(Use (?:MovingCompany|Organization|Service|FAQPage|LocalBusiness|ProfessionalService|ArtGallery|VisualArtwork)[^.!?]*(?:unless verified|schema unless)[^.!?]*[.?!]?)/gi,
+      '$1'
+    )
+    .replace(
+      /\bContact\s+[A-Z][A-Za-z0-9 -]{1,60}\s+to discuss\s+(?:third-party rating|credential|proof|piano-moving availability)[^.?!]*[.?!]?\s*/gi,
+      ''
+    )
     .replace(
       /\bPricing was not confirmed in this audit\.?['"]?\s+Its\b/gi,
       'This cited source appears to include pricing/use-case content. Its'
@@ -207,6 +245,19 @@ function cleanupClientPhrasing(text: string): string {
     .replace(/^\s*[.,;:!?]\s*/, '')
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function stripInternalInstructionSentences(text: string): string {
+  if (!text) return text
+  let out = text
+  for (const re of INTERNAL_INSTRUCTION_SENTENCE_PATTERNS) {
+    out = out.replace(re, (match) => (match.startsWith('.') || match.startsWith('!') || match.startsWith('?') ? match[0] : ''))
+  }
+  return out
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/^[,;:]\s*/, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
 }
@@ -311,6 +362,11 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     if (withoutBlockedRepairPhrases !== out) {
       warn(`text: removed blocked replacement phrase at ${path.join('.') || '<root>'}`)
       out = withoutBlockedRepairPhrases
+    }
+    const withoutInternalInstructions = stripInternalInstructionSentences(out)
+    if (withoutInternalInstructions !== out) {
+      warn(`text: removed internal instruction sentence at ${path.join('.') || '<root>'}`)
+      out = withoutInternalInstructions
     }
 
     if (/implementation_briefs\./.test(path.join('.'))) {
@@ -470,6 +526,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   rebuildReadyMaterials(walked, warn)
   dropReplacementOnlyBriefSteps(walked, warn)
   dropEmptyNarrativeArrayItems(walked, warn)
+  dropEmptyActionItems(walked, warn)
   validatePublishableFacts(walked, errors)
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
@@ -526,6 +583,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   if (!walked.action || !walked.clarity) {
     errors.push('report is missing required sections (action/clarity)')
   }
+  validateActionUsability(walked, errors)
   for (const artifact of collectClientArtifacts(walked)) {
     errors.push(artifact)
   }
@@ -666,6 +724,53 @@ function dropEmptyNarrativeArrayItems(report: ClearSignalReport, warn: (m: strin
   if (r.geo) {
     r.geo.missing_signals = compactStringArray(r.geo.missing_signals, 'geo.missing_signals', warn)
     r.geo.recommendations = compactStringArray(r.geo.recommendations, 'geo.recommendations', warn)
+  }
+}
+
+function dropEmptyActionItems(report: ClearSignalReport, warn: (m: string) => void): void {
+  if (Array.isArray(report.action?.top_fixes)) {
+    const before = report.action.top_fixes.length
+    report.action.top_fixes = report.action.top_fixes.filter((fix) => {
+      return String(fix.title || '').trim().length > 0 || String(fix.description || '').trim().length > 0
+    })
+    if (report.action.top_fixes.length !== before) warn('action.top_fixes: dropped empty action item')
+  }
+
+  if (Array.isArray(report.implementation_briefs)) {
+    const before = report.implementation_briefs.length
+    report.implementation_briefs = report.implementation_briefs.filter((brief) => {
+      const hasTitle = String(brief.fix_title || '').trim().length > 0
+      const hasSteps = Array.isArray(brief.steps) && brief.steps.some((s) => String(s || '').trim().length > 0)
+      const hasAcceptance =
+        Array.isArray(brief.acceptance_criteria) &&
+        brief.acceptance_criteria.some((s) => String(s || '').trim().length > 0)
+      return hasTitle && (hasSteps || hasAcceptance)
+    })
+    if (report.implementation_briefs.length !== before) warn('implementation_briefs: dropped empty brief')
+  }
+}
+
+function validateActionUsability(report: ClearSignalReport, errors: string[]): void {
+  const fixes = report.action?.top_fixes
+  if (Array.isArray(fixes)) {
+    fixes.forEach((fix, index) => {
+      if (!String(fix.title || '').trim() && !String(fix.description || '').trim()) {
+        errors.push(`action.top_fixes.${index}: empty action item`)
+      }
+    })
+  }
+
+  if (Array.isArray(report.implementation_briefs)) {
+    report.implementation_briefs.forEach((brief, index) => {
+      if (!String(brief.fix_title || '').trim()) errors.push(`implementation_briefs.${index}: empty fix_title`)
+      const stepCount = Array.isArray(brief.steps) ? brief.steps.filter((s) => String(s || '').trim()).length : 0
+      const acceptanceCount = Array.isArray(brief.acceptance_criteria)
+        ? brief.acceptance_criteria.filter((s) => String(s || '').trim()).length
+        : 0
+      if (stepCount === 0 && acceptanceCount === 0) {
+        errors.push(`implementation_briefs.${index}: empty implementation brief`)
+      }
+    })
   }
 }
 
@@ -948,6 +1053,12 @@ function collectClientArtifacts(value: unknown, path: string[] = []): string[] {
       if (lower.includes(phrase.toLowerCase())) {
         const quote = value.length > 180 ? `${value.slice(0, 177)}...` : value
         out.push(`replacement_phrase: "${phrase}" at ${joined || '<root>'}: "${quote}"`)
+      }
+    }
+    for (const [re, label] of CLIENT_ARTIFACT_PATTERNS) {
+      if (re.test(value)) {
+        const quote = value.length > 180 ? `${value.slice(0, 177)}...` : value
+        out.push(`${label} at ${joined || '<root>'}: "${quote}"`)
       }
     }
     return out

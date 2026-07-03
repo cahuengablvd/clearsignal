@@ -924,9 +924,9 @@ export default async function AuditPage({
         {/* Ready-to-ship materials */}
         {report.ready_materials && (
           <>
-            <h2 className="text-2xl font-bold mb-1 mt-10">Ready-to-ship materials</h2>
+            <h2 className="text-2xl font-bold mb-1 mt-10">Draft copy for operator review</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Publishable copy you can paste straight in - meta tags, FAQ, JSON-LD and CTA options.
+              Review these meta tags, FAQ, JSON-LD and CTA options before publishing.
             </p>
             <div className="grid gap-3 mb-10">
               <Card>
@@ -1009,7 +1009,6 @@ export default async function AuditPage({
               <CardContent className="p-5">
                 <Badge variant="outline" className="mb-2">{msg.channel}</Badge>
                 <div className="bg-muted rounded p-3 text-sm mb-2 whitespace-pre-wrap">{msg.message}</div>
-                <p className="text-xs text-muted-foreground italic">{msg.note}</p>
               </CardContent>
             </Card>
           ))}

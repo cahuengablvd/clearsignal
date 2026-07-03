@@ -460,6 +460,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     const validationFailed = /Report validation blocked/i.test(errorMessage)
     const failurePatch: Record<string, unknown> = {
       audit_status: validationFailed ? 'failed-validation' : 'failed',
+      last_generated_at: new Date().toISOString(),
       api_cost_usd: cost.totalUsd(),
       api_cost_breakdown: cost.breakdown(),
     }

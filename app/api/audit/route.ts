@@ -33,9 +33,10 @@ export async function POST(req: NextRequest) {
 
     // Make regeneration visible immediately in the admin UI. Trigger may take a
     // few seconds to start the task and flip the row to `processing`.
+    const queuedAt = new Date().toISOString()
     const { error: queueError } = await supabaseAdmin
       .from('audits')
-      .update({ audit_status: 'queued' })
+      .update({ audit_status: 'queued', last_generated_at: queuedAt })
       .eq('id', audit_id)
 
     if (queueError) {

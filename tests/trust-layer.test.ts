@@ -20,6 +20,7 @@ import { validateReport } from '../lib/report-validator'
 import { canClaimCommercialPolicy } from '../lib/business-context'
 import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
 import { splitSentences } from '../lib/trust/sentences'
+import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from '../lib/trust/decisions'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -753,6 +754,14 @@ describe('role assignment', () => {
 })
 
 describe('internal replacement phrases never leak into client copy', () => {
+  it('keeps the replacement sentence list small and client-readable', () => {
+    expect(CLIENT_VISIBLE_REPLACEMENT_SENTENCES).toHaveLength(8)
+    for (const phrase of CLIENT_VISIBLE_REPLACEMENT_SENTENCES) {
+      expect(phrase).not.toMatch(/\b(use|ask|contact|confirm|publish)\b/i)
+      expect(phrase).not.toMatch(/operator|before publishing|before booking|this example/i)
+    }
+  })
+
   it('rewrites Wikipedia/Wikidata entity advice without grammar artifacts', () => {
     const cases = [
       'We recommend Wikipedia or Wikidata entity creation to establish presence.',

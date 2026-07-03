@@ -18,17 +18,15 @@ export type SentenceDecision =
 
 export const REPLACEMENT_SENTENCES = {
   performanceHypothesis:
-    'Potential business impact should be treated as a hypothesis until verified with analytics or operator data.',
-  recommendationHypothesis: 'Proof-related recommendations should be backed by verified source data.',
-  reviewProofRecommendation: 'Rating recommendations should use verified review-source data.',
-  quantifiedExample: 'Use verified business data before publishing this example.',
+    'Potential business impact was not verified with analytics in this audit.',
+  recommendationHypothesis: 'This recommendation needs verified supporting evidence before publication.',
+  reviewProofRecommendation: 'Review or rating proof should come from a verified review source.',
+  quantifiedExample: 'Specific business figures were not verified in this audit.',
   unsupportedCommitment:
-    'Specific service commitments should be published only when the business has verified them.',
-  conditionalResponseTime:
-    'Response-time wording should be used only when the business has verified it.',
-  conditionalCredential:
-    'Credential claims should use current verified business details.',
-  unsupportedMovingClaim: 'Ask the team about service details for this move.',
+    'Specific service commitments were not verified in this audit.',
+  conditionalResponseTime: 'Response-time claims were not verified in this audit.',
+  conditionalCredential: 'Credential claims need current verified business details.',
+  unsupportedMovingClaim: 'Service details for this move were not independently confirmed in this audit.',
 } as const
 
 export const CLIENT_VISIBLE_REPLACEMENT_SENTENCES = Object.values(REPLACEMENT_SENTENCES)

@@ -188,6 +188,10 @@ function containsMovingServiceVocabulary(value: ReadyMaterialsLlm): boolean {
   return /\b(moving quote|moving services?|movers?|pickup and drop[- ]off|stairs or elevator|inventory size|residential moving|commercial moving|piano moving)\b/i.test(text)
 }
 
+function containsPublishablePlaceholder(text: string): boolean {
+  return /\b(?:use verified business data before publishing this example|specific business figures were not verified in this audit|before publishing this wording|contact the business to confirm)\b/i.test(text)
+}
+
 function neutralMetaDescription(
   brand: string,
   url: string,
@@ -214,7 +218,13 @@ function safeFaqAnswer(
   const cleaned = stripUnsupportedPublishableClaims(answer)
     .replace(/\s{2,}/g, ' ')
     .trim()
-  if (cleaned.length >= 24 && !/\barrange your visit the website\b/i.test(cleaned)) return cleaned
+  if (
+    cleaned.length >= 24 &&
+    !/\barrange your visit the website\b/i.test(cleaned) &&
+    !containsPublishablePlaceholder(cleaned)
+  ) {
+    return cleaned
+  }
 
   const name = orgName(brand, url)
   if (/\b(how long|timeline|take|receive|ready|delivery)\b/i.test(question)) {
@@ -243,9 +253,15 @@ function publishableSafeMaterials(
 
   if (needsNeutralMoving) return movingFallbackMaterials(brand, url, llm, opts?.observedBusinessContext)
 
+  const cleanedMetaDescription = stripUnsupportedPublishableClaims(llm.meta_description)
+  const safeMetaDescription =
+    cleanedMetaDescription && !containsPublishablePlaceholder(cleanedMetaDescription)
+      ? cleanedMetaDescription
+      : neutralMetaDescription(brand, url, opts?.observedBusinessContext)
+
   const safe = {
     meta_title: stripUnsupportedPublishableClaims(llm.meta_title),
-    meta_description: stripUnsupportedPublishableClaims(llm.meta_description) || neutralMetaDescription(brand, url, opts?.observedBusinessContext),
+    meta_description: safeMetaDescription,
     faq: llm.faq
       .map((f) => ({
         question: stripUnsupportedPublishableClaims(f.question),

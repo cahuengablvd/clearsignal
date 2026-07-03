@@ -74,6 +74,14 @@ const CLIPPED_ROLE: Record<string, string> = {
 const NO_DIRECT_EVIDENCE = 'Based on audit synthesis; no single direct evidence item.'
 const BLOCKED_CLIENT_REPAIR_PHRASES = [
   ...CLIENT_VISIBLE_REPLACEMENT_SENTENCES,
+  'Potential business impact should be treated as a hypothesis until verified with analytics or operator data.',
+  'Proof-related recommendations should be backed by verified source data.',
+  'Rating recommendations should use verified review-source data.',
+  'Use verified business data before publishing this example.',
+  'Specific service commitments should be published only when the business has verified them.',
+  'Response-time wording should be used only when the business has verified it.',
+  'Credential claims should use current verified business details.',
+  'Ask the team about service details for this move.',
   'Use source-backed proof details.',
   'Use verified review-source context.',
   'Use verified credential details.',

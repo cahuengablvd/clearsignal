@@ -8,6 +8,13 @@
 import { buildVerifiedFactsLayer, factAllowed, observedValues } from './verified-facts'
 import type { BusinessContext, ObservedBusinessContext, ReadyMaterialsLlm, ReadyMaterials, VerifiedFact } from './schemas'
 
+export type MaterialCategory =
+  | 'moving_service'
+  | 'video_production'
+  | 'tailoring_atelier'
+  | 'art_gallery'
+  | 'default'
+
 function orgName(brand: string, url: string): string {
   if (brand && brand.trim()) return brand.trim()
   try {
@@ -17,17 +24,59 @@ function orgName(brand: string, url: string): string {
   }
 }
 
-function isMovingBusiness(
-  brand: string,
-  url: string,
-  faq: { question: string; answer: string }[],
+function normalizedLabel(value?: string): string {
+  return (value || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+}
+
+export function materialCategoryForContext(
+  businessContext?: BusinessContext,
   observed?: ObservedBusinessContext
-): boolean {
-  if (/moving/i.test(observed?.inferred_business_type || '') || /moving/i.test(observed?.observed_service_category || '')) {
-    return true
+): MaterialCategory {
+  if (businessContext?.business_model === 'gallery') return 'art_gallery'
+
+  const labels = [
+    normalizedLabel(observed?.inferred_business_type),
+    normalizedLabel(observed?.observed_service_category),
+  ].filter(Boolean)
+
+  if (labels.some((v) => ['moving_company', 'moving_service', 'moving_services'].includes(v))) {
+    return 'moving_service'
   }
-  const haystack = `${brand} ${url} ${faq.map((f) => `${f.question} ${f.answer}`).join(' ')}`.toLowerCase()
-  return /\b(moving|movers?|relocation|relocations|piano moving|commercial move|residential move)\b/.test(haystack)
+  if (labels.some((v) => ['video_production', 'video_production_service', 'motion_design', 'explainer_video_production'].includes(v))) {
+    return 'video_production'
+  }
+  if (labels.some((v) => ['tailoring_atelier', 'bespoke_tailoring', 'tailoring_service', 'custom_tailoring'].includes(v))) {
+    return 'tailoring_atelier'
+  }
+  if (labels.some((v) => ['art_gallery', 'gallery', 'online_art_gallery'].includes(v))) {
+    return 'art_gallery'
+  }
+
+  return 'default'
+}
+
+function isMovingBusiness(opts?: {
+  businessContext?: BusinessContext
+  observedBusinessContext?: ObservedBusinessContext
+}): boolean {
+  return materialCategoryForContext(opts?.businessContext, opts?.observedBusinessContext) === 'moving_service'
+}
+
+function humanList(values: string[], max = 3): string {
+  const items = values.map((v) => v.trim()).filter(Boolean).slice(0, max)
+  if (items.length <= 1) return items[0] || ''
+  if (items.length === 2) return `${items[0]} and ${items[1]}`
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
+}
+
+function movingServicePhrase(services?: string[]): string {
+  const normalized = (services || [])
+    .map((service) => service.toLowerCase().trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((service) => service.replace(/\s+moving\b/i, ''))
+  if (normalized.length) return `${humanList(normalized)} moving`
+  return 'residential and commercial moving'
 }
 
 function areaServedFromFacts(
@@ -58,17 +107,15 @@ function factsFor(opts?: {
   })
 }
 
-function neutralMovingMaterials(
+function movingFallbackMaterials(
   brand: string,
   url: string,
   llm: ReadyMaterialsLlm,
   observed?: ObservedBusinessContext
 ): ReadyMaterialsLlm {
   const name = orgName(brand, url)
-  const locations = observed?.observed_location?.length ? ` in ${observed.observed_location.join(' / ')}` : ''
-  const servicePhrase = observed?.observed_services?.length
-    ? observed.observed_services.slice(0, 2).join(' and ').toLowerCase()
-    : 'residential and commercial moving'
+  const locations = observed?.observed_location?.length ? ` in ${humanList(observed.observed_location, 3)}` : ''
+  const servicePhrase = movingServicePhrase(observed?.observed_services)
   return {
     meta_title: llm.meta_title || `${name} | Moving Services`,
     meta_description: `${name} provides ${servicePhrase} services${locations}. Request a quote to discuss timing, service coverage and move details.`,
@@ -93,6 +140,30 @@ function neutralMovingMaterials(
   }
 }
 
+function neutralGenericMaterials(
+  brand: string,
+  url: string,
+  llm: ReadyMaterialsLlm,
+  observed?: ObservedBusinessContext
+): ReadyMaterialsLlm {
+  const name = orgName(brand, url)
+  return {
+    meta_title: llm.meta_title || `${name} | Official Website`,
+    meta_description: neutralMetaDescription(brand, url, observed),
+    faq: [
+      {
+        question: `How do I contact ${name}?`,
+        answer: `Use the contact options on ${name}'s website to discuss your needs and next steps.`,
+      },
+      {
+        question: `What information should I share with ${name}?`,
+        answer: 'Share the relevant project, service, appointment, or inquiry details so the team can respond with accurate next steps.',
+      },
+    ],
+    cta_variants: ['Contact the business', `Contact ${name}`, 'Request information'],
+  }
+}
+
 function stripUnsupportedPublishableClaims(text: string): string {
   return text
     .replace(/\b(?:same[- ]day|last[- ]minute)\b[^.?!]*/gi, 'availability')
@@ -107,6 +178,16 @@ function stripUnsupportedPublishableClaims(text: string): string {
     .trim()
 }
 
+function containsMovingServiceVocabulary(value: ReadyMaterialsLlm): boolean {
+  const text = [
+    value.meta_title,
+    value.meta_description,
+    ...value.cta_variants,
+    ...value.faq.flatMap((f) => [f.question, f.answer]),
+  ].join(' ')
+  return /\b(moving quote|moving services?|movers?|pickup and drop[- ]off|stairs or elevator|inventory size|residential moving|commercial moving|piano moving)\b/i.test(text)
+}
+
 function neutralMetaDescription(
   brand: string,
   url: string,
@@ -114,7 +195,7 @@ function neutralMetaDescription(
 ): string {
   const name = orgName(brand, url)
   const service = observed?.observed_service_category || observed?.inferred_business_type || 'services'
-  const locations = observed?.observed_location?.length ? ` in ${observed.observed_location.slice(0, 2).join(' / ')}` : ''
+  const locations = observed?.observed_location?.length ? ` in ${humanList(observed.observed_location, 2)}` : ''
   const action = /booking/i.test(observed?.observed_primary_cta || '')
     ? 'Book a consultation'
     : /quote/i.test(observed?.observed_primary_cta || '')
@@ -153,16 +234,16 @@ function publishableSafeMaterials(
   opts?: { businessContext?: BusinessContext; observedBusinessContext?: ObservedBusinessContext; verifiedFacts?: VerifiedFact[] }
 ): ReadyMaterialsLlm {
   const facts = factsFor(opts)
-  const moving = isMovingBusiness(brand, url, llm.faq, opts?.observedBusinessContext)
+  const moving = isMovingBusiness(opts)
   const ctx = opts?.businessContext
   const needsNeutralMoving =
     moving &&
     !hasVerifiedText(ctx, /\b(insured|insurance|wsib|cvor|homestars|same[- ]day|last[- ]minute|condo|elevator|no hidden fees|minutes)\b/i) &&
     !factAllowed(facts, /\b(insurance|wsib|cvor|homestars|response time|pricing|condo|elevator)\b/i, 'ready_copy')
 
-  if (needsNeutralMoving) return neutralMovingMaterials(brand, url, llm, opts?.observedBusinessContext)
+  if (needsNeutralMoving) return movingFallbackMaterials(brand, url, llm, opts?.observedBusinessContext)
 
-  return {
+  const safe = {
     meta_title: stripUnsupportedPublishableClaims(llm.meta_title),
     meta_description: stripUnsupportedPublishableClaims(llm.meta_description) || neutralMetaDescription(brand, url, opts?.observedBusinessContext),
     faq: llm.faq
@@ -173,6 +254,16 @@ function publishableSafeMaterials(
       .filter((f) => f.question && f.answer),
     cta_variants: llm.cta_variants.map(stripUnsupportedPublishableClaims).filter(Boolean),
   }
+
+  if (!moving && containsMovingServiceVocabulary(safe)) {
+    return neutralGenericMaterials(brand, url, llm, opts?.observedBusinessContext)
+  }
+
+  if (!safe.meta_description && safe.faq.length === 0 && safe.cta_variants.length === 0) {
+    return neutralGenericMaterials(brand, url, llm, opts?.observedBusinessContext)
+  }
+
+  return safe
 }
 
 /** Build a valid Organization + FAQPage JSON-LD <script> block from the FAQ. */
@@ -184,7 +275,7 @@ export function buildJsonLd(
   facts: VerifiedFact[] = []
 ): string {
   const name = orgName(brand, url)
-  const moving = isMovingBusiness(brand, url, faq, observed)
+  const moving = isMovingBusiness({ observedBusinessContext: observed })
   const areas = moving ? areaServedFromFacts(facts, faq, observed) : []
   const graph: Record<string, unknown>[] = [
     moving

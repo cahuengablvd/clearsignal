@@ -10,7 +10,7 @@
  * Pure + deterministic: no LLM, fully unit-testable.
  */
 import { sanitizeGeneratedProse, sanitizeUnsupportedCommercialClaims } from './sanitize'
-import { assembleMaterials } from './materials'
+import { assembleMaterials, materialCategoryForContext, type MaterialCategory } from './materials'
 import { repairUnsupportedMovingClaimSentence, unsupportedMovingClaims } from './industry-profiles/moving'
 import { BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from './trust/decisions'
@@ -450,6 +450,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
   ensureExecutiveSummary(walked, warn)
+  validateReadyMaterialsCategory(walked, errors)
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
@@ -613,6 +614,61 @@ function validatePublishableFacts(report: ClearSignalReport, errors: string[]): 
   }
 }
 
+function jsonLdTypes(jsonLd?: string): string[] {
+  if (!jsonLd) return []
+  try {
+    const json = jsonLd.replace(/<\/?script[^>]*>/gi, '').trim()
+    const parsed = JSON.parse(json)
+    const graph = Array.isArray(parsed['@graph']) ? parsed['@graph'] : [parsed]
+    return graph
+      .map((node) => (node && typeof node === 'object' ? (node as Record<string, unknown>)['@type'] : undefined))
+      .flat()
+      .filter((type): type is string => typeof type === 'string')
+  } catch {
+    return []
+  }
+}
+
+function schemaAllowlist(category: MaterialCategory): Set<string> {
+  const lists: Record<MaterialCategory, string[]> = {
+    moving_service: ['MovingCompany', 'Service', 'FAQPage', 'Organization'],
+    video_production: ['ProfessionalService', 'Organization', 'Service', 'FAQPage'],
+    tailoring_atelier: ['LocalBusiness', 'ProfessionalService', 'Service', 'FAQPage', 'Organization'],
+    art_gallery: ['ArtGallery', 'Organization', 'VisualArtwork', 'FAQPage'],
+    default: ['Organization', 'FAQPage'],
+  }
+  return new Set(lists[category])
+}
+
+function validateReadyMaterialsCategory(report: ClearSignalReport, errors: string[]): void {
+  const category = materialCategoryForContext(
+    report.meta.business_context as BusinessContext | undefined,
+    report.meta.observed_business_context
+  )
+  const materials = report.ready_materials
+  if (!materials) return
+
+  const allowed = schemaAllowlist(category)
+  for (const type of jsonLdTypes(materials.json_ld)) {
+    if (!allowed.has(type)) {
+      errors.push(`schema_category: ${type} is not allowed for ${category}`)
+    }
+  }
+
+  if (category !== 'moving_service') {
+    const text = [
+      materials.meta_title,
+      materials.meta_description,
+      ...materials.cta_variants,
+      ...materials.faq.flatMap((f) => [f.question, f.answer]),
+      report.action?.outreach_messages?.map((m) => m.message).join(' ') || '',
+    ].join(' ')
+    if (/\b(moving quote|moving services?|movers?|pickup and drop[- ]off|stairs or elevator|inventory size|residential moving|commercial moving|piano moving)\b/i.test(text)) {
+      errors.push(`foreign_category_copy: moving-service wording appeared in ${category} materials`)
+    }
+  }
+}
+
 function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
   const geo = report.geo
   const counts = geo?.test_counts
@@ -747,9 +803,12 @@ function collectClientArtifacts(value: unknown, path: string[] = []): string[] {
   if (typeof value === 'string') {
     const key = path[path.length - 1]
     const joined = path.join('.')
-    if (isRawPath(path, key) && !joined.startsWith('ready_materials.json_ld')) return out
-    for (const [re, label] of INTERNAL_CLIENT_ARTIFACTS) {
-      if (re.test(value)) out.push(`artifact: ${label} at ${joined || '<root>'}`)
+    const isReadyJsonLd = joined.startsWith('ready_materials.json_ld')
+    if (isRawPath(path, key) && !isReadyJsonLd) return out
+    if (!isReadyJsonLd) {
+      for (const [re, label] of INTERNAL_CLIENT_ARTIFACTS) {
+        if (re.test(value)) out.push(`artifact: ${label} at ${joined || '<root>'}`)
+      }
     }
     const lower = value.toLowerCase()
     for (const phrase of BLOCKED_CLIENT_REPAIR_PHRASES) {

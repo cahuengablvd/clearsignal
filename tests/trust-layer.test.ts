@@ -10,7 +10,7 @@ import {
 } from '../lib/sanitize'
 import { BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema, GeoResultSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
-import { buildJsonLd } from '../lib/materials'
+import { assembleMaterials, buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
 import { attachActionConfidence } from '../lib/action-confidence'
 import { inferFixContributor, inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
@@ -233,7 +233,11 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
         question: 'Do you offer Toronto moving services?',
         answer: 'Contact A-Z Moving to confirm residential and commercial moving availability in Toronto and Ontario.',
       },
-    ])
+    ], {
+      inferred_business_type: 'moving_service',
+      observed_service_category: 'moving_services',
+      observed_location: ['Toronto', 'Ontario'],
+    })
     const parsed = JSON.parse(block.replace(/<\/?script[^>]*>/g, '').trim())
     const types = parsed['@graph'].map((g: { '@type': string }) => g['@type'])
     const company = parsed['@graph'][0]
@@ -241,6 +245,83 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
     expect(types).toContain('Service')
     expect(company.areaServed).toEqual(['Toronto', 'Ontario'])
     expect(JSON.stringify(parsed)).not.toMatch(/telephone|address|openingHours|sameAs/)
+  })
+
+  it('does not classify creative moving-language as a moving business', () => {
+    const materials = assembleMaterials(
+      'BLVD Production',
+      'https://blvdprod.com',
+      {
+        meta_title: 'BLVD Production | Emotionally Moving Stories',
+        meta_description: 'BLVD Production creates emotionally moving videos for SaaS teams.',
+        faq: [
+          {
+            question: 'How do I request a moving quote from BLVD Production?',
+            answer: 'Use the website quote form and share pickup and drop-off details.',
+          },
+        ],
+        cta_variants: ['Request a moving quote'],
+      },
+      {
+        observedBusinessContext: {
+          inferred_business_type: 'video_production',
+          observed_service_category: 'video_production',
+        },
+      }
+    )
+    const text = JSON.stringify(materials)
+    expect(text).not.toMatch(/\bmoving quote|MovingCompany|pickup and drop-off|inventory size/i)
+    expect(materials.json_ld).toContain('"@type": "Organization"')
+  })
+
+  it('blocks moving schema and moving copy for non-moving reports', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://blvdprod.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'BLVD Production',
+          business_context: {
+            business_model: 'gallery',
+            primary_conversion_goal: 'inquiry',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: '',
+          },
+          observed_business_context: {
+            inferred_business_type: 'moving_service',
+            observed_service_category: 'moving_services',
+          },
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'BLVD was reviewed.',
+          top_fixes: [],
+          outreach_messages: [
+            { channel: 'email', message: 'Create a moving quote page for BLVD.', note: '' },
+          ],
+        },
+        ready_materials: {
+          meta_title: 'BLVD Production moving services',
+          meta_description: 'BLVD Production provides residential moving services.',
+          faq: [],
+          cta_variants: ['Request a moving quote'],
+          json_ld:
+            '<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"MovingCompany","name":"BLVD Production"}]}</script>',
+        },
+      }) as any
+    )
+
+    expect(r.errors).toEqual(expect.arrayContaining([
+      'schema_category: MovingCompany is not allowed for art_gallery',
+      'foreign_category_copy: moving-service wording appeared in art_gallery materials',
+    ]))
   })
 })
 
@@ -1236,6 +1317,26 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
   it('softens unsupported causal AI visibility language', () => {
     const r = validateReport(
       base({
+        meta: {
+          url: 'https://az-moving.com/',
+          canonical_brand: 'Az-Moving',
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+          observed_business_context: {
+            inferred_business_type: 'moving_service',
+            observed_primary_cta: 'Quote request',
+            observed_service_category: 'moving_services',
+            observed_location: ['Toronto'],
+            observed_services: ['Residential moving', 'Commercial moving'],
+          },
+        },
         geo: {
           brand: 'Az-moving',
           brand_domain: 'az-moving.com',
@@ -1304,6 +1405,26 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
   it('repairs exact az-moving PDF fragments from the live report', () => {
     const r = validateReport(
       base({
+        meta: {
+          url: 'https://az-moving.com/',
+          canonical_brand: 'Az-Moving',
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+          observed_business_context: {
+            inferred_business_type: 'moving_service',
+            observed_primary_cta: 'Quote request',
+            observed_service_category: 'moving_services',
+            observed_location: ['Toronto'],
+            observed_services: ['Residential moving', 'Commercial moving'],
+          },
+        },
         geo: {
           summary:
             'Competitors like CARGO CABBIE were cited in of combinations. The core issue is that sources where Az-moving has no detectable presence are being cited.',
@@ -1320,7 +1441,7 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     expect(r.report.geo?.summary).toContain('CARGO CABBIE were cited in some tested combinations')
     expect(r.report.geo?.summary).toContain('where Az-moving was not observed in the tested responses')
     expect(r.report.geo?.summary).not.toMatch(/cited in of|core issue|no detectable presence/i)
-    expect(r.report.ready_materials?.cta_variants[0]).toBe('get a quote')
+    expect(r.report.ready_materials?.cta_variants[0]).toBe('Request a Moving Quote')
   })
 
   it('softens unverified moving credentials and service claims in ready materials', () => {
@@ -1328,13 +1449,20 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
       base({
         meta: {
           business_context: {
-            business_model: 'service',
+            business_model: 'service_business',
             primary_conversion_goal: 'booking',
             purchase_availability: 'unknown',
             ships_internationally: 'unknown',
             provenance_or_authentication: 'unknown',
             target_markets_languages: '',
             verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+          observed_business_context: {
+            inferred_business_type: 'moving_service',
+            observed_primary_cta: 'Quote request',
+            observed_service_category: 'moving_services',
+            observed_location: ['Toronto'],
+            observed_services: ['Residential moving', 'Commercial moving'],
           },
         },
         ready_materials: {
@@ -1408,7 +1536,7 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/Use verified business data before publishing this example|visit the website/i)
     expect(r.report.ready_materials?.meta_description).toBe(
-      'Monokelriga provides bespoke tailoring services in Riga / Latvia. Book a consultation to discuss options, availability, and next steps.'
+      'Monokelriga provides bespoke tailoring services in Riga and Latvia. Book a consultation to discuss options, availability, and next steps.'
     )
     expect(r.report.ready_materials?.faq[0].answer).toBe(
       'Contact Monokelriga directly to confirm the current timeline for your appointment, fitting, and final delivery.'

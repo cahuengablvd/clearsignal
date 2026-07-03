@@ -643,6 +643,13 @@
       "target_markets_languages": "",
       "provenance_or_authentication": "unknown"
     },
+    "observed_business_context": {
+      "inferred_business_type": "moving_service",
+      "observed_primary_cta": "Quote request",
+      "observed_service_category": "moving_services",
+      "observed_location": ["Toronto", "GTA", "Ontario", "Canada"],
+      "observed_services": ["Residential moving", "Commercial moving"]
+    },
     "alternative_brand_forms": []
   },
   "action": {

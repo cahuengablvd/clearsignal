@@ -7,10 +7,17 @@ import { reusableGeoFromAudit } from '../lib/audit-runner'
 import { buildGeoSummary } from '../lib/geo'
 import type { ClearSignalReport } from '../lib/schemas'
 
-const fixturePath = join(process.cwd(), 'tests', 'fixtures', 'golden-report-az-moving.json')
-const snapshotPath = join(process.cwd(), 'tests', 'fixtures', 'golden-report-az-moving.snapshot.json')
+const fixtureDir = join(process.cwd(), 'tests', 'fixtures')
+const fixturePath = join(fixtureDir, 'golden-report-az-moving.json')
+const snapshotPath = join(fixtureDir, 'golden-report-az-moving.snapshot.json')
 const hasGoldenFixture = existsSync(fixturePath)
 const fixtureIt = hasGoldenFixture ? it : it.skip
+const verticalFixtures = [
+  { slug: 'az-moving', category: 'moving', required: true },
+  { slug: 'blvdprod', category: 'video_production', required: false },
+  { slug: 'latvianart', category: 'art_gallery', required: false },
+  { slug: 'monokelriga', category: 'tailoring_atelier', required: false },
+] as const
 
 function loadGoldenReport(): ClearSignalReport {
   return JSON.parse(readFileSync(fixturePath, 'utf8')) as ClearSignalReport
@@ -24,6 +31,24 @@ function clientSafeGoldenReport(): ClearSignalReport {
   const validation = validateReport(sanitized)
   expect(validation.errors).toEqual([])
   return validation.report
+}
+
+function loadFixture(slug: string): ClearSignalReport {
+  return JSON.parse(readFileSync(join(fixtureDir, `golden-report-${slug}.json`), 'utf8')) as ClearSignalReport
+}
+
+function clientSafeFixture(slug: string): ClearSignalReport {
+  const source = loadFixture(slug)
+  const sanitized = sanitizeGeneratedReportValue(source, undefined, undefined, {
+    businessContext: source.meta.business_context,
+  })
+  const validation = validateReport(sanitized)
+  expect(validation.errors).toEqual([])
+  return validation.report
+}
+
+function clientText(report: ClearSignalReport): string {
+  return JSON.stringify(report)
 }
 
 function stableClientSnapshot(report: ClearSignalReport) {
@@ -181,4 +206,44 @@ describe('golden-report regression test', () => {
     const snapshot = JSON.stringify(stableClientSnapshot(clientSafeGoldenReport()), null, 2) + '\n'
     await expect(snapshot).toMatchFileSnapshot(snapshotPath)
   })
+
+  for (const fixture of verticalFixtures) {
+    const path = join(fixtureDir, `golden-report-${fixture.slug}.json`)
+    const run = existsSync(path) ? it : it.skip
+
+    run(`keeps ${fixture.slug} fixture client-safe`, () => {
+      const report = clientSafeFixture(fixture.slug)
+      const text = clientText(report)
+
+      expect(text).not.toMatch(/before publishing this wording/i)
+      expect(text).not.toMatch(/contact the business to confirm/i)
+      expect(text).not.toMatch(/before booking/i)
+      expect(text).not.toMatch(/\[insert verified data\]/i)
+      expect(text).not.toMatch(/[\u0432][\u0402]/)
+    })
+
+    run(`keeps ${fixture.slug} outreach channels unique when present`, () => {
+      const report = clientSafeFixture(fixture.slug)
+      const channels = report.action?.outreach_messages?.map((m) => m.channel) || []
+      if (channels.length === 0) return
+
+      expect(new Set(channels).size).toBe(channels.length)
+    })
+
+    run(`keeps ${fixture.slug} ready materials free of slash-joined locations`, () => {
+      const report = clientSafeFixture(fixture.slug)
+      const text = clientText(report.ready_materials as unknown as ClearSignalReport)
+
+      expect(text).not.toMatch(/\b[A-Za-z][A-Za-z .-]{1,40}\s+\/\s+[A-Za-z][A-Za-z .-]{1,40}\s+\/\s+[A-Za-z][A-Za-z .-]{1,40}\b/)
+    })
+
+    run(`keeps ${fixture.slug} schema aligned with its vertical`, () => {
+      const report = clientSafeFixture(fixture.slug)
+      const jsonLd = report.ready_materials?.json_ld || ''
+
+      if (fixture.category !== 'moving') {
+        expect(jsonLd).not.toMatch(/"@type"\s*:\s*"MovingCompany"/)
+      }
+    })
+  }
 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { enqueueAudit } from '@/lib/audit-queue'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
+import { appendAdminNote } from '@/lib/admin-notes'
 
 export async function POST(req: NextRequest) {
   // Admin-only: this re-runs a paid audit and spends API credits.
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Check audit exists
     const { data: audit, error } = await supabaseAdmin
       .from('audits')
-      .select('id, audit_status')
+      .select('id, audit_status, admin_notes')
       .eq('id', audit_id)
       .single()
 
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     // Make regeneration visible immediately in the admin UI. Trigger may take a
     // few seconds to start the task and flip the row to `processing`.
     const queuedAt = new Date().toISOString()
+    const queuedNote = `[${queuedAt}] Queued for regeneration. Previous status: ${audit.audit_status}.`
     const { error: queueError } = await supabaseAdmin
       .from('audits')
       .update({
@@ -41,6 +43,7 @@ export async function POST(req: NextRequest) {
         last_generated_at: queuedAt,
         processing_started_at: null,
         recovery_attempts: 0,
+        admin_notes: appendAdminNote((audit as { admin_notes?: string | null }).admin_notes, queuedNote),
       })
       .eq('id', audit_id)
 

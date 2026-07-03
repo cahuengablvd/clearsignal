@@ -108,6 +108,22 @@ export default function AdminPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
+        const now = new Date().toISOString()
+        setAudits((items) =>
+          items.map((audit) =>
+            audit.id === auditId
+              ? {
+                  ...audit,
+                  audit_status: 'queued',
+                  last_generated_at: now,
+                  last_activity_at: now,
+                  admin_notes: audit.admin_notes
+                    ? `${audit.admin_notes}\n[${now}] Queued for regeneration.`
+                    : `[${now}] Queued for regeneration.`,
+                }
+              : audit
+          )
+        )
         setRegenMsg({ ok: true, text: `Audit queued for regeneration: ${auditId}` })
       } else {
         setRegenMsg({ ok: false, text: data.error || `Regeneration failed (${res.status})` })

@@ -2,9 +2,40 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateAuditPDF } from '@/lib/pdf'
 import { verifyToken } from '@/lib/tokens'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // Chromium launch + page render needs well over the default function timeout.
 export const maxDuration = 60
+
+function domainSlug(url?: string | null): string | null {
+  if (!url) return null
+  try {
+    const host = new URL(url).hostname.replace(/^www\./i, '')
+    return host
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || null
+  } catch {
+    return null
+  }
+}
+
+async function pdfFileName(auditId: string): Promise<string> {
+  const shortId = auditId.slice(0, 8)
+  try {
+    const { data } = await supabaseAdmin
+      .from('audits')
+      .select('url')
+      .eq('id', auditId)
+      .maybeSingle()
+    const slug = domainSlug(data?.url)
+    if (slug) return `clearsignal-audit-${slug}-${shortId}.pdf`
+  } catch (err) {
+    console.warn('Could not build domain-based PDF filename:', err)
+  }
+  return `clearsignal-audit-${shortId}.pdf`
+}
 
 export async function GET(
   req: NextRequest,
@@ -21,11 +52,12 @@ export async function GET(
 
   try {
     const pdfBuffer = await generateAuditPDF(params.id, req.nextUrl.origin)
+    const filename = await pdfFileName(params.id)
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="clearsignal-audit-${params.id}.pdf"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
   } catch (err) {

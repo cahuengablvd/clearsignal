@@ -76,12 +76,23 @@ export async function GET(req: NextRequest) {
     {
       status: healthy ? 'ok' : 'degraded',
       note: 'supabase is checked live; other services are env-presence only (no billable probes).',
+      deployment: deploymentInfo(),
       checks,
       audits,
       ts: new Date().toISOString(),
     },
     { status: healthy ? 200 : 503 }
   )
+}
+
+function deploymentInfo(): Record<string, string | null> {
+  const commit = process.env.VERCEL_GIT_COMMIT_SHA || null
+  return {
+    commit_sha: commit,
+    commit_short: commit ? commit.slice(0, 7) : null,
+    vercel_env: process.env.VERCEL_ENV || null,
+    vercel_url: process.env.VERCEL_URL || null,
+  }
 }
 
 /** Live audit-status counts for fulfillment monitoring. */

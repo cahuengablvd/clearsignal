@@ -18,6 +18,7 @@ type Audit = {
   tier: string
   admin_notes: string | null
   report_url?: string | null
+  has_report?: boolean
   validation_repair_count?: number
   api_cost_usd?: number | string | null
   last_generated_at?: string | null
@@ -676,7 +677,7 @@ export default function AdminPage() {
                         <><RefreshCw className="h-3 w-3" /> Re-generate</>
                       )}
                     </Button>
-                    {audit.report_url && (
+                    {audit.has_report && (
                       <Button
                         variant="outline"
                         size="sm"

@@ -58,18 +58,20 @@ export async function GET(req: NextRequest) {
     const validation_repair_count = Array.isArray(report?.validation_warnings)
       ? report.validation_warnings.length
       : 0
+    const has_report = Boolean(a.report)
     const { report: _report, ...audit } = a
     const last_activity_at = lastActivityAt(a)
     if (['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(a.audit_status)) {
       const token = trySignToken('audit', a.id)
       return {
         ...audit,
+        has_report,
         last_activity_at,
         validation_repair_count,
         report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}`,
       }
     }
-    return { ...audit, last_activity_at, validation_repair_count, report_url: null as string | null }
+    return { ...audit, has_report, last_activity_at, validation_repair_count, report_url: null as string | null }
   }).sort((a, b) => {
     const priorityDelta = statusPriority(a.audit_status) - statusPriority(b.audit_status)
     if (priorityDelta !== 0) return priorityDelta

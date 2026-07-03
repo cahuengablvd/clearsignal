@@ -8,7 +8,7 @@ import {
   sanitizeGeneratedProse,
   sanitizeGeneratedReportValue,
 } from '../lib/sanitize'
-import { BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema, GeoResultSchema } from '../lib/schemas'
+import { ActionBlockSchema, BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema, GeoResultSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
 import { assembleMaterials, buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
@@ -32,6 +32,31 @@ describe('input validation', () => {
   it('accepts a plain-text ICP description', () => {
     const r = icpTextSchema.safeParse('Series A B2B SaaS founders, 10-50 employees')
     expect(r.success).toBe(true)
+  })
+
+  it('requires exactly one outreach message per channel', () => {
+    const baseAction = {
+      executive_summary: 'Summary.',
+      top_fixes: [],
+      ship_first: [],
+      ignore_for_now: [],
+    }
+    expect(ActionBlockSchema.safeParse({
+      ...baseAction,
+      outreach_messages: [
+        { channel: 'linkedin', message: 'LinkedIn.', note: '' },
+        { channel: 'email', message: 'Email.', note: '' },
+        { channel: 'twitter', message: 'Twitter.', note: '' },
+      ],
+    }).success).toBe(true)
+    expect(ActionBlockSchema.safeParse({
+      ...baseAction,
+      outreach_messages: [
+        { channel: 'email', message: 'Email 1.', note: '' },
+        { channel: 'email', message: 'Email 2.', note: '' },
+        { channel: 'linkedin', message: 'LinkedIn.', note: '' },
+      ],
+    }).success).toBe(false)
   })
 
   it('rejects plain text in a competitor field', () => {
@@ -2136,5 +2161,37 @@ describe('sentence-level trust engine', () => {
     ]))
     expect(r.report.implementation_briefs?.[0]?.steps).toEqual([])
     expect(r.report.implementation_briefs?.[0]?.acceptance_criteria).toEqual([])
+  })
+
+  it('drops duplicate outreach channels from stored reports', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://example.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Example',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Example was reviewed.',
+          top_fixes: [],
+          outreach_messages: [
+            { channel: 'email', message: 'First email.', note: '' },
+            { channel: 'linkedin', message: 'LinkedIn.', note: '' },
+            { channel: 'email', message: 'Second email.', note: '' },
+          ],
+        },
+      }) as any
+    )
+
+    expect(r.report.action.outreach_messages.map((m) => m.channel)).toEqual(['email', 'linkedin'])
+    expect(r.warnings).toEqual(expect.arrayContaining([
+      'outreach_messages: dropped duplicate email message',
+      'outreach_messages: missing twitter message',
+    ]))
   })
 })

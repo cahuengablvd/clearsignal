@@ -458,6 +458,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
   ensureExecutiveSummary(walked, warn)
+  normalizeOutreachChannels(walked, warn)
   validateReadyMaterialsCategory(walked, errors)
 
   // --- (4) evidence relevance over action.top_fixes ---
@@ -619,6 +620,32 @@ function validatePublishableFacts(report: ClearSignalReport, errors: string[]): 
     if (claimPattern.test(text) && !factAllowed(facts, factPattern, 'ready_copy')) {
       errors.push(message)
     }
+  }
+}
+
+function normalizeOutreachChannels(report: ClearSignalReport, warn: (m: string) => void): void {
+  const messages = report.action?.outreach_messages
+  if (!Array.isArray(messages)) return
+
+  const seen = new Set<string>()
+  const unique = []
+  for (const message of messages) {
+    if (!message || typeof message.channel !== 'string') continue
+    if (seen.has(message.channel)) {
+      warn(`outreach_messages: dropped duplicate ${message.channel} message`)
+      continue
+    }
+    seen.add(message.channel)
+    unique.push(message)
+  }
+
+  if (unique.length !== messages.length) {
+    report.action.outreach_messages = unique
+  }
+  const required = ['linkedin', 'email', 'twitter']
+  const missing = required.filter((channel) => !seen.has(channel))
+  if (missing.length) {
+    warn(`outreach_messages: missing ${missing.join(', ')} message`)
   }
 }
 

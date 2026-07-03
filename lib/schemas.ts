@@ -319,6 +319,7 @@ const impactSchema = z.enum(['high', 'medium', 'low'])
 const effortSchema = z.enum(['easy', 'medium', 'hard'])
 const categorySchema = z.enum(['copy', 'structure', 'proof', 'cta', 'ai_search'])
 const channelSchema = z.enum(['linkedin', 'email', 'twitter'])
+const requiredOutreachChannels = ['linkedin', 'email', 'twitter'] as const
 const tierSchema = z.enum(['automated', 'reviewed', 'sprint'])
 const confidenceLevelSchema = z.enum(['high', 'medium', 'low'])
 const controlSchema = z.enum(['high', 'medium', 'low'])
@@ -394,6 +395,12 @@ const gapSchema = z.object({
   }),
 })
 
+const OutreachMessageSchema = z.object({
+  channel: channelSchema,
+  message: z.string(),
+  note: z.string(),
+})
+
 const actionSchema = z.object({
   executive_summary: z.string(),
   top_fixes: z.array(z.object({
@@ -419,11 +426,25 @@ const actionSchema = z.object({
   })),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),
-  outreach_messages: z.array(z.object({
-    channel: channelSchema,
-    message: z.string(),
-    note: z.string(),
-  })),
+  outreach_messages: z.array(OutreachMessageSchema).superRefine((messages, ctx) => {
+    const channels = messages.map((m) => m.channel)
+    const unique = new Set(channels)
+    if (messages.length !== requiredOutreachChannels.length || unique.size !== requiredOutreachChannels.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'outreach_messages must contain exactly one linkedin, one email, and one twitter message',
+      })
+      return
+    }
+    for (const channel of requiredOutreachChannels) {
+      if (!unique.has(channel)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `outreach_messages is missing ${channel}`,
+        })
+      }
+    }
+  }),
 })
 
 // --- Full Report ---

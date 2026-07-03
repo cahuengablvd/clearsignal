@@ -12,6 +12,7 @@
 import { z } from 'zod'
 import { callClaudeJSON } from '../anthropic'
 import type { CostEvent } from '../cost-tracker'
+import type { AnthropicRequestMeta } from '../ai-observability'
 import { scrapeUrl } from '../firecrawl'
 import { normalizeMarkdown } from '../normalize-markdown'
 import {
@@ -79,6 +80,7 @@ export interface AnalyzeSourcesOptions {
   evidence: GeoEvidence[]
   maxSources: number
   onUsage?: (event: CostEvent) => void
+  meta?: AnthropicRequestMeta
 }
 
 export async function analyzeCitedSources(
@@ -110,6 +112,7 @@ export async function analyzeCitedSources(
       maxTokens: 2048,
       purpose: 'geo:cited_source_analysis',
       onUsage,
+      meta: opts.meta,
     })
 
     const targetSignals = llm.target_signals

@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 
     console.log('[webhook] Enqueuing audit for:', auditId)
     try {
-      await enqueueAudit(auditId)
+      await enqueueAudit(auditId, { trigger: 'paid_webhook', endpoint: '/api/stripe/webhook' })
     } catch (enqueueErr) {
       // Paid, but couldn't enqueue. Alert, and return 500 so Stripe retries.
       // enqueueAudit leaves the audit in `queued` for the recovery endpoint.

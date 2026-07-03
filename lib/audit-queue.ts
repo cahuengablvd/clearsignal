@@ -1,10 +1,13 @@
 import { runFullAudit } from './audit-runner'
 import { supabaseAdmin } from './supabase'
+import type { AuditTrigger } from './audit-execution'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
 export type EnqueueAuditOptions = {
   reuseGeoEvidence?: boolean
+  trigger?: AuditTrigger
+  endpoint?: string
 }
 
 /**
@@ -18,7 +21,12 @@ export async function enqueueAudit(auditId: string, opts: EnqueueAuditOptions = 
   if (process.env.TRIGGER_SECRET_KEY) {
     try {
       const { runAuditTask } = await import('../trigger/audit-task')
-      await runAuditTask.trigger({ auditId, reuseGeoEvidence: opts.reuseGeoEvidence ?? false })
+      await runAuditTask.trigger({
+        auditId,
+        reuseGeoEvidence: opts.reuseGeoEvidence ?? false,
+        trigger: opts.trigger ?? 'unknown',
+        endpoint: opts.endpoint,
+      })
       console.log('[audit-queue] enqueued via Trigger.dev:', auditId)
       return
     } catch (err) {
@@ -37,7 +45,7 @@ export async function enqueueAudit(auditId: string, opts: EnqueueAuditOptions = 
     throw new Error('Trigger.dev is not configured in production')
   }
 
-  runFullAudit(auditId, opts).catch((err) => {
+  runFullAudit(auditId, { ...opts, trigger: opts.trigger ?? 'dev_fallback' }).catch((err) => {
     console.error('[audit-queue] in-process runFullAudit failed for', auditId, err)
   })
 }

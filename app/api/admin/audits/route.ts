@@ -51,6 +51,83 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch audits' }, { status: 500 })
   }
 
+  const auditIds = (audits || []).map((audit) => audit.id)
+  const [{ data: aiLogs }, { data: stageExecutions }] = auditIds.length
+    ? await Promise.all([
+        supabaseAdmin
+          .from('audit_ai_call_logs')
+          .select('audit_id, stage, purpose, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, estimated_cost_usd, recovery_attempt, trigger, status')
+          .in('audit_id', auditIds),
+        supabaseAdmin
+          .from('audit_stage_executions')
+          .select('audit_id, stage, attempt, status, trigger')
+          .in('audit_id', auditIds),
+      ])
+    : [{ data: [] }, { data: [] }]
+
+  const costByAudit = new Map<string, {
+    ai_call_count: number
+    stages_executed: string[]
+    input_tokens: number
+    output_tokens: number
+    cache_read_tokens: number
+    cache_creation_tokens: number
+    estimated_cost_usd: number
+    recovery_attempts: number
+    duplicate_stage_warning: boolean
+    triggers: string[]
+  }>()
+
+  for (const id of auditIds) {
+    costByAudit.set(id, {
+      ai_call_count: 0,
+      stages_executed: [],
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      estimated_cost_usd: 0,
+      recovery_attempts: 0,
+      duplicate_stage_warning: false,
+      triggers: [],
+    })
+  }
+
+  for (const log of aiLogs || []) {
+    if (!log.audit_id) continue
+    const summary = costByAudit.get(log.audit_id)
+    if (!summary) continue
+    summary.ai_call_count += 1
+    summary.input_tokens += Number(log.input_tokens ?? 0)
+    summary.output_tokens += Number(log.output_tokens ?? 0)
+    summary.cache_read_tokens += Number(log.cache_read_tokens ?? 0)
+    summary.cache_creation_tokens += Number(log.cache_creation_tokens ?? 0)
+    summary.estimated_cost_usd += Number(log.estimated_cost_usd ?? 0)
+    if (typeof log.recovery_attempt === 'number' && log.recovery_attempt > 0) {
+      summary.recovery_attempts = Math.max(summary.recovery_attempts, log.recovery_attempt)
+    }
+    if (log.trigger && !summary.triggers.includes(log.trigger)) summary.triggers.push(log.trigger)
+  }
+
+  const executionCounts = new Map<string, number>()
+  for (const execution of stageExecutions || []) {
+    const summary = costByAudit.get(execution.audit_id)
+    if (!summary) continue
+    if (!summary.stages_executed.includes(execution.stage)) summary.stages_executed.push(execution.stage)
+    if (execution.trigger === 'recovery') summary.recovery_attempts = Math.max(summary.recovery_attempts, execution.attempt ?? 0)
+    if (execution.status === 'completed') {
+      const stageKey = `${execution.audit_id}:${execution.stage}`
+      executionCounts.set(stageKey, (executionCounts.get(stageKey) ?? 0) + 1)
+    }
+  }
+
+  for (const [key, count] of executionCounts.entries()) {
+    if (count <= 1) continue
+    const auditId = key.split(':')[0]
+    const summary = costByAudit.get(auditId)
+    if (summary) summary.duplicate_stage_warning = true
+  }
+
   // Attach a shareable, signed report link for finished audits (so the admin
   // can copy a URL to send a friend without an admin session).
   const withLinks = (audits || []).map((a) => {
@@ -68,10 +145,18 @@ export async function GET(req: NextRequest) {
         has_report,
         last_activity_at,
         validation_repair_count,
+        ai_cost_summary: costByAudit.get(a.id) ?? null,
         report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}`,
       }
     }
-    return { ...audit, has_report, last_activity_at, validation_repair_count, report_url: null as string | null }
+    return {
+      ...audit,
+      has_report,
+      last_activity_at,
+      validation_repair_count,
+      ai_cost_summary: costByAudit.get(a.id) ?? null,
+      report_url: null as string | null,
+    }
   }).sort((a, b) => {
     const priorityDelta = statusPriority(a.audit_status) - statusPriority(b.audit_status)
     if (priorityDelta !== 0) return priorityDelta

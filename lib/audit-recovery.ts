@@ -119,7 +119,7 @@ export async function recoverStuckAudits(): Promise<RecoverySummary> {
     }
 
     try {
-      await enqueueAudit(audit.id)
+      await enqueueAudit(audit.id, { trigger: 'recovery', endpoint: 'audit-recovery' })
       await supabaseAdmin
         .from('audits')
         .update({ recovery_attempts: (audit.recovery_attempts ?? 0) + 1 })

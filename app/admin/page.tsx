@@ -21,6 +21,18 @@ type Audit = {
   has_report?: boolean
   validation_repair_count?: number
   api_cost_usd?: number | string | null
+  ai_cost_summary?: {
+    ai_call_count: number
+    stages_executed: string[]
+    input_tokens: number
+    output_tokens: number
+    cache_read_tokens: number
+    cache_creation_tokens: number
+    estimated_cost_usd: number
+    recovery_attempts: number
+    duplicate_stage_warning: boolean
+    triggers: string[]
+  } | null
   last_generated_at?: string | null
   last_rerendered_at?: string | null
   last_delivered_at?: string | null
@@ -480,6 +492,10 @@ export default function AdminPage() {
     return `$${n.toFixed(2)}`
   }
 
+  function formatNumber(value?: number | null): string {
+    return Number(value || 0).toLocaleString()
+  }
+
   function formatDate(value?: string | null): string | null {
     if (!value) return null
     const d = new Date(value)
@@ -804,6 +820,57 @@ export default function AdminPage() {
                       )}
                     </div>
                   </div>
+
+                  {audit.ai_cost_summary && audit.ai_cost_summary.ai_call_count > 0 && (
+                    <div className="mb-3 rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-slate-900">AI cost</span>
+                        <Badge variant="outline">{audit.ai_cost_summary.ai_call_count} calls</Badge>
+                        <Badge variant="outline">
+                          {formatCost(audit.ai_cost_summary.estimated_cost_usd) || '$0.00'}
+                        </Badge>
+                        {audit.ai_cost_summary.recovery_attempts > 0 && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-800">
+                            recovery {audit.ai_cost_summary.recovery_attempts}
+                          </Badge>
+                        )}
+                        {audit.ai_cost_summary.duplicate_stage_warning && (
+                          <Badge variant="outline" className="bg-red-50 text-red-800">
+                            duplicate stage
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-4">
+                        <div>
+                          <div className="text-muted-foreground">Input tokens</div>
+                          <div className="font-medium text-slate-900">{formatNumber(audit.ai_cost_summary.input_tokens)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Output tokens</div>
+                          <div className="font-medium text-slate-900">{formatNumber(audit.ai_cost_summary.output_tokens)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Cache tokens</div>
+                          <div className="font-medium text-slate-900">
+                            {formatNumber(
+                              audit.ai_cost_summary.cache_read_tokens + audit.ai_cost_summary.cache_creation_tokens
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Triggers</div>
+                          <div className="font-medium text-slate-900">
+                            {audit.ai_cost_summary.triggers.length ? audit.ai_cost_summary.triggers.join(', ') : 'none'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-muted-foreground">
+                        Stages: {audit.ai_cost_summary.stages_executed.length
+                          ? audit.ai_cost_summary.stages_executed.join(', ')
+                          : 'no stage records'}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 mb-3">
                     {['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(audit.audit_status) && (

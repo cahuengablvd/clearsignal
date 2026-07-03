@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { anthropicUsageEvent, type CostEvent } from './cost-tracker'
+import { logAnthropicCall, type AnthropicRequestMeta } from './ai-observability'
 
 let _anthropic: Anthropic | null = null
 
@@ -22,17 +23,26 @@ export async function callClaudeJSON<T>(opts: {
   maxTokens?: number
   purpose?: string
   onUsage?: (event: CostEvent) => void
+  meta?: AnthropicRequestMeta
 }): Promise<T> {
-  const { model, system, user, validate, maxTokens = 4096, purpose = 'anthropic_json', onUsage } = opts
+  const { model, system, user, validate, maxTokens = 4096, purpose = 'anthropic_json', onUsage, meta } = opts
 
   // First attempt
-  let rawText = await callClaude(model, system, user, maxTokens, purpose, onUsage)
+  let rawText = await callClaude(model, system, user, maxTokens, purpose, onUsage, meta)
   let parsed = tryParseAndValidate(rawText, validate)
   if (parsed.success) return parsed.data
 
   // Retry with repair prompt
   console.warn('First attempt failed validation, retrying with repair prompt...')
-  rawText = await callClaude(model, system, buildRepairPrompt(user, parsed.error, rawText), maxTokens, `${purpose}:repair`, onUsage)
+  rawText = await callClaude(
+    model,
+    system,
+    buildRepairPrompt(user, parsed.error, rawText),
+    maxTokens,
+    `${purpose}:repair`,
+    onUsage,
+    meta ? { ...meta, stage: `${meta.stage}:repair` } : undefined
+  )
   parsed = tryParseAndValidate(rawText, validate)
   if (parsed.success) return parsed.data
 
@@ -67,15 +77,44 @@ async function callClaude(
   user: string,
   maxTokens: number,
   purpose: string,
-  onUsage?: (event: CostEvent) => void
+  onUsage?: (event: CostEvent) => void,
+  meta?: AnthropicRequestMeta
 ): Promise<string> {
-  const response = await getAnthropic().messages.create({
+  const startedAt = new Date().toISOString()
+  let response: Anthropic.Messages.Message
+  try {
+    response = await getAnthropic().messages.create({
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: user }],
+    })
+  } catch (err) {
+    await logAnthropicCall({
+      meta,
+      model,
+      purpose,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      responseOrError: err,
+      status: 'failed',
+      error: err instanceof Error ? err.message : String(err),
+    })
+    throw err
+  }
+
+  const usage = anthropicUsageEvent({ model, purpose, usage: (response as any).usage })
+  onUsage?.(usage)
+  await logAnthropicCall({
+    meta,
     model,
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: 'user', content: user }],
+    purpose,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    usage,
+    responseOrError: response,
+    status: 'succeeded',
   })
-  onUsage?.(anthropicUsageEvent({ model, purpose, usage: (response as any).usage }))
 
   const textBlock = response.content.find((b) => b.type === 'text')
   if (!textBlock || textBlock.type !== 'text') {

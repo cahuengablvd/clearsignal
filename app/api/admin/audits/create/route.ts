@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   // Kick off generation. On failure the audit stays queued for the recovery
   // sweep; alert via the existing safety net and surface a 500.
   try {
-    await enqueueAudit(auditId)
+    await enqueueAudit(auditId, { trigger: 'manual_create', endpoint: '/api/admin/audits/create' })
   } catch (enqueueErr) {
     await notify('audit_enqueue_failed', {
       audit_id: auditId,

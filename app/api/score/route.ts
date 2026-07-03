@@ -94,6 +94,13 @@ export async function POST(req: NextRequest) {
         user: scoreUserPrompt(markdown, input.icp_description),
         validate: (data) => ClearSignalScoreSchema.parse(data),
         maxTokens: 1024,
+        purpose: 'score:clarity',
+        meta: {
+          auditId: null,
+          stage: 'score_clarity',
+          trigger: 'free_score',
+          endpoint: '/api/score',
+        },
       }),
       geoWithTimeout(
         runGeoScan({
@@ -111,6 +118,12 @@ export async function POST(req: NextRequest) {
           discoverCompetitors: true,
           narrative: false,
           webSearch: false,
+          meta: {
+            auditId: null,
+            stage: 'score_geo_scan',
+            trigger: 'free_score',
+            endpoint: '/api/score',
+          },
         })
       ),
     ])

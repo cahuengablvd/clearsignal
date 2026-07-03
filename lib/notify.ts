@@ -10,6 +10,7 @@ export type AlertEvent =
   | 'audit_enqueue_failed'
   | 'audit_generation_failed'
   | 'audit_recovery_failed'
+  | 'audit_cost_threshold_exceeded'
   | 'anthropic_balance_warning'
   | 'email_delivery_failed'
 

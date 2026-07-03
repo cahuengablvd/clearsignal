@@ -53,7 +53,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Enqueue (Trigger.dev when configured, else in-process for dev).
-    await enqueueAudit(audit_id, { reuseGeoEvidence: Boolean(reuse_geo_evidence) })
+    await enqueueAudit(audit_id, {
+      reuseGeoEvidence: Boolean(reuse_geo_evidence),
+      trigger: 'admin_regenerate',
+      endpoint: '/api/audit',
+    })
 
     return NextResponse.json({ success: true, audit_id, reuse_geo_evidence: Boolean(reuse_geo_evidence) })
   } catch (err) {

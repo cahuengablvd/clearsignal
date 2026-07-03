@@ -6,6 +6,8 @@ export type CostEvent = {
   model?: string
   input_tokens?: number
   output_tokens?: number
+  cache_read_tokens?: number
+  cache_creation_tokens?: number
   web_searches?: number
   scrape_count?: number
   cost_usd?: number
@@ -131,6 +133,8 @@ export function anthropicUsageEvent(args: {
     purpose: args.purpose,
     input_tokens: Number(usage.input_tokens ?? 0),
     output_tokens: Number(usage.output_tokens ?? 0),
+    cache_read_tokens: Number(usage.cache_read_input_tokens ?? 0),
+    cache_creation_tokens: Number(usage.cache_creation_input_tokens ?? 0),
     web_searches: Number.isFinite(webSearches) ? webSearches : 0,
   }
 }

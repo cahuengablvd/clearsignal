@@ -46,9 +46,13 @@ import type { GeoResult } from './schemas'
 import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
 import { appendAdminNote } from './admin-notes'
+import { auditExecutionContext, runAuditStage, type AuditTrigger } from './audit-execution'
+import { reconcileAuditAiCost } from './ai-observability'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
+  trigger?: AuditTrigger
+  endpoint?: string
 }
 
 function buildDataLimitations(geo: GeoResult | null, reusedGeoEvidence = false): string[] {
@@ -313,6 +317,85 @@ function sanitizeReportProse(
   }
 }
 
+const VALIDATION_FALLBACK_TEXT =
+  'This item was removed because it could not be validated safely. Review the source evidence before publishing a replacement.'
+
+function validationPathFromError(error: string): string | null {
+  const atMatch = error.match(/\bat\s+([a-zA-Z0-9_.]+)(?::|$)/)
+  if (atMatch) return atMatch[1]
+  const prefixMatch = error.match(/^([a-zA-Z0-9_.]+)(?::|$)/)
+  return prefixMatch ? prefixMatch[1] : null
+}
+
+function removeArrayItemAtPath(root: Record<string, any>, path: string[]): boolean {
+  const last = path[path.length - 1]
+  const index = Number(last)
+  if (!Number.isInteger(index) || index < 0) return false
+  let parent: any = root
+  for (const part of path.slice(0, -1)) {
+    if (parent == null) return false
+    parent = parent[part]
+  }
+  if (!Array.isArray(parent)) return false
+  parent.splice(index, 1)
+  return true
+}
+
+function setFallbackAtPath(root: Record<string, any>, path: string[]): boolean {
+  let parent: any = root
+  for (const part of path.slice(0, -1)) {
+    if (parent == null) return false
+    parent = parent[part]
+  }
+  if (parent == null) return false
+  const key = path[path.length - 1]
+  if (typeof parent[key] === 'string') {
+    parent[key] = VALIDATION_FALLBACK_TEXT
+    return true
+  }
+  if (Array.isArray(parent[key])) {
+    parent[key] = parent[key].filter((item: unknown) => typeof item !== 'string' || item.trim())
+    return true
+  }
+  return false
+}
+
+function degradeValidationErrors(report: ClearSignalReport, errors: string[]): ClearSignalReport {
+  const degraded = JSON.parse(JSON.stringify(report)) as ClearSignalReport
+  const root = degraded as unknown as Record<string, any>
+
+  for (const error of errors) {
+    if (/^publishable_copy:|^schema_category:|^foreign_category_copy:/i.test(error)) {
+      degraded.ready_materials = null
+      continue
+    }
+
+    const pathText = validationPathFromError(error)
+    if (!pathText || pathText === 'report') continue
+    const path = pathText.split('.')
+
+    if (/empty action item/i.test(error) || /empty implementation brief|empty fix_title/i.test(error)) {
+      removeArrayItemAtPath(root, path)
+      continue
+    }
+
+    if (removeArrayItemAtPath(root, path)) continue
+    setFallbackAtPath(root, path)
+  }
+
+  return degraded
+}
+
+async function currentAdminNotes(auditId: string, fallback?: string | null): Promise<string | null | undefined> {
+  const { data, error } = await supabaseAdmin
+    .from('audits')
+    .select('admin_notes')
+    .eq('id', auditId)
+    .single()
+  if (error) return fallback
+  return data?.admin_notes ?? fallback
+}
+
 export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = {}): Promise<void> {
   const cost = new CostTracker()
   // 1. Fetch audit record
@@ -325,6 +408,13 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
   if (error || !audit) {
     throw new Error(`Audit ${auditId} not found: ${error?.message}`)
   }
+
+  const exec = auditExecutionContext({
+    auditId,
+    attempt: audit.recovery_attempts ?? 0,
+    trigger: opts.trigger ?? 'unknown',
+    endpoint: opts.endpoint ?? 'runFullAudit',
+  })
 
   // 2. Set status to processing
   const processingStartedAt = new Date().toISOString()
@@ -390,57 +480,109 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     }
     const geoPromise: Promise<GeoResult | null> = reusedGeo
       ? Promise.resolve(reusedGeo)
-      : runGeoScan({
-          brand,
-          url: audit.url,
-          category: targetMarkdown.slice(0, 600),
-          icp,
-          competitors: competitorUrls,
-          queryCount: 6,
-          // Use operator-confirmed queries when present (from the confirmation screen).
-          providedQueries: (audit.geo_queries as string[] | null) || undefined,
-          // Paid audit: also scrape the most-cited sources and explain why they win.
-          analyzeSources: true,
-          maxSources: 6,
-          targetMarkdown,
-          onUsage: (event) => cost.add(event),
-        }).catch((err) => {
+      : runAuditStage(
+          exec,
+          'geo_scan',
+          () => runGeoScan({
+            brand,
+            url: audit.url,
+            category: targetMarkdown.slice(0, 600),
+            icp,
+            competitors: competitorUrls,
+            queryCount: 6,
+            // Use operator-confirmed queries when present (from the confirmation screen).
+            providedQueries: (audit.geo_queries as string[] | null) || undefined,
+            // Paid audit: also scrape the most-cited sources and explain why they win.
+            analyzeSources: true,
+            maxSources: 6,
+            targetMarkdown,
+            onUsage: (event) => cost.add(event),
+            meta: {
+              auditId,
+              stage: 'geo_scan',
+              trigger: exec.trigger,
+              recoveryAttempt: exec.attempt,
+              workerId: exec.workerId,
+              endpoint: exec.endpoint,
+            },
+          }),
+          (stored) => GeoResultSchema.parse(stored)
+        ).catch((err) => {
           console.error(`GEO scan failed for ${auditId} (continuing without it):`, err)
           return null
         })
 
     // 4. Step 2: Clarity block
-    const clarity = await callClaudeJSON<ClarityBlock>({
-      model: MODEL_AUDIT,
-      system: CLARITY_SYSTEM,
-      user: clarityUserPrompt(targetMarkdown, icp, brand, businessContext),
-      validate: (data) => ClarityBlockSchema.parse(data),
-      maxTokens: 4096,
-      purpose: 'audit:clarity',
-      onUsage: (event) => cost.add(event),
-    })
+    const clarity = await runAuditStage(
+      exec,
+      'audit_clarity',
+      () => callClaudeJSON<ClarityBlock>({
+        model: MODEL_AUDIT,
+        system: CLARITY_SYSTEM,
+        user: clarityUserPrompt(targetMarkdown, icp, brand, businessContext),
+        validate: (data) => ClarityBlockSchema.parse(data),
+        maxTokens: 4096,
+        purpose: 'audit:clarity',
+        onUsage: (event) => cost.add(event),
+        meta: {
+          auditId,
+          stage: 'audit_clarity',
+          trigger: exec.trigger,
+          recoveryAttempt: exec.attempt,
+          workerId: exec.workerId,
+          endpoint: exec.endpoint,
+        },
+      }),
+      (stored) => ClarityBlockSchema.parse(stored)
+    )
 
     // 5. Step 3: Gap block
-    const gap = await callClaudeJSON<GapBlock>({
-      model: MODEL_AUDIT,
-      system: GAP_SYSTEM,
-      user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity), brand, businessContext),
-      validate: (data) => GapBlockSchema.parse(data),
-      maxTokens: 4096,
-      purpose: 'audit:gap',
-      onUsage: (event) => cost.add(event),
-    })
+    const gap = await runAuditStage(
+      exec,
+      'audit_gap',
+      () => callClaudeJSON<GapBlock>({
+        model: MODEL_AUDIT,
+        system: GAP_SYSTEM,
+        user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity), brand, businessContext),
+        validate: (data) => GapBlockSchema.parse(data),
+        maxTokens: 4096,
+        purpose: 'audit:gap',
+        onUsage: (event) => cost.add(event),
+        meta: {
+          auditId,
+          stage: 'audit_gap',
+          trigger: exec.trigger,
+          recoveryAttempt: exec.attempt,
+          workerId: exec.workerId,
+          endpoint: exec.endpoint,
+        },
+      }),
+      (stored) => GapBlockSchema.parse(stored)
+    )
 
     // 6. Step 4: Action block
-    const action = await callClaudeJSON<ActionBlock>({
-      model: MODEL_AUDIT,
-      system: ACTION_SYSTEM,
-      user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp, brand, businessContext),
-      validate: (data) => ActionBlockSchema.parse(data),
-      maxTokens: 4096,
-      purpose: 'audit:action',
-      onUsage: (event) => cost.add(event),
-    })
+    const action = await runAuditStage(
+      exec,
+      'audit_action',
+      () => callClaudeJSON<ActionBlock>({
+        model: MODEL_AUDIT,
+        system: ACTION_SYSTEM,
+        user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp, brand, businessContext),
+        validate: (data) => ActionBlockSchema.parse(data),
+        maxTokens: 4096,
+        purpose: 'audit:action',
+        onUsage: (event) => cost.add(event),
+        meta: {
+          auditId,
+          stage: 'audit_action',
+          trigger: exec.trigger,
+          recoveryAttempt: exec.attempt,
+          workerId: exec.workerId,
+          endpoint: exec.endpoint,
+        },
+      }),
+      (stored) => ActionBlockSchema.parse(stored)
+    )
 
     const geo = await geoPromise
 
@@ -452,15 +594,28 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     // 6c. Ready-to-ship materials (meta/FAQ/CTA + deterministic JSON-LD).
     let readyMaterials: ReadyMaterials | null = null
     try {
-      const llm = await callClaudeJSON({
-        model: MODEL_AUDIT,
-        system: MATERIALS_SYSTEM,
-        user: materialsUserPrompt(brand, audit.url, icp, JSON.stringify(clarity), geo?.summary || '', businessContext),
-        validate: (d) => ReadyMaterialsLlmSchema.parse(d),
-        maxTokens: 2048,
-        purpose: 'audit:ready_materials',
-        onUsage: (event) => cost.add(event),
-      })
+      const llm = await runAuditStage(
+        exec,
+        'audit_ready_materials',
+        () => callClaudeJSON({
+          model: MODEL_AUDIT,
+          system: MATERIALS_SYSTEM,
+          user: materialsUserPrompt(brand, audit.url, icp, JSON.stringify(clarity), geo?.summary || '', businessContext),
+          validate: (d) => ReadyMaterialsLlmSchema.parse(d),
+          maxTokens: 2048,
+          purpose: 'audit:ready_materials',
+          onUsage: (event) => cost.add(event),
+          meta: {
+            auditId,
+            stage: 'audit_ready_materials',
+            trigger: exec.trigger,
+            recoveryAttempt: exec.attempt,
+            workerId: exec.workerId,
+            endpoint: exec.endpoint,
+          },
+        }),
+        (stored) => ReadyMaterialsLlmSchema.parse(stored)
+      )
       llm.meta_title = sanitizeGeneratedProse(llm.meta_title, undefined, undefined, { businessContext })
       llm.meta_description = sanitizeGeneratedProse(llm.meta_description, undefined, undefined, { businessContext })
       llm.faq = llm.faq.map((f) => ({
@@ -485,15 +640,28 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         description: f.description,
         category: f.category,
       }))
-      const { briefs } = await callClaudeJSON({
-        model: MODEL_AUDIT,
-        system: BRIEF_SYSTEM,
-        user: briefUserPrompt(brand, audit.url, topFixes, businessContext),
-        validate: (d) => ImplementationBriefsLlmSchema.parse(d),
-        maxTokens: 2048,
-        purpose: 'audit:implementation_briefs',
-        onUsage: (event) => cost.add(event),
-      })
+      const { briefs } = await runAuditStage(
+        exec,
+        'audit_implementation_briefs',
+        () => callClaudeJSON({
+          model: MODEL_AUDIT,
+          system: BRIEF_SYSTEM,
+          user: briefUserPrompt(brand, audit.url, topFixes, businessContext),
+          validate: (d) => ImplementationBriefsLlmSchema.parse(d),
+          maxTokens: 2048,
+          purpose: 'audit:implementation_briefs',
+          onUsage: (event) => cost.add(event),
+          meta: {
+            auditId,
+            stage: 'audit_implementation_briefs',
+            trigger: exec.trigger,
+            recoveryAttempt: exec.attempt,
+            workerId: exec.workerId,
+            endpoint: exec.endpoint,
+          },
+        }),
+        (stored) => ImplementationBriefsLlmSchema.parse(stored)
+      )
       implementationBriefs = briefs
     } catch (err) {
       console.warn(`Implementation briefs failed for ${auditId} (continuing without them):`, err)
@@ -532,7 +700,22 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
 
     // 7b. Deterministic contradiction/artifact validation (post-sanitizer,
     // pre-save). Repairs in place; never throws on content problems.
-    const validation = validateReport(safeReport)
+    let validation = validateReport(safeReport)
+    let degradedForValidation = false
+    if (validation.errors.length) {
+      const degraded = degradeValidationErrors(validation.report, validation.errors)
+      const degradedValidation = validateReport(degraded)
+      degradedForValidation = true
+      validation = {
+        ...degradedValidation,
+        warnings: [
+          ...validation.errors.map((e) => `validation_degraded: ${e}`),
+          ...validation.warnings,
+          ...degradedValidation.warnings,
+        ],
+        errors: degradedValidation.errors,
+      }
+    }
     if (validation.warnings.length || validation.errors.length) {
       console.warn(`Report validation for ${auditId}:`, {
         warnings: validation.warnings,
@@ -544,7 +727,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     }
     const finalReport: ClearSignalReport = {
       ...validation.report,
-      validation_warnings: [...validation.errors, ...validation.warnings].slice(0, 50),
+      validation_warnings: [
+        ...(degradedForValidation ? ['validation: degraded unsafe generated fields before save'] : []),
+        ...validation.errors,
+        ...validation.warnings,
+      ].slice(0, 50),
     }
 
     // 8. Archive the previous report (if any), then save the new report.
@@ -554,6 +741,8 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       auditStatus: audit.audit_status,
       versionType: opts.reuseGeoEvidence ? 'regenerated' : 'generated',
     })
+    const reconciledCost = await reconcileAuditAiCost(auditId).catch(() => null)
+    const adminNotes = await currentAdminNotes(auditId, audit.admin_notes)
     await supabaseAdmin
       .from('audits')
       .update({
@@ -562,10 +751,10 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         last_generated_at: new Date().toISOString(),
         recovery_attempts: 0,
         admin_notes: appendAdminNote(
-          audit.admin_notes,
+          adminNotes,
           `[${new Date().toISOString()}] OK: generation succeeded; ${finalReport.validation_warnings?.length ?? 0} validation warnings.`
         ),
-        api_cost_usd: cost.totalUsd(),
+        api_cost_usd: reconciledCost?.totalUsd ?? cost.totalUsd(),
         api_cost_breakdown: cost.breakdown(),
       })
       .eq('id', auditId)
@@ -595,14 +784,16 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     console.error(`Audit generation failed for ${auditId}:`, err)
     const errorMessage = err instanceof Error ? err.message : String(err)
     const validationFailed = /Report validation blocked/i.test(errorMessage)
+    const reconciledCost = await reconcileAuditAiCost(auditId).catch(() => null)
+    const adminNotes = await currentAdminNotes(auditId, audit.admin_notes)
     const failurePatch: Record<string, unknown> = {
       audit_status: validationFailed ? 'failed-validation' : 'failed',
       last_generated_at: new Date().toISOString(),
       admin_notes: appendAdminNote(
-        audit.admin_notes,
+        adminNotes,
         `[${new Date().toISOString()}] Audit generation failed: ${errorMessage.slice(0, 1500)}`
       ),
-      api_cost_usd: cost.totalUsd(),
+      api_cost_usd: reconciledCost?.totalUsd ?? cost.totalUsd(),
       api_cost_breakdown: cost.breakdown(),
     }
     await supabaseAdmin

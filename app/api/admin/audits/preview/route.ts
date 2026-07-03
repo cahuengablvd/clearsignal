@@ -58,7 +58,18 @@ export async function POST(req: NextRequest) {
   if (raw) category = normalizeMarkdown(raw).slice(0, 600)
 
   try {
-    const queries = await generateBuyerQueries({ brand, category, icp: input.icp_description, count: 6 })
+    const queries = await generateBuyerQueries({
+      brand,
+      category,
+      icp: input.icp_description,
+      count: 6,
+      meta: {
+        auditId: null,
+        stage: 'preview_query_generation',
+        trigger: 'admin_preview',
+        endpoint: '/api/admin/audits/preview',
+      },
+    })
     return NextResponse.json({
       brand,
       url: input.url,

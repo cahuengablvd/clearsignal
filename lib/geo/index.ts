@@ -13,6 +13,7 @@
  */
 import { callClaudeJSON } from '../anthropic'
 import type { CostEvent } from '../cost-tracker'
+import type { AnthropicRequestMeta } from '../ai-observability'
 import {
   GeoResultSchema,
   GeoAnalysisSchema,
@@ -128,6 +129,8 @@ export interface RunGeoOptions {
   providedQueries?: string[]
   /** Optional cost/usage hook for audit-level cost tracking. */
   onUsage?: (event: CostEvent) => void
+  /** Structured metadata for Anthropic request attribution. */
+  meta?: AnthropicRequestMeta
 }
 
 /**
@@ -141,6 +144,7 @@ export async function generateBuyerQueries(opts: {
   icp?: string
   count: number
   onUsage?: (event: CostEvent) => void
+  meta?: AnthropicRequestMeta
 }): Promise<string[]> {
   const { queries } = await callClaudeJSON<{ queries: string[] }>({
     model: MODEL_GEO_QUERIES,
@@ -150,6 +154,7 @@ export async function generateBuyerQueries(opts: {
     maxTokens: 512,
     purpose: 'geo:query_generation',
     onUsage: opts.onUsage,
+    meta: opts.meta ? { ...opts.meta, stage: 'geo_query_generation' } : undefined,
   })
   return queries
 }
@@ -177,7 +182,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const queries =
     opts.providedQueries && opts.providedQueries.length > 0
       ? opts.providedQueries.slice(0, 8)
-      : await generateBuyerQueries({ brand, category, icp, count: queryCount, onUsage: opts.onUsage })
+      : await generateBuyerQueries({ brand, category, icp, count: queryCount, onUsage: opts.onUsage, meta: opts.meta })
 
   // 2. Fan out: every query against every engine, in parallel.
   const settled = await Promise.all(
@@ -189,6 +194,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
           webSearch,
           onUsage: opts.onUsage,
           purpose: `geo:${engine}`,
+          meta: opts.meta ? { ...opts.meta, stage: `geo_engine:${engine}` } : undefined,
         }),
       }))
     )
@@ -217,6 +223,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         maxTokens: 512,
         purpose: 'geo:competitor_discovery',
         onUsage: opts.onUsage,
+        meta: opts.meta ? { ...opts.meta, stage: 'geo_competitor_discovery' } : undefined,
       })
       for (const name of discovered) {
         const key = sld(name) || name.toLowerCase()
@@ -357,6 +364,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         maxTokens: 1536,
         purpose: 'geo:narrative',
         onUsage: opts.onUsage,
+        meta: opts.meta ? { ...opts.meta, stage: 'geo_narrative' } : undefined,
       })
       narrative = {
         ...llmNarrative,
@@ -389,6 +397,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         evidence,
         maxSources,
         onUsage: opts.onUsage,
+        meta: opts.meta ? { ...opts.meta, stage: 'geo_cited_source_analysis' } : undefined,
       })
     }
   }

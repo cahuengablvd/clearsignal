@@ -1,5 +1,6 @@
 import { queue, task } from '@trigger.dev/sdk'
 import { runFullAudit } from '../lib/audit-runner'
+import type { AuditTrigger } from '../lib/audit-execution'
 
 export const fullAuditQueue = queue({
   name: 'full-audit',
@@ -16,8 +17,12 @@ export const runAuditTask = task({
   queue: fullAuditQueue,
   maxDuration: 600,
   retry: { maxAttempts: 2 },
-  run: async (payload: { auditId: string; reuseGeoEvidence?: boolean }) => {
-    await runFullAudit(payload.auditId, { reuseGeoEvidence: payload.reuseGeoEvidence ?? false })
+  run: async (payload: { auditId: string; reuseGeoEvidence?: boolean; trigger?: AuditTrigger; endpoint?: string }) => {
+    await runFullAudit(payload.auditId, {
+      reuseGeoEvidence: payload.reuseGeoEvidence ?? false,
+      trigger: payload.trigger ?? 'unknown',
+      endpoint: payload.endpoint ?? 'trigger:run-full-audit',
+    })
     return { auditId: payload.auditId, status: 'done' }
   },
 })

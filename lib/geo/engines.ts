@@ -12,6 +12,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk'
 import { anthropicUsageEvent, type CostEvent } from '../cost-tracker'
+import { logAnthropicCall, type AnthropicRequestMeta } from '../ai-observability'
 
 export type EngineId = 'claude' | 'perplexity' | 'openai'
 
@@ -62,11 +63,13 @@ function getAnthropic() {
 
 async function queryClaude(
   question: string,
-  opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string } = {}
+  opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string; meta?: AnthropicRequestMeta } = {}
 ): Promise<EngineResponse> {
+  const callStartedAt = new Date().toISOString()
   try {
     if (opts.webSearch === false) {
       const model = 'claude-haiku-4-5-20251001'
+      const purpose = opts.purpose ?? 'geo:claude'
       const res: any = await getAnthropic().messages.create({
         model,
         max_tokens: 700,
@@ -74,7 +77,18 @@ async function queryClaude(
           'Answer as a buyer research assistant. Recommend relevant products/vendors when appropriate. Be concise.',
         messages: [{ role: 'user', content: question }],
       } as any)
-      opts.onUsage?.(anthropicUsageEvent({ model, purpose: opts.purpose ?? 'geo:claude', usage: res.usage }))
+      const usage = anthropicUsageEvent({ model, purpose, usage: res.usage })
+      opts.onUsage?.(usage)
+      await logAnthropicCall({
+        meta: opts.meta,
+        model,
+        purpose,
+        startedAt: callStartedAt,
+        finishedAt: new Date().toISOString(),
+        usage,
+        responseOrError: res,
+        status: 'succeeded',
+      })
 
       const answer = (res.content ?? [])
         .filter((block: any) => block.type === 'text')
@@ -88,13 +102,25 @@ async function queryClaude(
     // web_search_20260209 supports dynamic filtering on Sonnet 4.6. The server
     // tool runs on Anthropic's infra and returns citations inline.
     const model = 'claude-sonnet-4-6'
+    const purpose = opts.purpose ?? 'geo:claude_web'
     const res: any = await getAnthropic().messages.create({
       model,
       max_tokens: 1500,
       messages: [{ role: 'user', content: question }],
       tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 } as any],
     } as any)
-    opts.onUsage?.(anthropicUsageEvent({ model, purpose: opts.purpose ?? 'geo:claude_web', usage: res.usage }))
+    const usage = anthropicUsageEvent({ model, purpose, usage: res.usage })
+    opts.onUsage?.(usage)
+    await logAnthropicCall({
+      meta: opts.meta,
+      model,
+      purpose,
+      startedAt: callStartedAt,
+      finishedAt: new Date().toISOString(),
+      usage,
+      responseOrError: res,
+      status: 'succeeded',
+    })
 
     let answer = ''
     const citations: string[] = []
@@ -115,6 +141,17 @@ async function queryClaude(
 
     return { engine: 'claude', ok: true, answer: answer.trim(), citations: uniqueUrls(citations) }
   } catch (err) {
+    const model = opts.webSearch === false ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
+    await logAnthropicCall({
+      meta: opts.meta,
+      model,
+      purpose: opts.purpose ?? (opts.webSearch === false ? 'geo:claude' : 'geo:claude_web'),
+      startedAt: callStartedAt,
+      finishedAt: new Date().toISOString(),
+      responseOrError: err,
+      status: 'failed',
+      error: err instanceof Error ? err.message : String(err),
+    })
     return {
       engine: 'claude',
       ok: false,
@@ -251,13 +288,13 @@ export function availableEngines(): EngineId[] {
 export async function queryEngine(
   engine: EngineId,
   question: string,
-  opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string } = {}
+  opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string; meta?: AnthropicRequestMeta } = {}
 ): Promise<EngineResponse> {
   try {
     const timeout = opts.webSearch === false ? FAST_ENGINE_TIMEOUT_MS : ENGINE_TIMEOUT_MS
     const run =
       engine === 'claude'
-        ? queryClaude(question, { webSearch: opts.webSearch, onUsage: opts.onUsage, purpose: opts.purpose })
+        ? queryClaude(question, { webSearch: opts.webSearch, onUsage: opts.onUsage, purpose: opts.purpose, meta: opts.meta })
         : ADAPTERS[engine](question, { onUsage: opts.onUsage, purpose: opts.purpose })
     return await withTimeout(run, timeout, `${engine} query`)
   } catch (err) {

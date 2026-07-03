@@ -4,6 +4,7 @@ import { sanitizeGeneratedReportValue } from './sanitize'
 import { rebuildReusedGeoNarrative } from './audit-runner'
 import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
+import { appendAdminNote } from './admin-notes'
 import type { BusinessContext, ClearSignalReport } from './schemas'
 
 export async function rerenderStoredAuditReport(auditId: string): Promise<{
@@ -11,7 +12,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
 }> {
   const { data: audit, error } = await supabaseAdmin
     .from('audits')
-    .select('id, report, business_context, audit_status')
+    .select('id, report, business_context, audit_status, admin_notes')
     .eq('id', auditId)
     .single()
 
@@ -88,6 +89,10 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
       report: finalReport,
       audit_status: 'awaiting_review',
       last_rerendered_at: new Date().toISOString(),
+      admin_notes: appendAdminNote(
+        audit.admin_notes,
+        `[${new Date().toISOString()}] OK: re-render succeeded; ${finalReport.validation_warnings?.length ?? 0} validation warnings.`
+      ),
     })
     .eq('id', auditId)
 

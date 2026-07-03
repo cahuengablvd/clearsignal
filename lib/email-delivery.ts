@@ -1,11 +1,7 @@
 import { supabaseAdmin } from './supabase'
 import { sendReportEmail } from './resend'
 import { notify } from './notify'
-
-function appendAdminNote(existing: string | null | undefined, note: string): string {
-  const prefix = existing?.trim() ? `${existing.trim()}\n` : ''
-  return `${prefix}${note}`.slice(-4000)
-}
+import { appendAdminNote } from './admin-notes'
 
 export async function deliverAuditEmail(auditId: string): Promise<void> {
   const { data: audit, error } = await supabaseAdmin

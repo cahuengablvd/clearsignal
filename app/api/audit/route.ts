@@ -36,7 +36,12 @@ export async function POST(req: NextRequest) {
     const queuedAt = new Date().toISOString()
     const { error: queueError } = await supabaseAdmin
       .from('audits')
-      .update({ audit_status: 'queued', last_generated_at: queuedAt })
+      .update({
+        audit_status: 'queued',
+        last_generated_at: queuedAt,
+        processing_started_at: null,
+        recovery_attempts: 0,
+      })
       .eq('id', audit_id)
 
     if (queueError) {

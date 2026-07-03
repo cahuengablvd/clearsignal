@@ -8,14 +8,14 @@ import {
   sanitizeGeneratedProse,
   sanitizeGeneratedReportValue,
 } from '../lib/sanitize'
-import { ActionBlockSchema, BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema, GeoResultSchema } from '../lib/schemas'
+import { ActionBlockSchema, BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema, GeoResultSchema, ReadyMaterialsLlmSchema } from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
 import { assembleMaterials, buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
 import { attachActionConfidence } from '../lib/action-confidence'
 import { inferFixContributor, inferFixImplementer, inferFixOwner } from '../lib/role-assignment'
 import { resolveBrandEntity } from '../lib/brand'
-import { clarityUserPrompt, gapUserPrompt, actionUserPrompt } from '../lib/prompts'
+import { clarityUserPrompt, gapUserPrompt, actionUserPrompt, materialsUserPrompt } from '../lib/prompts'
 import { validateReport } from '../lib/report-validator'
 import { canClaimCommercialPolicy } from '../lib/business-context'
 import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
@@ -36,9 +36,17 @@ describe('input validation', () => {
   })
 
   it('requires exactly one outreach message per channel', () => {
+    const fix = {
+      id: 1,
+      title: 'Fix headline',
+      description: 'Rewrite the headline.',
+      impact: 'high' as const,
+      effort: 'easy' as const,
+      category: 'copy' as const,
+    }
     const baseAction = {
       executive_summary: 'Summary.',
-      top_fixes: [],
+      top_fixes: Array.from({ length: 5 }, (_, i) => ({ ...fix, id: i + 1 })),
       ship_first: [],
       ignore_for_now: [],
     }
@@ -2464,5 +2472,53 @@ describe('LLM call contract guards', () => {
     for (const channel of ['linkedin', 'email', 'twitter']) {
       expect(prompt).toContain(channel)
     }
+  })
+
+  it('action prompt and ActionBlockSchema agree on top-fix enum values and counts', () => {
+    const prompt = actionUserPrompt('{}', '{}', 'icp', 'Brand')
+    for (const value of ['high', 'medium', 'low', 'easy', 'hard', 'copy', 'structure', 'proof', 'cta', 'ai_search']) {
+      expect(prompt).toContain(value)
+    }
+    expect(prompt).toMatch(/Provide 5-10 fixes/i)
+
+    const fix = {
+      id: 1,
+      title: 'Fix headline',
+      description: 'Rewrite the headline.',
+      impact: 'high',
+      effort: 'easy',
+      category: 'copy',
+    }
+    const valid = {
+      executive_summary: 'Summary.',
+      top_fixes: Array.from({ length: 5 }, (_, i) => ({ ...fix, id: i + 1 })),
+      ship_first: [],
+      ignore_for_now: [],
+      outreach_messages: [
+        { channel: 'linkedin', message: 'LinkedIn.', note: '' },
+        { channel: 'email', message: 'Email.', note: '' },
+        { channel: 'twitter', message: 'Twitter.', note: '' },
+      ],
+    }
+    expect(ActionBlockSchema.safeParse(valid).success).toBe(true)
+    expect(ActionBlockSchema.safeParse({ ...valid, top_fixes: [fix] }).success).toBe(false)
+    expect(ActionBlockSchema.safeParse({ ...valid, top_fixes: Array.from({ length: 11 }, (_, i) => ({ ...fix, id: i + 1 })) }).success).toBe(false)
+    expect(ActionBlockSchema.safeParse({ ...valid, top_fixes: [{ ...fix, category: 'content' }] }).success).toBe(false)
+  })
+
+  it('materials prompt and ReadyMaterialsLlmSchema agree on FAQ and CTA counts', () => {
+    const prompt = materialsUserPrompt('Brand', 'https://example.com', 'icp', '{}', '{}')
+    expect(prompt).toMatch(/Provide 4-6 FAQ items/i)
+    expect(prompt).toMatch(/3-5 CTA variants/i)
+
+    const valid = {
+      meta_title: 'Brand title',
+      meta_description: 'Brand description',
+      faq: Array.from({ length: 4 }, (_, i) => ({ question: `Question ${i + 1}?`, answer: 'Answer.' })),
+      cta_variants: ['Request a Quote', 'Book a Call', 'Contact Us'],
+    }
+    expect(ReadyMaterialsLlmSchema.safeParse(valid).success).toBe(true)
+    expect(ReadyMaterialsLlmSchema.safeParse({ ...valid, faq: valid.faq.slice(0, 3) }).success).toBe(false)
+    expect(ReadyMaterialsLlmSchema.safeParse({ ...valid, cta_variants: valid.cta_variants.slice(0, 2) }).success).toBe(false)
   })
 })

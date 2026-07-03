@@ -163,8 +163,8 @@ export const FaqItemSchema = z.object({ question: z.string(), answer: z.string()
 export const ReadyMaterialsLlmSchema = z.object({
   meta_title: z.string(),
   meta_description: z.string(),
-  faq: z.array(FaqItemSchema),
-  cta_variants: z.array(z.string()),
+  faq: z.array(FaqItemSchema).min(4).max(6),
+  cta_variants: z.array(z.string()).min(3).max(5),
 })
 export type ReadyMaterialsLlm = z.infer<typeof ReadyMaterialsLlmSchema>
 
@@ -423,7 +423,7 @@ const actionSchema = z.object({
     // Evidence linkage: ids of the findings/GEO items this fix is grounded in.
     evidence_ids: z.array(z.string()).optional(),
     evidence_basis: z.string().optional(),
-  })),
+  })).min(5).max(10),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),
   outreach_messages: z.array(OutreachMessageSchema).superRefine((messages, ctx) => {

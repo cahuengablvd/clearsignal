@@ -120,7 +120,7 @@ async function auditCounts(): Promise<Record<string, number | string>> {
         .from('audits')
         .select('id', { count: 'exact', head: true })
         .eq('audit_status', 'processing')
-        .lt('created_at', cutoff),
+        .lt('processing_started_at', cutoff),
     ])
     statuses.forEach((s, i) => {
       out[s] = results[i].count ?? 0

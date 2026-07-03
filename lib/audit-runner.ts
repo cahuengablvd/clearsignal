@@ -44,6 +44,7 @@ import { CostTracker } from './cost-tracker'
 import type { GeoResult } from './schemas'
 import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
+import { appendAdminNote } from './admin-notes'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
@@ -196,9 +197,10 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
   }
 
   // 2. Set status to processing
+  const processingStartedAt = new Date().toISOString()
   await supabaseAdmin
     .from('audits')
-    .update({ audit_status: 'processing' })
+    .update({ audit_status: 'processing', processing_started_at: processingStartedAt })
     .eq('id', auditId)
 
   try {
@@ -428,6 +430,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         report: finalReport,
         audit_status: 'awaiting_review',
         last_generated_at: new Date().toISOString(),
+        recovery_attempts: 0,
+        admin_notes: appendAdminNote(
+          audit.admin_notes,
+          `[${new Date().toISOString()}] OK: generation succeeded; ${finalReport.validation_warnings?.length ?? 0} validation warnings.`
+        ),
         api_cost_usd: cost.totalUsd(),
         api_cost_breakdown: cost.breakdown(),
       })
@@ -461,10 +468,13 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     const failurePatch: Record<string, unknown> = {
       audit_status: validationFailed ? 'failed-validation' : 'failed',
       last_generated_at: new Date().toISOString(),
+      admin_notes: appendAdminNote(
+        audit.admin_notes,
+        `[${new Date().toISOString()}] Audit generation failed: ${errorMessage.slice(0, 1500)}`
+      ),
       api_cost_usd: cost.totalUsd(),
       api_cost_breakdown: cost.breakdown(),
     }
-    if (validationFailed) failurePatch.admin_notes = errorMessage.slice(0, 2000)
     await supabaseAdmin
       .from('audits')
       .update(failurePatch)

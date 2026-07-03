@@ -45,7 +45,7 @@ export async function enqueueAudit(auditId: string, opts: EnqueueAuditOptions = 
 async function markQueued(auditId: string) {
   const { error } = await supabaseAdmin
     .from('audits')
-    .update({ audit_status: 'queued' })
+    .update({ audit_status: 'queued', processing_started_at: null })
     .eq('id', auditId)
 
   if (error) {

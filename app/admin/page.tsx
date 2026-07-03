@@ -23,6 +23,7 @@ type Audit = {
   last_generated_at?: string | null
   last_rerendered_at?: string | null
   last_delivered_at?: string | null
+  last_activity_at?: string | null
 }
 
 const emptyForm = {
@@ -601,6 +602,11 @@ export default function AdminPage() {
                       <div className="text-xs text-muted-foreground">
                         Created: {new Date(audit.created_at).toLocaleString()}
                       </div>
+                      {formatDate(audit.last_activity_at) && (
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Last activity: {formatDate(audit.last_activity_at)}
+                        </div>
+                      )}
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         {formatDate(audit.last_generated_at) && (
                           <span>Generated: {formatDate(audit.last_generated_at)}</span>

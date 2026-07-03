@@ -251,10 +251,12 @@ function repairWrongDomainMentions(text: string, domain?: string): string {
 
 function normalizeEncodingArtifacts(text: string): string {
   return text
+    .replace(/[\u0432][\u201a][\u00ac]|\u20ac/g, 'EUR ')
     .replace(/[\u0432][\u0402][\u2122]/g, "'")
     .replace(/[\u0432][\u0402][\u201c\u201d\u2013\u2014]/g, ' - ')
     .replace(/[\u0432][\u0402]./g, ' - ')
     .replace(/\u0412\u00b7/g, ' - ')
+    .replace(/\bEUR\s+(\d)/g, 'EUR $1')
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
 }

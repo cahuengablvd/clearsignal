@@ -2221,4 +2221,31 @@ describe('sentence-level trust engine', () => {
 
     expect(r.warnings).toContain('ready_materials: location list should be rendered as prose, not slash-joined')
   })
+
+  it('preserves currency on observed prices instead of leaving bare numbers', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://monokelriga.lv',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Monokelriga',
+        },
+        clarity: {
+          pricing: {
+            finding: 'Observed suit prices include from \u0432\u201a\u00ac855 and Made In Italy from \u20ac1125.',
+          },
+        },
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Monokelriga was reviewed.', top_fixes: [] },
+      }) as any
+    )
+
+    const text = JSON.stringify(r.report)
+    expect(text).toContain('EUR 855')
+    expect(text).toContain('EUR 1125')
+    expect(text).not.toMatch(/from 855|from 1125/i)
+  })
 })

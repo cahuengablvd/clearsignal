@@ -2068,12 +2068,10 @@ describe('sentence-level trust engine', () => {
       }) as any
     )
     const text = JSON.stringify(r.report)
-    expect(r.errors).toEqual(expect.arrayContaining([
-      expect.stringContaining('replacement_phrase: "Potential business impact should be treated as a hypothesis until verified with analytics or operator data."'),
-    ]))
+    expect(r.errors).toEqual([])
     expect(text).not.toMatch(/add a response-time commitment|confirms it is fully insured|same business day|defined number of hours/i)
+    expect(text).not.toMatch(/Potential business impact should be treated as a hypothesis until verified/i)
     expect(text).toContain('This cited source appears to include pricing/use-case content')
-    expect(r.report.action.top_fixes[0].title).toBe('Potential business impact should be treated as a hypothesis until verified with analytics or operator data.')
     expect(r.report.action.top_fixes[0].description).toContain('add response-time wording only if verified')
     expect(r.report.action.top_fixes[1].description).toContain('describes insurance only if verified by the business')
   })
@@ -2125,7 +2123,7 @@ describe('sentence-level trust engine', () => {
     expect(out).toBe('')
   })
 
-  it('blocks old standalone safety phrases during report validation and drops brief-only steps', () => {
+  it('drops old standalone safety phrases during report validation and drops brief-only steps', () => {
     const r = validateReport(
       ({
         meta: {
@@ -2144,7 +2142,7 @@ describe('sentence-level trust engine', () => {
           top_fixes: [
             {
               id: 1,
-              title: 'Proof-related recommendations should be backed by verified source data.',
+              title: 'Add crawlable proof context',
               description:
                 'Credential claims should use current verified business details. This helps visitors understand proof.',
               impact: 'high',
@@ -2175,13 +2173,49 @@ describe('sentence-level trust engine', () => {
         ],
       }) as any
     )
-    expect(r.errors).toEqual(expect.arrayContaining([
-      expect.stringContaining('Use verified proof points only.'),
-      expect.stringContaining('Proof-related recommendations should be backed by verified source data.'),
-      expect.stringContaining('Credential claims should use current verified business details.'),
-    ]))
+    const text = JSON.stringify(r.report)
+    expect(r.errors).toEqual([])
+    expect(text).not.toMatch(/Use verified proof points only|Proof-related recommendations should be backed|Credential claims should use current verified/i)
+    expect(r.report.action.executive_summary).toContain('Az-moving was reviewed against the crawled page')
+    expect(r.report.action.top_fixes[0].description).toBe('This helps visitors understand proof.')
+    expect(r.report.geo?.source_gap_analysis?.[0]?.why_this_source_gets_cited).toBe('')
+    expect(r.report.geo?.source_gap_analysis?.[0]?.recommended_fix).toBe('')
     expect(r.report.implementation_briefs?.[0]?.steps).toEqual([])
     expect(r.report.implementation_briefs?.[0]?.acceptance_criteria).toEqual([])
+  })
+
+  it('still blocks replacement phrases glued into other client text', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://az-moving.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Az-moving',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Az-moving was reviewed.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Proof fix',
+              description: 'Before the next section, use Use source-backed proof details. in crawlable copy.',
+              impact: 'high',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
+        },
+      }) as any
+    )
+
+    expect(r.errors).toEqual(expect.arrayContaining([
+      expect.stringContaining('Use source-backed proof details.'),
+    ]))
   })
 
   it('drops duplicate outreach channels from stored reports', () => {
@@ -2268,5 +2302,62 @@ describe('sentence-level trust engine', () => {
     expect(text).toContain('EUR 855')
     expect(text).toContain('EUR 1125')
     expect(text).not.toMatch(/from 855|from 1125/i)
+  })
+
+  it('cleans exact AZ re-render replacement artifacts from stored reports', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://az-moving.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Az-moving',
+        },
+        clarity: {},
+        gap: {
+          competitor_analysis: [],
+          ai_search: { missing_signals: ['Use source-backed proof details.'] },
+          where_you_win: ['Use source-backed proof details.'],
+        },
+        geo: {
+          source_gap_analysis: [
+            {
+              cited_source: 'example.com',
+              signals_found: [],
+              target_missing_signals: [],
+              recommended_fix: 'Add source-backed proof details in crawlable copy.',
+              why_this_source_gets_cited:
+                'Add source-backed proof details in crawlable copy. The Google Rating (5.0) signal adds a quotable proof point.',
+            },
+          ],
+        },
+        action: {
+          executive_summary: 'Az-moving was reviewed.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Make trust proof crawlable',
+              description:
+                'Use verified credential details. If these images do not load, visitors receive none of the trust signals those badges represent. Use source-backed proof details. This ensures crawlable proof.',
+              impact: 'high',
+              effort: 'easy',
+              category: 'proof',
+            },
+          ],
+        },
+      }) as any
+    )
+
+    const text = JSON.stringify(r.report)
+    expect(r.errors).toEqual([])
+    expect(text).not.toMatch(/Use source-backed proof details|Add source-backed proof details|Use verified credential details/i)
+    expect(r.report.gap.ai_search.missing_signals).toEqual([])
+    expect(r.report.gap.where_you_win).toEqual([])
+    expect(r.report.geo?.source_gap_analysis?.[0]?.why_this_source_gets_cited).toBe(
+      'The Google Rating (5.0) signal adds a quotable proof point.'
+    )
+    expect(r.report.action.top_fixes[0].description).toContain('If these images do not load')
   })
 })

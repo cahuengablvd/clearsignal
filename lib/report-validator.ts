@@ -299,6 +299,12 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       }
     }
 
+    const withoutStandaloneRepair = stripBlockedRepairOnlySentences(out)
+    if (withoutStandaloneRepair !== out) {
+      warn(`text: dropped standalone replacement sentence at ${path.join('.') || '<root>'}`)
+      out = withoutStandaloneRepair
+    }
+
     if (/implementation_briefs\./.test(path.join('.'))) {
       const next = out.replace(
         /\b[^.!?]*(?:AggregateRating|review-rating|review schema)[^.!?]*[.!?]?/gi,
@@ -455,6 +461,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const walked = mapProse(report, repair) as ClearSignalReport
   rebuildReadyMaterials(walked, warn)
   dropReplacementOnlyBriefSteps(walked, warn)
+  dropEmptyNarrativeArrayItems(walked, warn)
   validatePublishableFacts(walked, errors)
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
@@ -578,12 +585,22 @@ function isBlockedRepairPhrase(value: string): boolean {
   })
 }
 
+function stripBlockedRepairOnlySentences(text: string): string {
+  if (!text) return text
+  return (text.match(/[^.!?]+[.!?]?|\s+/g) || [text])
+    .filter((part) => /^\s+$/.test(part) || !isBlockedRepairPhrase(part))
+    .join('')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 function dropReplacementOnlyBriefSteps(report: ClearSignalReport, warn: (m: string) => void): void {
   if (!Array.isArray(report.implementation_briefs)) return
   report.implementation_briefs = report.implementation_briefs.map((brief, briefIndex) => {
     const cleanList = (items: string[] | undefined, key: 'steps' | 'acceptance_criteria') => {
       if (!Array.isArray(items)) return items
-      const kept = items.filter((item) => !isBlockedRepairPhrase(item))
+      const kept = items.filter((item) => item.trim().length > 0 && !isBlockedRepairPhrase(item))
       if (kept.length !== items.length) {
         warn(`implementation_briefs.${briefIndex}.${key}: dropped replacement-only instruction`)
       }
@@ -595,6 +612,32 @@ function dropReplacementOnlyBriefSteps(report: ClearSignalReport, warn: (m: stri
       acceptance_criteria: cleanList(brief.acceptance_criteria, 'acceptance_criteria') ?? [],
     }
   })
+}
+
+function compactStringArray(items: unknown, label: string, warn: (m: string) => void): unknown {
+  if (!Array.isArray(items)) return items
+  const kept = items.filter((item) => typeof item !== 'string' || item.trim().length > 0)
+  if (kept.length !== items.length) warn(`${label}: dropped empty item after legacy cleanup`)
+  return kept
+}
+
+function dropEmptyNarrativeArrayItems(report: ClearSignalReport, warn: (m: string) => void): void {
+  const r = report as unknown as Record<string, any>
+  if (r.gap) {
+    r.gap.where_you_win = compactStringArray(r.gap.where_you_win, 'gap.where_you_win', warn)
+    r.gap.where_you_lose = compactStringArray(r.gap.where_you_lose, 'gap.where_you_lose', warn)
+    if (r.gap.ai_search) {
+      r.gap.ai_search.missing_signals = compactStringArray(
+        r.gap.ai_search.missing_signals,
+        'gap.ai_search.missing_signals',
+        warn
+      )
+    }
+  }
+  if (r.geo) {
+    r.geo.missing_signals = compactStringArray(r.geo.missing_signals, 'geo.missing_signals', warn)
+    r.geo.recommendations = compactStringArray(r.geo.recommendations, 'geo.recommendations', warn)
+  }
 }
 
 function validatePublishableFacts(report: ClearSignalReport, errors: string[]): void {

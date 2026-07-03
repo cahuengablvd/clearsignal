@@ -1570,7 +1570,7 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     const text = JSON.stringify(r.report.ready_materials)
     expect(text).not.toMatch(/Use verified business data before publishing this example|visit the website/i)
     expect(r.report.ready_materials?.meta_description).toBe(
-      'Monokelriga provides bespoke tailoring services in Riga and Latvia. Book a consultation to discuss options, availability, and next steps.'
+      'Monokelriga provides bespoke tailoring services in Riga and across Latvia. Book a consultation to discuss options, availability, and next steps.'
     )
     expect(r.report.ready_materials?.faq[0].answer).toBe(
       'Contact Monokelriga directly to confirm the current timeline for your appointment, fitting, and final delivery.'
@@ -2193,5 +2193,32 @@ describe('sentence-level trust engine', () => {
       'outreach_messages: dropped duplicate email message',
       'outreach_messages: missing twitter message',
     ]))
+  })
+
+  it('warns when ready materials use slash-joined location lists', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://example.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Example',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Example was reviewed.', top_fixes: [] },
+        ready_materials: {
+          meta_title: 'Example',
+          meta_description: 'Example serves Toronto / Ontario / Canada.',
+          faq: [],
+          cta_variants: ['Contact Example'],
+          json_ld: '{}',
+        },
+      }) as any
+    )
+
+    expect(r.warnings).toContain('ready_materials: location list should be rendered as prose, not slash-joined')
   })
 })

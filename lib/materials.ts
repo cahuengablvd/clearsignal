@@ -69,6 +69,17 @@ function humanList(values: string[], max = 3): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 }
 
+function locationRegionPhrase(value: string): string {
+  return /^gta$/i.test(value.trim()) ? 'the GTA' : value.trim()
+}
+
+function locationsToProse(values?: string[]): string {
+  const items = Array.from(new Set((values || []).map((v) => v.trim()).filter(Boolean)))
+  if (items.length === 0) return ''
+  if (items.length === 1) return `in ${items[0]}`
+  return `in ${items[0]} and across ${locationRegionPhrase(items[1])}`
+}
+
 function movingServicePhrase(services?: string[]): string {
   const normalized = (services || [])
     .map((service) => service.toLowerCase().trim())
@@ -114,11 +125,11 @@ function movingFallbackMaterials(
   observed?: ObservedBusinessContext
 ): ReadyMaterialsLlm {
   const name = orgName(brand, url)
-  const locations = observed?.observed_location?.length ? ` in ${humanList(observed.observed_location, 3)}` : ''
+  const locations = locationsToProse(observed?.observed_location)
   const servicePhrase = movingServicePhrase(observed?.observed_services)
   return {
     meta_title: llm.meta_title || `${name} | Moving Services`,
-    meta_description: `${name} provides ${servicePhrase} services${locations}. Request a quote to discuss timing, service coverage and move details.`,
+    meta_description: `${name} provides ${servicePhrase} services${locations ? ` ${locations}` : ''}. Request a quote to discuss timing, service coverage and move details.`,
     faq: [
       {
         question: `How do I request a moving quote from ${name}?`,
@@ -199,13 +210,13 @@ function neutralMetaDescription(
 ): string {
   const name = orgName(brand, url)
   const service = observed?.observed_service_category || observed?.inferred_business_type || 'services'
-  const locations = observed?.observed_location?.length ? ` in ${humanList(observed.observed_location, 2)}` : ''
+  const locations = locationsToProse(observed?.observed_location)
   const action = /booking/i.test(observed?.observed_primary_cta || '')
     ? 'Book a consultation'
     : /quote/i.test(observed?.observed_primary_cta || '')
       ? 'Request a quote'
       : 'Contact the business'
-  return `${name} provides ${service.toLowerCase()}${locations}. ${action} to discuss options, availability, and next steps.`
+  return `${name} provides ${service.toLowerCase()}${locations ? ` ${locations}` : ''}. ${action} to discuss options, availability, and next steps.`
 }
 
 function safeFaqAnswer(

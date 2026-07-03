@@ -459,6 +459,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   dropNarrativeMetricCounts(walked, warn)
   ensureExecutiveSummary(walked, warn)
   normalizeOutreachChannels(walked, warn)
+  warnSlashJoinedReadyMaterials(walked, warn)
   validateReadyMaterialsCategory(walked, errors)
 
   // --- (4) evidence relevance over action.top_fixes ---
@@ -646,6 +647,20 @@ function normalizeOutreachChannels(report: ClearSignalReport, warn: (m: string) 
   const missing = required.filter((channel) => !seen.has(channel))
   if (missing.length) {
     warn(`outreach_messages: missing ${missing.join(', ')} message`)
+  }
+}
+
+function warnSlashJoinedReadyMaterials(report: ClearSignalReport, warn: (m: string) => void): void {
+  const materials = report.ready_materials
+  if (!materials) return
+  const values = [
+    materials.meta_title,
+    materials.meta_description,
+    ...materials.cta_variants,
+    ...materials.faq.flatMap((f) => [f.question, f.answer]),
+  ]
+  if (values.some((value) => /\b[A-Za-z][A-Za-z .-]{1,40}\s+\/\s+[A-Za-z][A-Za-z .-]{1,40}(?:\s+\/\s+[A-Za-z][A-Za-z .-]{1,40})?\b/.test(value))) {
+    warn('ready_materials: location list should be rendered as prose, not slash-joined')
   }
 }
 

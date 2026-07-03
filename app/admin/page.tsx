@@ -698,6 +698,20 @@ export default function AdminPage() {
                     )}
                   </div>
 
+                  {['awaiting_review', 'delivery_failed'].includes(audit.audit_status) && (
+                    <div className="mb-3 rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                      <div className="font-semibold text-slate-900 mb-2">Review checklist before sending</div>
+                      <ul className="space-y-1 list-disc pl-4">
+                        <li>Meta, FAQ, and JSON-LD describe this business, industry, and services.</li>
+                        <li>Prices and scores include currency or scale and match the client's page.</li>
+                        <li>Outreach has three different channels, the correct domain, and no odd instructions.</li>
+                        <li>No sentence reads like an internal instruction or template.</li>
+                        <li>GEO summary numbers match the stat blocks.</li>
+                        <li>Suggested copy contains no unverified commitments about response times, guarantees, or availability.</li>
+                      </ul>
+                    </div>
+                  )}
+
                   <div>
                     <Textarea
                       placeholder="Admin notes..."

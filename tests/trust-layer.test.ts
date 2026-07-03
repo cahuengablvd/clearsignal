@@ -21,6 +21,7 @@ import { canClaimCommercialPolicy } from '../lib/business-context'
 import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
 import { splitSentences } from '../lib/trust/sentences'
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from '../lib/trust/decisions'
+import { buildVariants, textMentions } from '../lib/geo/detect'
 
 describe('input validation', () => {
   it('rejects a URL in the ICP field', () => {
@@ -861,6 +862,26 @@ describe('brand entity normalization', () => {
     expect(clarityUserPrompt('homepage md', 'icp', 'BLVD Production')).toContain('BLVD Production')
     expect(gapUserPrompt('target md', [], '{}', 'BLVD Production')).toContain('BLVD Production')
     expect(actionUserPrompt('{}', '{}', 'icp', 'BLVD Production')).toContain('BLVD Production')
+  })
+})
+
+describe('GEO brand alias detection', () => {
+  it('recognizes spaced and hyphenated compound brand aliases', () => {
+    const monokel = buildVariants({ name: 'Monokelriga', url: 'https://www.monokelriga.lv/' })
+    expect(textMentions('The best custom-tailored suits for men in Riga are offered by Monokel Riga.', monokel.tokens)).toBe(true)
+    expect(textMentions('The Monokel-Riga atelier is relevant for bespoke tailoring.', monokel.tokens)).toBe(true)
+  })
+
+  it('does not count a bare weak token as a compound-brand mention', () => {
+    const monokel = buildVariants({ name: 'Monokelriga', url: 'https://www.monokelriga.lv/' })
+    expect(textMentions('Monokel is an eyewear brand in Berlin.', monokel.tokens)).toBe(false)
+  })
+
+  it('recognizes AZ Moving and A-Z Moving as aliases of Az-moving', () => {
+    const az = buildVariants({ name: 'Az-moving', url: 'https://az-moving.com/' })
+    expect(textMentions('AZ Moving appears in this Toronto mover list.', az.tokens)).toBe(true)
+    expect(textMentions('A-Z Moving is mentioned by the answer.', az.tokens)).toBe(true)
+    expect(textMentions('azmoving is also written without punctuation.', az.tokens)).toBe(true)
   })
 })
 

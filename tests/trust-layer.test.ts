@@ -291,7 +291,7 @@ describe('sample-bounded GEO wording', () => {
     const out = sanitizeGeneratedProse(
       'Vitrifi reduced sales cycle by 30%. Product videos lift demo request rates. The two-revision guarantee means the asset pays for itself in one closed deal. Add 20+ client logos and promise it closed a seed round. This improves trial signups and influences investor meetings.'
     )
-    expect(out).toContain('Potential business impact should be treated as a hypothesis')
+    expect(out).toBe('')
     expect(out.toLowerCase()).not.toContain('reduced sales cycle')
     expect(out.toLowerCase()).not.toContain('demo request rates')
     expect(out.toLowerCase()).not.toContain('two-revision guarantee')
@@ -325,7 +325,7 @@ describe('sample-bounded GEO wording', () => {
     const out = sanitizeGeneratedProse(
       'Use 80+ explainer videos, add minimum 6 logos, promise a 90 seconds video and a 4-6 weeks rollout.'
     )
-    expect(out).toContain('Use verified business data before publishing this example.')
+    expect(out).toBe('')
     expect(out).not.toContain('[insert verified data]')
     expect(out.toLowerCase()).not.toContain('80+ explainer videos')
     expect(out.toLowerCase()).not.toContain('6 logos')
@@ -357,14 +357,14 @@ describe('sample-bounded GEO wording', () => {
     expect(out.gap.competitor_analysis[0].headline).toContain('3,000+ brands')
     expect(out.gap.competitor_analysis[0].strengths[0]).toContain('80+ explainer videos')
     expect(out.gap.competitor_analysis[0].weaknesses[0]).toContain('Reddit mentions')
-    expect(out.action.executive_summary).toContain('Use verified business data before publishing this example.')
+    expect(out.action.executive_summary).toBe('')
   })
 
   it('redacts unverified outreach usage claims', () => {
     const out = sanitizeGeneratedProse(
       'Their sales team uses the video before every enterprise call and the page actively repels buyers.'
     )
-    expect(out).toContain('Potential business impact should be treated as a hypothesis')
+    expect(out).toBe('')
     expect(out.toLowerCase()).not.toContain('sales team uses the video')
     expect(out.toLowerCase()).not.toContain('actively repels buyers')
   })
@@ -454,11 +454,11 @@ describe('recursive report sanitizer', () => {
     expect(out.clarity.headline.current_headline).toBe('Original headline with 80+ videos')
     expect(out.ready_materials.json_ld).toContain('80+ videos')
     expect(out.geo.evidence[0].answer_excerpt).toContain('wasted')
-    expect(out.clarity.headline.suggested_rewrite).toContain('Potential business impact should be treated as a hypothesis')
+    expect(out.clarity.headline.suggested_rewrite).toBe('')
     expect(out.clarity.headline.suggested_rewrite.toLowerCase()).not.toContain('trial signups')
     expect(out.clarity.trust_proof.missing_elements[0].toLowerCase()).not.toContain('6 logos')
     expect(out.implementation_briefs[0].fix_title.toLowerCase()).not.toContain('direct revenue leak')
-    expect(out.implementation_briefs[0].steps[0]).toContain('Proof-related recommendations should be backed by verified source data')
+    expect(out.implementation_briefs[0].steps[0]).toBe('')
     expect(out.implementation_briefs[0].acceptance_criteria[0].toLowerCase()).not.toContain('actively repels buyers')
   })
 })
@@ -1446,6 +1446,8 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
     const r = validateReport(
       base({
         meta: {
+          url: 'https://az-moving.com/',
+          canonical_brand: 'Az-Moving',
           business_context: {
             business_model: 'service_business',
             primary_conversion_goal: 'booking',
@@ -1454,6 +1456,13 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
             provenance_or_authentication: 'unknown',
             target_markets_languages: '',
             verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+          observed_business_context: {
+            inferred_business_type: 'moving_company',
+            observed_primary_cta: 'Quote request',
+            observed_service_category: 'Moving services',
+            observed_location: ['Toronto'],
+            observed_services: ['Residential moving', 'Commercial moving'],
           },
         },
         ready_materials: {
@@ -1568,6 +1577,26 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
   it('repairs AZ Moving regenerated-PDF CTA and ready-copy fragments', () => {
     const r = validateReport(
       base({
+        meta: {
+          url: 'https://az-moving.com/',
+          canonical_brand: 'Az-Moving',
+          business_context: {
+            business_model: 'service_business',
+            primary_conversion_goal: 'booking',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: 'Toronto moving company offering residential and commercial relocations.',
+          },
+          observed_business_context: {
+            inferred_business_type: 'moving_company',
+            observed_primary_cta: 'Quote request',
+            observed_service_category: 'Moving services',
+            observed_location: ['Toronto'],
+            observed_services: ['Residential moving', 'Commercial moving'],
+          },
+        },
         clarity: {
           cta: {
             suggested_rewrite: 'Get Your Free Moving Quote \u2014 or call us directly at. Takes under.',
@@ -1856,9 +1885,12 @@ describe('sentence-level trust engine', () => {
       }) as any
     )
     const text = JSON.stringify(r.report)
-    expect(text).not.toMatch(/Pricing was not confirmed|Potential business impact should be treated|add a response-time commitment|confirms it is fully insured|same business day|defined number of hours/i)
+    expect(r.errors).toEqual(expect.arrayContaining([
+      expect.stringContaining('replacement_phrase: "Potential business impact should be treated as a hypothesis until verified with analytics or operator data."'),
+    ]))
+    expect(text).not.toMatch(/add a response-time commitment|confirms it is fully insured|same business day|defined number of hours/i)
     expect(text).toContain('This cited source appears to include pricing/use-case content')
-    expect(r.report.action.top_fixes[0].title).toBe('Add source-backed proof details.')
+    expect(r.report.action.top_fixes[0].title).toBe('Potential business impact should be treated as a hypothesis until verified with analytics or operator data.')
     expect(r.report.action.top_fixes[0].description).toContain('add response-time wording only if verified')
     expect(r.report.action.top_fixes[1].description).toContain('describes insurance only if verified by the business')
   })
@@ -1883,9 +1915,9 @@ describe('sentence-level trust engine', () => {
       },
     })
 
-    expect(review).toBe('Rating recommendations should use verified review-source data.')
-    expect(sla).toBe('Response-time wording should be used only when the business has verified it.')
-    expect(credential).toBe('Credential claims should use current verified business details.')
+    expect(review).toBe('')
+    expect(sla).toBe('')
+    expect(credential).toBe('')
   })
 
   it('deduplicates repeated replacement sentences within a single generated field', () => {
@@ -1907,10 +1939,10 @@ describe('sentence-level trust engine', () => {
       }
     )
 
-    expect(out).toBe('Credential claims should use current verified business details.')
+    expect(out).toBe('')
   })
 
-  it('rewrites old standalone safety phrases during report validation', () => {
+  it('blocks old standalone safety phrases during report validation and drops brief-only steps', () => {
     const r = validateReport(
       ({
         meta: {
@@ -1960,22 +1992,12 @@ describe('sentence-level trust engine', () => {
         ],
       }) as any
     )
-    const text = JSON.stringify(r.report)
-    expect(text).not.toMatch(/Use verified proof points only|If the business can verify credential details|publish them in crawlable prose/i)
-    expect(r.report.action.executive_summary).toContain('Az-moving was reviewed against the crawled page')
-    expect(r.report.action.executive_summary).toContain('Add source-backed proof details')
-    expect(r.report.action.top_fixes[0].title).toBe('Add source-backed proof details.')
-    expect(r.report.geo?.source_gap_analysis?.[0]?.why_this_source_gets_cited).toBe(
-      'Add source-backed proof details in crawlable copy.'
-    )
-    expect(r.report.geo?.source_gap_analysis?.[0]?.recommended_fix).toBe(
-      'Add verified credential details in crawlable copy.'
-    )
-    expect(r.report.implementation_briefs?.[0]?.steps?.[0]).toBe(
-      'Confirm credential details with the business before adding credential claims.'
-    )
-    expect(r.report.implementation_briefs?.[0]?.acceptance_criteria?.[0]).toBe(
-      'Confirm source data before adding proof claims.'
-    )
+    expect(r.errors).toEqual(expect.arrayContaining([
+      expect.stringContaining('Use verified proof points only.'),
+      expect.stringContaining('Proof-related recommendations should be backed by verified source data.'),
+      expect.stringContaining('Credential claims should use current verified business details.'),
+    ]))
+    expect(r.report.implementation_briefs?.[0]?.steps).toEqual([])
+    expect(r.report.implementation_briefs?.[0]?.acceptance_criteria).toEqual([])
   })
 })

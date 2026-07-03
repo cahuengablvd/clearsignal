@@ -31,6 +31,8 @@ export const REPLACEMENT_SENTENCES = {
   unsupportedMovingClaim: 'Ask the team about service details for this move.',
 } as const
 
+export const CLIENT_VISIBLE_REPLACEMENT_SENTENCES = Object.values(REPLACEMENT_SENTENCES)
+
 const UNVERIFIED_QUANTIFIED_EXAMPLE =
   /\b(?:at least|minimum|min\.?|around|about|approximately|approx\.?|~)?\s*\d+(?:[.,]\d+)?(?:\+|\s*[-\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:explainer\s+)?(?:videos?|logos?|seconds?|minutes?|hours?|weeks?|days?|months?|clients?|customers?|users?|case studies?|testimonials?|reviews?|outcomes?|enterprise calls?)\b/i
 const PERCENT_CLAIM = /\b(?:by\s+|up\s+to\s+|around\s+|approximately\s+|~\s*)?\d{1,3}(?:[.,]\d+)?\s*(?:[-\u2013]|to)?\s*\d{0,3}(?:[.,]\d+)?\s*%/i
@@ -117,6 +119,19 @@ function credentialRecommendationReplacement(labels: string[]): string {
   return REPLACEMENT_SENTENCES.unsupportedMovingClaim
 }
 
+function replacementDecision(ctx: { scope: ContentScope }, text: string): SentenceDecision {
+  void text
+  if (ctx.scope !== 'internal_note') return { action: 'drop' }
+  return { action: 'replace', text }
+}
+
+function isExistingReplacementSentence(sentence: string): boolean {
+  const normalized = sentence.trim().replace(/[.!?]+$/, '').toLowerCase()
+  return CLIENT_VISIBLE_REPLACEMENT_SENTENCES.some(
+    (replacement) => replacement.trim().replace(/[.!?]+$/, '').toLowerCase() === normalized
+  )
+}
+
 export function decideSentence(
   sentence: string,
   ctx: {
@@ -128,6 +143,11 @@ export function decideSentence(
   }
 ): SentenceDecision {
   if (!sentence.trim()) return { action: 'keep' }
+  if (isExistingReplacementSentence(sentence)) {
+    return ctx.scope !== 'internal_note'
+      ? { action: 'drop' }
+      : { action: 'keep' }
+  }
 
   if (BROKEN_PLACEHOLDER_TAILS.some((re) => re.test(sentence.trim()))) return { action: 'drop' }
   if (/\bRated\s+\d+(?:[.,]\d+)?\/\d+\s+from['")\s]*(?:[.?!]|$)/i.test(sentence)) return { action: 'drop' }
@@ -136,40 +156,37 @@ export function decideSentence(
     if (UNVERIFIED_BUSINESS_OUTCOME.test(sentence)) {
       return ctx.audience === 'outreach'
         ? { action: 'drop' }
-        : {
-            action: 'replace',
-            text:
-              ctx.scope === 'recommendation'
-                ? recommendationReplacement(sentence)
-                : REPLACEMENT_SENTENCES.performanceHypothesis,
-          }
+        : replacementDecision(
+            ctx,
+            ctx.scope === 'recommendation'
+              ? recommendationReplacement(sentence)
+              : REPLACEMENT_SENTENCES.performanceHypothesis
+          )
     }
     if (hasUnverifiedNumericClaim(sentence)) {
       return ctx.audience === 'outreach'
         ? { action: 'drop' }
-        : {
-            action: 'replace',
-            text:
-              ctx.scope === 'recommendation'
-                ? recommendationReplacement(sentence)
-                : REPLACEMENT_SENTENCES.performanceHypothesis,
-          }
+        : replacementDecision(
+            ctx,
+            ctx.scope === 'recommendation'
+              ? recommendationReplacement(sentence)
+              : REPLACEMENT_SENTENCES.performanceHypothesis
+          )
     }
     if (UNVERIFIED_QUANTIFIED_EXAMPLE.test(sentence)) {
       return ctx.audience === 'outreach'
         ? { action: 'drop' }
-        : {
-            action: 'replace',
-            text:
-              ctx.scope === 'recommendation'
-                ? recommendationReplacement(sentence)
-                : REPLACEMENT_SENTENCES.quantifiedExample,
-          }
+        : replacementDecision(
+            ctx,
+            ctx.scope === 'recommendation'
+              ? recommendationReplacement(sentence)
+              : REPLACEMENT_SENTENCES.quantifiedExample
+          )
     }
     if (UNSUPPORTED_COMMITMENT.test(sentence)) {
       return ctx.audience === 'outreach' || ctx.scope === 'publishable_copy'
         ? { action: 'drop' }
-        : { action: 'replace', text: commitmentReplacement(sentence, ctx.scope) }
+        : replacementDecision(ctx, commitmentReplacement(sentence, ctx.scope))
     }
   }
 
@@ -178,10 +195,10 @@ export function decideSentence(
     ctx.businessContext &&
     unsupportedMovingClaims(sentence, ctx.businessContext).length > 0
   ) {
-    return {
-      action: 'replace',
-      text: credentialRecommendationReplacement(unsupportedMovingClaims(sentence, ctx.businessContext)),
-    }
+    return replacementDecision(
+      ctx,
+      credentialRecommendationReplacement(unsupportedMovingClaims(sentence, ctx.businessContext))
+    )
   }
 
   if (
@@ -192,7 +209,7 @@ export function decideSentence(
   ) {
     if (ctx.audience === 'outreach') return { action: 'drop' }
     const replacement = repairUnsupportedMovingClaimSentence(sentence, ctx.businessContext)
-    return replacement === sentence ? { action: 'keep' } : { action: 'replace', text: replacement }
+    return replacement === sentence ? { action: 'keep' } : replacementDecision(ctx, replacement)
   }
 
   const bounded = boundVisibilityClaims(sentence, ctx.mentions, ctx.total)

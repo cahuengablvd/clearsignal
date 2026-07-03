@@ -32,7 +32,7 @@
     "evidence_count": 15,
     "summary": "Az-moving was named in 0 of 15 successfully tested engine-query combinations across Perplexity, OpenAI and Claude. The measured AI visibility score was 0/100; mention rate was 0% and citation rate was 0%. Likely contributing factors include limited owned-page answer density, limited citations of az-moving.com, and stronger third-party source visibility for competitors in the tested responses."
   },
-  "executive_summary": "Az-moving's homepage contains meaningful trust signals - a HomeStars score, WSIB and CVOR credentials, and granular GTA service-area coverage - but the current headline, body copy, and structural choices may reduce how quickly the right visitors self-qualify and proceed to contact. The hero headline contains no geographic anchor and leads with generic descriptors that are common across the category, making it harder for a Toronto-area visitor to immediately confirm relevance. Several of the strongest trust elements (credential logos, phone number) are rendered in ways that may not be visible to all users or to text-based crawlers, limiting both human and AI-search recognition. Addressing headline clarity, trust-signal accessibility, form friction, and structured markup represents the highest-leverage opportunity to improve visitor confidence and contact rates.",
+  "executive_summary": "Az-moving was reviewed against the crawled page, selected competitors, and tested AI responses. The highest-priority opportunities are: Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator; Add LocalBusiness and Service schema markup to the homepage.",
   "top_fixes": [
     {
       "id": 1,

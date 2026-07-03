@@ -9,10 +9,11 @@
  *
  * Pure + deterministic: no LLM, fully unit-testable.
  */
-import { sanitizeUnsupportedCommercialClaims } from './sanitize'
+import { sanitizeGeneratedProse, sanitizeUnsupportedCommercialClaims } from './sanitize'
 import { assembleMaterials } from './materials'
 import { repairUnsupportedMovingClaimSentence, unsupportedMovingClaims } from './industry-profiles/moving'
 import { BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
+import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from './trust/decisions'
 import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import { buildGeoSummary } from './geo'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
@@ -71,6 +72,32 @@ const CLIPPED_ROLE: Record<string, string> = {
 }
 
 const NO_DIRECT_EVIDENCE = 'Based on audit synthesis; no single direct evidence item.'
+const BLOCKED_CLIENT_REPAIR_PHRASES = [
+  ...CLIENT_VISIBLE_REPLACEMENT_SENTENCES,
+  'Use source-backed proof details.',
+  'Use verified review-source context.',
+  'Use verified credential details.',
+  'Use verified response-time wording.',
+  'Add source-backed proof details.',
+  'Add source-backed proof details in crawlable copy.',
+  'Add verified review-source context.',
+  'Add verified review-source context in crawlable copy.',
+  'Add verified credential details.',
+  'Add verified credential details in crawlable copy.',
+  'Use response-time wording only when verified.',
+  'Confirm source data before adding proof claims.',
+  'Confirm review-source data before adding rating claims.',
+  'Confirm credential details with the business before adding credential claims.',
+  'Confirm response-time details with the business before adding response-time claims.',
+  'Use verified proof points only.',
+  'Use verified rating context only.',
+  'Clarify this recommendation with verified proof before publishing.',
+  'Clarify review proof with verified rating context.',
+  'If the business can verify a response-time commitment, publish it as conditional supporting copy.',
+  'If the business can verify credential details, publish them in crawlable prose.',
+  'Mention response timing only if the business has verified it.',
+  'Mention credentials only if the business has verified them.',
+]
 
 /** Deep clone via JSON round-trip (report is always JSON-serializable). */
 function clone<T>(v: T): T {
@@ -116,26 +143,6 @@ function cleanupClientPhrasing(text: string): string {
       'This cited source appears to include pricing/use-case content.'
     )
     .replace(
-      /\bPotential business impact should be treated as a hypothesis until verified with analytics or operator data\./gi,
-      'Proof-related recommendations should be backed by verified source data.'
-    )
-    .replace(
-      /\bClarify this recommendation with verified proof before publishing\./gi,
-      'Proof-related recommendations should be backed by verified source data.'
-    )
-    .replace(
-      /\bClarify review proof with verified rating context\./gi,
-      'Rating recommendations should use verified review-source data.'
-    )
-    .replace(
-      /\bUse verified proof points only\./gi,
-      'Proof-related recommendations should be backed by verified source data.'
-    )
-    .replace(
-      /\bUse verified rating context only\./gi,
-      'Rating recommendations should use verified review-source data.'
-    )
-    .replace(
       /\bFix the post-submission confirmation typo and add a response-time commitment\b/gi,
       'Fix the post-submission confirmation typo; add response-time wording only if verified'
     )
@@ -146,22 +153,6 @@ function cleanupClientPhrasing(text: string): string {
     .replace(
       /\bincludes a specific, non-placeholder response-time statement \(e\.g\., a defined number of hours or 'same business day'\)/gi,
       'uses response-time wording only if the business has verified it; otherwise no response-time promise is shown'
-    )
-    .replace(
-      /\bIf the business can verify a response-time commitment, publish it as conditional supporting copy\./gi,
-      'Response-time wording should be used only when the business has verified it.'
-    )
-    .replace(
-      /\bIf the business can verify credential details, publish them in crawlable prose\./gi,
-      'Credential claims should use current verified business details.'
-    )
-    .replace(
-      /\bMention response timing only if the business has verified it\./gi,
-      'Response-time wording should be used only when the business has verified it.'
-    )
-    .replace(
-      /\bMention credentials only if the business has verified them\./gi,
-      'Credential claims should use current verified business details.'
     )
     .replace(
       /\bconfirms it is fully insured\b/gi,
@@ -176,7 +167,6 @@ function cleanupClientPhrasing(text: string): string {
       'Toronto-based moving company'
     )
     .replace(/([a-z0-9])\.Ask\b/gi, '$1. Ask')
-    .replace(/\bAsk the team about ([^.?!]+?) for this move[.?!]?/gi, 'Contact AZ Moving to discuss $1 for your move.')
     .replace(/Contact the business to confirm\s+Contact the business to confirm/gi, 'Confirm')
     .replace(/\b(status|details)\.\s*\1\.\s*\1\b/gi, '$1')
     .replace(/\bConfirm [^.?!]+ before publishing this wording[.?!]?/gi, '')
@@ -205,60 +195,6 @@ function cleanupClientPhrasing(text: string): string {
     .replace(/\s{2,}/g, ' ')
     .replace(/^\s*[.,;:!?]\s*/, '')
     .replace(/\s+([.,;:!?])/g, '$1')
-    .replace(/\s+([.,;:!?])/g, '$1')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
-
-const PROOF_SAFETY_SENTENCE = /\bProof-related recommendations should be backed by verified source data\./gi
-const RATING_SAFETY_SENTENCE = /\bRating recommendations should use verified review-source data\./gi
-const CREDENTIAL_SAFETY_SENTENCE = /\bCredential claims should use current verified business details\./gi
-const RESPONSE_TIME_SAFETY_SENTENCE = /\bResponse-time wording should be used only when the business has verified it\./gi
-
-function refineStandaloneSafetySentences(text: string, path: string[]): string {
-  if (!text) return text
-  const joined = path.join('.')
-  let out = text
-
-  if (joined === 'action.executive_summary') {
-    return out
-      .replace(PROOF_SAFETY_SENTENCE, '')
-      .replace(RATING_SAFETY_SENTENCE, '')
-      .replace(CREDENTIAL_SAFETY_SENTENCE, '')
-      .replace(RESPONSE_TIME_SAFETY_SENTENCE, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim()
-  }
-
-  if (joined.startsWith('geo.source_gap_analysis.')) {
-    out = out
-      .replace(PROOF_SAFETY_SENTENCE, 'Add source-backed proof details in crawlable copy.')
-      .replace(RATING_SAFETY_SENTENCE, 'Add verified review-source context in crawlable copy.')
-      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Add verified credential details in crawlable copy.')
-      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Use response-time wording only when verified.')
-  } else if (/^action\.top_fixes\.\d+\.title$/.test(joined)) {
-    out = out
-      .replace(PROOF_SAFETY_SENTENCE, 'Add source-backed proof details.')
-      .replace(RATING_SAFETY_SENTENCE, 'Add verified review-source context.')
-      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Add verified credential details.')
-      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Use verified response-time wording.')
-  } else if (/^implementation_briefs\.\d+\.(steps|acceptance_criteria)\.\d+$/.test(joined)) {
-    out = out
-      .replace(PROOF_SAFETY_SENTENCE, 'Confirm source data before adding proof claims.')
-      .replace(RATING_SAFETY_SENTENCE, 'Confirm review-source data before adding rating claims.')
-      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Confirm credential details with the business before adding credential claims.')
-      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Confirm response-time details with the business before adding response-time claims.')
-  } else {
-    out = out
-      .replace(PROOF_SAFETY_SENTENCE, 'Use source-backed proof details.')
-      .replace(RATING_SAFETY_SENTENCE, 'Use verified review-source context.')
-      .replace(CREDENTIAL_SAFETY_SENTENCE, 'Use verified credential details.')
-      .replace(RESPONSE_TIME_SAFETY_SENTENCE, 'Use verified response-time wording.')
-  }
-
-  return out
-    .replace(/\b(Use source-backed proof details\.)\s+\1/gi, '$1')
-    .replace(/\b(Use verified credential details\.)\s+\1/gi, '$1')
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim()
@@ -453,7 +389,6 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       }
     }
     out = cleanupClientPhrasing(out)
-    out = refineStandaloneSafetySentences(out, path)
     out = repairBrokenSentenceFragments(out, path)
     out = repairWrongDomainMentions(out, domain)
 
@@ -509,6 +444,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
 
   const walked = mapProse(report, repair) as ClearSignalReport
   rebuildReadyMaterials(walked, warn)
+  dropReplacementOnlyBriefSteps(walked, warn)
   validatePublishableFacts(walked, errors)
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
@@ -592,7 +528,21 @@ function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => v
   if (!report.ready_materials) return
   const brand = report.meta.canonical_brand || report.geo?.brand || ''
   const url = report.meta.url || ''
-  const rebuilt = assembleMaterials(brand, url, report.ready_materials, {
+  const businessContext = report.meta.business_context
+  const clean = (text: string) => sanitizeGeneratedProse(text, undefined, undefined, {
+    businessContext,
+    scope: 'publishable_copy',
+  })
+  const llm = {
+    meta_title: clean(report.ready_materials.meta_title || ''),
+    meta_description: clean(report.ready_materials.meta_description || ''),
+    faq: (report.ready_materials.faq || []).map((f) => ({
+      question: clean(f.question || ''),
+      answer: clean(f.answer || ''),
+    })),
+    cta_variants: (report.ready_materials.cta_variants || []).map(clean).filter(Boolean),
+  }
+  const rebuilt = assembleMaterials(brand, url, llm, {
     businessContext: report.meta.business_context,
     observedBusinessContext: report.meta.observed_business_context,
     verifiedFacts: report.meta.verified_facts_layer,
@@ -601,6 +551,37 @@ function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => v
     report.ready_materials = rebuilt
     warn('ready_materials: rebuilt publishable materials from verified/observed facts')
   }
+}
+
+function normalizedPhrase(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function isBlockedRepairPhrase(value: string): boolean {
+  const normalized = normalizedPhrase(value).replace(/[.!?]+$/, '')
+  return BLOCKED_CLIENT_REPAIR_PHRASES.some((phrase) => {
+    const p = normalizedPhrase(phrase).replace(/[.!?]+$/, '')
+    return normalized === p
+  })
+}
+
+function dropReplacementOnlyBriefSteps(report: ClearSignalReport, warn: (m: string) => void): void {
+  if (!Array.isArray(report.implementation_briefs)) return
+  report.implementation_briefs = report.implementation_briefs.map((brief, briefIndex) => {
+    const cleanList = (items: string[] | undefined, key: 'steps' | 'acceptance_criteria') => {
+      if (!Array.isArray(items)) return items
+      const kept = items.filter((item) => !isBlockedRepairPhrase(item))
+      if (kept.length !== items.length) {
+        warn(`implementation_briefs.${briefIndex}.${key}: dropped replacement-only instruction`)
+      }
+      return kept
+    }
+    return {
+      ...brief,
+      steps: cleanList(brief.steps, 'steps') ?? [],
+      acceptance_criteria: cleanList(brief.acceptance_criteria, 'acceptance_criteria') ?? [],
+    }
+  })
 }
 
 function validatePublishableFacts(report: ClearSignalReport, errors: string[]): void {
@@ -765,9 +746,17 @@ function collectClientArtifacts(value: unknown, path: string[] = []): string[] {
   const out: string[] = []
   if (typeof value === 'string') {
     const key = path[path.length - 1]
-    if (isRawPath(path, key)) return out
+    const joined = path.join('.')
+    if (isRawPath(path, key) && !joined.startsWith('ready_materials.json_ld')) return out
     for (const [re, label] of INTERNAL_CLIENT_ARTIFACTS) {
-      if (re.test(value)) out.push(`artifact: ${label} at ${path.join('.') || '<root>'}`)
+      if (re.test(value)) out.push(`artifact: ${label} at ${joined || '<root>'}`)
+    }
+    const lower = value.toLowerCase()
+    for (const phrase of BLOCKED_CLIENT_REPAIR_PHRASES) {
+      if (lower.includes(phrase.toLowerCase())) {
+        const quote = value.length > 180 ? `${value.slice(0, 177)}...` : value
+        out.push(`replacement_phrase: "${phrase}" at ${joined || '<root>'}: "${quote}"`)
+      }
     }
     return out
   }
@@ -777,7 +766,11 @@ function collectClientArtifacts(value: unknown, path: string[] = []): string[] {
   }
   if (value && typeof value === 'object') {
     for (const [k, v] of Object.entries(value)) {
-      if (!isRawPath([...path, k], k)) out.push(...collectClientArtifacts(v, [...path, k]))
+      const childPath = [...path, k]
+      const joined = childPath.join('.')
+      if (!isRawPath(childPath, k) || joined.startsWith('ready_materials.json_ld')) {
+        out.push(...collectClientArtifacts(v, childPath))
+      }
     }
   }
   return out

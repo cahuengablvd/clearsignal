@@ -92,9 +92,8 @@ export const BROKEN_TEXT_REPAIRS: Array<[RegExp, string]> = [
   [/\bcall us directly at\s*[.?!]?/gi, 'contact us directly'],
   [/\bTakes under\s*[.?!]?/gi, ''],
   [/\bGet a free quote online in minutes\b/gi, 'Request a free quote online'],
-  [/\bYes\.Ask the team about\b/gi, 'Contact AZ Moving to discuss'],
-  [/([a-z0-9])\.Ask the team about/gi, '$1. Contact AZ Moving to discuss'],
-  [/\bAsk the team about ([^.?!]+?) for this move[.?!]?/gi, 'Contact AZ Moving to discuss $1 for your move.'],
+  [/\bYes\.Ask\b/gi, 'Yes. Ask'],
+  [/([a-z0-9])\.Ask\b/gi, '$1. Ask'],
 ]
 
 export const TONE_REPLACEMENTS: Array<[RegExp, string]> = [

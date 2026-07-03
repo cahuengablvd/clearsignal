@@ -95,7 +95,6 @@ function neutralMovingMaterials(
 
 function stripUnsupportedPublishableClaims(text: string): string {
   return text
-    .replace(/\bUse verified business data before publishing this example\.?/gi, '')
     .replace(/\b(?:same[- ]day|last[- ]minute)\b[^.?!]*/gi, 'availability')
     .replace(/\bget a free quote (?:online )?in minutes\b/gi, 'request a quote online')
     .replace(/\bfree quote in minutes\b/gi, 'quote request')
@@ -132,11 +131,9 @@ function safeFaqAnswer(
   observed?: ObservedBusinessContext
 ): string {
   const cleaned = stripUnsupportedPublishableClaims(answer)
-    .replace(/\barrange your visit the website\b/gi, 'arrange your visit')
-    .replace(/\bvisit the website\b/gi, 'visit')
     .replace(/\s{2,}/g, ' ')
     .trim()
-  if (cleaned.length >= 24) return cleaned
+  if (cleaned.length >= 24 && !/\barrange your visit the website\b/i.test(cleaned)) return cleaned
 
   const name = orgName(brand, url)
   if (/\b(how long|timeline|take|receive|ready|delivery)\b/i.test(question)) {

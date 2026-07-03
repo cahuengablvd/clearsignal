@@ -6,11 +6,12 @@ import { trySignToken } from '@/lib/tokens'
 const STATUS_PRIORITY: Record<string, number> = {
   processing: 0,
   queued: 1,
-  failed: 2,
-  delivery_failed: 3,
-  awaiting_review: 4,
-  done: 5,
-  delivered: 6,
+  'failed-validation': 2,
+  failed: 3,
+  delivery_failed: 4,
+  awaiting_review: 5,
+  done: 6,
+  delivered: 7,
 }
 
 function statusPriority(status: string): number {

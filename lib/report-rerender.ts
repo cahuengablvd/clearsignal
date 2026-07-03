@@ -54,7 +54,16 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
   )
   const validation = validateReport(safeReport)
   if (validation.errors.length) {
-    throw new Error(`Report validation blocked re-render: ${validation.errors.slice(0, 5).join('; ')}`)
+    const message = `Report validation blocked re-render: ${validation.errors.slice(0, 5).join('; ')}`
+    await supabaseAdmin
+      .from('audits')
+      .update({
+        audit_status: 'failed-validation',
+        admin_notes: message.slice(0, 2000),
+        last_rerendered_at: new Date().toISOString(),
+      })
+      .eq('id', auditId)
+    throw new Error(message)
   }
 
   const finalReport: ClearSignalReport = {

@@ -17,9 +17,12 @@ function loadGoldenReport(): ClearSignalReport {
 }
 
 function clientSafeGoldenReport(): ClearSignalReport {
-  const sanitized = sanitizeGeneratedReportValue(loadGoldenReport())
+  const source = loadGoldenReport()
+  const sanitized = sanitizeGeneratedReportValue(source, undefined, undefined, {
+    businessContext: source.meta.business_context,
+  })
   const validation = validateReport(sanitized)
-  expect(validation.errors).toHaveLength(0)
+  expect(validation.errors).toEqual([])
   return validation.report
 }
 
@@ -84,10 +87,13 @@ describe('golden-report regression test', () => {
   })
 
   fixtureIt('validator has no errors on golden report', () => {
-    const report = sanitizeGeneratedReportValue(loadGoldenReport())
+    const source = loadGoldenReport()
+    const report = sanitizeGeneratedReportValue(source, undefined, undefined, {
+      businessContext: source.meta.business_context,
+    })
     const validation = validateReport(report)
 
-    expect(validation.errors).toHaveLength(0)
+    expect(validation.errors).toEqual([])
   })
 
   fixtureIt('no client artifacts or verification phrases in publishable text', () => {

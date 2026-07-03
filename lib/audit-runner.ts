@@ -456,17 +456,21 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     }
   } catch (err) {
     console.error(`Audit generation failed for ${auditId}:`, err)
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    const validationFailed = /Report validation blocked/i.test(errorMessage)
+    const failurePatch: Record<string, unknown> = {
+      audit_status: validationFailed ? 'failed-validation' : 'failed',
+      api_cost_usd: cost.totalUsd(),
+      api_cost_breakdown: cost.breakdown(),
+    }
+    if (validationFailed) failurePatch.admin_notes = errorMessage.slice(0, 2000)
     await supabaseAdmin
       .from('audits')
-      .update({
-        audit_status: 'failed',
-        api_cost_usd: cost.totalUsd(),
-        api_cost_breakdown: cost.breakdown(),
-      })
+      .update(failurePatch)
       .eq('id', auditId)
     await notify('audit_generation_failed', {
       audit_id: auditId,
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMessage,
     })
     throw err
   }

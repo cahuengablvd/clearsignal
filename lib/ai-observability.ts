@@ -179,13 +179,20 @@ export async function logAnthropicCall(args: {
     status: payload.status,
   }))
 
-  const { error } = await supabaseAdmin.from('audit_ai_call_logs').insert(payload)
-  if (error) {
-    console.warn('[anthropic-request] failed to persist log:', error.message)
-    return
-  }
+  try {
+    const { error } = await supabaseAdmin.from('audit_ai_call_logs').insert(payload)
+    if (error) {
+      console.warn('[anthropic-request] failed to persist log:', error.message)
+      return
+    }
 
-  if (payload.audit_id) {
-    await reconcileAuditAiCost(payload.audit_id)
+    if (payload.audit_id) {
+      await reconcileAuditAiCost(payload.audit_id)
+    }
+  } catch (err) {
+    console.warn(
+      '[anthropic-request] failed to persist log:',
+      err instanceof Error ? err.message : String(err)
+    )
   }
 }

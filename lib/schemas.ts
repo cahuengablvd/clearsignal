@@ -332,6 +332,41 @@ const controlSchema = z.enum(['high', 'medium', 'low'])
 const probabilitySchema = z.enum(['high', 'medium', 'low'])
 const claimLevelSchema = z.enum(['observed', 'inferred', 'recommended'])
 
+export const AuditIssueSeveritySchema = z.enum(['critical', 'high', 'medium', 'low'])
+export const AuditIssueCategorySchema = z.enum([
+  'wrong_business',
+  'foreign_industry',
+  'unverified_claim',
+  'replacement_leak',
+  'broken_sentence',
+  'empty_section',
+  'question_answer_mismatch',
+  'schema_mismatch',
+  'evidence_mismatch',
+  'internal_contradiction',
+  'policy_violation',
+  'grammar',
+  'duplicate',
+  'other',
+])
+
+export const AuditIssueSchema = z.object({
+  id: z.string(),
+  severity: AuditIssueSeveritySchema,
+  category: AuditIssueCategorySchema,
+  path: z.string(),
+  explanation: z.string(),
+  currentText: z.string().optional(),
+  suggestedReplacement: z.string().optional(),
+  canAutoFix: z.boolean(),
+})
+
+export const AuditIssuesSchema = z.object({
+  issues: z.array(AuditIssueSchema).max(25),
+})
+
+export type AuditIssue = z.infer<typeof AuditIssueSchema>
+
 // --- Report Sub-schemas ---
 
 const metaSchema = z.object({

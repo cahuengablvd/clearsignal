@@ -33,6 +33,47 @@ function lastActivityAt(audit: {
   return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || audit.created_at
 }
 
+function qualitySummary(quality: unknown) {
+  const q = quality as any
+  const issues = Array.isArray(q?.critic?.issues) ? q.critic.issues : []
+  const counts = {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+  }
+  for (const issue of issues) {
+    if (issue?.severity && issue.severity in counts) {
+      counts[issue.severity as keyof typeof counts] += 1
+    }
+  }
+  return {
+    stage: typeof q?.stage === 'string' ? q.stage : null,
+    shadow_mode: true,
+    critic: q?.critic
+      ? {
+          model: q.critic.model || null,
+          ranAt: q.critic.ranAt || null,
+          attempt: q.critic.attempt ?? null,
+          droppedIssues: q.critic.droppedIssues ?? 0,
+          issue_count: issues.length,
+          counts,
+          issues: issues.slice(0, 25).map((issue: any) => ({
+            id: issue.id,
+            severity: issue.severity,
+            category: issue.category,
+            path: issue.path,
+            explanation: issue.explanation,
+            currentText: issue.currentText,
+            suggestedReplacement: issue.suggestedReplacement,
+            canAutoFix: issue.canAutoFix,
+          })),
+        }
+      : null,
+    criticError: q?.criticError || null,
+  }
+}
+
 export async function GET(req: NextRequest) {
   // Check admin session
   if (!isValidAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value)) {
@@ -41,7 +82,7 @@ export async function GET(req: NextRequest) {
 
   const { data: audits, error } = await supabaseAdmin
     .from('audits')
-    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, api_cost_usd, api_cost_breakdown, last_generated_at, last_rerendered_at, last_delivered_at, report')
+    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, api_cost_usd, api_cost_breakdown, last_generated_at, last_rerendered_at, last_delivered_at, report, quality')
     .order('created_at', { ascending: false })
     // Fetch a wider window before in-memory priority sorting so regenerated
     // older audits can still float to the top during review batches.
@@ -136,7 +177,7 @@ export async function GET(req: NextRequest) {
       ? report.validation_warnings.length
       : 0
     const has_report = Boolean(a.report)
-    const { report: _report, ...audit } = a
+    const { report: _report, quality: _quality, ...audit } = a
     const last_activity_at = lastActivityAt(a)
     if (['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(a.audit_status)) {
       const token = trySignToken('audit', a.id)
@@ -145,6 +186,7 @@ export async function GET(req: NextRequest) {
         has_report,
         last_activity_at,
         validation_repair_count,
+        quality_summary: qualitySummary(a.quality),
         ai_cost_summary: costByAudit.get(a.id) ?? null,
         report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}`,
       }
@@ -154,6 +196,7 @@ export async function GET(req: NextRequest) {
       has_report,
       last_activity_at,
       validation_repair_count,
+      quality_summary: qualitySummary(a.quality),
       ai_cost_summary: costByAudit.get(a.id) ?? null,
       report_url: null as string | null,
     }

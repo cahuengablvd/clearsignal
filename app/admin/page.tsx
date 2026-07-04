@@ -33,6 +33,34 @@ type Audit = {
     duplicate_stage_warning: boolean
     triggers: string[]
   } | null
+  quality_summary?: {
+    stage: string | null
+    shadow_mode: boolean
+    critic: {
+      model: string | null
+      ranAt: string | null
+      attempt: number | null
+      droppedIssues: number
+      issue_count: number
+      counts: {
+        critical: number
+        high: number
+        medium: number
+        low: number
+      }
+      issues: Array<{
+        id: string
+        severity: string
+        category: string
+        path: string
+        explanation: string
+        currentText?: string
+        suggestedReplacement?: string
+        canAutoFix: boolean
+      }>
+    } | null
+    criticError?: { message?: string; ranAt?: string; attempt?: number } | null
+  } | null
   last_generated_at?: string | null
   last_rerendered_at?: string | null
   last_delivered_at?: string | null
@@ -869,6 +897,75 @@ export default function AdminPage() {
                           ? audit.ai_cost_summary.stages_executed.join(', ')
                           : 'no stage records'}
                       </div>
+                    </div>
+                  )}
+
+                  {audit.quality_summary?.critic && (
+                    <div className="mb-3 rounded border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-900">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">Quality critic</span>
+                        <Badge variant="outline" className="bg-white text-indigo-900">
+                          shadow mode - not applied
+                        </Badge>
+                        <Badge variant="outline" className="bg-white text-indigo-900">
+                          {audit.quality_summary.critic.issue_count} issues
+                        </Badge>
+                        {audit.quality_summary.critic.counts.critical > 0 && (
+                          <Badge variant="outline" className="bg-red-50 text-red-800">
+                            {audit.quality_summary.critic.counts.critical} critical
+                          </Badge>
+                        )}
+                        {audit.quality_summary.critic.counts.high > 0 && (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-800">
+                            {audit.quality_summary.critic.counts.high} high
+                          </Badge>
+                        )}
+                        {audit.quality_summary.critic.counts.medium > 0 && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-800">
+                            {audit.quality_summary.critic.counts.medium} medium
+                          </Badge>
+                        )}
+                        {audit.quality_summary.critic.counts.low > 0 && (
+                          <Badge variant="outline" className="bg-slate-50 text-slate-800">
+                            {audit.quality_summary.critic.counts.low} low
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="mb-2 text-indigo-800">
+                        Model: {audit.quality_summary.critic.model || 'unknown'}
+                        {audit.quality_summary.critic.ranAt ? ` · Ran: ${formatDate(audit.quality_summary.critic.ranAt)}` : ''}
+                        {audit.quality_summary.critic.droppedIssues > 0
+                          ? ` · Dropped invalid issues: ${audit.quality_summary.critic.droppedIssues}`
+                          : ''}
+                      </div>
+                      {audit.quality_summary.critic.issues.length > 0 && (
+                        <details>
+                          <summary className="cursor-pointer font-medium">Issue list</summary>
+                          <div className="mt-2 space-y-2">
+                            {audit.quality_summary.critic.issues.map((issue) => (
+                              <div key={`${issue.id}-${issue.path}`} className="rounded border border-indigo-100 bg-white p-2">
+                                <div className="flex flex-wrap gap-2 font-medium">
+                                  <span>{issue.severity}</span>
+                                  <span>{issue.category}</span>
+                                  <span className="font-mono text-[11px]">{issue.path}</span>
+                                  {issue.canAutoFix && <span>auto-fix candidate</span>}
+                                </div>
+                                <div className="mt-1 text-indigo-900">{issue.explanation}</div>
+                                {issue.suggestedReplacement && (
+                                  <div className="mt-1 text-indigo-700">Suggestion: {issue.suggestedReplacement}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  )}
+
+                  {audit.quality_summary?.criticError && (
+                    <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                      <span className="font-semibold">Quality critic failed in shadow mode:</span>{' '}
+                      {audit.quality_summary.criticError.message || 'unknown error'}
                     </div>
                   )}
 

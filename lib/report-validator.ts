@@ -55,7 +55,7 @@ const RAW_KEYS = new Set([
 // that once recorded a replacement_phrase error fail every later validation.
 const RAW_PREFIXES = ['meta.', 'geo.evidence.', 'technical_findings.', 'validation_warnings', 'quality.']
 
-function isRawPath(path: string[], key?: string): boolean {
+export function isRawPath(path: string[], key?: string): boolean {
   if (key && RAW_KEYS.has(key)) return true
   const joined = path.join('.')
   return RAW_PREFIXES.some((p) => joined.startsWith(p))

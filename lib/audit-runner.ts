@@ -47,6 +47,7 @@ import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
 import { appendAdminNote } from './admin-notes'
 import { auditExecutionContext, runAuditStage, type AuditTrigger } from './audit-execution'
+import { qualityCriticEnabled, runQualityCritic } from './quality/critic'
 import { reconcileAuditAiCost } from './ai-observability'
 
 export type RunFullAuditOptions = {
@@ -734,6 +735,33 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       ].slice(0, 50),
     }
 
+    let quality = (audit.quality && typeof audit.quality === 'object' ? audit.quality : {}) as Record<string, unknown>
+    if (qualityCriticEnabled()) {
+      try {
+        const critic = await runQualityCritic({
+          ctx: exec,
+          report: finalReport,
+          onUsage: (event) => cost.add(event),
+        })
+        quality = {
+          ...quality,
+          stage: 'critic_shadow_complete',
+          critic,
+        }
+      } catch (err) {
+        console.warn(`Quality critic failed for ${auditId} (shadow mode, continuing):`, err)
+        quality = {
+          ...quality,
+          stage: 'critic_shadow_failed',
+          criticError: {
+            message: err instanceof Error ? err.message : String(err),
+            ranAt: new Date().toISOString(),
+            attempt: exec.attempt,
+          },
+        }
+      }
+    }
+
     // 8. Archive the previous report (if any), then save the new report.
     await archiveCurrentReportVersion({
       auditId,
@@ -756,6 +784,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         ),
         api_cost_usd: reconciledCost?.totalUsd ?? cost.totalUsd(),
         api_cost_breakdown: cost.breakdown(),
+        quality,
       })
       .eq('id', auditId)
 

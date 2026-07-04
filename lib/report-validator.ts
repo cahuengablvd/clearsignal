@@ -10,9 +10,10 @@
  * Pure + deterministic: no LLM, fully unit-testable.
  */
 import { sanitizeGeneratedProse, sanitizeUnsupportedCommercialClaims } from './sanitize'
-import { assembleMaterials, materialCategoryForContext, type MaterialCategory } from './materials'
+import { assembleMaterials, materialCategoryForContext } from './materials'
 import { repairUnsupportedMovingClaimSentence, unsupportedMovingClaims } from './industry-profiles/moving'
-import { BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
+import { allowedSchemaTypes } from './industry-profiles/schema-allowlist'
+import { ASTROTURFING_PATTERNS, BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from './trust/decisions'
 import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import { buildGeoSummary } from './geo'
@@ -52,7 +53,7 @@ const RAW_KEYS = new Set([
 // validation_warnings is operator metadata (never rendered client-side) and its
 // entries quote blocked phrases verbatim - scanning it would make any report
 // that once recorded a replacement_phrase error fail every later validation.
-const RAW_PREFIXES = ['meta.', 'geo.evidence.', 'technical_findings.', 'validation_warnings']
+const RAW_PREFIXES = ['meta.', 'geo.evidence.', 'technical_findings.', 'validation_warnings', 'quality.']
 
 function isRawPath(path: string[], key?: string): boolean {
   if (key && RAW_KEYS.has(key)) return true
@@ -525,8 +526,10 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const walked = mapProse(report, repair) as ClearSignalReport
   rebuildReadyMaterials(walked, warn)
   dropReplacementOnlyBriefSteps(walked, warn)
+  validateFaqSanity(walked, errors)
   dropEmptyNarrativeArrayItems(walked, warn)
   dropEmptyActionItems(walked, warn)
+  validateEmptyClientFields(walked, errors)
   validatePublishableFacts(walked, errors)
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
@@ -534,6 +537,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   ensureExecutiveSummary(walked, warn)
   normalizeOutreachChannels(walked, warn)
   warnSlashJoinedReadyMaterials(walked, warn)
+  validatePolicyWording(walked, errors, warnings)
   validateReadyMaterialsCategory(walked, errors)
 
   // --- (4) evidence relevance over action.top_fixes ---
@@ -687,7 +691,7 @@ function dropReplacementOnlyBriefSteps(report: ClearSignalReport, warn: (m: stri
   report.implementation_briefs = report.implementation_briefs.map((brief, briefIndex) => {
     const cleanList = (items: string[] | undefined, key: 'steps' | 'acceptance_criteria') => {
       if (!Array.isArray(items)) return items
-      const kept = items.filter((item) => item.trim().length > 0 && !isBlockedRepairPhrase(item))
+      const kept = items.filter((item) => !isBlockedRepairPhrase(item))
       if (kept.length !== items.length) {
         warn(`implementation_briefs.${briefIndex}.${key}: dropped replacement-only instruction`)
       }
@@ -729,14 +733,44 @@ function dropEmptyNarrativeArrayItems(report: ClearSignalReport, warn: (m: strin
 
 function dropEmptyActionItems(report: ClearSignalReport, warn: (m: string) => void): void {
   if (Array.isArray(report.action?.top_fixes)) {
+    report.action.top_fixes = report.action.top_fixes.map((fix) => {
+      const hasTitle = String(fix.title || '').trim().length > 0
+      const hasDescription = String(fix.description || '').trim().length > 0
+      if (!hasTitle && hasDescription) {
+        warn('action.top_fixes: replaced empty title with neutral fallback')
+        return { ...fix, title: 'Recommended fix' }
+      }
+      return fix
+    })
     const before = report.action.top_fixes.length
     report.action.top_fixes = report.action.top_fixes.filter((fix) => {
-      return String(fix.title || '').trim().length > 0 || String(fix.description || '').trim().length > 0
+      const title = String(fix.title || '').trim()
+      const description = String(fix.description || '').trim()
+      if (title && !description) return false
+      if (!description && isBareLabel(fix.title)) return false
+      return title.length > 0 && description.length > 0
     })
     if (report.action.top_fixes.length !== before) warn('action.top_fixes: dropped empty action item')
   }
 
   if (Array.isArray(report.implementation_briefs)) {
+    report.implementation_briefs = report.implementation_briefs.map((brief, index) => {
+      const steps = Array.isArray(brief.steps) ? brief.steps.filter((s) => String(s || '').trim().length > 0) : []
+      const acceptanceCriteria = Array.isArray(brief.acceptance_criteria)
+        ? brief.acceptance_criteria.filter((s) => String(s || '').trim().length > 0)
+        : []
+      if (Array.isArray(brief.steps) && steps.length !== brief.steps.length) {
+        warn(`implementation_briefs.${index}.steps: dropped empty step`)
+      }
+      if (Array.isArray(brief.acceptance_criteria) && acceptanceCriteria.length !== brief.acceptance_criteria.length) {
+        warn(`implementation_briefs.${index}.acceptance_criteria: dropped empty acceptance criterion`)
+      }
+      return {
+        ...brief,
+        steps,
+        acceptance_criteria: acceptanceCriteria,
+      }
+    })
     const before = report.implementation_briefs.length
     report.implementation_briefs = report.implementation_briefs.filter((brief) => {
       const hasTitle = String(brief.fix_title || '').trim().length > 0
@@ -772,6 +806,122 @@ function validateActionUsability(report: ClearSignalReport, errors: string[]): v
       }
     })
   }
+}
+
+function isEmptyLike(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const trimmed = value.trim()
+  return trimmed.length === 0 || /^(?:fix|problem|answer|question|title|description|rewrite|step|criteria)\s*:?\s*$/i.test(trimmed)
+}
+
+function isBareLabel(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  return /^(?:fix|problem|answer|question|title|description|rewrite|step|criteria)\s*:?\s*$/i.test(value.trim())
+}
+
+function validateStringField(value: unknown, path: string, errors: string[]): void {
+  if (isEmptyLike(value)) errors.push(`empty_field at ${path}`)
+}
+
+function validateStringArrayFields(values: unknown, path: string, errors: string[]): void {
+  if (!Array.isArray(values)) return
+  values.forEach((value, index) => validateStringField(value, `${path}.${index}`, errors))
+}
+
+function validateEmptyClientFields(report: ClearSignalReport, errors: string[]): void {
+  report.action?.top_fixes?.forEach((fix, index) => {
+    validateStringField(fix.title, `action.top_fixes.${index}.title`, errors)
+    validateStringField(fix.description, `action.top_fixes.${index}.description`, errors)
+  })
+
+  report.implementation_briefs?.forEach((brief, index) => {
+    validateStringField(brief.fix_title, `implementation_briefs.${index}.fix_title`, errors)
+    if (Array.isArray(brief.steps) && brief.steps.length === 0) {
+      errors.push(`empty_field at implementation_briefs.${index}.steps`)
+    }
+    if (Array.isArray(brief.acceptance_criteria) && brief.acceptance_criteria.length === 0) {
+      errors.push(`empty_field at implementation_briefs.${index}.acceptance_criteria`)
+    }
+    validateStringArrayFields(brief.steps, `implementation_briefs.${index}.steps`, errors)
+    validateStringArrayFields(brief.acceptance_criteria, `implementation_briefs.${index}.acceptance_criteria`, errors)
+  })
+
+  const materials = report.ready_materials
+  if (materials) {
+    validateStringField(materials.meta_title, 'ready_materials.meta_title', errors)
+    validateStringField(materials.meta_description, 'ready_materials.meta_description', errors)
+    validateStringArrayFields(materials.cta_variants, 'ready_materials.cta_variants', errors)
+    materials.faq?.forEach((faq, index) => {
+      validateStringField(faq.question, `ready_materials.faq.${index}.question`, errors)
+      validateStringField(faq.answer, `ready_materials.faq.${index}.answer`, errors)
+    })
+  }
+
+  for (const key of ['headline', 'cta'] as const) {
+    if (isBareLabel(report.clarity?.[key]?.suggested_rewrite)) {
+      errors.push(`empty_field at clarity.${key}.suggested_rewrite`)
+    }
+  }
+}
+
+function normalizedSentence(value: string): string {
+  return value.trim().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').toLowerCase()
+}
+
+function isClientReplacementSentence(value: string): boolean {
+  const normalized = normalizedSentence(value)
+  return CLIENT_VISIBLE_REPLACEMENT_SENTENCES.some((sentence) => normalizedSentence(sentence) === normalized)
+}
+
+function validateFaqSanity(report: ClearSignalReport, errors: string[]): void {
+  const faq = report.ready_materials?.faq
+  if (!Array.isArray(faq)) return
+  faq.forEach((item, index) => {
+    const question = String(item.question || '').trim()
+    const answer = String(item.answer || '').trim()
+    const path = `ready_materials.faq.${index}.answer`
+    if (answer.length > 0 && answer.length < 20) errors.push(`faq_structure at ${path}: answer too short`)
+    if (answer && question && normalizedSentence(answer) === normalizedSentence(question)) {
+      errors.push(`faq_structure at ${path}: answer repeats question`)
+    }
+    if (isClientReplacementSentence(answer)) {
+      errors.push(`faq_structure at ${path}: replacement sentence leaked`)
+    }
+  })
+}
+
+function validatePolicyWording(report: ClearSignalReport, errors: string[], warnings: string[]): void {
+  const visit = (value: unknown, path: string[] = []) => {
+    if (typeof value === 'string') {
+      const key = path[path.length - 1]
+      if (isRawPath(path, key)) return
+      for (const [pattern, label] of ASTROTURFING_PATTERNS) {
+        pattern.lastIndex = 0
+        if (pattern.test(value) && !hasPolicyNegationGuard(value, pattern)) {
+          const message = `policy_wording at ${path.join('.') || '<root>'}: ${label}`
+          if (isPublishablePath(path)) errors.push(message)
+          else warnings.push(message)
+        }
+      }
+      return
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => visit(item, [...path, String(index)]))
+      return
+    }
+    if (value && typeof value === 'object') {
+      for (const [key, child] of Object.entries(value)) visit(child, [...path, key])
+    }
+  }
+  visit(report)
+}
+
+function hasPolicyNegationGuard(value: string, pattern: RegExp): boolean {
+  const re = new RegExp(pattern.source, pattern.flags.replace('g', ''))
+  const match = re.exec(value)
+  if (!match || match.index < 0) return false
+  const before = value.slice(Math.max(0, match.index - 40), match.index)
+  return /\b(?:avoid|never|not|without|do\s+not|don't)\b[\s\w,;:-]*$/i.test(before)
 }
 
 function validatePublishableFacts(report: ClearSignalReport, errors: string[]): void {
@@ -858,24 +1008,41 @@ function jsonLdTypes(jsonLd?: string): string[] {
   }
 }
 
-function schemaAllowlist(category: MaterialCategory): Set<string> {
-  const lists: Record<MaterialCategory, string[]> = {
-    moving_service: ['MovingCompany', 'Service', 'FAQPage', 'Organization'],
-    video_production: ['ProfessionalService', 'Organization', 'Service', 'FAQPage'],
-    tailoring_atelier: ['LocalBusiness', 'ProfessionalService', 'Service', 'FAQPage', 'Organization'],
-    art_gallery: ['ArtGallery', 'Organization', 'VisualArtwork', 'FAQPage'],
-    default: ['Organization', 'FAQPage'],
-  }
-  return new Set(lists[category])
-}
-
 function schemaGuidanceForReport(report: ClearSignalReport): string {
   const category = materialCategoryForContext(
     report.meta.business_context as BusinessContext | undefined,
     report.meta.observed_business_context
   )
-  const types = [...schemaAllowlist(category)].filter((type) => !/AggregateRating|Review/i.test(type))
+  const types = (allowedSchemaTypes(category) || ['Organization', 'FAQPage'])
+    .filter((type) => !/AggregateRating|Review/i.test(type))
+    .filter((type) => category !== 'moving_service' || type !== 'LocalBusiness')
   return `Use ${types.join(', ')} schema unless verified review-source data is supplied.`
+}
+
+function schemaTypeMentions(text: string): string[] {
+  const known = [
+    'MovingCompany',
+    'ProfessionalService',
+    'LocalBusiness',
+    'ArtGallery',
+    'VisualArtwork',
+    'Organization',
+    'Service',
+    'FAQPage',
+    'AggregateRating',
+    'Review',
+    'VideoObject',
+    'WebSite',
+    'ItemList',
+    'OfferCatalog',
+  ]
+  return known.filter((type) => {
+    const escaped = escapeRegExp(type)
+    const typeContext = new RegExp(`\\b${escaped}\\b\\s+(?:schema|markup|type)\\b`, 'i')
+    const atTypeContext = new RegExp(`@type["']?\\s*:\\s*["']${escaped}["']`, 'i')
+    const schemaOrgContext = new RegExp(`schema\\.org/${escaped}\\b`, 'i')
+    return typeContext.test(text) || atTypeContext.test(text) || schemaOrgContext.test(text)
+  })
 }
 
 function validateReadyMaterialsCategory(report: ClearSignalReport, errors: string[]): void {
@@ -886,12 +1053,27 @@ function validateReadyMaterialsCategory(report: ClearSignalReport, errors: strin
   const materials = report.ready_materials
   if (!materials) return
 
-  const allowed = schemaAllowlist(category)
+  const allowed = new Set(allowedSchemaTypes(category) || [])
   for (const type of jsonLdTypes(materials.json_ld)) {
-    if (!allowed.has(type)) {
-      errors.push(`schema_category: ${type} is not allowed for ${category}`)
+    if (allowed.size > 0 && !allowed.has(type)) {
+      errors.push(`schema_mismatch at ready_materials.json_ld: ${type} is not allowed for ${category}`)
     }
   }
+
+  report.implementation_briefs?.forEach((brief, briefIndex) => {
+    const fields = [
+      ['fix_title', brief.fix_title],
+      ...brief.steps.map((step, stepIndex) => [`steps.${stepIndex}`, step] as const),
+      ...brief.acceptance_criteria.map((criterion, criterionIndex) => [`acceptance_criteria.${criterionIndex}`, criterion] as const),
+    ] as Array<readonly [string, string]>
+    for (const [field, value] of fields) {
+      for (const type of schemaTypeMentions(value)) {
+        if (allowed.size > 0 && !allowed.has(type)) {
+          errors.push(`schema_mismatch at implementation_briefs.${briefIndex}.${field}: ${type} is not allowed for ${category}`)
+        }
+      }
+    }
+  })
 
   if (category !== 'moving_service') {
     const text = [

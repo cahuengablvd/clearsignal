@@ -19,6 +19,14 @@ export const INTERNAL_CLIENT_ARTIFACTS: Array<[RegExp, string]> = [
   [/[a-z0-9]\.Ask\b/i, 'missing space before Ask sentence'],
 ]
 
+export const ASTROTURFING_PATTERNS: Array<[RegExp, string]> = [
+  [/\bseed\s+(?:brand\s+)?mentions?\b/i, 'seeded brand mentions'],
+  [/\bestablish\s+presence\s+on\s+(?:reddit|forums?|communities)\b/i, 'undisclosed community presence'],
+  [/\bundisclosed\s+(?:promotion|posting|reviews?|mentions?)\b/i, 'undisclosed promotion'],
+  [/\bfake\s+(?:reviews?|testimonials?|comments?)\b/i, 'fake review wording'],
+  [/\b(?:post|publish|leave)\s+(?:positive|5[- ]?star|five[- ]?star)\s+(?:reviews?|comments?)\b/i, 'fake positive review wording'],
+]
+
 export const BROKEN_TEXT_REPAIRS: Array<[RegExp, string]> = [
   [
     /eligible independent third-party source or eligible entity database entity creation/gi,

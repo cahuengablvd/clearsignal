@@ -415,9 +415,195 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
     )
 
     expect(r.errors).toEqual(expect.arrayContaining([
-      'schema_category: MovingCompany is not allowed for art_gallery',
+      'schema_mismatch at ready_materials.json_ld: MovingCompany is not allowed for art_gallery',
       'foreign_category_copy: moving-service wording appeared in art_gallery materials',
     ]))
+  })
+
+  it('does not treat ordinary brief verbs as schema type mentions', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://gallery.example',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Example Gallery',
+          business_context: {
+            business_model: 'gallery',
+            primary_conversion_goal: 'inquiry',
+            purchase_availability: 'unknown',
+            ships_internationally: 'unknown',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: '',
+            verified_facts: '',
+          },
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Example Gallery was reviewed.', top_fixes: [] },
+        ready_materials: {
+          meta_title: 'Example Gallery',
+          meta_description: 'Example Gallery presents current exhibitions and inquiry options.',
+          faq: [
+            { question: 'What does Example Gallery show?', answer: 'Example Gallery presents current exhibitions.' },
+            { question: 'How do I inquire?', answer: 'Contact the gallery team for current availability.' },
+            { question: 'Where is it located?', answer: 'Contact the gallery team for current location details.' },
+            { question: 'Can I request details?', answer: 'Ask the gallery team for current exhibition details.' },
+          ],
+          cta_variants: ['Request details', 'Contact the gallery', 'Ask about availability'],
+          json_ld: '{"@context":"https://schema.org","@type":"ArtGallery","name":"Example Gallery"}',
+        },
+        implementation_briefs: [
+          {
+            fix_title: 'Markup review',
+            steps: ['Review current markup before editing the page.'],
+            acceptance_criteria: ['Service copy remains accurate and transparent.'],
+          },
+        ],
+      }) as any
+    )
+
+    expect(r.errors.filter((error) => error.startsWith('schema_mismatch at implementation_briefs'))).toEqual([])
+  })
+
+  it('flags empty client-facing fields with stable empty_field errors', () => {
+    const r = validateReport(
+      ({
+        meta: { url: 'https://example.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+        clarity: {
+          headline: { suggested_rewrite: 'Fix:' },
+          cta: { suggested_rewrite: 'Request a consultation' },
+        },
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Example was reviewed.',
+          top_fixes: [
+            { id: 1, title: 'Fix:', description: '   ', impact: 'high', effort: 'easy', category: 'copy' },
+          ],
+        },
+        ready_materials: {
+          meta_title: 'Example',
+          meta_description: 'Example description',
+          faq: [
+            { question: 'What does Example do?', answer: 'Example answers buyer questions clearly.' },
+            { question: 'How do I start?', answer: 'Book a call with the team.' },
+            { question: 'Where are you located?', answer: 'Contact the team for location details.' },
+            { question: 'Can I request details?', answer: 'Ask the team for current availability.' },
+          ],
+          cta_variants: ['Request details', 'Book a call', 'Ask a question'],
+          json_ld: '{"@context":"https://schema.org","@type":"Organization","name":"Example"}',
+        },
+        implementation_briefs: [
+          { fix_title: 'Fix:', steps: ['Step:'], acceptance_criteria: ['Done when the update is reviewed.'] },
+        ],
+      }) as any
+    )
+
+    expect(r.errors).toEqual(expect.arrayContaining([
+      'empty_field at clarity.headline.suggested_rewrite',
+      'empty_field at implementation_briefs.0.fix_title',
+      'empty_field at implementation_briefs.0.steps.0',
+    ]))
+    expect(r.report.action.top_fixes).toEqual([])
+    expect(r.report.implementation_briefs).toHaveLength(1)
+    expect(r.warnings).toEqual(expect.arrayContaining([
+      'action.top_fixes: dropped empty action item',
+    ]))
+  })
+
+  it('flags FAQ answers after deterministic repairs', () => {
+    const r = validateReport(
+      ({
+        meta: { url: 'https://example.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Example was reviewed.', top_fixes: [] },
+        ready_materials: {
+          meta_title: 'Example',
+          meta_description: 'Example description',
+          faq: [
+            { question: 'What does Example do?', answer: 'Short.' },
+            { question: 'Do you ship internationally?', answer: 'Do you ship internationally?' },
+            { question: 'Can you promise response times?', answer: CLIENT_VISIBLE_REPLACEMENT_SENTENCES[0] },
+            { question: 'How do I start?', answer: 'Contact the team to discuss the current next step.' },
+          ],
+          cta_variants: ['Request details', 'Book a call', 'Ask a question'],
+          json_ld: '{"@context":"https://schema.org","@type":"Organization","name":"Example"}',
+        },
+      }) as any
+    )
+
+    expect(r.errors).toEqual(expect.arrayContaining([
+      'faq_structure at ready_materials.faq.1.answer: answer repeats question',
+    ]))
+    expect(r.errors).not.toContain('faq_structure at ready_materials.faq.0.answer: answer too short')
+    expect(r.errors).not.toContain('faq_structure at ready_materials.faq.2.answer: replacement sentence leaked')
+  })
+
+  it('flags astroturfing policy wording as an error in publishable copy and a warning elsewhere', () => {
+    const r = validateReport(
+      ({
+        meta: { url: 'https://example.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Example was reviewed.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Community proof',
+              description: 'Seed brand mentions in relevant forums.',
+              impact: 'medium',
+              effort: 'medium',
+              category: 'ai_search',
+            },
+          ],
+        },
+        ready_materials: {
+          meta_title: 'Example',
+          meta_description: 'Seed discussions on Reddit to establish presence on forums.',
+          faq: [
+            { question: 'What does Example do?', answer: 'Example answers buyer questions clearly.' },
+            { question: 'How do I start?', answer: 'Contact the team to discuss the current next step.' },
+            { question: 'Where are you located?', answer: 'Contact the team for current location details.' },
+            { question: 'Can I request details?', answer: 'Ask the team for current availability details.' },
+          ],
+          cta_variants: ['Request details', 'Book a call', 'Ask a question'],
+          json_ld: '{"@context":"https://schema.org","@type":"Organization","name":"Example"}',
+        },
+      }) as any
+    )
+
+    expect(r.errors.some((error) => error.startsWith('policy_wording at ready_materials.meta_description'))).toBe(true)
+    expect(r.warnings.some((warning) => warning.startsWith('policy_wording at action.top_fixes.0.description'))).toBe(true)
+  })
+
+  it('allows anti-astroturfing advice that explicitly negates the blocked behavior', () => {
+    const r = validateReport(
+      ({
+        meta: { url: 'https://example.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: {
+          executive_summary: 'Example was reviewed.',
+          top_fixes: [
+            {
+              id: 1,
+              title: 'Community proof',
+              description: 'Participate transparently in relevant communities and avoid undisclosed promotion.',
+              impact: 'medium',
+              effort: 'medium',
+              category: 'ai_search',
+            },
+          ],
+        },
+      }) as any
+    )
+
+    expect(r.errors.some((error) => error.includes('undisclosed promotion'))).toBe(false)
+    expect(r.warnings.some((warning) => warning.includes('undisclosed promotion'))).toBe(false)
   })
 })
 
@@ -1206,7 +1392,7 @@ describe('pre-PDF contradiction validator', () => {
             {
               id: 1,
               title: 'AI visibility',
-              description: '',
+              description: 'Link AI visibility recommendations to AI-query evidence, not page metadata.',
               impact: 'high',
               effort: 'easy',
               category: 'ai_search',
@@ -1231,7 +1417,7 @@ describe('pre-PDF contradiction validator', () => {
             {
               id: 2,
               title: 'CTA',
-              description: '',
+              description: 'Use the detected CTA evidence as the basis for this CTA recommendation.',
               impact: 'high',
               effort: 'easy',
               category: 'cta',
@@ -2530,6 +2716,34 @@ describe('sentence-level trust engine', () => {
       'action.top_fixes: dropped empty action item',
       'implementation_briefs: dropped empty brief',
     ]))
+  })
+
+  it('warns on removed empty brief steps and flags briefs left without steps', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://example.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Example',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Example was reviewed.', top_fixes: [] },
+        implementation_briefs: [
+          {
+            fix_title: 'Update proof copy',
+            steps: ['   '],
+            acceptance_criteria: ['Proof copy uses verified facts.'],
+          },
+        ],
+      }) as any
+    )
+
+    expect(r.errors).toContain('empty_field at implementation_briefs.0.steps')
+    expect(r.warnings).toContain('implementation_briefs.0.steps: dropped empty step')
   })
 
   it('drops duplicate outreach channels from stored reports', () => {

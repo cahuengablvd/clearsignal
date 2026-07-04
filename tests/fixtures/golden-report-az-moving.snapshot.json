@@ -32,22 +32,8 @@
     "evidence_count": 15,
     "summary": "Az-moving was named in 0 of 15 successfully tested engine-query combinations across Perplexity, OpenAI and Claude. The measured AI visibility score was 0/100; mention rate was 0% and citation rate was 0%. Likely contributing factors include limited owned-page answer density, limited citations of az-moving.com, and stronger third-party source visibility for competitors in the tested responses."
   },
-  "executive_summary": "Az-moving was reviewed against the crawled page, selected competitors, and tested AI responses. The highest-priority opportunities are: Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator; Add LocalBusiness and Service schema markup to the homepage.",
+  "executive_summary": "Az-moving was reviewed against the crawled page, selected competitors, and tested AI responses. The highest-priority opportunities are: Add LocalBusiness and Service schema markup to the homepage; Add an FAQ section to the homepage addressing common mover-selection questions.",
   "top_fixes": [
-    {
-      "id": 1,
-      "title": "Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator",
-      "category": "copy",
-      "owner": "Founder / marketing",
-      "contributor": "Copywriter",
-      "implementer": "Developer",
-      "confidence": 60,
-      "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
-      "evidence_ids": [
-        "OBS-PROOF-001"
-      ],
-      "evidence_basis": "Based on: OBS-PROOF-001"
-    },
     {
       "id": 2,
       "title": "Add LocalBusiness and Service schema markup to the homepage",
@@ -60,18 +46,6 @@
         "OBS-SCHEMA-001"
       ],
       "evidence_basis": "Based on: OBS-SCHEMA-001"
-    },
-    {
-      "id": 3,
-      "title": "Make trust credentials visible as text, not only as image elements",
-      "category": "proof",
-      "owner": "Developer",
-      "contributor": "SEO",
-      "implementer": "Developer",
-      "confidence": 65,
-      "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
-      "evidence_ids": [],
-      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
     },
     {
       "id": 4,

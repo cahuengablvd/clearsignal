@@ -1,0 +1,124 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({
+  audit: {
+    id: 'audit-1',
+    audit_status: 'awaiting_review',
+    admin_notes: null,
+  },
+  selectSingle: vi.fn(),
+  auditEq: vi.fn(),
+  auditUpdate: vi.fn(),
+  stageDelete: vi.fn(),
+  stageEq: vi.fn(),
+  from: vi.fn(),
+  enqueueAudit: vi.fn(),
+  isValidAdminCookie: vi.fn(),
+}))
+
+vi.mock('@/lib/supabase', () => ({
+  supabaseAdmin: {
+    from: mocks.from,
+  },
+}))
+
+vi.mock('@/lib/audit-queue', () => ({
+  enqueueAudit: mocks.enqueueAudit,
+}))
+
+vi.mock('@/lib/auth', () => ({
+  ADMIN_COOKIE: 'admin_session',
+  isValidAdminCookie: mocks.isValidAdminCookie,
+}))
+
+vi.mock('@/lib/admin-notes', () => ({
+  appendAdminNote: vi.fn((existing: string | null | undefined, note: string) =>
+    existing ? `${existing}\n${note}` : note
+  ),
+}))
+
+import { POST } from '../app/api/audit/route'
+
+function request(body: Record<string, unknown>) {
+  return {
+    cookies: {
+      get: vi.fn(() => ({ value: 'valid-cookie' })),
+    },
+    json: vi.fn(async () => body),
+  }
+}
+
+function setupSupabase({ stageDeleteError = null }: { stageDeleteError?: unknown } = {}) {
+  mocks.selectSingle.mockResolvedValue({ data: mocks.audit, error: null })
+  mocks.auditEq
+    .mockReturnValueOnce({ single: mocks.selectSingle })
+    .mockReturnValueOnce({ error: null })
+  mocks.auditUpdate.mockReturnValue({ eq: mocks.auditEq })
+  mocks.stageEq.mockReturnValue({ error: stageDeleteError })
+  mocks.stageDelete.mockReturnValue({ eq: mocks.stageEq })
+  mocks.from.mockImplementation((table: string) => {
+    if (table === 'audits') {
+      return {
+        select: vi.fn(() => ({ eq: mocks.auditEq })),
+        update: mocks.auditUpdate,
+      }
+    }
+    if (table === 'audit_stage_executions') {
+      return {
+        delete: mocks.stageDelete,
+      }
+    }
+    throw new Error(`Unexpected table: ${table}`)
+  })
+}
+
+describe('admin audit regeneration route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.audit = {
+      id: 'audit-1',
+      audit_status: 'awaiting_review',
+      admin_notes: null,
+    }
+    mocks.isValidAdminCookie.mockReturnValue(true)
+    mocks.enqueueAudit.mockResolvedValue(undefined)
+    setupSupabase()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('clears cached stage executions before enqueueing regeneration', async () => {
+    const res = await POST(request({ audit_id: 'audit-1' }) as never)
+
+    expect(res.status).toBe(200)
+    expect(mocks.from).toHaveBeenCalledWith('audit_stage_executions')
+    expect(mocks.stageDelete).toHaveBeenCalled()
+    expect(mocks.stageEq).toHaveBeenCalledWith('audit_id', 'audit-1')
+    expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      audit_status: 'queued',
+      recovery_attempts: 0,
+    }))
+    expect(mocks.enqueueAudit).toHaveBeenCalledWith('audit-1', expect.objectContaining({
+      trigger: 'admin_regenerate',
+      reuseGeoEvidence: true,
+    }))
+    expect(mocks.stageDelete.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.enqueueAudit.mock.invocationCallOrder[0]
+    )
+  })
+
+  it('does not enqueue regeneration if clearing cached stages fails', async () => {
+    setupSupabase({ stageDeleteError: { message: 'delete failed' } })
+
+    const res = await POST(request({ audit_id: 'audit-1' }) as never)
+    const body = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(body).toEqual({ error: 'Failed to clear cached audit stages' })
+    expect(mocks.auditUpdate).not.toHaveBeenCalled()
+    expect(mocks.enqueueAudit).not.toHaveBeenCalled()
+  })
+})

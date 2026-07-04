@@ -32,6 +32,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Audit is already processing' }, { status: 409 })
     }
 
+    const { error: clearStageCacheError } = await supabaseAdmin
+      .from('audit_stage_executions')
+      .delete()
+      .eq('audit_id', audit_id)
+
+    if (clearStageCacheError) {
+      console.error('Failed to clear audit stage cache before regeneration:', clearStageCacheError)
+      return NextResponse.json({ error: 'Failed to clear cached audit stages' }, { status: 500 })
+    }
+
     // Make regeneration visible immediately in the admin UI. Trigger may take a
     // few seconds to start the task and flip the row to `processing`.
     const queuedAt = new Date().toISOString()

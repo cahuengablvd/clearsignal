@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   try {
     const { data: existing } = await supabaseAdmin
       .from('audits')
-      .select('id, payment_status, audit_status')
+      .select('id, payment_status, audit_status, processing_started_at')
       .eq('stripe_session', stripeSessionId)
       .single()
 
@@ -66,17 +66,17 @@ export async function POST(req: Request) {
         existing.audit_status
       )
 
-      if (existing.payment_status === 'paid') {
-        return new Response(JSON.stringify({ received: true, message: 'Already processed' }), { status: 200 })
+      if (['done', 'delivered'].includes(existing.audit_status)) {
+        return new Response(JSON.stringify({ received: true, message: 'Audit already in progress or done' }), { status: 200 })
       }
 
-      if (['processing', 'done', 'delivered'].includes(existing.audit_status)) {
-        return new Response(JSON.stringify({ received: true, message: 'Audit already in progress or done' }), { status: 200 })
+      if (existing.payment_status === 'paid' && existing.audit_status === 'processing' && existing.processing_started_at) {
+        return new Response(JSON.stringify({ received: true, message: 'Audit already in progress' }), { status: 200 })
       }
 
       await supabaseAdmin
         .from('audits')
-        .update({ payment_status: 'paid', audit_status: 'processing' })
+        .update({ payment_status: 'paid', audit_status: 'queued', processing_started_at: null })
         .eq('id', existing.id)
 
       auditId = existing.id
@@ -95,19 +95,46 @@ export async function POST(req: Request) {
           score_id: meta.score_id || null,
           stripe_session: stripeSessionId,
           payment_status: 'paid',
-          audit_status: 'processing',
+          audit_status: 'queued',
           tier: meta.tier || 'automated',
         })
         .select('id')
         .single()
 
       if (insertError || !audit) {
-        console.error('[webhook] Failed to insert audit record:', insertError)
-        return new Response(JSON.stringify({ error: 'DB insert failed' }), { status: 500 })
-      }
+        if (insertError?.code === '23505') {
+          const { data: duplicate } = await supabaseAdmin
+            .from('audits')
+            .select('id, payment_status, audit_status, processing_started_at')
+            .eq('stripe_session', stripeSessionId)
+            .single()
 
-      auditId = audit.id
-      console.log('[webhook] Audit record created:', auditId)
+          if (duplicate) {
+            if (['done', 'delivered'].includes(duplicate.audit_status)) {
+              return new Response(JSON.stringify({ received: true, message: 'Already processed' }), { status: 200 })
+            }
+            if (duplicate.payment_status === 'paid' && duplicate.audit_status === 'processing' && duplicate.processing_started_at) {
+              return new Response(JSON.stringify({ received: true, message: 'Audit already in progress' }), { status: 200 })
+            }
+            await supabaseAdmin
+              .from('audits')
+              .update({ payment_status: 'paid', audit_status: 'queued', processing_started_at: null })
+              .eq('id', duplicate.id)
+
+            auditId = duplicate.id
+            console.log('[webhook] Recovered duplicate Stripe session as audit:', auditId)
+          } else {
+            console.error('[webhook] Failed to resolve duplicate Stripe session:', insertError)
+            return new Response(JSON.stringify({ error: 'DB insert failed' }), { status: 500 })
+          }
+        } else {
+          console.error('[webhook] Failed to insert audit record:', insertError)
+          return new Response(JSON.stringify({ error: 'DB insert failed' }), { status: 500 })
+        }
+      } else {
+        auditId = audit.id
+        console.log('[webhook] Audit record created:', auditId)
+      }
     }
 
     console.log('[webhook] Enqueuing audit for:', auditId)

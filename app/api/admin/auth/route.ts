@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { ADMIN_COOKIE, adminCookieValue } from '@/lib/auth'
+import { clientIp, enforceRateLimits } from '@/lib/rate-limit'
+import { notify } from '@/lib/notify'
 
 // Password-based admin auth. ADMIN_PASSWORD must be set - there is NO fallback.
 export async function POST(req: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD
+  const ip = clientIp(req)
 
   // Fail closed if the admin password isn't configured.
   if (!adminPassword) {
     console.error('[admin/auth] ADMIN_PASSWORD is not set - admin login disabled')
     return NextResponse.json({ error: 'Admin authentication is not configured' }, { status: 503 })
+  }
+
+  const rl = await enforceRateLimits([
+    { key: `admin-auth:ip:${ip}`, limit: 5, windowMs: 15 * 60 * 1000 },
+  ])
+  if (!rl.allowed) {
+    await notify('admin_auth_rate_limited', {
+      ip,
+      resetAt: new Date(rl.resetAt).toISOString(),
+    })
+    return NextResponse.json({ error: 'Too many admin login attempts. Please try again later.' }, { status: 429 })
   }
 
   const { password } = await req.json()

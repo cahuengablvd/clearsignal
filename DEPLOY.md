@@ -11,6 +11,11 @@
 
 - Automatic on `main` branch push.
 - Check Vercel dashboard: build success, deployment live.
+- Verify production env:
+  - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set.
+  - `AUTO_DELIVER_AUDITS` is unset or `false`.
+  - `QUALITY_CRITIC_ENABLED` is unset or `false` unless intentionally sampling shadow critic.
+  - `NOTIFY_WEBHOOK_URL` is set for paid-audit/admin-auth alerts.
 
 ## Trigger.dev (Backend / Generation)
 
@@ -32,6 +37,42 @@ Verify deployments:
 
 ```text
 https://cloud.trigger.dev/projects/v3/proj_asmgraqylwwxozdsmmjx/deployments
+```
+
+Trigger workers must be deployed after every code push that touches `lib/audit-*`,
+`lib/report-*`, `lib/quality/*`, `trigger/*`, or prompt/cost code. GitHub/Vercel
+deploy does not update Trigger workers.
+
+Verify Trigger env matches Vercel for:
+
+```text
+ANTHROPIC_API_KEY
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+FIRECRAWL_API_KEY
+RESEND_API_KEY
+RESEND_FROM
+NEXT_PUBLIC_BASE_URL
+NOTIFY_WEBHOOK_URL
+ACCESS_TOKEN_SECRET
+TRIGGER_SECRET_KEY
+TRIGGER_PROJECT_ID
+TRIGGER_VERSION
+AUTO_DELIVER_AUDITS=false
+QUALITY_CRITIC_ENABLED=false
+AUDIT_AI_COST_ALERT_USD
+AUDIT_AI_CALL_ALERT_COUNT
+ANTHROPIC_BALANCE_ALERT_THRESHOLD
+MONTHLY_BUDGET_USD
+ADMIN_ALERT_EMAIL
+ADMIN_EMAIL
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
+USE_ANTHROPIC_ADMIN_BALANCE=false
+ANTHROPIC_ADMIN_API_KEY
+ANTHROPIC_USAGE_REPORT_URL
+PERPLEXITY_API_KEY
+OPENAI_API_KEY
 ```
 
 ## Supabase (Migrations)

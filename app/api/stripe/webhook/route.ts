@@ -66,7 +66,7 @@ export async function POST(req: Request) {
         existing.audit_status
       )
 
-      if (['done', 'delivered'].includes(existing.audit_status)) {
+      if (['done', 'delivered', 'awaiting_review', 'delivery_failed'].includes(existing.audit_status)) {
         return new Response(JSON.stringify({ received: true, message: 'Audit already in progress or done' }), { status: 200 })
       }
 
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
             .single()
 
           if (duplicate) {
-            if (['done', 'delivered'].includes(duplicate.audit_status)) {
+            if (['done', 'delivered', 'awaiting_review', 'delivery_failed'].includes(duplicate.audit_status)) {
               return new Response(JSON.stringify({ received: true, message: 'Already processed' }), { status: 200 })
             }
             if (duplicate.payment_status === 'paid' && duplicate.audit_status === 'processing' && duplicate.processing_started_at) {

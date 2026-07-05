@@ -139,6 +139,9 @@ export async function runMonitoringForSite(siteId: string): Promise<void> {
       icp: site.icp_description || '',
       competitors: (site.competitors as string[] | null) || [],
       queryCount: 5,
+      engines: ['claude'],
+      narrative: false,
+      webSearch: false,
     })
 
     // Previous run for delta.

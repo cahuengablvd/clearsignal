@@ -13,6 +13,9 @@
 - Check Vercel dashboard: build success, deployment live.
 - Verify production env:
   - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set.
+  - `FREE_SCORE_DAILY_LIMIT` is set to the desired daily free-score cap.
+  - `MONITORING_SIGNUP_ENABLED` is unset or `false` until monitoring is paid/approved.
+  - `MONITORING_SIGNUP_DAILY_LIMIT` is set before enabling monitoring signup.
   - `AUTO_DELIVER_AUDITS` is unset or `false`.
   - `QUALITY_CRITIC_ENABLED` is unset or `false` unless intentionally sampling shadow critic.
   - `NOTIFY_WEBHOOK_URL` is set for paid-audit/admin-auth alerts.

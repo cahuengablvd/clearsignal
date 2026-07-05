@@ -6,6 +6,7 @@
  * Otherwise falls back to a per-instance in-memory limiter.
  */
 import { NextRequest } from 'next/server'
+import { notify } from './notify'
 
 interface Bucket {
   count: number
@@ -16,6 +17,7 @@ const buckets = new Map<string, Bucket>()
 
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
+let degradedAlertSent = false
 
 export interface RateResult {
   allowed: boolean
@@ -49,6 +51,12 @@ function inMemory(key: string, limit: number, windowMs: number): RateResult {
   return { allowed: true, remaining: limit - existing.count, resetAt: existing.resetAt }
 }
 
+async function notifyDegradedRateLimit(reason: string, key: string) {
+  if (process.env.NODE_ENV !== 'production' || degradedAlertSent) return
+  degradedAlertSent = true
+  await notify('rate_limit_degraded', { reason, key })
+}
+
 /** Check one key against a limit. Async to allow the Upstash backend. */
 export async function checkRateLimit(
   key: string,
@@ -66,7 +74,10 @@ export async function checkRateLimit(
       // If Redis is unreachable, fail open to the in-memory limiter rather than
       // blocking all traffic.
       console.error('[rate-limit] Upstash error, using in-memory fallback:', err)
+      await notifyDegradedRateLimit('upstash_error', key)
     }
+  } else {
+    await notifyDegradedRateLimit('upstash_not_configured', key)
   }
   return inMemory(key, limit, windowMs)
 }

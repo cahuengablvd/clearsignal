@@ -21,6 +21,8 @@ export const maxDuration = 60
 // Cap the GEO probe so a slow/stuck answer engine can't push us toward the
 // Vercel function timeout - the score still returns without GEO.
 const GEO_BUDGET_MS = 35_000
+const DAY_MS = 24 * 60 * 60 * 1000
+const FREE_SCORE_DAILY_LIMIT = Number(process.env.FREE_SCORE_DAILY_LIMIT ?? 50)
 
 function geoWithTimeout(p: Promise<GeoResult>): Promise<GeoResult | null> {
   return Promise.race([
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
     // rotated to bypass the cap).
     const hour = 60 * 60 * 1000
     const rl = await enforceRateLimits([
+      { key: 'score:global:daily', limit: FREE_SCORE_DAILY_LIMIT, windowMs: DAY_MS },
       { key: `score:email:${input.email.toLowerCase()}`, limit: 3, windowMs: hour },
       { key: `score:domain:${emailDomain(input.email)}`, limit: 10, windowMs: hour },
       { key: `score:ip:${clientIp(req)}`, limit: 8, windowMs: hour },

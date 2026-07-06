@@ -17,7 +17,7 @@ import { inferFixContributor, inferFixImplementer, inferFixOwner } from '../lib/
 import { resolveBrandEntity } from '../lib/brand'
 import { clarityUserPrompt, gapUserPrompt, actionUserPrompt, materialsUserPrompt } from '../lib/prompts'
 import { validateReport } from '../lib/report-validator'
-import { canClaimCommercialPolicy, canClaimInternationalShipping, canClaimProvenance, canClaimPurchaseAvailable } from '../lib/business-context'
+import { canClaimCommercialPolicy, canClaimInternationalShipping, canClaimProvenance, canClaimPurchaseAvailable, inferObservedBusinessContext } from '../lib/business-context'
 import { buildVerifiedFactsLayer, factAllowed } from '../lib/verified-facts'
 import { splitSentences } from '../lib/trust/sentences'
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from '../lib/trust/decisions'
@@ -2974,6 +2974,130 @@ describe('stored validation_warnings never re-trigger the artifact detector', ()
       'replacement_phrase: "Add source-backed proof details in crawlable copy." at geo.source_gap_analysis.3.recommended_fix: "..."'
     const r = validateReport(baseReport({ validation_warnings: [warning] }))
     expect(r.report.validation_warnings).toEqual([warning])
+  })
+})
+
+describe('pre-beta polish regressions', () => {
+  it('does not infer storage or Canada from weak Rozie-style context', () => {
+    const observed = inferObservedBusinessContext({
+      url: 'https://rozie.app',
+      markdown: 'Rozie is a mobile cleaning marketplace in Malta. Blog storage state Canada',
+      html: '',
+    })
+
+    expect(observed.observed_services || []).not.toContain('Storage')
+    expect(observed.observed_location || []).not.toContain('Canada')
+  })
+
+  it('suppresses observed context values that conflict with operator-verified context', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://rozie.app',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Rozie',
+          business_context: {
+            business_model: 'Two-sided marketplace / mobile service-booking platform',
+            primary_conversion_goal: 'App download followed by completed cleaning booking',
+            purchase_availability: 'Available through the Rozie mobile app',
+            ships_internationally: 'On-site service in Malta; no shipping',
+            provenance_or_authentication: 'Service-provider onboarding and verification requirements',
+            target_markets_languages: 'Malta; English',
+            verified_facts: 'Rozie is a cleaning marketplace operating in Malta.',
+          },
+          observed_business_context: {
+            observed_location: ['Canada'],
+            observed_services: ['Storage'],
+          },
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Rozie was reviewed.', top_fixes: [] },
+      }) as any
+    )
+
+    expect(r.errors).toEqual([])
+    expect(r.report.meta.observed_business_context).toBeUndefined()
+    expect(r.warnings.some((w) => w.startsWith('observed_context: suppressed'))).toBe(true)
+  })
+
+  it('repairs a timeline FAQ orphan with a verified timeframe', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://monokelriga.lv',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Monokel Riga',
+          business_context: {
+            business_model: 'Tailoring service',
+            primary_conversion_goal: 'Appointment booking',
+            purchase_availability: 'some',
+            ships_internationally: 'no',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: 'Riga; Latvian and English',
+            verified_facts: 'Bespoke suit production takes 4-6 weeks.',
+          },
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Monokel Riga was reviewed.', top_fixes: [] },
+        ready_materials: {
+          meta_title: 'Monokel Riga',
+          meta_description: 'Monokel Riga tailoring.',
+          cta_variants: ['Book an appointment', 'Request a fitting', 'Contact Monokel Riga'],
+          faq: [
+            {
+              question: 'How long does it take to make a bespoke suit?',
+              answer: 'This includes measurements, fitting appointments, fabric selection, and final adjustments.',
+            },
+          ],
+          json_ld: '{}',
+        },
+      }) as any
+    )
+
+    expect(r.errors).toEqual([])
+    expect(r.report.ready_materials?.faq[0].answer).toMatch(/^The operator-verified timeframe is 4-6 weeks\./)
+    expect(r.warnings).toContain('faq_structure at ready_materials.faq.0.answer: repaired orphaned answer with verified timeframe')
+  })
+
+  it('removes empty quoted placeholders left after redaction', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://blvdprod.com',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'BLVD Production',
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'BLVD Production was reviewed.', top_fixes: [] },
+        implementation_briefs: [
+          {
+            fix_title: 'Create a Web3 page',
+            owner: 'Founder / marketing',
+            contributor: 'Copywriter',
+            implementer: 'Developer',
+            steps: ['Replace any outcome metrics with \'\' until verified client data is available.'],
+            acceptance_criteria: ['No unverified outcome metrics are published.'],
+          },
+        ],
+      }) as any
+    )
+
+    const text = JSON.stringify(r.report)
+    expect(r.errors).toEqual([])
+    expect(text).not.toContain("''")
+    expect(text).toContain('Replace any outcome metrics until verified client data is available.')
   })
 })
 

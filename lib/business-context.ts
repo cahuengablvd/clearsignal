@@ -102,9 +102,16 @@ export function inferObservedBusinessContext(args: {
 }): ObservedBusinessContext {
   const text = `${args.url} ${args.markdown} ${args.html || ''}`.replace(/\s+/g, ' ')
   const lower = text.toLowerCase()
-  const locations = ['Toronto', 'GTA', 'Ontario', 'Quebec', 'Canada'].filter((place) =>
-    new RegExp(`\\b${place.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)
-  )
+  const hasLocalServiceIntent = /\b(?:serv(?:e|ing|ices?)|service areas?|available in|based in|located in|near|across|throughout|movers?|moving|relocation|cleaning|marketplace)\b/i.test(text)
+  const locations = ['Toronto', 'GTA', 'Ontario', 'Quebec', 'Canada'].filter((place) => {
+    const escaped = place.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const mentioned = new RegExp(`\\b${escaped}\\b`, 'i').test(text)
+    if (!mentioned) return false
+    if (place === 'Canada' && !/\b(?:canada|canadian)\b[^.?!]{0,80}\b(?:customers?|market|service|business|movers?|moving|relocation)\b|\b(?:customers?|market|service|business|movers?|moving|relocation)\b[^.?!]{0,80}\b(?:canada|canadian)\b/i.test(text)) {
+      return false
+    }
+    return hasLocalServiceIntent
+  })
   const services: string[] = []
   const addService = (label: string, re: RegExp) => {
     if (re.test(text) && !services.includes(label)) services.push(label)
@@ -114,7 +121,7 @@ export function inferObservedBusinessContext(args: {
   addService('Condo moving', /\bcondo\s+(?:moving|moves?)\b/i)
   addService('Piano moving', /\bpiano\s+(?:moving|movers?)\b/i)
   addService('Packing', /\bpacking\s+(?:services?|help)\b/i)
-  addService('Storage', /\bstorage\b/i)
+  addService('Storage', /\b(?:storage\s+(?:services?|solutions?|units?|options?)|moving\s+and\s+storage|storage\s+for\s+(?:moves?|relocations?))\b/i)
 
   const isMoving = /\b(moving company|movers?|relocation|residential moving|commercial moving)\b/i.test(text)
   const quoteCta = /\b(get|request|book)\s+(?:a\s+)?(?:free\s+)?quote\b|\bquote request\b|\bget quote\b/i.test(text)

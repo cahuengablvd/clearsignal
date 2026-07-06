@@ -134,6 +134,7 @@ const CLIENT_ARTIFACT_PATTERNS: Array<[RegExp, string]> = [
   [/\bContact\s+[A-Z][A-Za-z0-9 -]{1,60}\s+to discuss\s+(?:third-party rating|credential|proof|piano-moving availability)[^.?!]*[.?!]?/i, 'replacement contact instruction'],
   [/\bFix:\s*(?:$|\n|---|Owner:|Priority score:)/i, 'empty fix'],
   [/\b(?:labelled|labeled|placeholder)\s+''\b/i, 'empty placeholder'],
+  [/\b(?:with|to|as|using|replace(?:d)?(?:\s+with)?)\s+(?:''|"")\b/i, 'empty quoted placeholder'],
   [/\be\.g\.,?\s*Use (?:MovingCompany|Organization|Service|FAQPage|LocalBusiness|ProfessionalService)[^.!?]*(?:unless verified|schema unless)/i, 'schema guidance leak'],
 ]
 
@@ -233,6 +234,8 @@ function cleanupClientPhrasing(text: string): string {
     .replace(/\busually within\s*,\s*(?:substituting|replace)[^.?!]*[.?!]?/gi, '')
     .replace(/['"]Serving Toronto and the GTA since['"]/gi, 'Serving Toronto and the GTA')
     .replace(/['"]\+\s*moves completed['"]/gi, 'completed-move proof')
+    .replace(/\bwith\s+(?:''|"")\s+until\b/gi, 'until')
+    .replace(/\b(?:''|"")\s+until\b/gi, 'until')
     .replace(/\bserving Toronto and the GTA since\s*['"]?\s*$/gi, 'Serving Toronto and the GTA')
     .replace(/\+\s*moves completed\b/gi, 'completed moves')
     .replace(/['"]?\s*on HomeStars\s*(?:--|-)\s*reviews['"]?/gi, 'HomeStars reviews')
@@ -316,6 +319,96 @@ function normalizeEncodingArtifacts(text: string): string {
     .replace(/\s{2,}/g, ' ')
 }
 
+function contextText(ctx?: BusinessContext): string {
+  if (!ctx) return ''
+  return [
+    ctx.business_model,
+    ctx.primary_conversion_goal,
+    ctx.purchase_availability,
+    ctx.ships_internationally,
+    ctx.provenance_or_authentication,
+    ctx.target_markets_languages,
+    ctx.verified_facts,
+  ].filter(Boolean).join(' ')
+}
+
+function normalizeContextToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+function observedContextHasAnyValue(observed: NonNullable<ClearSignalReport['meta']['observed_business_context']>): boolean {
+  return Boolean(
+    observed.inferred_business_type ||
+    observed.observed_primary_cta ||
+    observed.observed_service_category ||
+    observed.observed_location?.length ||
+    observed.observed_services?.length
+  )
+}
+
+function sanitizeObservedBusinessContext(report: ClearSignalReport, ctx: BusinessContext | undefined, warn: (m: string) => void): void {
+  const observed = report.meta.observed_business_context
+  if (!observed) return
+
+  const ctxText = normalizeContextToken(contextText(ctx))
+  if (!ctxText) return
+
+  const next = clone(observed)
+  const removed: string[] = []
+
+  if (next.observed_location?.length) {
+    next.observed_location = next.observed_location.filter((location) => {
+      const normalized = normalizeContextToken(location)
+      if (normalized === 'canada' && /\bmalta\b/.test(ctxText) && !/\bcanada|canadian\b/.test(ctxText)) {
+        removed.push(`location:${location}`)
+        return false
+      }
+      return true
+    })
+    if (next.observed_location.length === 0) delete next.observed_location
+  }
+
+  if (next.observed_services?.length) {
+    const userContextSuggestsStorage = /\bstorage\b/.test(ctxText)
+    const userContextSuggestsMoving = /\b(moving|mover|relocation)\b/.test(ctxText)
+    const userContextSuggestsCleaning = /\b(cleaning|cleaner|cleaners|housekeeping|maid)\b/.test(ctxText)
+    next.observed_services = next.observed_services.filter((service) => {
+      const normalized = normalizeContextToken(service)
+      if (normalized === 'storage' && !userContextSuggestsStorage && !userContextSuggestsMoving) {
+        removed.push(`service:${service}`)
+        return false
+      }
+      if (/\bmoving\b/.test(normalized) && userContextSuggestsCleaning && !userContextSuggestsMoving) {
+        removed.push(`service:${service}`)
+        return false
+      }
+      return true
+    })
+    if (next.observed_services.length === 0) delete next.observed_services
+  }
+
+  if (next.inferred_business_type) {
+    const normalizedType = normalizeContextToken(next.inferred_business_type)
+    if (/\bmoving\b/.test(normalizedType) && /\b(cleaning|marketplace)\b/.test(ctxText) && !/\bmoving|mover|relocation\b/.test(ctxText)) {
+      removed.push(`business_type:${next.inferred_business_type}`)
+      delete next.inferred_business_type
+    }
+  }
+
+  if (next.observed_service_category) {
+    const normalizedCategory = normalizeContextToken(next.observed_service_category)
+    if (/\bmoving\b/.test(normalizedCategory) && /\b(cleaning|marketplace)\b/.test(ctxText) && !/\bmoving|mover|relocation\b/.test(ctxText)) {
+      removed.push(`service_category:${next.observed_service_category}`)
+      delete next.observed_service_category
+    }
+  }
+
+  if (removed.length) {
+    report.meta.observed_business_context = observedContextHasAnyValue(next) ? next : undefined
+    warn(`observed_context: suppressed weak/conflicting observed values (${removed.join(', ')})`)
+  }
+}
+
 export function validateReport(input: ClearSignalReport): ReportValidation {
   const report = clone(input)
   const warnings: string[] = []
@@ -324,6 +417,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const businessContext = report.meta.business_context as BusinessContext | undefined
   const brand = (report.meta.canonical_brand || '').trim()
   const domain = report.meta.domain
+  sanitizeObservedBusinessContext(report, businessContext, warn)
   report.meta.verified_facts_layer = buildVerifiedFactsLayer({
     businessContext,
     observedBusinessContext: report.meta.observed_business_context,
@@ -526,7 +620,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const walked = mapProse(report, repair) as ClearSignalReport
   rebuildReadyMaterials(walked, warn)
   dropReplacementOnlyBriefSteps(walked, warn)
-  validateFaqSanity(walked, errors)
+  validateFaqSanity(walked, errors, warnings, businessContext)
   dropEmptyNarrativeArrayItems(walked, warn)
   dropEmptyActionItems(walked, warn)
   validateEmptyClientFields(walked, errors)
@@ -873,13 +967,38 @@ function isClientReplacementSentence(value: string): boolean {
   return CLIENT_VISIBLE_REPLACEMENT_SENTENCES.some((sentence) => normalizedSentence(sentence) === normalized)
 }
 
-function validateFaqSanity(report: ClearSignalReport, errors: string[]): void {
+function extractVerifiedDuration(ctx?: BusinessContext): string | undefined {
+  const text = ctx?.verified_facts || ''
+  const match = text.match(/\b\d+\s*(?:-|to|\u2013|\u2014)\s*\d+\s*(?:business\s+days?|days?|weeks?|months?|hours?)\b|\bwithin\s+\d+\s*(?:business\s+days?|days?|weeks?|months?|hours?)\b/i)
+  return match?.[0]?.replace(/\s+/g, ' ').trim()
+}
+
+function validateFaqSanity(
+  report: ClearSignalReport,
+  errors: string[],
+  warnings: string[],
+  businessContext?: BusinessContext
+): void {
   const faq = report.ready_materials?.faq
   if (!Array.isArray(faq)) return
   faq.forEach((item, index) => {
     const question = String(item.question || '').trim()
     const answer = String(item.answer || '').trim()
     const path = `ready_materials.faq.${index}.answer`
+    if (
+      question &&
+      answer &&
+      /\bhow\s+long|timeline|lead\s*time|delivery\s+time|turnaround\b/i.test(question) &&
+      /^(?:This|These|It)\b/.test(answer)
+    ) {
+      const duration = extractVerifiedDuration(businessContext)
+      if (duration) {
+        item.answer = `The operator-verified timeframe is ${duration}. ${answer}`
+        warnings.push(`faq_structure at ${path}: repaired orphaned answer with verified timeframe`)
+      } else {
+        warnings.push(`faq_structure at ${path}: answer starts with an anaphora and may be missing the first sentence`)
+      }
+    }
     if (answer.length > 0 && answer.length < 20) errors.push(`faq_structure at ${path}: answer too short`)
     if (answer && question && normalizedSentence(answer) === normalizedSentence(question)) {
       errors.push(`faq_structure at ${path}: answer repeats question`)

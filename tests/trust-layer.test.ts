@@ -3067,6 +3067,49 @@ describe('pre-beta polish regressions', () => {
     expect(r.warnings).toContain('faq_structure at ready_materials.faq.0.answer: repaired orphaned answer with verified timeframe')
   })
 
+  it('inserts a verified timeframe when a timeline FAQ answer omits it', () => {
+    const r = validateReport(
+      ({
+        meta: {
+          url: 'https://monokelriga.lv',
+          generated_at: '',
+          icp_description: '',
+          competitors: [],
+          tier: 'automated',
+          canonical_brand: 'Monokel Riga',
+          business_context: {
+            business_model: 'Tailoring service',
+            primary_conversion_goal: 'Appointment booking',
+            purchase_availability: 'some',
+            ships_internationally: 'no',
+            provenance_or_authentication: 'unknown',
+            target_markets_languages: 'Riga; Latvian and English',
+            verified_facts: 'Observed sales cycle: consultation, design and fitting, delivery in 4-6 weeks.',
+          },
+        },
+        clarity: {},
+        gap: { competitor_analysis: [] },
+        action: { executive_summary: 'Monokel Riga was reviewed.', top_fixes: [] },
+        ready_materials: {
+          meta_title: 'Monokel Riga',
+          meta_description: 'Monokel Riga tailoring.',
+          cta_variants: ['Book an appointment', 'Request a fitting', 'Contact Monokel Riga'],
+          faq: [
+            {
+              question: 'How long does it take to receive a bespoke suit from Monokelriga?',
+              answer: 'The process includes an initial consultation, design and fabric selection, and one or more fitting sessions before the finished suit is handed over.',
+            },
+          ],
+          json_ld: '{}',
+        },
+      }) as any
+    )
+
+    expect(r.errors).toEqual([])
+    expect(r.report.ready_materials?.faq[0].answer).toContain('The operator-verified timeframe is 4-6 weeks.')
+    expect(r.warnings).toContain('faq_structure at ready_materials.faq.0.answer: inserted verified timeframe into timeline answer')
+  })
+
   it('removes empty quoted placeholders left after redaction', () => {
     const r = validateReport(
       ({

@@ -985,19 +985,23 @@ function validateFaqSanity(
     const question = String(item.question || '').trim()
     const answer = String(item.answer || '').trim()
     const path = `ready_materials.faq.${index}.answer`
+    const asksForTimeframe = /\bhow\s+long|timeline|lead\s*time|delivery\s+time|turnaround\b/i.test(question)
+    const duration = asksForTimeframe ? extractVerifiedDuration(businessContext) : undefined
     if (
       question &&
       answer &&
-      /\bhow\s+long|timeline|lead\s*time|delivery\s+time|turnaround\b/i.test(question) &&
+      asksForTimeframe &&
       /^(?:This|These|It)\b/.test(answer)
     ) {
-      const duration = extractVerifiedDuration(businessContext)
       if (duration) {
         item.answer = `The operator-verified timeframe is ${duration}. ${answer}`
         warnings.push(`faq_structure at ${path}: repaired orphaned answer with verified timeframe`)
       } else {
         warnings.push(`faq_structure at ${path}: answer starts with an anaphora and may be missing the first sentence`)
       }
+    } else if (question && answer && asksForTimeframe && duration && !answer.toLowerCase().includes(duration.toLowerCase())) {
+      item.answer = `The operator-verified timeframe is ${duration}. ${answer}`
+      warnings.push(`faq_structure at ${path}: inserted verified timeframe into timeline answer`)
     }
     if (answer.length > 0 && answer.length < 20) errors.push(`faq_structure at ${path}: answer too short`)
     if (answer && question && normalizedSentence(answer) === normalizedSentence(question)) {

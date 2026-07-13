@@ -45,6 +45,16 @@ const PRICING_AUDIT = [
   'PDF report + web dashboard',
   'Human review before delivery',
 ]
+const MOBILE_PRICING_AUDIT = PRICING_AUDIT.filter((item) =>
+  [
+    'AI visibility scan across ChatGPT, Claude and Perplexity',
+    'Buyer-intent query set',
+    'Competitor and citation gap analysis',
+    'Website clarity and trust review',
+    'Prioritized action plan',
+    'Human review before delivery',
+  ].includes(item)
+)
 const FAQS = [
   {
     q: 'What happens after the free score?',
@@ -75,6 +85,7 @@ const FAQS = [
     a: 'You can. ClearSignal runs a structured query set, compares engines, stores evidence, calculates visibility metrics, and turns the findings into an implementation plan.',
   },
 ]
+const MOBILE_FAQS = FAQS.slice(0, 4)
 
 /* ---------- Engine logos (monochrome, nominative badges) ---------- */
 function OpenAILogo({ className }: { className?: string }) {
@@ -250,7 +261,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#FBF6EE]" style={{ color: ESPRESSO }}>
       {/* ============ HERO ============ */}
-      <section className="relative flex min-h-[92vh] flex-col overflow-hidden">
+      <section className="relative flex flex-col overflow-hidden lg:min-h-[92vh]">
         <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[18%]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img key={BACKGROUNDS[bg].src} src={BACKGROUNDS[bg].src} alt="" className="h-full w-full object-cover object-center" />
@@ -262,19 +273,19 @@ export default function LandingPage() {
         <SignalOverlay />
 
         {/* Balanced nav: logo left, links centered, CTA right */}
-        <nav className="relative z-20 mx-auto flex w-full max-w-6xl items-center px-6 pt-6">
+        <nav className="relative z-20 mx-auto flex w-full max-w-6xl items-center px-5 pt-5 sm:px-6 sm:pt-6">
           <div className="flex flex-1 justify-start">
-            <span className="text-[17px] font-bold tracking-tight" style={{ color: ESPRESSO }}>ClearSignal</span>
+            <span className="text-[15px] font-bold tracking-tight sm:text-[17px]" style={{ color: ESPRESSO }}>ClearSignal</span>
           </div>
           <GlassNav />
           <div className="flex flex-1 justify-end">
-            <Link href="/score" className="rounded-full border border-[#E0D3C0] bg-white px-5 py-2.5 text-[13px] font-semibold shadow-sm transition-shadow duration-200 hover:shadow-md">
+            <Link href="/score" className="rounded-full border border-[#E0D3C0] bg-white px-4 py-2 text-[12px] font-semibold shadow-sm transition-shadow duration-200 hover:shadow-md sm:px-5 sm:py-2.5 sm:text-[13px]">
               Get free score
             </Link>
           </div>
         </nav>
 
-        <div className="relative z-20 mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-6 pb-24 pt-14 lg:grid-cols-[1fr_1fr]">
+        <div className="relative z-20 mx-auto grid w-full max-w-6xl flex-1 items-center gap-4 px-5 pb-8 pt-10 sm:px-6 sm:pb-14 lg:grid-cols-[1fr_1fr] lg:gap-10 lg:pb-24 lg:pt-14">
           <div className="text-center lg:text-left">
             <div className="text-[11px] font-semibold uppercase tracking-[0.26em]" style={{ color: '#9E6238' }}>Expert-reviewed AI Visibility Audit</div>
             <h1 className="mt-5 text-[clamp(2.1rem,4.1vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.02em]">
@@ -304,14 +315,14 @@ export default function LandingPage() {
           </div>
 
           {/* Phone group: composed as one visual */}
-          <div className="relative flex justify-center">
+          <div className="relative -my-10 flex scale-[0.9] justify-center sm:my-0 sm:scale-100">
             {/* depth behind the phone */}
             <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="h-[30rem] w-[30rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,186,128,0.35) 0%, rgba(255,205,160,0.12) 45%, transparent 70%)', filter: 'blur(12px)' }} />
               <div className="absolute h-[30rem] w-[23rem] rotate-6 rounded-[3rem] border border-white/60 bg-white/25 shadow-[0_40px_100px_-50px_rgba(46,33,22,0.4)]" style={{ backdropFilter: 'blur(6px)' }} />
             </div>
 
-            <div className="relative z-10 w-[326px]">
+            <div className="relative z-10 w-[296px] sm:w-[326px]">
               <FloatingCard className="-left-24 top-14">
                 <div className="text-[10px] uppercase tracking-wider text-[#8D7B6B]">Mention rate</div>
                 <div className="mt-0.5 text-[18px] font-semibold" style={{ color: ESPRESSO }}>21% <span className="text-[11px] font-medium text-[#9B8A78]">of 14 queries</span></div>
@@ -329,8 +340,8 @@ export default function LandingPage() {
                 <span className="text-[12.5px] font-medium">Source gap detected</span>
               </FloatingCard>
 
-              <div className="rounded-[3.4rem] border-[7px] border-[#221913] bg-[#221913] shadow-[0_50px_100px_-35px_rgba(46,33,22,0.5)]">
-                <div className="relative flex h-[664px] flex-col overflow-hidden rounded-[2.95rem] bg-white">
+              <div className="rounded-[3rem] border-[7px] border-[#221913] bg-[#221913] shadow-[0_50px_100px_-35px_rgba(46,33,22,0.5)] sm:rounded-[3.4rem]">
+                <div className="relative flex h-[590px] flex-col overflow-hidden rounded-[2.55rem] bg-white sm:h-[664px] sm:rounded-[2.95rem]">
                   <div className="absolute left-1/2 top-3 h-[26px] w-[92px] -translate-x-1/2 rounded-full bg-[#221913]" />
                   <div className="flex flex-1 flex-col px-5 pb-5 pt-14">
                     <div className="text-[11px] font-medium uppercase tracking-widest text-[#B4A69A]">AI assistant</div>
@@ -462,7 +473,7 @@ export default function LandingPage() {
             </p>
           </Reveal>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <div className="-mx-6 mt-10 flex snap-x gap-4 overflow-x-auto px-6 pb-4 md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0 md:pb-0">
             {[
               {
                 Logo: OpenAILogo, engine: 'ChatGPT', badge: 'named' as const, position: '20% center', caption: 'Names specific businesses',
@@ -511,8 +522,8 @@ export default function LandingPage() {
                 ),
               },
             ].map(({ Logo, engine, badge, position, body, caption }, i) => (
-              <Reveal key={engine} delay={i * 100}>
-                <div className="relative h-[330px] overflow-hidden rounded-2xl border border-[#E6DBCB]">
+              <Reveal key={engine} delay={i * 100} className="min-w-[84vw] snap-center md:min-w-0">
+                <div className="relative h-[300px] overflow-hidden rounded-2xl border border-[#E6DBCB] md:h-[330px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/hero-bg-8.jpg" alt="" className="h-full w-full object-cover" style={{ objectPosition: position }} />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#2E2116]/20 to-transparent" />
@@ -555,7 +566,7 @@ export default function LandingPage() {
           </Reveal>
 
           {/* Tabs */}
-          <div className="mt-9 flex justify-center">
+          <div className="mt-9 hidden justify-center sm:flex">
             <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] p-1.5 backdrop-blur">
               {['Scan', 'Analyze', 'Fix', 'Monitor'].map((t, i) => (
                 <button
@@ -574,7 +585,7 @@ export default function LandingPage() {
           </div>
 
           {/* Product window - constrained width */}
-          <div className="mx-auto mt-8 max-w-[1040px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)]">
+          <div className="mx-auto mt-8 max-w-[1120px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)]">
             <div className="flex items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-5 py-3">
               <div className="flex gap-1.5">
                 {['#E7CDB8', '#EAD9C4', '#E2D3BE'].map((c) => (<span key={c} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c }} />))}
@@ -584,7 +595,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bg-white px-7 pb-6 pt-6">
+            <div className="bg-white px-4 pb-5 pt-5 sm:px-7 sm:pb-6 sm:pt-6">
               {tab === 0 && (
                 <div>
                   <div className="flex items-center justify-between">
@@ -649,7 +660,39 @@ export default function LandingPage() {
               )}
 
               {tab === 2 && (
-                <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+                <>
+                <div className="lg:hidden">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-[15px] font-semibold">Implementation plan</div>
+                      <div className="mt-0.5 text-[12px] text-[#8D7B6B]">Evidence becomes owner-ready tasks</div>
+                    </div>
+                    <span className="rounded-full bg-[#FBF7F1] px-3 py-1 text-[11px] font-medium text-[#8D7B6B]">Fix view</span>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {[
+                      { t: 'Rewrite H1 to name your city', ev: 'ChatGPT - not named', owner: 'Owner', st: 'Ready' },
+                      { t: 'Publish an FAQ with schema markup', ev: 'Perplexity - no FAQ cited', owner: 'Developer', st: 'Draft' },
+                      { t: 'Create a local comparison page', ev: 'Source gap - top 3 sources', owner: 'Contributor', st: 'Planned' },
+                    ].map((f, i) => (
+                      <div key={f.t} className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-3.5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: COPPER }}>{i + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-semibold text-[#5C5148]">{f.t}</div>
+                            <div className="mt-1 flex items-center gap-1 text-[11px] text-[#A6957F]"><Link2 className="h-3 w-3 shrink-0" style={{ color: 'rgba(169,83,31,0.55)' }} />{f.ev}</div>
+                            <div className="mt-2 flex flex-wrap gap-2 text-[10.5px] font-semibold uppercase tracking-wider">
+                              <span className="rounded-md border px-2 py-1" style={{ borderColor: 'rgba(169,83,31,0.35)', color: COPPER }}>Fix</span>
+                              <span className="rounded-md border border-[#E4DACB] px-2 py-1 text-[#8D7B6B]">{f.owner}</span>
+                              <span className="rounded-md border border-[#E4DACB] px-2 py-1 text-[#8D7B6B]">{f.st}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="hidden gap-5 lg:grid lg:grid-cols-[1.5fr_1fr]">
                   <div>
                     <div className="flex items-center justify-between">
                       <div><div className="text-[16px] font-semibold">Implementation plan</div><div className="mt-0.5 text-[12.5px] text-[#8D7B6B]">Each finding, tied to evidence, becomes a task</div></div>
@@ -709,6 +752,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </div>
+                </>
               )}
 
               {tab === 3 && (
@@ -803,7 +847,12 @@ export default function LandingPage() {
                 <div className="pb-1.5 text-[12.5px] text-[#9B8A78]">Regular price &euro;399<br />after the founding offer.</div>
               </div>
 
-              <ul className="mt-8 grid gap-x-7 gap-y-2.5 text-[13.5px] sm:grid-cols-2">
+              <ul className="mt-8 grid gap-x-7 gap-y-2.5 text-[13.5px] sm:hidden">
+                {MOBILE_PRICING_AUDIT.map((b) => (
+                  <li key={b} className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} /><span className="text-[#5C5148]">{b}</span></li>
+                ))}
+              </ul>
+              <ul className="mt-8 hidden gap-x-7 gap-y-2.5 text-[13.5px] sm:grid sm:grid-cols-2">
                 {PRICING_AUDIT.map((b) => (
                   <li key={b} className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} /><span className="text-[#5C5148]">{b}</span></li>
                 ))}
@@ -845,9 +894,9 @@ export default function LandingPage() {
             {FAQS.map((item, i) => {
               const open = openFaq === i
               return (
-                <div key={item.q} className="border-b border-[#EAE2D6]">
-                  <button onClick={() => setOpenFaq(open ? null : i)} className="flex w-full items-center justify-between gap-6 py-[17px] text-left">
-                    <span className="text-[15.5px] font-medium" style={{ color: ESPRESSO }}>{item.q}</span>
+                <div key={item.q} className={`border-b border-[#EAE2D6] ${i >= MOBILE_FAQS.length ? 'hidden sm:block' : ''}`}>
+                  <button onClick={() => setOpenFaq(open ? null : i)} className="flex min-h-[44px] w-full items-center justify-between gap-6 py-3 text-left sm:py-[17px]">
+                    <span className="text-[14.5px] font-medium sm:text-[15.5px]" style={{ color: ESPRESSO }}>{item.q}</span>
                     <span className="shrink-0" style={{ color: 'rgba(169,83,31,0.7)' }}>
                       {open ? <Minus className="h-[18px] w-[18px]" /> : <Plus className="h-[18px] w-[18px]" />}
                     </span>
@@ -872,22 +921,22 @@ export default function LandingPage() {
               <span className="inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: '#E9A96B' }} />
               ClearSignal
             </div>
-            <nav className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[13px] text-[#D2C2B0]">
+            <nav className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[12.5px] text-[#D2C2B0] sm:text-[13px]">
               {[
                 { label: 'Workflow', href: '#workflow' },
-                { label: 'What you get', href: '#what-you-get' },
+                { label: 'What you get', href: '#what-you-get', hideMobile: true },
                 { label: 'Pricing', href: '#pricing' },
                 { label: 'FAQ', href: '#faq' },
-                { label: 'Sample audit', href: '/sample' },
+                { label: 'Sample audit', href: '/sample', hideMobile: true },
               ].map((l, i) => (
-                <span key={l.label} className="flex items-center gap-2">
+                <span key={l.label} className={`items-center gap-2 ${l.hideMobile ? 'hidden sm:flex' : 'flex'}`}>
                   {i > 0 && <span className="text-[#6B5844]">&middot;</span>}
                   <a href={l.href} className="transition-colors duration-200 hover:text-white">{l.label}</a>
                 </span>
               ))}
             </nav>
           </div>
-          <div className="mt-7 flex flex-col items-center justify-between gap-2 border-t pt-6 text-[11.5px] text-[#A08D77] md:flex-row" style={{ borderColor: 'rgba(233,169,107,0.14)' }}>
+          <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t pt-6 text-center text-[12px] leading-relaxed text-[#A08D77] md:flex-row md:text-left" style={{ borderColor: 'rgba(233,169,107,0.14)' }}>
             <span>Expert-reviewed AI visibility audits for teams that want to be found, cited and recommended.</span>
             <span className="text-[#8C7862]">ClearSignal measures a tested query set. Results may vary as AI systems and source data change.</span>
           </div>

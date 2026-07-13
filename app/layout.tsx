@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ClearSignal - B2B SaaS Homepage Audit',
-  description: 'Find out why your site underconverts and what to fix first. In 48 hours.',
+  title: 'ClearSignal - Expert-reviewed AI Visibility Audit',
+  description: 'ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.',
 }
 
 export default function RootLayout({

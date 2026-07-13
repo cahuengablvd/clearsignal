@@ -21,17 +21,17 @@ const AUDIENCES = [
   {
     name: 'Agencies',
     copy: 'Answer the question clients are already asking: "What does AI say about us?" ClearSignal turns AI visibility gaps into competitor evidence, source issues and implementation work you can run for client websites.',
-    cta: 'Get your free score',
+    cta: 'Get your free AI visibility score',
   },
   {
     name: 'SaaS & B2B teams',
     copy: 'See which competitors AI recommends, which sources it trusts, and what your website is missing before buyers reach a shortlist.',
-    cta: 'Get your free score',
+    cta: 'Get your free AI visibility score',
   },
   {
     name: 'Service businesses',
     copy: '"Who should I hire for this?" is now an AI conversation. See who AI recommends, which sources it trusts, and where your website falls short.',
-    cta: 'Get your free score',
+    cta: 'Get your free AI visibility score',
   },
 ]
 
@@ -188,7 +188,7 @@ function GlassNav() {
         }}
       />
       {NAV_ITEMS.map((item) => (
-        <a key={item.label} href={item.href} onMouseEnter={moveBlob} className="relative z-10 rounded-full px-4 py-1.5 text-[13px] font-medium" style={{ color: INK }}>
+        <a key={item.label} href={item.href} onMouseEnter={moveBlob} className="relative z-10 rounded-full px-4 py-1.5 text-[14px] font-medium" style={{ color: INK }}>
           {item.label}
         </a>
       ))}
@@ -275,7 +275,7 @@ export default function LandingPage() {
         {/* Balanced nav: logo left, links centered, CTA right */}
         <nav className="relative z-20 mx-auto flex w-full max-w-6xl items-center px-5 pt-5 sm:px-6 sm:pt-6">
           <div className="flex flex-1 justify-start">
-            <span className="text-[15px] font-bold tracking-tight sm:text-[17px]" style={{ color: ESPRESSO }}>ClearSignal</span>
+            <span className="text-[16px] font-bold tracking-tight sm:text-[18px]" style={{ color: ESPRESSO }}>ClearSignal</span>
           </div>
           <GlassNav />
           <div className="flex flex-1 justify-end">
@@ -294,14 +294,14 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-[#6E5A50] lg:mx-0">
               ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.
             </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:mt-7 lg:justify-start">
               <Link href="/score" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90" style={{ backgroundColor: ESPRESSO }}>
                 Get your free AI visibility score <ArrowRight className="h-4 w-4" />
               </Link>
               <Link href="/sample" className="inline-flex items-center rounded-full border border-[#E0D3C0] bg-white/90 px-6 py-3.5 text-sm font-semibold backdrop-blur transition-shadow duration-200 hover:shadow-md">View sample report</Link>
             </div>
-            <p className="mt-5 text-[13px] font-medium" style={{ color: INK }}>Start with a free score. Founding-client audits are &euro;149 for the first 20 businesses.</p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:justify-start">
+            <p className="mt-3 text-[13px] font-medium lg:mt-5" style={{ color: INK }}>Start with a free score. Founding-client audits are &euro;149 for the first 20 businesses.</p>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:mt-4 lg:justify-start">
               <span className="text-[10.5px] font-bold uppercase tracking-[0.18em]" style={{ color: '#7A6857' }}>Tested across</span>
               <div className="flex items-center gap-5" style={{ color: INK }}>
                 {ENGINES.map(({ name, Logo }) => (
@@ -315,14 +315,14 @@ export default function LandingPage() {
           </div>
 
           {/* Phone group: composed as one visual */}
-          <div className="relative -my-10 flex scale-[0.9] justify-center sm:my-0 sm:scale-100">
+          <div className="relative -my-14 flex scale-[0.84] justify-center sm:my-0 sm:scale-100">
             {/* depth behind the phone */}
             <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="h-[30rem] w-[30rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,186,128,0.35) 0%, rgba(255,205,160,0.12) 45%, transparent 70%)', filter: 'blur(12px)' }} />
               <div className="absolute h-[30rem] w-[23rem] rotate-6 rounded-[3rem] border border-white/60 bg-white/25 shadow-[0_40px_100px_-50px_rgba(46,33,22,0.4)]" style={{ backdropFilter: 'blur(6px)' }} />
             </div>
 
-            <div className="relative z-10 w-[296px] sm:w-[326px]">
+            <div className="relative z-10 w-[280px] sm:w-[326px]">
               <FloatingCard className="-left-24 top-14">
                 <div className="text-[10px] uppercase tracking-wider text-[#8D7B6B]">Mention rate</div>
                 <div className="mt-0.5 text-[18px] font-semibold" style={{ color: ESPRESSO }}>21% <span className="text-[11px] font-medium text-[#9B8A78]">of 14 queries</span></div>
@@ -341,7 +341,7 @@ export default function LandingPage() {
               </FloatingCard>
 
               <div className="rounded-[3rem] border-[7px] border-[#221913] bg-[#221913] shadow-[0_50px_100px_-35px_rgba(46,33,22,0.5)] sm:rounded-[3.4rem]">
-                <div className="relative flex h-[590px] flex-col overflow-hidden rounded-[2.55rem] bg-white sm:h-[664px] sm:rounded-[2.95rem]">
+                <div className="relative flex h-[560px] flex-col overflow-hidden rounded-[2.55rem] bg-white sm:h-[664px] sm:rounded-[2.95rem]">
                   <div className="absolute left-1/2 top-3 h-[26px] w-[92px] -translate-x-1/2 rounded-full bg-[#221913]" />
                   <div className="flex flex-1 flex-col px-5 pb-5 pt-14">
                     <div className="text-[11px] font-medium uppercase tracking-widest text-[#B4A69A]">AI assistant</div>
@@ -473,7 +473,7 @@ export default function LandingPage() {
             </p>
           </Reveal>
 
-          <div className="-mx-6 mt-10 flex snap-x gap-4 overflow-x-auto px-6 pb-4 md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0 md:pb-0">
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
             {[
               {
                 Logo: OpenAILogo, engine: 'ChatGPT', badge: 'named' as const, position: '20% center', caption: 'Names specific businesses',
@@ -522,7 +522,7 @@ export default function LandingPage() {
                 ),
               },
             ].map(({ Logo, engine, badge, position, body, caption }, i) => (
-              <Reveal key={engine} delay={i * 100} className="min-w-[84vw] snap-center md:min-w-0">
+              <Reveal key={engine} delay={i * 100}>
                 <div className="relative h-[300px] overflow-hidden rounded-2xl border border-[#E6DBCB] md:h-[330px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/hero-bg-8.jpg" alt="" className="h-full w-full object-cover" style={{ objectPosition: position }} />
@@ -665,9 +665,9 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[15px] font-semibold">Implementation plan</div>
-                      <div className="mt-0.5 text-[12px] text-[#8D7B6B]">Evidence becomes owner-ready tasks</div>
+                      <div className="mt-0.5 text-[13px] text-[#6E5A50]">Evidence becomes owner-ready tasks</div>
                     </div>
-                    <span className="rounded-full bg-[#FBF7F1] px-3 py-1 text-[11px] font-medium text-[#8D7B6B]">Fix view</span>
+                    <span className="rounded-full bg-[#FBF7F1] px-3 py-1 text-[12px] font-medium text-[#6E5A50]">Fix view</span>
                   </div>
                   <div className="mt-4 space-y-3">
                     {[
@@ -679,9 +679,9 @@ export default function LandingPage() {
                         <div className="flex items-start gap-3">
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: COPPER }}>{i + 1}</span>
                           <div className="min-w-0 flex-1">
-                            <div className="text-[13px] font-semibold text-[#5C5148]">{f.t}</div>
-                            <div className="mt-1 flex items-center gap-1 text-[11px] text-[#A6957F]"><Link2 className="h-3 w-3 shrink-0" style={{ color: 'rgba(169,83,31,0.55)' }} />{f.ev}</div>
-                            <div className="mt-2 flex flex-wrap gap-2 text-[10.5px] font-semibold uppercase tracking-wider">
+                            <div className="text-[14.5px] font-semibold leading-snug text-[#4A3A2D]">{f.t}</div>
+                            <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-[#7A6857]"><Link2 className="h-3.5 w-3.5 shrink-0" style={{ color: 'rgba(169,83,31,0.65)' }} />{f.ev}</div>
+                            <div className="mt-2.5 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-wider">
                               <span className="rounded-md border px-2 py-1" style={{ borderColor: 'rgba(169,83,31,0.35)', color: COPPER }}>Fix</span>
                               <span className="rounded-md border border-[#E4DACB] px-2 py-1 text-[#8D7B6B]">{f.owner}</span>
                               <span className="rounded-md border border-[#E4DACB] px-2 py-1 text-[#8D7B6B]">{f.st}</span>
@@ -847,7 +847,7 @@ export default function LandingPage() {
                 <div className="pb-1.5 text-[12.5px] text-[#9B8A78]">Regular price &euro;399<br />after the founding offer.</div>
               </div>
 
-              <ul className="mt-8 grid gap-x-7 gap-y-2.5 text-[13.5px] sm:hidden">
+              <ul className="mt-8 grid gap-x-7 gap-y-3 text-[14px] sm:hidden">
                 {MOBILE_PRICING_AUDIT.map((b) => (
                   <li key={b} className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} /><span className="text-[#5C5148]">{b}</span></li>
                 ))}
@@ -872,11 +872,11 @@ export default function LandingPage() {
 
           {/* Trust / limitations - prominent, not fine print */}
           <Reveal className="mx-auto mt-14 max-w-3xl">
-            <div className="rounded-2xl border p-8 text-center" style={{ borderColor: 'rgba(169,83,31,0.22)', backgroundColor: '#FFFDF9' }}>
+            <div className="rounded-2xl border p-6 text-center sm:p-8" style={{ borderColor: 'rgba(169,83,31,0.22)', backgroundColor: '#FFFDF9' }}>
               <p className="mx-auto max-w-2xl text-[15.5px] font-medium leading-relaxed" style={{ color: ESPRESSO }}>
                 Every recommendation is tied to a tested AI response, cited source or publicly available page on your website.
               </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-[13px] font-medium text-[#5C5148]">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-[13px] font-medium text-[#4F4238]">
                 {['No analytics connection required', 'No guaranteed rankings', 'Human review before delivery'].map((p) => (
                   <span key={p} className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} />{p}</span>
                 ))}

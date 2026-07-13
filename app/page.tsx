@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, Link2, Minus, Plus } from 'lucide-react'
+import { ArrowRight, Check, FileText, HelpCircle, Link2, MapPinned, Minus, Plus } from 'lucide-react'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -57,6 +57,10 @@ const MOBILE_PRICING_AUDIT = PRICING_AUDIT.filter((item) =>
 )
 const FAQS = [
   {
+    q: 'What do I get that I would not get by asking ChatGPT for website advice?',
+    a: 'ChatGPT gives a single generic opinion. ClearSignal tests a structured buyer-query set across multiple AI engines, stores the evidence, compares competitors, identifies cited sources, and turns the findings into an implementation plan reviewed by a human.',
+  },
+  {
     q: 'What happens after the free score?',
     a: 'The free check gives you an initial visibility snapshot. You can then order the full expert-reviewed audit for competitor evidence, website gaps and a prioritized implementation plan.',
   },
@@ -73,19 +77,34 @@ const FAQS = [
     a: "Founding audits are reviewed manually before delivery. You'll receive an estimated delivery window before the audit starts.",
   },
   {
+    q: 'What does the full audit include?',
+    a: 'It includes AI visibility scoring, tested answer evidence, competitor and citation gaps, website clarity review, prioritized fixes, draft FAQ/meta/schema suggestions, and a web/PDF report.',
+  },
+  {
     q: 'Can you guarantee AI will recommend my business?',
     a: 'No. ClearSignal measures a tested query set and identifies signals that may improve visibility, citations and recommendations. AI results change over time.',
+  },
+  {
+    q: 'Do you need access to Google Analytics or Search Console?',
+    a: 'No. The audit is based on public website content, selected competitors and AI answer evidence. Analytics can help later, but it is not required for the first audit.',
   },
   {
     q: 'Can agencies use ClearSignal for client audits?',
     a: 'Yes. Agencies can use ClearSignal to identify AI visibility gaps, source and citation issues, and implementation work for client websites. White-label and multi-client workflows are being tested during the founding phase.',
   },
   {
+    q: 'What happens if my business is not mentioned by AI at all?',
+    a: 'That is useful evidence. The audit shows which competitors or sources appear instead, which signals are missing, and what to fix first to become easier for answer engines to understand and cite.',
+  },
+  {
+    q: 'Is the report safe to send to a client or team?',
+    a: 'Yes. Full audits are reviewed before delivery to reduce unsupported claims, broken generated text and unclear recommendations.',
+  },
+  {
     q: 'Why not just ask ChatGPT myself?',
     a: 'You can. ClearSignal runs a structured query set, compares engines, stores evidence, calculates visibility metrics, and turns the findings into an implementation plan.',
   },
 ]
-const MOBILE_FAQS = FAQS.slice(0, 4)
 
 /* ---------- Engine logos (monochrome, nominative badges) ---------- */
 function OpenAILogo({ className }: { className?: string }) {
@@ -257,6 +276,7 @@ export default function LandingPage() {
   const [audience, setAudience] = useState(1)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [tab, setTab] = useState(2) // Fix is the default product moment
+  const engineScrollRef = useRef<HTMLDivElement>(null)
 
   return (
     <div className="min-h-screen bg-[#FBF6EE]" style={{ color: ESPRESSO }}>
@@ -291,7 +311,7 @@ export default function LandingPage() {
             <h1 className="mt-5 text-[clamp(2.1rem,4.1vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.02em]">
               When buyers ask AI who to choose, does it recommend you &mdash; or your <span style={{ color: COPPER }}>competitor</span>?
             </h1>
-            <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-[#6E5A50] lg:mx-0">
+            <p className="mx-auto mt-5 hidden max-w-md text-[15px] leading-relaxed text-[#6E5A50] sm:block lg:mx-0">
               ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:mt-7 lg:justify-start">
@@ -315,7 +335,7 @@ export default function LandingPage() {
           </div>
 
           {/* Phone group: composed as one visual */}
-          <div className="relative -my-14 flex scale-[0.84] justify-center sm:my-0 sm:scale-100">
+          <div className="relative -my-20 flex scale-[0.78] justify-center sm:my-0 sm:scale-100">
             {/* depth behind the phone */}
             <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="h-[30rem] w-[30rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,186,128,0.35) 0%, rgba(255,205,160,0.12) 45%, transparent 70%)', filter: 'blur(12px)' }} />
@@ -473,7 +493,24 @@ export default function LandingPage() {
             </p>
           </Reveal>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <div className="relative mt-10">
+            <button
+              type="button"
+              aria-label="Previous AI engine example"
+              onClick={() => engineScrollRef.current?.scrollBy({ left: -engineScrollRef.current.clientWidth * 0.9, behavior: 'smooth' })}
+              className="absolute -left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6DBCB] bg-white/95 text-[#6E5A50] shadow-sm md:hidden"
+            >
+              <ArrowRight className="h-4 w-4 rotate-180" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next AI engine example"
+              onClick={() => engineScrollRef.current?.scrollBy({ left: engineScrollRef.current.clientWidth * 0.9, behavior: 'smooth' })}
+              className="absolute -right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#E6DBCB] bg-white/95 text-[#6E5A50] shadow-sm md:hidden"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <div ref={engineScrollRef} className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-3 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
             {[
               {
                 Logo: OpenAILogo, engine: 'ChatGPT', badge: 'named' as const, position: '20% center', caption: 'Names specific businesses',
@@ -522,7 +559,7 @@ export default function LandingPage() {
                 ),
               },
             ].map(({ Logo, engine, badge, position, body, caption }, i) => (
-              <Reveal key={engine} delay={i * 100}>
+              <Reveal key={engine} delay={i * 100} className="min-w-[86%] snap-center md:min-w-0">
                 <div className="relative h-[300px] overflow-hidden rounded-2xl border border-[#E6DBCB] md:h-[330px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/hero-bg-8.jpg" alt="" className="h-full w-full object-cover" style={{ objectPosition: position }} />
@@ -546,6 +583,7 @@ export default function LandingPage() {
                 </div>
               </Reveal>
             ))}
+            </div>
           </div>
         </div>
       </section>
@@ -560,7 +598,7 @@ export default function LandingPage() {
           <Reveal className="mx-auto max-w-2xl text-center">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#E9A96B' }}>The product</div>
             <h2 className="mt-4 text-[clamp(2rem,3.9vw,3.1rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white">From AI evidence to an implementation plan.</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[#C6B4A2]">
+            <p className="mx-auto mt-4 hidden max-w-xl text-[15px] leading-relaxed text-[#C6B4A2] sm:block">
               Every finding is tied to a tested AI answer, cited source or page on your website &mdash; then turned into a prioritized task.
             </p>
           </Reveal>
@@ -671,13 +709,15 @@ export default function LandingPage() {
                   </div>
                   <div className="mt-4 space-y-3">
                     {[
-                      { t: 'Rewrite H1 to name your city', ev: 'ChatGPT - not named', owner: 'Owner', st: 'Ready' },
-                      { t: 'Publish an FAQ with schema markup', ev: 'Perplexity - no FAQ cited', owner: 'Developer', st: 'Draft' },
-                      { t: 'Create a local comparison page', ev: 'Source gap - top 3 sources', owner: 'Contributor', st: 'Planned' },
-                    ].map((f, i) => (
+                      { t: 'Rewrite H1 to name your city', ev: 'ChatGPT - not named', owner: 'Owner', st: 'Ready', Icon: FileText },
+                      { t: 'Publish an FAQ with schema markup', ev: 'Perplexity - no FAQ cited', owner: 'Developer', st: 'Draft', Icon: HelpCircle },
+                      { t: 'Create a local comparison page', ev: 'Source gap - top 3 sources', owner: 'Contributor', st: 'Planned', Icon: MapPinned },
+                    ].map((f) => (
                       <div key={f.t} className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-3.5">
                         <div className="flex items-start gap-3">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: COPPER }}>{i + 1}</span>
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}>
+                            <f.Icon className="h-4 w-4" />
+                          </span>
                           <div className="min-w-0 flex-1">
                             <div className="text-[14.5px] font-semibold leading-snug text-[#4A3A2D]">{f.t}</div>
                             <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-[#7A6857]"><Link2 className="h-3.5 w-3.5 shrink-0" style={{ color: 'rgba(169,83,31,0.65)' }} />{f.ev}</div>
@@ -807,8 +847,8 @@ export default function LandingPage() {
             ].map((card, i) => (
               <Reveal key={card.h} delay={i * 100}>
                 <div className="h-full rounded-2xl border border-[#E6DBCB] bg-[#FFFDF9] p-7">
-                  <span className="block h-5 w-[3px] rounded-full" style={{ backgroundColor: COPPER }} />
-                  <h3 className="mt-5 text-[22px] font-bold leading-snug tracking-[-0.015em]" style={{ color: ESPRESSO }}>{card.h}</h3>
+                  <span className="hidden h-5 w-[3px] rounded-full sm:block" style={{ backgroundColor: COPPER }} />
+                  <h3 className="text-[22px] font-bold leading-snug tracking-[-0.015em] sm:mt-5" style={{ color: ESPRESSO }}>{card.h}</h3>
                   <p className="mt-2.5 text-[13px] leading-relaxed text-[#8D7B6B]">{card.c}</p>
                 </div>
               </Reveal>
@@ -834,8 +874,8 @@ export default function LandingPage() {
           {/* Main audit card - single, centered */}
           <Reveal className="mx-auto mt-12 max-w-2xl">
             <div className="flex flex-col rounded-2xl border bg-white p-9 shadow-[0_40px_90px_-55px_rgba(46,33,22,0.55)]" style={{ borderColor: 'rgba(169,83,31,0.28)' }}>
-              <div className="flex items-start justify-between gap-6">
-                <div>
+              <div className="flex items-start justify-end gap-6 sm:justify-between">
+                <div className="hidden sm:block">
                   <div className="text-[17px] font-semibold leading-snug" style={{ color: ESPRESSO }}>AI Visibility Audit</div>
                   <div className="mt-1 text-[13px] text-[#8D7B6B]">Includes expert website clarity and citation-readiness review.</div>
                 </div>
@@ -870,19 +910,6 @@ export default function LandingPage() {
             </p>
           </Reveal>
 
-          {/* Trust / limitations - prominent, not fine print */}
-          <Reveal className="mx-auto mt-14 max-w-3xl">
-            <div className="rounded-2xl border p-6 text-center sm:p-8" style={{ borderColor: 'rgba(169,83,31,0.22)', backgroundColor: '#FFFDF9' }}>
-              <p className="mx-auto max-w-2xl text-[15.5px] font-medium leading-relaxed" style={{ color: ESPRESSO }}>
-                Every recommendation is tied to a tested AI response, cited source or publicly available page on your website.
-              </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-[13px] font-medium text-[#4F4238]">
-                {['No analytics connection required', 'No guaranteed rankings', 'Human review before delivery'].map((p) => (
-                  <span key={p} className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} />{p}</span>
-                ))}
-              </div>
-            </div>
-          </Reveal>
         </div>
       </section>
 
@@ -894,8 +921,8 @@ export default function LandingPage() {
             {FAQS.map((item, i) => {
               const open = openFaq === i
               return (
-                <div key={item.q} className={`border-b border-[#EAE2D6] ${i >= MOBILE_FAQS.length ? 'hidden sm:block' : ''}`}>
-                  <button onClick={() => setOpenFaq(open ? null : i)} className="flex min-h-[44px] w-full items-center justify-between gap-6 py-3 text-left sm:py-[17px]">
+                <div key={item.q} className="border-b border-[#EAE2D6]">
+                  <button onClick={() => setOpenFaq(open ? null : i)} className="flex min-h-[48px] w-full items-center justify-between gap-6 py-3.5 text-left sm:py-[17px]">
                     <span className="text-[14.5px] font-medium sm:text-[15.5px]" style={{ color: ESPRESSO }}>{item.q}</span>
                     <span className="shrink-0" style={{ color: 'rgba(169,83,31,0.7)' }}>
                       {open ? <Minus className="h-[18px] w-[18px]" /> : <Plus className="h-[18px] w-[18px]" />}

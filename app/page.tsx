@@ -57,10 +57,6 @@ const MOBILE_PRICING_AUDIT = PRICING_AUDIT.filter((item) =>
 )
 const FAQS = [
   {
-    q: 'What do I get that I would not get by asking ChatGPT for website advice?',
-    a: 'ChatGPT gives a single generic opinion. ClearSignal tests a structured buyer-query set across multiple AI engines, stores the evidence, compares competitors, identifies cited sources, and turns the findings into an implementation plan reviewed by a human.',
-  },
-  {
     q: 'What happens after the free score?',
     a: 'The free check gives you an initial visibility snapshot. You can then order the full expert-reviewed audit for competitor evidence, website gaps and a prioritized implementation plan.',
   },
@@ -70,23 +66,15 @@ const FAQS = [
   },
   {
     q: 'Is this fully automated?',
-    a: 'The free score is automated. The full founding audit is reviewed by a person before delivery to catch factual issues, unsupported claims and unclear recommendations.',
+    a: 'The free score is automated. The full founding audit is reviewed by a person before delivery to catch factual issues, unsupported claims and unclear recommendations. No Google Analytics or Search Console access is required for the first audit.',
   },
   {
     q: 'How long does the full audit take?',
     a: "Founding audits are reviewed manually before delivery. You'll receive an estimated delivery window before the audit starts.",
   },
   {
-    q: 'What does the full audit include?',
-    a: 'It includes AI visibility scoring, tested answer evidence, competitor and citation gaps, website clarity review, prioritized fixes, draft FAQ/meta/schema suggestions, and a web/PDF report.',
-  },
-  {
     q: 'Can you guarantee AI will recommend my business?',
     a: 'No. ClearSignal measures a tested query set and identifies signals that may improve visibility, citations and recommendations. AI results change over time.',
-  },
-  {
-    q: 'Do you need access to Google Analytics or Search Console?',
-    a: 'No. The audit is based on public website content, selected competitors and AI answer evidence. Analytics can help later, but it is not required for the first audit.',
   },
   {
     q: 'Can agencies use ClearSignal for client audits?',
@@ -97,12 +85,8 @@ const FAQS = [
     a: 'That is useful evidence. The audit shows which competitors or sources appear instead, which signals are missing, and what to fix first to become easier for answer engines to understand and cite.',
   },
   {
-    q: 'Is the report safe to send to a client or team?',
-    a: 'Yes. Full audits are reviewed before delivery to reduce unsupported claims, broken generated text and unclear recommendations.',
-  },
-  {
     q: 'Why not just ask ChatGPT myself?',
-    a: 'You can. ClearSignal runs a structured query set, compares engines, stores evidence, calculates visibility metrics, and turns the findings into an implementation plan.',
+    a: 'You can. ChatGPT gives a single generic opinion. ClearSignal runs a structured buyer-query set across multiple AI engines, stores evidence, compares competitors, identifies cited sources, calculates visibility metrics and turns the findings into an implementation plan.',
   },
 ]
 
@@ -314,14 +298,14 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 hidden max-w-md text-[15px] leading-relaxed text-[#6E5A50] sm:block lg:mx-0">
               ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.
             </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:mt-7 lg:justify-start">
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 lg:mt-7 lg:justify-start">
               <Link href="/score" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90" style={{ backgroundColor: ESPRESSO }}>
                 Get your free AI visibility score <ArrowRight className="h-4 w-4" />
               </Link>
               <Link href="/sample" className="inline-flex items-center rounded-full border border-[#E0D3C0] bg-white/90 px-6 py-3.5 text-sm font-semibold backdrop-blur transition-shadow duration-200 hover:shadow-md">View sample report</Link>
             </div>
-            <p className="mt-3 text-[13px] font-medium lg:mt-5" style={{ color: INK }}>Start with a free score. Founding-client audits are &euro;149 for the first 20 businesses.</p>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:mt-4 lg:justify-start">
+            <p className="mt-2 text-[13px] font-medium lg:mt-5" style={{ color: INK }}>Start with a free score. Founding-client audits are &euro;149 for the first 20 businesses.</p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:mt-4 lg:justify-start">
               <span className="text-[10.5px] font-bold uppercase tracking-[0.18em]" style={{ color: '#7A6857' }}>Tested across</span>
               <div className="flex items-center gap-5" style={{ color: INK }}>
                 {ENGINES.map(({ name, Logo }) => (
@@ -335,7 +319,7 @@ export default function LandingPage() {
           </div>
 
           {/* Phone group: composed as one visual */}
-          <div className="relative -my-20 flex scale-[0.78] justify-center sm:my-0 sm:scale-100">
+          <div className="relative -my-24 flex scale-[0.78] justify-center sm:my-0 sm:scale-100">
             {/* depth behind the phone */}
             <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="h-[30rem] w-[30rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,186,128,0.35) 0%, rgba(255,205,160,0.12) 45%, transparent 70%)', filter: 'blur(12px)' }} />
@@ -510,7 +494,7 @@ export default function LandingPage() {
             >
               <ArrowRight className="h-4 w-4" />
             </button>
-            <div ref={engineScrollRef} className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-3 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div ref={engineScrollRef} className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 pl-6 pr-0 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
             {[
               {
                 Logo: OpenAILogo, engine: 'ChatGPT', badge: 'named' as const, position: '20% center', caption: 'Names specific businesses',
@@ -559,7 +543,7 @@ export default function LandingPage() {
                 ),
               },
             ].map(({ Logo, engine, badge, position, body, caption }, i) => (
-              <Reveal key={engine} delay={i * 100} className="min-w-[86%] snap-center md:min-w-0">
+              <Reveal key={engine} delay={i * 100} className="min-w-[86%] snap-start md:min-w-0">
                 <div className="relative h-[300px] overflow-hidden rounded-2xl border border-[#E6DBCB] md:h-[330px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/hero-bg-8.jpg" alt="" className="h-full w-full object-cover" style={{ objectPosition: position }} />
@@ -904,7 +888,7 @@ export default function LandingPage() {
             </div>
 
             {/* Monitoring as a small secondary note, not a card */}
-            <p className="mt-5 text-center text-[13px] text-[#8D7B6B]">
+            <p className="mt-5 text-center text-[14px] font-medium text-[#6E5A50]">
               Weekly monitoring is coming soon.{' '}
               <button className="font-semibold transition-colors hover:opacity-80" style={{ color: COPPER }}>Join the waitlist</button>.
             </p>

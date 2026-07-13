@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, FileText, HelpCircle, Link2, MapPinned, Minus, Plus } from 'lucide-react'
+import { ArrowRight, Check, FileText, HelpCircle, Link2, MapPinned, Minus, Plus, SearchCheck } from 'lucide-react'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -825,18 +825,23 @@ export default function LandingPage() {
 
           <div className="mt-12 grid gap-5 md:grid-cols-3">
             {[
-              { h: 'Where you stand', c: 'Mention rate, citation rate and visibility across the tested buyer-intent queries.' },
-              { h: 'Why competitors appear', c: 'Real AI answer excerpts, cited sources, competitor mentions and missing trust signals.' },
-              { h: 'What to fix first', c: 'Prioritized actions, draft copy, schema suggestions and clear implementation ownership.' },
-            ].map((card, i) => (
+              { h: 'Where you stand', c: 'Mention rate, citation rate and visibility across the tested buyer-intent queries.', Icon: SearchCheck },
+              { h: 'Why competitors appear', c: 'Real AI answer excerpts, cited sources, competitor mentions and missing trust signals.', Icon: Link2 },
+              { h: 'What to fix first', c: 'Prioritized actions, draft copy, schema suggestions and clear implementation ownership.', Icon: FileText },
+            ].map((card, i) => {
+              const Icon = card.Icon
+              return (
               <Reveal key={card.h} delay={i * 100}>
-                <div className="h-full rounded-2xl border border-[#E6DBCB] bg-[#FFFDF9] p-7">
-                  <span className="hidden h-5 w-[3px] rounded-full sm:block" style={{ backgroundColor: COPPER }} />
-                  <h3 className="text-[22px] font-bold leading-snug tracking-[-0.015em] sm:mt-5" style={{ color: ESPRESSO }}>{card.h}</h3>
+                <div className="h-full rounded-2xl border border-[#E6DBCB] bg-[#FFFDF9] p-7 transition-shadow duration-200 hover:shadow-[0_22px_60px_-45px_rgba(46,33,22,0.45)]">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E6DBCB] bg-[#FBF6EE]" style={{ color: COPPER }}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-5 text-[22px] font-bold leading-snug tracking-[-0.015em]" style={{ color: ESPRESSO }}>{card.h}</h3>
                   <p className="mt-2.5 text-[13px] leading-relaxed text-[#8D7B6B]">{card.c}</p>
                 </div>
               </Reveal>
-            ))}
+              )
+            })}
           </div>
 
           <p className="mt-10 text-center text-[12.5px] font-medium" style={{ color: '#7A6857' }}>Automated scan. Expert-reviewed before delivery.</p>

@@ -19,6 +19,11 @@ const NAV_ITEMS = [
 
 const AUDIENCES = [
   {
+    name: 'Service businesses',
+    copy: '"Who should I hire for this?" is now an AI conversation. See who AI recommends, which sources it trusts, and where your website falls short.',
+    cta: 'Get your free AI visibility score',
+  },
+  {
     name: 'Agencies',
     copy: 'Answer the question clients are already asking: "What does AI say about us?" ClearSignal turns AI visibility gaps into competitor evidence, source issues and implementation work you can run for client websites.',
     cta: 'Get your free AI visibility score',
@@ -26,11 +31,6 @@ const AUDIENCES = [
   {
     name: 'SaaS & B2B teams',
     copy: 'See which competitors AI recommends, which sources it trusts, and what your website is missing before buyers reach a shortlist.',
-    cta: 'Get your free AI visibility score',
-  },
-  {
-    name: 'Service businesses',
-    copy: '"Who should I hire for this?" is now an AI conversation. See who AI recommends, which sources it trusts, and where your website falls short.',
     cta: 'Get your free AI visibility score',
   },
 ]
@@ -57,8 +57,12 @@ const MOBILE_PRICING_AUDIT = PRICING_AUDIT.filter((item) =>
 )
 const FAQS = [
   {
+    q: 'How is ClearSignal different from asking ChatGPT to audit my website?',
+    a: "A single ChatGPT conversation gives you one model's general opinion. ClearSignal runs a structured set of buyer-intent questions across ChatGPT, Claude and Perplexity, compares which businesses and sources appear, stores the evidence, identifies website and citation gaps, and turns the findings into an expert-reviewed implementation plan.",
+  },
+  {
     q: 'What happens after the free score?',
-    a: 'The free check gives you an initial visibility snapshot. You can then order the full expert-reviewed audit for competitor evidence, website gaps and a prioritized implementation plan.',
+    a: 'The free check gives you an initial visibility snapshot. The full audit adds a structured multi-engine query set, competitor and citation evidence, website clarity gaps, prioritized recommendations, draft implementation materials and expert review before delivery.',
   },
   {
     q: 'Is this just an SEO audit?',
@@ -69,24 +73,20 @@ const FAQS = [
     a: 'The free score is automated. The full founding audit is reviewed by a person before delivery to catch factual issues, unsupported claims and unclear recommendations. No Google Analytics or Search Console access is required for the first audit.',
   },
   {
-    q: 'How long does the full audit take?',
-    a: "Founding audits are reviewed manually before delivery. You'll receive an estimated delivery window before the audit starts.",
+    q: 'What happens if my business is not mentioned by AI at all?',
+    a: 'That is useful evidence. The audit shows which competitors or sources appear instead, which signals are missing, and what to fix first to become easier for answer engines to understand and cite.',
   },
   {
     q: 'Can you guarantee AI will recommend my business?',
     a: 'No. ClearSignal measures a tested query set and identifies signals that may improve visibility, citations and recommendations. AI results change over time.',
   },
   {
+    q: 'How long does the full audit take?',
+    a: "Founding audits are reviewed manually before delivery. You'll receive an estimated delivery window before the audit starts.",
+  },
+  {
     q: 'Can agencies use ClearSignal for client audits?',
     a: 'Yes. Agencies can use ClearSignal to identify AI visibility gaps, source and citation issues, and implementation work for client websites. White-label and multi-client workflows are being tested during the founding phase.',
-  },
-  {
-    q: 'What happens if my business is not mentioned by AI at all?',
-    a: 'That is useful evidence. The audit shows which competitors or sources appear instead, which signals are missing, and what to fix first to become easier for answer engines to understand and cite.',
-  },
-  {
-    q: 'Why not just ask ChatGPT myself?',
-    a: 'You can. ChatGPT gives a single generic opinion. ClearSignal runs a structured buyer-query set across multiple AI engines, stores evidence, compares competitors, identifies cited sources, calculates visibility metrics and turns the findings into an implementation plan.',
   },
 ]
 
@@ -217,15 +217,6 @@ function StatusBadge({ kind }: { kind: 'named' | 'cited' | 'recommended' | 'miss
   )
 }
 
-/** Compact result chip used inside the product table. */
-function ResultChip({ kind }: { kind: 'named' | 'cited' | 'miss' }) {
-  if (kind === 'named')
-    return <span className="rounded-md px-2 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-white" style={{ backgroundColor: COPPER }}>Named</span>
-  if (kind === 'cited')
-    return <span className="rounded-md border px-2 py-1 text-[10.5px] font-semibold uppercase tracking-wider" style={{ borderColor: 'rgba(169,83,31,0.45)', color: COPPER }}>Cited</span>
-  return <span className="rounded-md border border-[#E4DACB] px-2 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-[#A6957F]">Missing</span>
-}
-
 function SignalOverlay({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   const line = tone === 'dark' ? 'rgba(46,33,22,0.05)' : 'rgba(255,255,255,0.07)'
   const path = tone === 'dark' ? 'rgba(169,83,31,0.10)' : 'rgba(233,169,107,0.18)'
@@ -249,16 +240,202 @@ function SignalOverlay({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
 
 function FloatingCard({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={`absolute z-30 hidden rounded-xl border border-[#E9DECF] bg-white/95 px-4 py-2.5 shadow-[0_18px_40px_-20px_rgba(46,33,22,0.45)] backdrop-blur lg:block ${className || ''}`}>
+    <div
+      className={`absolute z-30 hidden rounded-xl border border-white/70 bg-white/55 px-4 py-2.5 shadow-[0_18px_40px_-20px_rgba(46,33,22,0.45)] lg:block ${className || ''}`}
+      style={{ backdropFilter: 'blur(18px) saturate(1.35)', WebkitBackdropFilter: 'blur(18px) saturate(1.35)' }}
+    >
       {children}
     </div>
   )
 }
 
+function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab: number) => void }) {
+  const priorityActions = [
+    {
+      priority: 'High priority',
+      title: 'Make your service area clear',
+      problem: 'AI may not clearly understand where your business operates.',
+      change: 'Add your city and service area to the homepage heading.',
+      Icon: MapPinned,
+    },
+    {
+      priority: 'High priority',
+      title: 'Answer the questions buyers ask',
+      problem: 'AI may not find clear answers about your services, pricing and process.',
+      change: 'Add a short FAQ section with structured data.',
+      Icon: HelpCircle,
+    },
+    {
+      priority: 'Next step',
+      title: 'Give AI stronger proof',
+      problem: 'Competitors provide clearer reviews, credentials and comparison content.',
+      change: 'Add customer proof and a page explaining why buyers should choose you.',
+      Icon: SearchCheck,
+    },
+  ]
+
+  return (
+    <section id="workflow" className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #2B2018 0%, #211812 55%, #1C140F 100%)' }}>
+      <div aria-hidden className="pointer-events-none absolute -left-40 top-10 h-[38rem] w-[38rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(169,83,31,0.30), transparent 62%)', filter: 'blur(30px)' }} />
+      <div aria-hidden className="pointer-events-none absolute -right-32 bottom-0 h-[34rem] w-[34rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(233,169,107,0.18), transparent 62%)', filter: 'blur(30px)' }} />
+      <SignalOverlay tone="light" />
+
+      <div className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
+        <Reveal className="mx-auto max-w-3xl text-center">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#E9A96B' }}>The product</div>
+          <h2 className="mt-4 text-[clamp(2rem,3.9vw,3.1rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white">See where you stand &mdash; and what to fix first.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-[14px] leading-relaxed text-[#C6B4A2] sm:text-[15px]">
+            ClearSignal shows how AI understands your business, why competitors appear, and which changes should come first.
+          </p>
+        </Reveal>
+
+        <div className="mt-8 hidden justify-center sm:flex" role="tablist" aria-label="Audit outcomes">
+          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] p-1.5 backdrop-blur">
+            {['Where you stand', 'Why competitors appear', 'What to fix first'].map((label, i) => (
+              <button
+                key={label}
+                type="button"
+                role="tab"
+                aria-selected={tab === i}
+                onClick={() => onTabChange(i)}
+                className="rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-200"
+                style={tab === i ? { backgroundColor: COPPER, color: '#fff', boxShadow: '0 8px 22px -12px rgba(169,83,31,0.9)' } : { color: '#C6B4A2' }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-2.5 sm:hidden">
+          {[
+            { title: 'Where you stand', copy: 'Named, cited or missing across the tested buyer questions.', Icon: SearchCheck },
+            { title: 'Why competitors appear', copy: 'The proof, content and sources supporting their visibility.', Icon: Link2 },
+            { title: 'What to fix first', copy: 'Three clear priorities your team can act on.', Icon: FileText },
+          ].map(({ title, copy, Icon }) => (
+            <div key={title} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.055] px-3.5 py-3 text-left">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08]" style={{ color: '#E9A96B' }}><Icon className="h-4 w-4" /></span>
+              <span>
+                <span className="block text-[13.5px] font-semibold text-white">{title}</span>
+                <span className="mt-0.5 block text-[11.5px] leading-snug text-[#B9A795]">{copy}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mx-auto mt-6 max-w-[1040px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)] sm:mt-8">
+          <div className="flex items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-4 py-3 sm:px-5">
+            <div className="flex gap-1.5">
+              {['#E7CDB8', '#EAD9C4', '#E2D3BE'].map((color) => <span key={color} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />)}
+            </div>
+            <div className="mx-auto flex items-center gap-2 rounded-md border border-[#EFE7DB] bg-white px-3 py-1 text-[10.5px] text-[#8D7B6B] sm:text-[11.5px]">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: COPPER }} /> app.clearsignal.com / audit
+            </div>
+          </div>
+
+          <div className="bg-white p-4 sm:p-7">
+            {tab === 0 && (
+              <div>
+                <div className="text-[17px] font-semibold">Where you stand</div>
+                <p className="mt-1 text-[12.5px] text-[#8D7B6B]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-[0.85fr_1.3fr]">
+                  <div className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
+                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">AI visibility score</div>
+                    <div className="mt-2 text-[48px] font-semibold leading-none" style={{ color: ESPRESSO }}>34<span className="text-[16px] font-medium text-[#B4A69A]">/100</span></div>
+                    <div className="mt-5 grid grid-cols-2 gap-2">
+                      {[
+                        ['Mention rate', '21%'],
+                        ['Citation rate', '14%'],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-lg bg-white p-3">
+                          <div className="text-[20px] font-semibold" style={{ color: COPPER }}>{value}</div>
+                          <div className="mt-0.5 text-[10.5px] text-[#8D7B6B]">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[#EFE7DB] p-4 sm:p-5">
+                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Engine results</div>
+                    <div className="mt-3 divide-y divide-[#F1E9DE]">
+                      {[
+                        { Logo: OpenAILogo, engine: 'ChatGPT', state: 'Missing', active: false },
+                        { Logo: PerplexityLogo, engine: 'Perplexity', state: 'Cited', active: true },
+                        { Logo: AnthropicLogo, engine: 'Claude', state: 'Appears', active: true },
+                      ].map(({ Logo, engine, state, active }) => (
+                        <div key={engine} className="flex min-h-12 items-center justify-between gap-3 py-2.5">
+                          <span className="flex items-center gap-2.5 text-[13px] font-medium text-[#4A3A2D]"><Logo className="h-4 w-4" />{engine}</span>
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={active ? { borderColor: 'rgba(169,83,31,0.35)', color: COPPER, backgroundColor: 'rgba(169,83,31,0.05)' } : { borderColor: '#E4DACB', color: '#9B8A78' }}>{state}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 1 && (
+              <div>
+                <div className="text-[17px] font-semibold">Why competitors appear</div>
+                <p className="mt-1 text-[12.5px] text-[#8D7B6B]">Compare the proof and content supporting the businesses AI chooses.</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: COPPER }}><Check className="h-3.5 w-3.5" />Competitor appears</div>
+                    <div className="mt-3 text-[18px] font-semibold text-[#4A3A2D]">Supported by customer reviews and a clear service-area page.</div>
+                    <p className="mt-3 text-[12.5px] leading-relaxed text-[#7A6857]">AI can find specific proof and location information to support the recommendation.</p>
+                  </div>
+                  <div className="rounded-xl border border-[#EFE7DB] p-5">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#8D7B6B]"><Minus className="h-3.5 w-3.5" />Your business is missing</div>
+                    <div className="mt-3 text-[18px] font-semibold text-[#4A3A2D]">Clear location information and third-party proof.</div>
+                    <p className="mt-3 text-[12.5px] leading-relaxed text-[#7A6857]">The audit shows the evidence gap so your team knows what to strengthen first.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 2 && (
+              <div>
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <div className="text-[17px] font-semibold">Your top priorities</div>
+                    <p className="mt-1 text-[12.5px] text-[#8D7B6B]">Clear problems and recommended changes, ordered by priority.</p>
+                  </div>
+                  <span className="hidden rounded-full bg-[#FBF7F1] px-3 py-1 text-[11px] font-medium text-[#8D7B6B] sm:block">3 priorities</span>
+                </div>
+                <div className="mt-5 grid gap-3">
+                  {priorityActions.map(({ priority, title, problem, change, Icon }) => (
+                    <div key={title} className="grid gap-3 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-4 sm:grid-cols-[44px_1fr_1fr] sm:items-center sm:p-5">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}><Icon className="h-[18px] w-[18px]" /></span>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: COPPER }}>{priority}</div>
+                        <div className="mt-1 text-[15px] font-semibold leading-snug text-[#4A3A2D]">{title}</div>
+                        <div className="mt-1.5 text-[12px] leading-relaxed text-[#7A6857]"><span className="font-semibold text-[#5C5148]">Problem:</span> {problem}</div>
+                      </div>
+                      <div className="rounded-lg border border-[#EFE7DB] bg-white p-3 text-[12px] leading-relaxed text-[#6E5A50]"><span className="font-semibold text-[#4A3A2D]">Recommended change:</span> {change}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div id="what-you-get" className="mx-auto mt-6 max-w-[1040px] rounded-xl border border-white/10 bg-white/[0.055] px-4 py-4 text-center backdrop-blur sm:mt-7 sm:px-6">
+          <p className="text-[12.5px] leading-relaxed text-[#D0BEAC] sm:text-[13.5px]">You receive the evidence, prioritized recommendations and implementation materials in a web dashboard and PDF report.</p>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11.5px] font-medium text-[#F0E5D8] sm:text-[12.5px]">
+            {['Real AI answer evidence', 'Prioritized website fixes', 'Expert-reviewed before delivery'].map((item) => (
+              <span key={item} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" style={{ color: '#E9A96B' }} strokeWidth={3} />{item}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function LandingPage() {
   const bg = 0
-  const [audience, setAudience] = useState(1)
-  const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [audience, setAudience] = useState(0)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [tab, setTab] = useState(2) // Fix is the default product moment
   const engineScrollRef = useRef<HTMLDivElement>(null)
 
@@ -304,8 +481,7 @@ export default function LandingPage() {
               </Link>
               <Link href="/sample" className="inline-flex items-center rounded-full border border-[#E0D3C0] bg-white/90 px-6 py-3.5 text-sm font-semibold backdrop-blur transition-shadow duration-200 hover:shadow-md">View sample report</Link>
             </div>
-            <p className="mt-2 text-[13px] font-medium lg:mt-5" style={{ color: INK }}>Start with a free score. Founding-client audits are &euro;149 for the first 20 businesses.</p>
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:mt-4 lg:justify-start">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:mt-5 lg:justify-start">
               <span className="text-[10.5px] font-bold uppercase tracking-[0.18em]" style={{ color: '#7A6857' }}>Tested across</span>
               <div className="flex items-center gap-5" style={{ color: INK }}>
                 {ENGINES.map(({ name, Logo }) => (
@@ -319,11 +495,13 @@ export default function LandingPage() {
           </div>
 
           {/* Phone group: composed as one visual */}
-          <div className="relative -my-24 flex scale-[0.78] justify-center sm:my-0 sm:scale-100">
+          <div className="relative -my-28 flex scale-[0.74] justify-center sm:my-0 sm:scale-100">
             {/* depth behind the phone */}
             <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="h-[30rem] w-[30rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,186,128,0.35) 0%, rgba(255,205,160,0.12) 45%, transparent 70%)', filter: 'blur(12px)' }} />
               <div className="absolute h-[30rem] w-[23rem] rotate-6 rounded-[3rem] border border-white/60 bg-white/25 shadow-[0_40px_100px_-50px_rgba(46,33,22,0.4)]" style={{ backdropFilter: 'blur(6px)' }} />
+              <div className="absolute h-[28rem] w-[21rem] -rotate-3 translate-x-[-1.2rem] translate-y-[0.7rem] rounded-[3rem] border border-white/55 bg-white/20" style={{ backdropFilter: 'blur(5px)' }} />
+              <div className="absolute h-[27rem] w-[20rem] rotate-[11deg] translate-x-[1.35rem] translate-y-[1.25rem] rounded-[3rem] border border-white/45 bg-white/15" style={{ backdropFilter: 'blur(4px)' }} />
             </div>
 
             <div className="relative z-10 w-[280px] sm:w-[326px]">
@@ -572,281 +750,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SECTION 4: PRODUCT SHOWCASE (contrasting) ============ */}
-      <section id="workflow" className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #2B2018 0%, #211812 55%, #1C140F 100%)' }}>
-        <div aria-hidden className="pointer-events-none absolute -left-40 top-10 h-[38rem] w-[38rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(169,83,31,0.30), transparent 62%)', filter: 'blur(30px)' }} />
-        <div aria-hidden className="pointer-events-none absolute -right-32 bottom-0 h-[34rem] w-[34rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(233,169,107,0.18), transparent 62%)', filter: 'blur(30px)' }} />
-        <SignalOverlay tone="light" />
-
-        <div className="relative z-10 mx-auto max-w-6xl px-6 py-24">
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#E9A96B' }}>The product</div>
-            <h2 className="mt-4 text-[clamp(2rem,3.9vw,3.1rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white">From AI evidence to an implementation plan.</h2>
-            <p className="mx-auto mt-4 hidden max-w-xl text-[15px] leading-relaxed text-[#C6B4A2] sm:block">
-              Every finding is tied to a tested AI answer, cited source or page on your website &mdash; then turned into a prioritized task.
-            </p>
-          </Reveal>
-
-          {/* Tabs */}
-          <div className="mt-9 hidden justify-center sm:flex">
-            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] p-1.5 backdrop-blur">
-              {['Scan', 'Analyze', 'Fix', 'Monitor'].map((t, i) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(i)}
-                  className="flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-200"
-                  style={tab === i ? { backgroundColor: COPPER, color: '#fff', boxShadow: '0 8px 22px -12px rgba(169,83,31,0.9)' } : { color: '#C6B4A2' }}
-                >
-                  {t}
-                  {i === 3 && (
-                    <span className="rounded-full px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider" style={tab === i ? { backgroundColor: 'rgba(255,255,255,0.22)', color: '#fff' } : { backgroundColor: 'rgba(255,255,255,0.08)', color: '#9B8A78' }}>Coming soon</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Product window - constrained width */}
-          <div className="mx-auto mt-8 max-w-[1120px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)]">
-            <div className="flex items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-5 py-3">
-              <div className="flex gap-1.5">
-                {['#E7CDB8', '#EAD9C4', '#E2D3BE'].map((c) => (<span key={c} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c }} />))}
-              </div>
-              <div className="mx-auto flex items-center gap-2 rounded-md border border-[#EFE7DB] bg-white px-3.5 py-1 text-[11.5px] text-[#8D7B6B]">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: COPPER }} /> app.clearsignal.com / audit
-              </div>
-            </div>
-
-            <div className="bg-white px-4 pb-5 pt-5 sm:px-7 sm:pb-6 sm:pt-6">
-              {tab === 0 && (
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div><div className="text-[16px] font-semibold">Buyer-intent scan</div><div className="mt-0.5 text-[12.5px] text-[#8D7B6B]">14 queries tested across 3 engines</div></div>
-                    <span className="rounded-full bg-[#FBF7F1] px-3.5 py-1.5 text-[11.5px] font-medium text-[#8D7B6B]">Running</span>
-                  </div>
-                  <div className="mt-5 overflow-x-auto rounded-xl border border-[#EFE7DB]">
-                    <div className="min-w-[640px]">
-                      <div className="grid grid-cols-[1.5fr_repeat(3,0.5fr)] items-center gap-3 bg-[#FBF7F1] px-5 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">
-                        <span>Buyer question</span>
-                        {ENGINES.map(({ name, Logo }) => (
-                          <span key={name} className="flex items-center justify-center gap-1.5" style={{ color: INK }}><Logo className="h-3.5 w-3.5" /><span className="text-[10px] normal-case tracking-normal">{name}</span></span>
-                        ))}
-                      </div>
-                      {[
-                        { q: 'best movers in Toronto', s: ['miss', 'cited', 'named'] as const },
-                        { q: 'affordable moving companies near me', s: ['miss', 'cited', 'miss'] as const },
-                        { q: 'how to choose a reliable mover', s: ['named', 'cited', 'named'] as const },
-                        { q: 'commercial movers GTA', s: ['miss', 'miss', 'cited'] as const },
-                      ].map((row) => (
-                        <div key={row.q} className="grid grid-cols-[1.5fr_repeat(3,0.5fr)] items-center gap-3 border-t border-[#F3ECE1] px-5 py-2.5 text-[13.5px]">
-                          <span className="truncate text-[#5C5148]">&ldquo;{row.q}&rdquo;</span>
-                          {row.s.map((st, j) => (<span key={j} className="flex justify-center"><ResultChip kind={st} /></span>))}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {/* compact summary bar */}
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] px-5 py-3 text-[12px] text-[#6E5A50]">
-                    <span><span className="font-semibold" style={{ color: ESPRESSO }}>14</span> queries tested</span>
-                    <span><span className="font-semibold" style={{ color: ESPRESSO }}>3</span> engines checked</span>
-                    <span>Mention rate <span className="font-semibold" style={{ color: COPPER }}>21%</span></span>
-                    <span>Citation gaps found</span>
-                  </div>
-                </div>
-              )}
-
-              {tab === 1 && (
-                <div>
-                  <div className="text-[16px] font-semibold">Visibility analysis</div>
-                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {[['Mention rate', '21%'], ['Citation rate', '14%'], ['Share of voice', '18%'], ['Avg position', '#3']].map(([label, val]) => (
-                      <div key={label} className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-4">
-                        <div className="text-[28px] font-semibold leading-none" style={{ color: ESPRESSO }}>{val}</div>
-                        <div className="mt-2 text-[12px] text-[#8D7B6B]">{label}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-xl border border-[#EFE7DB] p-5">
-                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">AI recommends instead</div>
-                    <div className="mt-3.5 space-y-3">
-                      {[['CARGO CABBIE', 34], ['Rent-a-Son', 21], ['My Ninja Movers', 12]].map(([name, pct]) => (
-                        <div key={name as string} className="flex items-center gap-4">
-                          <span className="w-40 text-[13.5px] text-[#5C5148]">{name}</span>
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#F0E9DF]"><div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: COPPER }} /></div>
-                          <span className="w-10 text-right text-[12.5px] font-semibold text-[#8D7B6B]">{pct}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {tab === 2 && (
-                <>
-                <div className="lg:hidden">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[15px] font-semibold">Implementation plan</div>
-                      <div className="mt-0.5 text-[13px] text-[#6E5A50]">Evidence becomes owner-ready tasks</div>
-                    </div>
-                    <span className="rounded-full bg-[#FBF7F1] px-3 py-1 text-[12px] font-medium text-[#6E5A50]">Fix view</span>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {[
-                      { t: 'Rewrite H1 to name your city', ev: 'ChatGPT - not named', owner: 'Owner', st: 'Ready', Icon: FileText },
-                      { t: 'Publish an FAQ with schema markup', ev: 'Perplexity - no FAQ cited', owner: 'Developer', st: 'Draft', Icon: HelpCircle },
-                      { t: 'Create a local comparison page', ev: 'Source gap - top 3 sources', owner: 'Contributor', st: 'Planned', Icon: MapPinned },
-                    ].map((f) => (
-                      <div key={f.t} className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-3.5">
-                        <div className="flex items-start gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}>
-                            <f.Icon className="h-4 w-4" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[14.5px] font-semibold leading-snug text-[#4A3A2D]">{f.t}</div>
-                            <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-[#7A6857]"><Link2 className="h-3.5 w-3.5 shrink-0" style={{ color: 'rgba(169,83,31,0.65)' }} />{f.ev}</div>
-                            <div className="mt-2.5 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-wider">
-                              <span className="rounded-md border px-2 py-1" style={{ borderColor: 'rgba(169,83,31,0.35)', color: COPPER }}>Fix</span>
-                              <span className="rounded-md border border-[#E4DACB] px-2 py-1 text-[#8D7B6B]">{f.owner}</span>
-                              <span className="rounded-md border border-[#E4DACB] px-2 py-1 text-[#8D7B6B]">{f.st}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="hidden gap-5 lg:grid lg:grid-cols-[1.5fr_1fr]">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div><div className="text-[16px] font-semibold">Implementation plan</div><div className="mt-0.5 text-[12.5px] text-[#8D7B6B]">Each finding, tied to evidence, becomes a task</div></div>
-                      <span className="rounded-full bg-[#FBF7F1] px-3.5 py-1.5 text-[11.5px] font-medium text-[#8D7B6B]">4 fixes</span>
-                    </div>
-                    {/* workflow legend */}
-                    <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#A6957F]">
-                      {['Finding', 'Evidence', 'Fix', 'Owner', 'Status'].map((step, i) => (
-                        <span key={step} className="flex items-center gap-1.5">
-                          {i > 0 && <ArrowRight className="h-3 w-3" style={{ color: '#D6C6B2' }} />}
-                          <span style={i === 2 ? { color: COPPER } : undefined}>{step}</span>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-3 overflow-hidden rounded-xl border border-[#EFE7DB]">
-                      <div className="grid grid-cols-[1fr_84px_104px_84px] items-center gap-2 bg-[#FBF7F1] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#8D7B6B]">
-                        <span>Finding &amp; recommended fix</span><span>Priority</span><span>Owner</span><span>Status</span>
-                      </div>
-                      {[
-                        { t: 'Rewrite H1 to name your city', ev: 'ChatGPT - not named', p: 'High', role: 'Owner', st: 'Ready', done: true },
-                        { t: 'Publish an FAQ with schema markup', ev: 'Perplexity - no FAQ cited', p: 'High', role: 'Implementer', st: 'Draft', done: true },
-                        { t: 'Create a local comparison page', ev: 'Source gap - top 3 sources', p: 'Medium', role: 'Contributor', st: 'Planned', done: false },
-                        { t: 'Add named customer testimonials', ev: 'Claude - weak trust signals', p: 'Medium', role: 'Owner', st: 'Ready', done: true },
-                      ].map((f, i) => (
-                        <div key={f.t} className="grid grid-cols-[1fr_84px_104px_84px] items-center gap-2 border-t border-[#F3ECE1] px-4 py-2.5">
-                          <span className="flex items-start gap-2.5">
-                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: COPPER }}>{i + 1}</span>
-                            <span className="min-w-0">
-                              <span className="block truncate text-[13px] font-medium text-[#5C5148]">{f.t}</span>
-                              <span className="mt-0.5 flex items-center gap-1 text-[10.5px] text-[#A6957F]"><Link2 className="h-2.5 w-2.5 shrink-0" style={{ color: 'rgba(169,83,31,0.55)' }} /><span className="truncate">{f.ev}</span></span>
-                            </span>
-                          </span>
-                          <span className="self-center rounded-md border px-1.5 py-0.5 text-center text-[10px] font-semibold uppercase tracking-wider" style={f.p === 'High' ? { borderColor: 'rgba(169,83,31,0.4)', color: COPPER, backgroundColor: 'rgba(169,83,31,0.06)' } : { borderColor: '#E4DACB', color: '#A6957F' }}>{f.p}</span>
-                          <span className="self-center text-[11.5px] text-[#8D7B6B]">{f.role}</span>
-                          <span className="flex items-center gap-1 self-center text-[11px] font-medium" style={{ color: f.done ? COPPER : '#A6957F' }}>
-                            {f.done ? <Check className="h-3 w-3" strokeWidth={3} /> : <span className="h-1.5 w-1.5 rounded-full bg-[#CBBBA8]" />}
-                            {f.st}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
-                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Ready-to-use materials</div>
-                    <div className="mt-3 rounded-lg border border-[#EFE7DB] bg-white p-3.5">
-                      <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: COPPER }}>Draft H1</div>
-                      <div className="mt-1.5 text-[12.5px] leading-relaxed text-[#5C5148]">&ldquo;Toronto&rsquo;s trusted movers &mdash; homes, condos &amp; businesses. Licensed, insured, and rated across the GTA.&rdquo;</div>
-                    </div>
-                    <div className="mt-2.5 rounded-lg border border-[#EFE7DB] bg-white p-3.5">
-                      <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: COPPER }}>Draft FAQ</div>
-                      <div className="mt-1.5 text-[12.5px] leading-relaxed text-[#5C5148]">&ldquo;Do you handle condo moves?&rdquo; &mdash; answer written for citation-ready schema markup.</div>
-                    </div>
-                    <div className="mt-3 space-y-1.5 text-[11.5px] text-[#6E5A50]">
-                      {['Meta copy suggestions', 'FAQ schema (JSON-LD)', 'Implementation briefs'].map((m) => (
-                        <div key={m} className="flex items-center gap-2"><Check className="h-3 w-3 shrink-0" style={{ color: COPPER }} strokeWidth={3} />{m}</div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                </>
-              )}
-
-              {tab === 3 && (
-                <div className="relative">
-                  <span className="absolute right-0 top-0 rounded-full border border-[#E9DECF] bg-white px-3 py-1 text-[11px] font-semibold text-[#8D7B6B]">Coming soon</span>
-                  <div><div className="text-[16px] font-semibold">Weekly monitoring</div><div className="mt-0.5 text-[12.5px] text-[#8D7B6B]">Track changes over time after the founding audit phase</div></div>
-                  <div className="mt-5 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
-                    <svg viewBox="0 0 320 90" className="h-28 w-full" preserveAspectRatio="none">
-                      <polyline points="0,72 45,68 90,70 135,58 180,52 225,44 270,34 320,22" fill="none" stroke={COPPER} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      {[[0, 72], [45, 68], [90, 70], [135, 58], [180, 52], [225, 44], [270, 34], [320, 22]].map(([x, y]) => (<circle key={`${x}`} cx={x} cy={y} r="2.5" fill={COPPER} />))}
-                    </svg>
-                    <div className="mt-1.5 flex justify-between text-[11px] text-[#A6957F]"><span>28/100</span><span>34/100</span></div>
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[#EFE7DB] p-4">
-                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Competitor movement</div>
-                      <div className="mt-3 space-y-2 text-[13px]">
-                        <div className="flex items-center justify-between text-[#5C5148]">Rent-a-Son <span className="text-[#A6957F]">&darr; slipping</span></div>
-                        <div className="flex items-center justify-between text-[#5C5148]">My Ninja Movers <span style={{ color: COPPER }}>&uarr; gaining</span></div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-[#EFE7DB] p-4">
-                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Newly cited sources</div>
-                      <div className="mt-3 space-y-2 text-[13px]">
-                        <div className="flex items-center gap-2 text-[#5C5148]"><Link2 className="h-3.5 w-3.5" style={{ color: COPPER }} /> yourbusiness.com</div>
-                        <div className="flex items-center gap-2 text-[#5C5148]"><Link2 className="h-3.5 w-3.5" style={{ color: COPPER }} /> torontomovers-guide.com</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============ SECTION 5: RESULTS STRIP ============ */}
-      <section id="what-you-get" className="border-t border-[#EDE5D9] bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <h2 className="text-[clamp(1.9rem,3.4vw,2.7rem)] font-semibold leading-[1.1] tracking-[-0.025em]">What the full audit gives you</h2>
-            <p className="mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-[#6E5A50]">
-              Evidence from real AI answers, clarity on what is missing, and a plan your team can implement.
-            </p>
-          </Reveal>
-
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {[
-              { h: 'Where you stand', c: 'Mention rate, citation rate and visibility across the tested buyer-intent queries.', Icon: SearchCheck },
-              { h: 'Why competitors appear', c: 'Real AI answer excerpts, cited sources, competitor mentions and missing trust signals.', Icon: Link2 },
-              { h: 'What to fix first', c: 'Prioritized actions, draft copy, schema suggestions and clear implementation ownership.', Icon: FileText },
-            ].map((card, i) => {
-              const Icon = card.Icon
-              return (
-              <Reveal key={card.h} delay={i * 100}>
-                <div className="h-full rounded-2xl border border-[#E6DBCB] bg-[#FFFDF9] p-7 transition-shadow duration-200 hover:shadow-[0_22px_60px_-45px_rgba(46,33,22,0.45)]">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E6DBCB] bg-[#FBF6EE]" style={{ color: COPPER }}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="mt-5 text-[22px] font-bold leading-snug tracking-[-0.015em]" style={{ color: ESPRESSO }}>{card.h}</h3>
-                  <p className="mt-2.5 text-[13px] leading-relaxed text-[#8D7B6B]">{card.c}</p>
-                </div>
-              </Reveal>
-              )
-            })}
-          </div>
-
-          <p className="mt-10 text-center text-[12.5px] font-medium" style={{ color: '#7A6857' }}>Automated scan. Expert-reviewed before delivery.</p>
-        </div>
-      </section>
+      <ProductShowcase tab={tab} onTabChange={setTab} />
 
       {/* ============ SECTION 6: PRICING ============ */}
       <section id="pricing" className="relative overflow-hidden border-t border-[#E6DBCB]" style={{ background: 'linear-gradient(180deg, #FBF6EE 0%, #F5EDE1 100%)' }}>
@@ -861,24 +765,24 @@ export default function LandingPage() {
           </Reveal>
 
           {/* Main audit card - single, centered */}
-          <Reveal className="mx-auto mt-12 max-w-2xl">
-            <div className="flex flex-col rounded-2xl border bg-white p-9 shadow-[0_40px_90px_-55px_rgba(46,33,22,0.55)]" style={{ borderColor: 'rgba(169,83,31,0.28)' }}>
-              <div className="flex items-start justify-end gap-6 sm:justify-between">
-                <div className="hidden sm:block">
+          <Reveal className="mx-auto mt-10 max-w-2xl sm:mt-12">
+            <div className="flex flex-col rounded-2xl border bg-white p-5 shadow-[0_40px_90px_-55px_rgba(46,33,22,0.55)] sm:p-9" style={{ borderColor: 'rgba(169,83,31,0.28)' }}>
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                <div>
                   <div className="text-[17px] font-semibold leading-snug" style={{ color: ESPRESSO }}>AI Visibility Audit</div>
-                  <div className="mt-1 text-[13px] text-[#8D7B6B]">Includes expert website clarity and citation-readiness review.</div>
+                  <div className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-[#8D7B6B] sm:text-[13px]">Expert-reviewed AI visibility and citation-readiness audit.</div>
                 </div>
-                <span className="shrink-0 rounded-full border px-3 py-1 text-[10.5px] font-bold uppercase tracking-wider" style={{ borderColor: 'rgba(169,83,31,0.35)', color: COPPER, backgroundColor: 'rgba(169,83,31,0.06)' }}>Founding price &mdash; first 20</span>
+                <span className="shrink-0 rounded-full border px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wider sm:px-3 sm:text-[10.5px]" style={{ borderColor: 'rgba(169,83,31,0.35)', color: COPPER, backgroundColor: 'rgba(169,83,31,0.06)' }}>Founding offer &middot; first 20</span>
               </div>
 
-              <div className="mt-7 flex items-end gap-4">
-                <span className="text-[64px] font-semibold leading-none tracking-[-0.03em]" style={{ color: ESPRESSO }}>&euro;149</span>
-                <div className="pb-1.5 text-[12.5px] text-[#9B8A78]">Regular price &euro;399<br />after the founding offer.</div>
+              <div className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-1 sm:mt-7">
+                <span className="text-[52px] font-semibold leading-none tracking-[-0.03em] sm:text-[64px]" style={{ color: ESPRESSO }}>&euro;149</span>
+                <div className="pb-1 text-[12px] leading-snug text-[#9B8A78] sm:pb-1.5 sm:text-[12.5px]">Regular &euro;399 after the founding offer</div>
               </div>
 
-              <ul className="mt-8 grid gap-x-7 gap-y-3 text-[14px] sm:hidden">
+              <ul className="mt-6 grid gap-2.5 text-[13.5px] sm:hidden">
                 {MOBILE_PRICING_AUDIT.map((b) => (
-                  <li key={b} className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} /><span className="text-[#5C5148]">{b}</span></li>
+                  <li key={b} className="flex gap-2.5 leading-[1.3]"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} /><span className="text-[#5C5148]">{b}</span></li>
                 ))}
               </ul>
               <ul className="mt-8 hidden gap-x-7 gap-y-2.5 text-[13.5px] sm:grid sm:grid-cols-2">
@@ -887,13 +791,13 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <Link href="/score" className="mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[15px] font-semibold text-white transition-opacity duration-200 hover:opacity-90" style={{ backgroundColor: ESPRESSO }}>
-                Start with a free score <ArrowRight className="h-4 w-4" />
+              <Link href="/score" className="mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
+                Get your free AI visibility score <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
 
             {/* Monitoring as a small secondary note, not a card */}
-            <p className="mt-5 text-center text-[14px] font-medium text-[#6E5A50]">
+            <p className="mt-5 text-center text-[14px] font-semibold text-[#6E5A50]">
               Weekly monitoring is coming soon.{' '}
               <button className="font-semibold transition-colors hover:opacity-80" style={{ color: COPPER }}>Join the waitlist</button>.
             </p>

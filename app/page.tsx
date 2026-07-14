@@ -49,7 +49,7 @@ const AUDIENCE_PREVIEWS = [
       { Logo: AnthropicLogo, engine: 'Claude', badge: 'named' as const, badgeLabel: 'Named', note: 'business named' },
     ],
     gapLabel: 'Top visibility gap',
-    gap: 'AI answers rely on local comparison pages, directories and customer reviews \u2014 your business is missing from the sources they cite.',
+    gap: 'AI answers rely on local comparison pages, directories and customer reviews, but your business is missing from the sources they cite.',
   },
   {
     header: 'Client audit preview',
@@ -256,7 +256,9 @@ function StatusBadge({ kind, label: customLabel }: { kind: 'named' | 'cited' | '
         backgroundColor: missing ? 'transparent' : 'rgba(169,83,31,0.06)',
       }}
     >
-      {missing ? <Minus className="h-2.5 w-2.5" /> : <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+      {missing
+        ? <Minus className={customLabel ? 'hidden h-2.5 w-2.5 sm:block' : 'h-2.5 w-2.5'} />
+        : <Check className={customLabel ? 'hidden h-2.5 w-2.5 sm:block' : 'h-2.5 w-2.5'} strokeWidth={3} />}
       {label}
     </span>
   )
@@ -298,14 +300,14 @@ function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
   return (
     <div
       id="audience-audit-preview"
-      className="relative overflow-hidden rounded-3xl border border-[#EDE5D9] bg-[#FBF6EE] p-5 shadow-[0_30px_70px_-45px_rgba(46,33,22,0.4)]"
+      className="relative min-w-0 overflow-hidden rounded-3xl border border-[#EDE5D9] bg-[#FBF6EE] p-3 shadow-[0_30px_70px_-45px_rgba(46,33,22,0.4)] sm:p-5"
     >
       <p className="sr-only" aria-live="polite">
         {AUDIENCE_PREVIEWS[activeIndex].header}: {AUDIENCE_PREVIEWS[activeIndex].score} out of 100.
       </p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/hero-bg-6.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
-      <div className="relative grid">
+      <div className="relative grid min-w-0">
         {AUDIENCE_PREVIEWS.map((preview, index) => {
           const active = index === activeIndex
           const PreviewIcon = preview.Icon
@@ -314,7 +316,7 @@ function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
             <div
               key={preview.header}
               aria-hidden={!active}
-              className="col-start-1 row-start-1 transition-[opacity,transform] duration-200 ease-out"
+              className="col-start-1 row-start-1 min-w-0 transition-[opacity,transform] duration-200 ease-out"
               style={{
                 opacity: active ? 1 : 0,
                 pointerEvents: active ? 'auto' : 'none',
@@ -326,10 +328,10 @@ function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
                   <PreviewIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   <span>{preview.header}</span>
                 </div>
-                <div className="shrink-0 text-[11px] font-medium text-[#8D7B6B]">yourbusiness.com</div>
+                <div className="hidden shrink-0 text-[11px] font-medium text-[#8D7B6B] min-[360px]:block">yourbusiness.com</div>
               </div>
               <div className="space-y-3">
-                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
+                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-4 shadow-sm sm:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">AI Visibility Score</div>
@@ -342,18 +344,18 @@ function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
                     </svg>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
+                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-3 shadow-sm sm:p-5">
                   <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">Engine breakdown</div>
-                  <div className="mt-3 space-y-2.5">
+                  <div className="mt-2.5 space-y-1 sm:mt-3 sm:space-y-2.5">
                     {preview.engines.map(({ Logo, engine, badge, badgeLabel, note }) => (
                       <div key={engine}>
                         <div className="sm:hidden">
-                          <div className="flex min-h-11 items-center gap-2.5">
+                          <div className="flex min-h-9 items-center gap-2.5">
                             <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
                             <span className="flex-1 text-[13px] font-semibold">{engine}</span>
                             <StatusBadge kind={badge} label={badgeLabel} />
                           </div>
-                          <div className="pb-1 pl-[26px] text-[11px] leading-snug text-[#8D7B6B]">{note}</div>
+                          <div className="-mt-0.5 pl-[26px] text-[11px] leading-snug text-[#8D7B6B]">{note}</div>
                         </div>
                         <div className="hidden items-center gap-2.5 sm:flex">
                           <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
@@ -365,7 +367,7 @@ function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
                     ))}
                   </div>
                 </div>
-                <div className="flex min-h-[132px] flex-col rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
+                <div className="flex min-h-[132px] flex-col rounded-2xl border border-[#EDE5D9] bg-white p-4 shadow-sm sm:p-5">
                   <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">{preview.gapLabel}</div>
                   <div className="mt-2 text-[13px] leading-relaxed text-[#5C5148]">{preview.gap}</div>
                   <div className="mt-auto pt-2 text-[11px] font-medium leading-relaxed text-[#8D7B6B]">
@@ -415,7 +417,7 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
       <div className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-3xl text-center">
           <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#E9A96B' }}>The product</div>
-          <h2 className="mt-4 text-[clamp(2rem,3.9vw,3.1rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white">See where you stand &mdash; and what to fix first.</h2>
+          <h2 className="mt-4 text-[clamp(1.8rem,8vw,2rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white sm:text-[clamp(2rem,3.9vw,3.1rem)]">See where you stand, and what to fix first.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-[14px] leading-relaxed text-[#C6B4A2] sm:text-[15px]">
             ClearSignal shows how AI understands your business, why competitors appear, and which changes should come first.
           </p>
@@ -461,8 +463,8 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
           ))}
         </div>
 
-        <div className="mx-auto mt-4 max-w-[1040px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)] sm:mt-8 lg:max-w-[1120px]">
-          <div className="flex items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-4 py-3 sm:px-5">
+        <div className="mx-auto mt-4 max-w-[1040px] overflow-hidden rounded-xl border border-[#E8DCCB] bg-[#FBF7F1] shadow-[0_28px_70px_-45px_rgba(0,0,0,0.7)] sm:mt-8 sm:rounded-2xl sm:border-white/10 sm:bg-white sm:shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)] lg:max-w-[1120px]">
+          <div className="hidden items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-5 py-3 sm:flex">
             <div className="flex gap-1.5">
               {['#E7CDB8', '#EAD9C4', '#E2D3BE'].map((color) => <span key={color} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />)}
             </div>
@@ -471,7 +473,7 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-7">
+          <div className="bg-[#FBF7F1] p-4 sm:bg-white sm:p-7">
             {tab === 0 && (
               <div>
                 <div className="text-[17px] font-semibold">Where you stand</div>
@@ -539,16 +541,32 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
                   </div>
                   <span className="hidden rounded-full bg-[#FBF7F1] px-3 py-1 text-[11px] font-medium text-[#8D7B6B] sm:block">3 priorities</span>
                 </div>
-                <div className="mt-4 grid gap-2.5 sm:mt-5 sm:gap-3">
+                <div className="mt-3 divide-y divide-[#E4D8C8] sm:hidden">
+                  {priorityActions.map(({ priority, title, problem, change }, index) => (
+                    <article key={title} className="py-4 first:pt-1 last:pb-1">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-[11px] font-bold tracking-[0.14em]" style={{ color: COPPER }}>{String(index + 1).padStart(2, '0')}</span>
+                        <span className="shrink-0 whitespace-nowrap rounded-full border border-[#DECDBB] bg-white/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#7A6857]">{priority}</span>
+                      </div>
+                      <h3 className="mt-2 text-[15px] font-semibold leading-snug text-[#4A3A2D]">{title}</h3>
+                      <p className="mt-1 text-[12.5px] leading-relaxed text-[#7A6857]">{problem}</p>
+                      <p className="mt-2 flex items-start gap-2 text-[12.5px] font-medium leading-relaxed text-[#5C5148]">
+                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: COPPER }} />
+                        <span>{change}</span>
+                      </p>
+                    </article>
+                  ))}
+                </div>
+                <div className="mt-5 hidden gap-3 sm:grid">
                   {priorityActions.map(({ priority, title, problem, change, Icon }) => (
-                    <div key={title} className="grid grid-cols-[36px_1fr] gap-x-2.5 gap-y-2 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-3.5 sm:grid-cols-[44px_1fr_1fr] sm:items-center sm:gap-3 sm:p-5">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full text-white sm:h-10 sm:w-10" style={{ backgroundColor: COPPER }}><Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" /></span>
+                    <div key={title} className="grid grid-cols-[44px_1fr_1fr] items-center gap-3 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}><Icon className="h-[18px] w-[18px]" /></span>
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: COPPER }}>{priority}</div>
-                        <div className="mt-0.5 text-[14px] font-semibold leading-snug text-[#4A3A2D] sm:mt-1 sm:text-[15px]">{title}</div>
-                        <div className="mt-1 text-[11.5px] leading-snug text-[#7A6857] sm:mt-1.5 sm:text-[12px] sm:leading-relaxed"><span className="font-semibold text-[#5C5148]">Problem:</span> {problem}</div>
+                        <div className="mt-1 text-[15px] font-semibold leading-snug text-[#4A3A2D]">{title}</div>
+                        <div className="mt-1.5 text-[12px] leading-relaxed text-[#7A6857]"><span className="font-semibold text-[#5C5148]">Problem:</span> {problem}</div>
                       </div>
-                      <div className="col-span-2 rounded-lg border border-[#EFE7DB] bg-white p-2.5 text-[11.5px] leading-snug text-[#6E5A50] sm:col-span-1 sm:p-3 sm:text-[12px] sm:leading-relaxed"><span className="font-semibold text-[#4A3A2D]">Recommended change:</span> {change}</div>
+                      <div className="rounded-lg border border-[#EFE7DB] bg-white p-3 text-[12px] leading-relaxed text-[#6E5A50]"><span className="font-semibold text-[#4A3A2D]">Recommended change:</span> {change}</div>
                     </div>
                   ))}
                 </div>
@@ -610,7 +628,7 @@ export default function LandingPage() {
           <div className="text-center lg:text-left">
             <div className="text-[11px] font-semibold uppercase tracking-[0.26em]" style={{ color: '#9E6238' }}>Expert-reviewed AI Visibility Audit</div>
             <h1 className="mt-5 text-[clamp(2.1rem,4.1vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.02em]">
-              When buyers ask AI who to choose, does it recommend you &mdash; or your <span style={{ color: COPPER }}>competitor</span>?
+              When buyers ask AI who to choose, does it recommend you, or your <span style={{ color: COPPER }}>competitor</span>?
             </h1>
             <p className="mx-auto mt-5 hidden max-w-md text-[15px] leading-relaxed text-[#6E5A50] sm:block lg:mx-0">
               ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.
@@ -635,13 +653,16 @@ export default function LandingPage() {
           </div>
 
           {/* Phone group: composed as one visual */}
-          <div className="relative -mb-24 mt-0 flex scale-[0.74] justify-center sm:my-0 sm:scale-100">
+          <div className="relative -mb-24 -mt-8 flex scale-[0.84] justify-center sm:my-0 sm:scale-100">
             {/* depth behind the phone */}
             <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="h-[30rem] w-[30rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,186,128,0.35) 0%, rgba(255,205,160,0.12) 45%, transparent 70%)', filter: 'blur(12px)' }} />
               <div className="absolute h-[30rem] w-[23rem] rotate-6 rounded-[3rem] border border-white/60 bg-white/25 shadow-[0_40px_100px_-50px_rgba(46,33,22,0.4)]" style={{ backdropFilter: 'blur(6px)' }} />
               <div className="absolute h-[28rem] w-[21rem] -rotate-3 translate-x-[-1.2rem] translate-y-[0.7rem] rounded-[3rem] border border-white/55 bg-white/20" style={{ backdropFilter: 'blur(5px)' }} />
               <div className="absolute h-[27rem] w-[20rem] rotate-[11deg] translate-x-[1.35rem] translate-y-[1.25rem] rounded-[3rem] border border-white/45 bg-white/15" style={{ backdropFilter: 'blur(4px)' }} />
+              <div className="absolute hidden h-[31rem] w-[22rem] -translate-x-[3rem] translate-y-[1.8rem] -rotate-[10deg] rounded-[3.4rem] border border-white/35 bg-white/10 shadow-[0_45px_110px_-65px_rgba(46,33,22,0.45)] backdrop-blur-[5px] sm:block" />
+              <div className="absolute hidden h-[29rem] w-[22rem] translate-x-[3.2rem] translate-y-[2.2rem] rotate-[15deg] rounded-[3.4rem] border border-white/35 bg-white/10 shadow-[0_45px_110px_-65px_rgba(46,33,22,0.45)] backdrop-blur-[5px] sm:block" />
+              <div className="absolute hidden h-[24rem] w-[25rem] translate-y-[4.7rem] rotate-3 rounded-[3.4rem] border border-white/30 bg-white/[0.08] backdrop-blur-[4px] sm:block" />
             </div>
 
             <div className="relative z-10 w-[280px] sm:w-[326px]">
@@ -676,7 +697,7 @@ export default function LandingPage() {
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}><Check className="h-3.5 w-3.5" strokeWidth={3} /></span>
                         <div>
                           <div className="text-[13.5px] font-semibold">Your Business</div>
-                          <div className="text-[11px]" style={{ color: COPPER }}>named &amp; cited &mdash; yourbusiness.com</div>
+                          <div className="text-[11px]" style={{ color: COPPER }}>named &amp; cited &middot; yourbusiness.com</div>
                         </div>
                       </div>
                       {['Competitor A', 'Competitor B'].map((c, i) => (
@@ -874,21 +895,24 @@ export default function LandingPage() {
 
           {/* Main audit card - single, centered */}
           <Reveal className="mx-auto mt-7 max-w-2xl sm:mt-12">
-            <div className="flex flex-col rounded-2xl border bg-white p-5 shadow-[0_40px_90px_-55px_rgba(46,33,22,0.55)] sm:p-9" style={{ borderColor: 'rgba(169,83,31,0.28)' }}>
-              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+            <div className="flex flex-col rounded-2xl border bg-white p-4 shadow-[0_40px_90px_-55px_rgba(46,33,22,0.55)] sm:p-9" style={{ borderColor: 'rgba(169,83,31,0.28)' }}>
+              <div className="flex items-start justify-between gap-3 sm:gap-6">
                 <div>
                   <div className="text-[17px] font-semibold leading-snug" style={{ color: ESPRESSO }}>AI Visibility Audit</div>
-                  <div className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-[#8D7B6B] sm:text-[13px]">Expert-reviewed AI visibility and citation-readiness audit.</div>
+                  <div className="mt-1 hidden max-w-sm text-[13px] leading-relaxed text-[#8D7B6B] sm:block">Expert-reviewed AI visibility and citation-readiness audit.</div>
                 </div>
                 <span className="shrink-0 rounded-full border px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wider sm:px-3 sm:text-[10.5px]" style={{ borderColor: 'rgba(169,83,31,0.35)', color: COPPER, backgroundColor: 'rgba(169,83,31,0.06)' }}>Founding offer &middot; first 20</span>
               </div>
+              <div className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-[#8D7B6B] sm:hidden">Expert-reviewed AI visibility and citation-readiness audit.</div>
 
-              <div className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-1 sm:mt-7">
+              <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1 sm:mt-7 sm:gap-x-4">
                 <span className="text-[52px] font-semibold leading-none tracking-[-0.03em] sm:text-[64px]" style={{ color: ESPRESSO }}>&euro;149</span>
-                <div className="pb-1 text-[12px] leading-snug text-[#9B8A78] sm:pb-1.5 sm:text-[12.5px]">Regular &euro;399 after the founding offer</div>
+                <span className="pb-1 text-[17px] font-medium text-[#A99B8E] line-through sm:hidden">&euro;399</span>
+                <div className="hidden pb-1.5 text-[12.5px] leading-snug text-[#9B8A78] sm:block">Regular &euro;399 after the founding offer</div>
               </div>
+              <div className="mt-0.5 text-[11px] leading-snug text-[#9B8A78] sm:hidden">Founding price for the first 20 audits</div>
 
-              <ul className="mt-6 grid gap-2.5 text-[13.5px] sm:hidden">
+              <ul className="mt-4 grid gap-2 text-[13.5px] sm:hidden">
                 {MOBILE_PRICING_AUDIT.map((b) => (
                   <li key={b} className="flex gap-2.5 leading-[1.3]"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} /><span className="text-[#5C5148]">{b}</span></li>
                 ))}
@@ -899,10 +923,10 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <a href={STRIPE_AUDIT_URL} className="mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
-                Order the full audit &mdash; &euro;149 <ArrowRight className="h-4 w-4" />
+              <a href={STRIPE_AUDIT_URL} className="mt-5 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
+                Order the full audit &middot; &euro;149 <ArrowRight className="h-4 w-4" />
               </a>
-              <Link href="/score" className="mt-1 inline-flex min-h-11 items-center justify-center text-[13px] font-semibold underline decoration-[#C9B7A4] underline-offset-4 transition-opacity hover:opacity-70">
+              <Link href="/score" className="mt-1 inline-flex min-h-11 items-center justify-center whitespace-nowrap text-[12px] font-semibold underline decoration-[#C9B7A4] underline-offset-4 transition-opacity hover:opacity-70 sm:text-[13px]">
                 Not ready yet? Get your free score &rarr;
               </Link>
             </div>
@@ -934,7 +958,7 @@ export default function LandingPage() {
                   </button>
                   <div className="grid transition-all duration-300" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
                     <div className="overflow-hidden">
-                      <p className="max-w-2xl pb-5 pr-10 text-[14px] leading-relaxed text-[#6E5A50]">{item.a}</p>
+                      <p className="max-w-2xl pb-5 pr-1 text-[14px] leading-relaxed text-[#6E5A50] sm:pr-10">{item.a}</p>
                     </div>
                   </div>
                 </div>

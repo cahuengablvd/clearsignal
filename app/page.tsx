@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, FileText, HelpCircle, Link2, MapPinned, Minus, Plus, SearchCheck } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Building2, Check, FileText, HelpCircle, Link2, MapPinned, Minus, Plus, SearchCheck } from 'lucide-react'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -34,6 +34,49 @@ const AUDIENCES = [
     name: 'SaaS & B2B teams',
     copy: 'See which competitors AI recommends, which sources it trusts, and what your website is missing before buyers reach a shortlist.',
     cta: 'Get your free AI visibility score',
+  },
+]
+
+const AUDIENCE_PREVIEWS = [
+  {
+    header: 'Local visibility audit',
+    Icon: MapPinned,
+    score: 34,
+    meta: '14 local buyer-intent queries \u00d7 3 engines',
+    engines: [
+      { Logo: OpenAILogo, engine: 'ChatGPT', badge: 'missing' as const, badgeLabel: 'Missing', note: 'competitors named instead' },
+      { Logo: PerplexityLogo, engine: 'Perplexity', badge: 'cited' as const, badgeLabel: 'Cited', note: 'local sources cited' },
+      { Logo: AnthropicLogo, engine: 'Claude', badge: 'named' as const, badgeLabel: 'Named', note: 'business named' },
+    ],
+    gapLabel: 'Top visibility gap',
+    gap: 'AI answers rely on local comparison pages, directories and customer reviews \u2014 your business is missing from the sources they cite.',
+  },
+  {
+    header: 'Client audit preview',
+    Icon: BriefcaseBusiness,
+    score: 42,
+    meta: '18 buyer-intent queries \u00d7 3 engines',
+    engines: [
+      { Logo: OpenAILogo, engine: 'ChatGPT', badge: 'named' as const, badgeLabel: 'Competitor named', note: 'competitor appears' },
+      { Logo: PerplexityLogo, engine: 'Perplexity', badge: 'cited' as const, badgeLabel: '2 sources cited', note: 'supporting sources found' },
+      { Logo: AnthropicLogo, engine: 'Claude', badge: 'named' as const, badgeLabel: 'Client mentioned', note: 'client appears' },
+    ],
+    gapLabel: 'Top client opportunity',
+    gap: 'Three competitors appear more often because they have clearer case studies, third-party proof and category-focused pages.',
+    supportingLine: 'Includes evidence, prioritized fixes, PDF report and implementation brief.',
+  },
+  {
+    header: 'Category visibility audit',
+    Icon: Building2,
+    score: 27,
+    meta: '16 category and solution queries \u00d7 3 engines',
+    engines: [
+      { Logo: OpenAILogo, engine: 'ChatGPT', badge: 'missing' as const, badgeLabel: 'Missing', note: 'competitors named instead' },
+      { Logo: PerplexityLogo, engine: 'Perplexity', badge: 'cited' as const, badgeLabel: 'Docs cited', note: 'documentation cited' },
+      { Logo: AnthropicLogo, engine: 'Claude', badge: 'named' as const, badgeLabel: 'Competitor named', note: 'competitor appears' },
+    ],
+    gapLabel: 'Top category gap',
+    gap: 'AI relies on comparison pages, use-case content, product documentation and customer proof that your website does not explain clearly enough.',
   },
 ]
 
@@ -201,12 +244,12 @@ function GlassNav() {
   )
 }
 
-function StatusBadge({ kind }: { kind: 'named' | 'cited' | 'recommended' | 'missing' }) {
-  const label = { named: 'Named', cited: 'Cited', recommended: 'Recommended', missing: 'Missing' }[kind]
+function StatusBadge({ kind, label: customLabel }: { kind: 'named' | 'cited' | 'recommended' | 'missing'; label?: string }) {
+  const label = customLabel || { named: 'Named', cited: 'Cited', recommended: 'Recommended', missing: 'Missing' }[kind]
   const missing = kind === 'missing'
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider sm:text-[10px]"
       style={{
         borderColor: missing ? '#DFD5C7' : 'rgba(169,83,31,0.4)',
         color: missing ? '#9B8A78' : COPPER,
@@ -247,6 +290,93 @@ function FloatingCard({ className, children }: { className?: string; children: R
       style={{ backdropFilter: 'blur(18px) saturate(1.35)', WebkitBackdropFilter: 'blur(18px) saturate(1.35)' }}
     >
       {children}
+    </div>
+  )
+}
+
+function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
+  return (
+    <div
+      id="audience-audit-preview"
+      className="relative overflow-hidden rounded-3xl border border-[#EDE5D9] bg-[#FBF6EE] p-5 shadow-[0_30px_70px_-45px_rgba(46,33,22,0.4)]"
+    >
+      <p className="sr-only" aria-live="polite">
+        {AUDIENCE_PREVIEWS[activeIndex].header}: {AUDIENCE_PREVIEWS[activeIndex].score} out of 100.
+      </p>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/hero-bg-6.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
+      <div className="relative grid">
+        {AUDIENCE_PREVIEWS.map((preview, index) => {
+          const active = index === activeIndex
+          const PreviewIcon = preview.Icon
+
+          return (
+            <div
+              key={preview.header}
+              aria-hidden={!active}
+              className="col-start-1 row-start-1 transition-[opacity,transform] duration-200 ease-out"
+              style={{
+                opacity: active ? 1 : 0,
+                pointerEvents: active ? 'auto' : 'none',
+                transform: active ? 'translateY(0)' : 'translateY(7px)',
+              }}
+            >
+              <div className="mb-4 flex items-center justify-between gap-3 px-1">
+                <div className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: '#9E6238' }}>
+                  <PreviewIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span>{preview.header}</span>
+                </div>
+                <div className="shrink-0 text-[11px] font-medium text-[#8D7B6B]">yourbusiness.com</div>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">AI Visibility Score</div>
+                      <div className="mt-1 text-[34px] font-semibold leading-none" style={{ color: ESPRESSO }}>{preview.score}<span className="text-[15px] font-medium text-[#B4A69A]">/100</span></div>
+                      <div className="mt-1.5 text-[11px] text-[#8D7B6B]">{preview.meta}</div>
+                    </div>
+                    <svg width="72" height="72" viewBox="0 0 72 72" aria-label={`${preview.score} out of 100`}>
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="#EFE9E0" strokeWidth="7" />
+                      <circle cx="36" cy="36" r="30" fill="none" stroke={COPPER} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${(preview.score / 100) * 188} 188`} transform="rotate(-90 36 36)" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
+                  <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">Engine breakdown</div>
+                  <div className="mt-3 space-y-2.5">
+                    {preview.engines.map(({ Logo, engine, badge, badgeLabel, note }) => (
+                      <div key={engine}>
+                        <div className="sm:hidden">
+                          <div className="flex min-h-11 items-center gap-2.5">
+                            <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
+                            <span className="flex-1 text-[13px] font-semibold">{engine}</span>
+                            <StatusBadge kind={badge} label={badgeLabel} />
+                          </div>
+                          <div className="pb-1 pl-[26px] text-[11px] leading-snug text-[#8D7B6B]">{note}</div>
+                        </div>
+                        <div className="hidden items-center gap-2.5 sm:flex">
+                          <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
+                          <span className="w-[74px] text-[13px] font-semibold">{engine}</span>
+                          <span className="flex-1 text-right text-[11px] text-[#8D7B6B]">{note}</span>
+                          <StatusBadge kind={badge} label={badgeLabel} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex min-h-[132px] flex-col rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
+                  <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">{preview.gapLabel}</div>
+                  <div className="mt-2 text-[13px] leading-relaxed text-[#5C5148]">{preview.gap}</div>
+                  <div className="mt-auto pt-2 text-[11px] font-medium leading-relaxed text-[#8D7B6B]">
+                    {preview.supportingLine || <span aria-hidden>&nbsp;</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -443,9 +573,11 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
 export default function LandingPage() {
   const bg = 0
   const [audience, setAudience] = useState(0)
+  const [audiencePreview, setAudiencePreview] = useState<number | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [tab, setTab] = useState(2) // Fix is the default product moment
   const engineScrollRef = useRef<HTMLDivElement>(null)
+  const visibleAudience = audiencePreview ?? audience
 
   return (
     <div className="min-h-screen bg-[#FBF6EE]" style={{ color: ESPRESSO }}>
@@ -575,12 +707,25 @@ export default function LandingPage() {
             <h2 className="mt-4 max-w-md text-[clamp(1.7rem,3vw,2.4rem)] font-semibold leading-[1.12] tracking-[-0.01em]">Built for teams whose buyers ask AI before they buy.</h2>
             <div className="mt-8 space-y-2">
               {AUDIENCES.map((a, i) => {
-                const active = audience === i
+                const active = visibleAudience === i
                 return (
                   <button
+                    type="button"
                     key={a.name}
-                    onMouseEnter={() => setAudience(i)}
-                    onClick={() => setAudience(i)}
+                    aria-controls="audience-audit-preview"
+                    aria-pressed={audience === i}
+                    onMouseEnter={() => {
+                      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setAudiencePreview(i)
+                    }}
+                    onMouseLeave={() => {
+                      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setAudiencePreview(null)
+                    }}
+                    onFocus={() => setAudiencePreview(i)}
+                    onBlur={() => setAudiencePreview(null)}
+                    onClick={() => {
+                      setAudience(i)
+                      setAudiencePreview(null)
+                    }}
                     className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-300"
                     style={{
                       borderColor: active ? 'rgba(169,83,31,0.35)' : '#EDE5D9',
@@ -595,70 +740,15 @@ export default function LandingPage() {
                 )
               })}
             </div>
-            <p className="mt-6 max-w-sm text-[14.5px] leading-relaxed text-[#6E5A50]">{AUDIENCES[audience].copy}</p>
+            <p className="mt-6 max-w-sm text-[14.5px] leading-relaxed text-[#6E5A50]">{AUDIENCES[visibleAudience].copy}</p>
             <div className="mt-6">
               <Link href="/score" className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:w-auto sm:px-6 sm:text-sm" style={{ backgroundColor: ESPRESSO }}>
-                {AUDIENCES[audience].cta} <ArrowRight className="h-4 w-4" />
+                {AUDIENCES[visibleAudience].cta} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-3xl border border-[#EDE5D9] bg-[#FBF6EE] p-5 shadow-[0_30px_70px_-45px_rgba(46,33,22,0.4)]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hero-bg-6.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
-            <div className="relative">
-              <div className="mb-4 flex items-center justify-between px-1">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: '#9E6238' }}>Audit preview</div>
-                <div className="text-[11px] font-medium text-[#8D7B6B]">yourbusiness.com</div>
-              </div>
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">AI Visibility Score</div>
-                      <div className="mt-1 text-[34px] font-semibold leading-none" style={{ color: ESPRESSO }}>34<span className="text-[15px] font-medium text-[#B4A69A]">/100</span></div>
-                      <div className="mt-1.5 text-[11px] text-[#8D7B6B]">14 queries &times; 3 engines</div>
-                    </div>
-                    <svg width="72" height="72" viewBox="0 0 72 72">
-                      <circle cx="36" cy="36" r="30" fill="none" stroke="#EFE9E0" strokeWidth="7" />
-                      <circle cx="36" cy="36" r="30" fill="none" stroke={COPPER} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 188} 188`} transform="rotate(-90 36 36)" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
-                  <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">Engine breakdown</div>
-                  <div className="mt-3 space-y-2.5">
-                    {[
-                      { Logo: OpenAILogo, engine: 'ChatGPT', badge: 'missing' as const, note: 'competitors named instead' },
-                      { Logo: PerplexityLogo, engine: 'Perplexity', badge: 'cited' as const, note: 'in cited sources' },
-                      { Logo: AnthropicLogo, engine: 'Claude', badge: 'named' as const, note: 'position #2 of 5' },
-                    ].map(({ Logo, engine, badge, note }) => (
-                      <div key={engine}>
-                        <div className="sm:hidden">
-                          <div className="flex min-h-11 items-center gap-2.5">
-                            <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
-                            <span className="flex-1 text-[13px] font-semibold">{engine}</span>
-                            <StatusBadge kind={badge} />
-                          </div>
-                          <div className="pb-1 pl-[26px] text-[11px] leading-snug text-[#8D7B6B]">{note}</div>
-                        </div>
-                        <div className="hidden items-center gap-2.5 sm:flex">
-                          <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
-                          <span className="w-[74px] text-[13px] font-semibold">{engine}</span>
-                          <span className="flex-1 text-right text-[11px] text-[#8D7B6B]">{note}</span>
-                          <StatusBadge kind={badge} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-[#EDE5D9] bg-white p-5 shadow-sm">
-                  <div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">Top source gap</div>
-                  <div className="mt-2 text-[13px] leading-relaxed text-[#5C5148]">AI answers cite local comparison articles &mdash; your business isn&rsquo;t in any of the top 3 cited sources.</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <AudienceAuditPreview activeIndex={visibleAudience} />
         </div>
       </section>
 

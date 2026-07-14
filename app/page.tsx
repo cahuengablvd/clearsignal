@@ -11,6 +11,8 @@ const BACKGROUNDS = [
 const COPPER = '#A9531F'
 const ESPRESSO = '#2E2116'
 const INK = '#3D2E22' // high-contrast supporting text
+// TODO: swap the fallback for the live Stripe payment link before taking real payments.
+const STRIPE_AUDIT_URL = process.env.NEXT_PUBLIC_STRIPE_AUDIT_URL || 'https://buy.stripe.com/test_aFa8wP8Vx8aO4bIcaM7IY00'
 const NAV_ITEMS = [
   { label: 'Workflow', href: '#workflow' },
   { label: 'What you get', href: '#what-you-get' },
@@ -307,23 +309,29 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
           </div>
         </div>
 
-        <div className="mt-8 grid gap-2.5 sm:hidden">
+        <div className="mt-8 grid gap-2 sm:hidden">
           {[
-            { title: 'Where you stand', copy: 'Named, cited or missing across the tested buyer questions.', Icon: SearchCheck },
-            { title: 'Why competitors appear', copy: 'The proof, content and sources supporting their visibility.', Icon: Link2 },
-            { title: 'What to fix first', copy: 'Three clear priorities your team can act on.', Icon: FileText },
-          ].map(({ title, copy, Icon }) => (
-            <div key={title} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.055] px-3.5 py-3 text-left">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08]" style={{ color: '#E9A96B' }}><Icon className="h-4 w-4" /></span>
+            { title: 'Where you stand', copy: 'Named, cited or missing.', Icon: SearchCheck },
+            { title: 'Why competitors appear', copy: 'The proof and sources behind them.', Icon: Link2 },
+            { title: 'What to fix first', copy: 'Three priorities to act on.', Icon: FileText },
+          ].map(({ title, copy, Icon }, index) => (
+            <div
+              key={title}
+              className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left"
+              style={index === 2
+                ? { borderColor: 'rgba(233,169,107,0.48)', backgroundColor: 'rgba(169,83,31,0.18)' }
+                : { borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.055)' }}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.08]" style={{ color: '#E9A96B' }}><Icon className="h-4 w-4" /></span>
               <span>
                 <span className="block text-[13.5px] font-semibold text-white">{title}</span>
-                <span className="mt-0.5 block text-[11.5px] leading-snug text-[#B9A795]">{copy}</span>
+                <span className="block text-[11px] leading-tight text-[#CDBCAA]">{copy}</span>
               </span>
             </div>
           ))}
         </div>
 
-        <div className="mx-auto mt-6 max-w-[1040px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)] sm:mt-8">
+        <div className="mx-auto mt-4 max-w-[1040px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)] sm:mt-8 lg:max-w-[1120px]">
           <div className="flex items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-4 py-3 sm:px-5">
             <div className="flex gap-1.5">
               {['#E7CDB8', '#EAD9C4', '#E2D3BE'].map((color) => <span key={color} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />)}
@@ -401,16 +409,16 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
                   </div>
                   <span className="hidden rounded-full bg-[#FBF7F1] px-3 py-1 text-[11px] font-medium text-[#8D7B6B] sm:block">3 priorities</span>
                 </div>
-                <div className="mt-5 grid gap-3">
+                <div className="mt-4 grid gap-2.5 sm:mt-5 sm:gap-3">
                   {priorityActions.map(({ priority, title, problem, change, Icon }) => (
-                    <div key={title} className="grid gap-3 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-4 sm:grid-cols-[44px_1fr_1fr] sm:items-center sm:p-5">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}><Icon className="h-[18px] w-[18px]" /></span>
+                    <div key={title} className="grid grid-cols-[36px_1fr] gap-x-2.5 gap-y-2 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-3.5 sm:grid-cols-[44px_1fr_1fr] sm:items-center sm:gap-3 sm:p-5">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full text-white sm:h-10 sm:w-10" style={{ backgroundColor: COPPER }}><Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" /></span>
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: COPPER }}>{priority}</div>
-                        <div className="mt-1 text-[15px] font-semibold leading-snug text-[#4A3A2D]">{title}</div>
-                        <div className="mt-1.5 text-[12px] leading-relaxed text-[#7A6857]"><span className="font-semibold text-[#5C5148]">Problem:</span> {problem}</div>
+                        <div className="mt-0.5 text-[14px] font-semibold leading-snug text-[#4A3A2D] sm:mt-1 sm:text-[15px]">{title}</div>
+                        <div className="mt-1 text-[11.5px] leading-snug text-[#7A6857] sm:mt-1.5 sm:text-[12px] sm:leading-relaxed"><span className="font-semibold text-[#5C5148]">Problem:</span> {problem}</div>
                       </div>
-                      <div className="rounded-lg border border-[#EFE7DB] bg-white p-3 text-[12px] leading-relaxed text-[#6E5A50]"><span className="font-semibold text-[#4A3A2D]">Recommended change:</span> {change}</div>
+                      <div className="col-span-2 rounded-lg border border-[#EFE7DB] bg-white p-2.5 text-[11.5px] leading-snug text-[#6E5A50] sm:col-span-1 sm:p-3 sm:text-[12px] sm:leading-relaxed"><span className="font-semibold text-[#4A3A2D]">Recommended change:</span> {change}</div>
                     </div>
                   ))}
                 </div>
@@ -419,9 +427,9 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
           </div>
         </div>
 
-        <div id="what-you-get" className="mx-auto mt-6 max-w-[1040px] rounded-xl border border-white/10 bg-white/[0.055] px-4 py-4 text-center backdrop-blur sm:mt-7 sm:px-6">
-          <p className="text-[12.5px] leading-relaxed text-[#D0BEAC] sm:text-[13.5px]">You receive the evidence, prioritized recommendations and implementation materials in a web dashboard and PDF report.</p>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11.5px] font-medium text-[#F0E5D8] sm:text-[12.5px]">
+        <div id="what-you-get" className="mx-auto mt-6 max-w-[1040px] rounded-xl border border-white/10 bg-white/[0.055] px-4 py-4 text-center backdrop-blur sm:mt-7 sm:px-6 lg:max-w-[1120px]">
+          <p className="text-[13px] leading-relaxed text-[#E8DCCD] sm:text-[13.5px]">You receive the evidence, prioritized recommendations and implementation materials in a web dashboard and PDF report.</p>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-medium text-[#FFF8F0] sm:text-[12.5px]">
             {['Real AI answer evidence', 'Prioritized website fixes', 'Expert-reviewed before delivery'].map((item) => (
               <span key={item} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" style={{ color: '#E9A96B' }} strokeWidth={3} />{item}</span>
             ))}
@@ -459,8 +467,8 @@ export default function LandingPage() {
             <span className="text-[16px] font-bold tracking-tight sm:text-[18px]" style={{ color: ESPRESSO }}>ClearSignal</span>
           </div>
           <GlassNav />
-          <div className="flex flex-1 justify-end">
-            <Link href="/score" className="rounded-full border border-[#E0D3C0] bg-white px-4 py-2 text-[12px] font-semibold shadow-sm transition-shadow duration-200 hover:shadow-md sm:px-5 sm:py-2.5 sm:text-[13px]">
+          <div className="hidden flex-1 justify-end sm:flex">
+            <Link href="/score" className="rounded-full border border-[#E0D3C0] bg-white px-5 py-2.5 text-[13px] font-semibold shadow-sm transition-shadow duration-200 hover:shadow-md">
               Get free score
             </Link>
           </div>
@@ -475,19 +483,19 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 hidden max-w-md text-[15px] leading-relaxed text-[#6E5A50] sm:block lg:mx-0">
               ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.
             </p>
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 lg:mt-7 lg:justify-start">
-              <Link href="/score" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90" style={{ backgroundColor: ESPRESSO }}>
+            <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row sm:flex-wrap sm:gap-3 lg:mt-7 lg:justify-start">
+              <Link href="/score" className="inline-flex w-full max-w-[290px] items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[13.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:w-auto sm:max-w-none sm:px-6 sm:text-sm" style={{ backgroundColor: ESPRESSO }}>
                 Get your free AI visibility score <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/sample" className="inline-flex items-center rounded-full border border-[#E0D3C0] bg-white/90 px-6 py-3.5 text-sm font-semibold backdrop-blur transition-shadow duration-200 hover:shadow-md">View sample report</Link>
+              <Link href="/sample" className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4 transition-opacity hover:opacity-75 sm:min-h-0 sm:rounded-full sm:border sm:border-[#E0D3C0] sm:bg-white/90 sm:px-6 sm:py-3.5 sm:no-underline sm:backdrop-blur sm:transition-shadow sm:hover:opacity-100 sm:hover:shadow-md">View sample report</Link>
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:mt-5 lg:justify-start">
               <span className="text-[10.5px] font-bold uppercase tracking-[0.18em]" style={{ color: '#7A6857' }}>Tested across</span>
-              <div className="flex items-center gap-5" style={{ color: INK }}>
+              <div className="flex items-center gap-3 sm:gap-5" style={{ color: INK }}>
                 {ENGINES.map(({ name, Logo }) => (
                   <span key={name} className="flex items-center gap-1.5" title={name}>
-                    <Logo className="h-[18px] w-[18px]" />
-                    <span className="text-[12.5px] font-semibold">{name}</span>
+                    <Logo className="h-[17px] w-[17px] sm:h-[18px] sm:w-[18px]" />
+                    <span className="text-[11.5px] font-semibold sm:text-[12.5px]">{name}</span>
                   </span>
                 ))}
               </div>
@@ -495,7 +503,7 @@ export default function LandingPage() {
           </div>
 
           {/* Phone group: composed as one visual */}
-          <div className="relative -my-28 flex scale-[0.74] justify-center sm:my-0 sm:scale-100">
+          <div className="relative -mb-24 mt-0 flex scale-[0.74] justify-center sm:my-0 sm:scale-100">
             {/* depth behind the phone */}
             <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="h-[30rem] w-[30rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,186,128,0.35) 0%, rgba(255,205,160,0.12) 45%, transparent 70%)', filter: 'blur(12px)' }} />
@@ -589,8 +597,8 @@ export default function LandingPage() {
             </div>
             <p className="mt-6 max-w-sm text-[14.5px] leading-relaxed text-[#6E5A50]">{AUDIENCES[audience].copy}</p>
             <div className="mt-6">
-              <Link href="/score" className="inline-flex items-center gap-2 rounded-full border border-[#E0D3C0] bg-white px-6 py-3 text-sm font-semibold transition-shadow duration-200 hover:shadow-md">
-                {AUDIENCES[audience].cta} <ArrowRight className="h-4 w-4" style={{ color: COPPER }} />
+              <Link href="/score" className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:w-auto sm:px-6 sm:text-sm" style={{ backgroundColor: ESPRESSO }}>
+                {AUDIENCES[audience].cta} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
@@ -625,11 +633,21 @@ export default function LandingPage() {
                       { Logo: PerplexityLogo, engine: 'Perplexity', badge: 'cited' as const, note: 'in cited sources' },
                       { Logo: AnthropicLogo, engine: 'Claude', badge: 'named' as const, note: 'position #2 of 5' },
                     ].map(({ Logo, engine, badge, note }) => (
-                      <div key={engine} className="flex items-center gap-2.5">
-                        <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
-                        <span className="w-[74px] text-[13px] font-semibold">{engine}</span>
-                        <span className="flex-1 truncate text-right text-[11px] text-[#8D7B6B]">{note}</span>
-                        <StatusBadge kind={badge} />
+                      <div key={engine}>
+                        <div className="sm:hidden">
+                          <div className="flex min-h-11 items-center gap-2.5">
+                            <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
+                            <span className="flex-1 text-[13px] font-semibold">{engine}</span>
+                            <StatusBadge kind={badge} />
+                          </div>
+                          <div className="pb-1 pl-[26px] text-[11px] leading-snug text-[#8D7B6B]">{note}</div>
+                        </div>
+                        <div className="hidden items-center gap-2.5 sm:flex">
+                          <Logo className="h-4 w-4 shrink-0 text-[#3D2E22]" />
+                          <span className="w-[74px] text-[13px] font-semibold">{engine}</span>
+                          <span className="flex-1 text-right text-[11px] text-[#8D7B6B]">{note}</span>
+                          <StatusBadge kind={badge} />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -755,17 +773,17 @@ export default function LandingPage() {
       {/* ============ SECTION 6: PRICING ============ */}
       <section id="pricing" className="relative overflow-hidden border-t border-[#E6DBCB]" style={{ background: 'linear-gradient(180deg, #FBF6EE 0%, #F5EDE1 100%)' }}>
         <SignalOverlay />
-        <div className="relative z-10 mx-auto max-w-6xl px-6 py-24">
+        <div className="relative z-10 mx-auto max-w-6xl px-5 py-14 sm:px-6 sm:py-24">
           <Reveal className="mx-auto max-w-2xl text-center">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#9E6238' }}>Founding offer</div>
-            <h2 className="mt-4 text-[clamp(2rem,3.7vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">One expert-reviewed audit. No subscription required.</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[#6E5A50]">
+            <h2 className="mt-4 text-[clamp(1.8rem,3.7vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">One expert-reviewed audit. No subscription required.</h2>
+            <p className="mx-auto mt-4 hidden max-w-xl text-[15px] leading-relaxed text-[#6E5A50] sm:block">
               Get the evidence, priorities and implementation materials your team needs before deciding whether ongoing monitoring is worthwhile.
             </p>
           </Reveal>
 
           {/* Main audit card - single, centered */}
-          <Reveal className="mx-auto mt-10 max-w-2xl sm:mt-12">
+          <Reveal className="mx-auto mt-7 max-w-2xl sm:mt-12">
             <div className="flex flex-col rounded-2xl border bg-white p-5 shadow-[0_40px_90px_-55px_rgba(46,33,22,0.55)] sm:p-9" style={{ borderColor: 'rgba(169,83,31,0.28)' }}>
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                 <div>
@@ -791,8 +809,11 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <Link href="/score" className="mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
-                Get your free AI visibility score <ArrowRight className="h-4 w-4" />
+              <a href={STRIPE_AUDIT_URL} className="mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
+                Order the full audit &mdash; &euro;149 <ArrowRight className="h-4 w-4" />
+              </a>
+              <Link href="/score" className="mt-1 inline-flex min-h-11 items-center justify-center text-[13px] font-semibold underline decoration-[#C9B7A4] underline-offset-4 transition-opacity hover:opacity-70">
+                Not ready yet? Get your free score &rarr;
               </Link>
             </div>
 

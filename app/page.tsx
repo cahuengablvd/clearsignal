@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, BriefcaseBusiness, Building2, Check, Link2, MapPinned, Minus, Plus } from 'lucide-react'
 
 const BACKGROUNDS = [
@@ -385,6 +385,12 @@ function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
 
 function ProductShowcase() {
   const [openStage, setOpenStage] = useState(2)
+  const [activeStage, setActiveStage] = useState(0)
+  const [previewStage, setPreviewStage] = useState<number | null>(null)
+  const showcaseRef = useRef<HTMLElement>(null)
+  const autoplayTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([])
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const interactionRef = useRef(false)
   const engineStates = [
     { Logo: OpenAILogo, engine: 'ChatGPT', state: 'Missing', active: false },
     { Logo: PerplexityLogo, engine: 'Perplexity', state: 'Cited', active: true },
@@ -402,9 +408,58 @@ function ProductShowcase() {
     { title: 'Why competitors appear', summary: 'Stronger reviews, clearer pages and cited sources' },
     { title: 'What to fix first', summary: 'Add location · Add FAQ · Add proof' },
   ]
+  const desktopStages = [
+    { label: 'Measure', title: 'Where you stand' },
+    { label: 'Explain', title: 'Why competitors appear' },
+    { label: 'Act', title: 'What to fix first' },
+  ]
+  const displayedStage = previewStage ?? activeStage
+
+  const stopAutoplay = useCallback(() => {
+    interactionRef.current = true
+    autoplayTimersRef.current.forEach(clearTimeout)
+    autoplayTimersRef.current = []
+  }, [])
+
+  const selectStage = useCallback((stage: number) => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    stopAutoplay()
+    setPreviewStage(null)
+    setActiveStage(stage)
+  }, [stopAutoplay])
+
+  useEffect(() => {
+    const section = showcaseRef.current
+    if (!section) return
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion) return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || interactionRef.current || autoplayTimersRef.current.length > 0) return
+      setActiveStage(0)
+      autoplayTimersRef.current = [
+        setTimeout(() => {
+          if (!interactionRef.current) setActiveStage(1)
+        }, 4000),
+        setTimeout(() => {
+          if (!interactionRef.current) setActiveStage(2)
+          autoplayTimersRef.current = []
+        }, 8000),
+      ]
+      observer.disconnect()
+    }, { threshold: 0.35 })
+
+    observer.observe(section)
+    return () => {
+      observer.disconnect()
+      autoplayTimersRef.current.forEach(clearTimeout)
+      autoplayTimersRef.current = []
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    }
+  }, [])
 
   return (
-    <section id="workflow" className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #2B2018 0%, #211812 55%, #1C140F 100%)' }}>
+    <section ref={showcaseRef} id="workflow" className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #2B2018 0%, #211812 55%, #1C140F 100%)' }}>
       <div aria-hidden className="pointer-events-none absolute -left-40 top-10 h-[38rem] w-[38rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(169,83,31,0.30), transparent 62%)', filter: 'blur(30px)' }} />
       <div aria-hidden className="pointer-events-none absolute -right-32 bottom-0 h-[34rem] w-[34rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(233,169,107,0.18), transparent 62%)', filter: 'blur(30px)' }} />
       <SignalOverlay tone="light" />
@@ -418,73 +473,142 @@ function ProductShowcase() {
           </p>
         </Reveal>
 
-        <div className="mx-auto mt-9 hidden max-w-[1120px] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.065] shadow-[0_40px_100px_-55px_rgba(0,0,0,0.9)] backdrop-blur-xl lg:grid lg:grid-cols-3">
-          <article className="min-w-0 px-7 py-8 xl:px-8">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E9A96B]">Measure</span>
-              <ArrowRight className="h-4 w-4 text-white/25" aria-hidden />
-            </div>
-            <h3 className="mt-3 text-[21px] font-semibold text-white">Where you stand</h3>
-            <div className="mt-5 flex items-center justify-between gap-4 border-b border-white/10 pb-5">
-              <div>
-                <div className="text-[11px] uppercase tracking-wider text-[#BCA894]">AI visibility score</div>
-                <div className="mt-1 text-[46px] font-semibold leading-none text-white">34<span className="text-[14px] font-medium text-[#9F8D7B]">/100</span></div>
-              </div>
-              <svg width="68" height="68" viewBox="0 0 72 72" aria-label="34 out of 100">
-                <circle cx="36" cy="36" r="29" fill="none" stroke="rgba(255,255,255,0.11)" strokeWidth="7" />
-                <circle cx="36" cy="36" r="29" fill="none" stroke="#E58B52" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" />
-              </svg>
-            </div>
-            <div className="grid grid-cols-2 border-b border-white/10 py-4">
-              <div><div className="text-[21px] font-semibold text-[#F0A46F]">21%</div><div className="text-[11px] text-[#BCA894]">Mention rate</div></div>
-              <div className="border-l border-white/10 pl-4"><div className="text-[21px] font-semibold text-[#F0A46F]">14%</div><div className="text-[11px] text-[#BCA894]">Citation rate</div></div>
-            </div>
-            <div className="divide-y divide-white/10">
-              {engineStates.map(({ Logo, engine, state, active }) => (
-                <div key={engine} className="flex min-h-11 items-center justify-between gap-3 py-2.5">
-                  <span className="flex items-center gap-2 text-[13.5px] font-medium text-white"><Logo className="h-4 w-4" />{engine}</span>
-                  <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: active ? '#F0A46F' : '#A99582' }}>{state}</span>
+        <div
+          className="relative mx-auto mt-9 hidden h-[540px] max-w-[1120px] overflow-hidden lg:block"
+          aria-label="ClearSignal product story"
+          onMouseEnter={stopAutoplay}
+          onFocusCapture={stopAutoplay}
+          onTouchStart={stopAutoplay}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowLeft') {
+              event.preventDefault()
+              selectStage((displayedStage + 2) % 3)
+            }
+            if (event.key === 'ArrowRight') {
+              event.preventDefault()
+              selectStage((displayedStage + 1) % 3)
+            }
+            if (event.key === 'Home') selectStage(0)
+            if (event.key === 'End') selectStage(2)
+          }}
+        >
+          {desktopStages.map((stage, index) => {
+            const relative = (index - displayedStage + 3) % 3
+            const active = relative === 0
+            const direction = relative === 1 ? 1 : -1
+            return (
+              <button
+                key={stage.label}
+                type="button"
+                aria-label={`Show ${stage.label}: ${stage.title}`}
+                aria-current={active ? 'step' : undefined}
+                onFocus={(event) => {
+                  if (event.currentTarget.matches(':focus-visible')) {
+                    stopAutoplay()
+                    setPreviewStage(index)
+                  }
+                }}
+                onBlur={() => setPreviewStage(null)}
+                onMouseDown={() => selectStage(index)}
+                onClick={() => selectStage(index)}
+                className="absolute left-1/2 top-6 h-[430px] overflow-hidden rounded-[22px] border p-0 text-left outline-none transition-[transform,opacity,filter,background-color,box-shadow] duration-[560ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-[#E9A96B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#211812] motion-reduce:transition-opacity motion-reduce:duration-200"
+                style={{
+                  width: 'min(820px, calc(100% - 120px))',
+                  zIndex: active ? 30 : 10,
+                  opacity: active ? 1 : 0.48,
+                  filter: active ? 'none' : 'blur(0.8px) brightness(0.72)',
+                  background: active ? '#FBF7F1' : 'rgba(64, 46, 35, 0.92)',
+                  borderColor: active ? 'rgba(255,255,255,0.56)' : 'rgba(255,255,255,0.12)',
+                  boxShadow: active ? '0 42px 90px -38px rgba(0,0,0,0.78)' : '0 24px 50px -32px rgba(0,0,0,0.7)',
+                  transform: active
+                    ? 'translateX(-50%) translateY(0) scale(1)'
+                    : `translateX(calc(-50% + ${direction * 238}px)) translateY(24px) scale(0.86)`,
+                }}
+              >
+                <div className="h-full px-8 py-7" style={{ color: active ? '#3D2E22' : '#FFF8F0' }}>
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.2em]" style={{ color: active ? COPPER : '#E9A96B' }}>{String(index + 1).padStart(2, '0')} {stage.label}</div>
+                  <h3 className="mt-2 text-[24px] font-semibold leading-tight">{stage.title}</h3>
+
+                  {!active && (
+                    <div className={`mt-7 max-w-[270px] border-t border-white/12 pt-5 text-[13px] leading-relaxed text-[#D7C5B4] ${direction > 0 ? 'ml-auto text-right' : ''}`}>
+                      {index === 0 && <><div className="text-[42px] font-semibold leading-none text-white">34<span className="text-[13px] text-[#BCA894]">/100</span></div><div className="mt-3">21% mentioned · 14% cited</div></>}
+                      {index === 1 && <><div className="font-semibold text-white">They have stronger proof</div><div className="mt-2">Reviews, location pages and cited sources.</div></>}
+                      {index === 2 && <ol className="space-y-2">{['Add location', 'Add FAQ', 'Add proof'].map((item, itemIndex) => <li key={item}>{String(itemIndex + 1).padStart(2, '0')} {item}</li>)}</ol>}
+                    </div>
+                  )}
+
+                  {active && index === 0 && (
+                    <div className="mt-5 grid grid-cols-[0.8fr_1.2fr] gap-8">
+                      <div>
+                        <p className="text-[13px] leading-relaxed text-[#7A6857]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
+                        <div className="mt-6 flex items-center justify-between border-y border-[#E4D8C8] py-4">
+                          <div><div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">AI visibility score</div><div className="mt-1 text-[46px] font-semibold leading-none">34<span className="text-[14px] text-[#A99582]">/100</span></div></div>
+                          <svg width="68" height="68" viewBox="0 0 72 72" aria-label="34 out of 100"><circle cx="36" cy="36" r="29" fill="none" stroke="#E9DED1" strokeWidth="7" /><circle cx="36" cy="36" r="29" fill="none" stroke="#D8793E" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" /></svg>
+                        </div>
+                        <div className="grid grid-cols-2 pt-4"><div><div className="text-[21px] font-semibold text-[#A9531F]">21%</div><div className="text-[11px] text-[#8D7B6B]">Mention rate</div></div><div className="border-l border-[#E4D8C8] pl-5"><div className="text-[21px] font-semibold text-[#A9531F]">14%</div><div className="text-[11px] text-[#8D7B6B]">Citation rate</div></div></div>
+                      </div>
+                      <div className="border-l border-[#E4D8C8] pl-8">
+                        <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Engine results</div>
+                        <div className="mt-3 divide-y divide-[#E9DED1]">{engineStates.map(({ Logo, engine, state }) => <div key={engine} className="flex min-h-[58px] items-center justify-between gap-3"><span className="flex items-center gap-2.5 text-[14px] font-medium"><Logo className="h-4 w-4" />{engine}</span><span className="rounded-full border border-[#DFCBB9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#A9531F]">{state}</span></div>)}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {active && index === 1 && (
+                    <div className="mt-5">
+                      <p className="text-[13px] leading-relaxed text-[#7A6857]">Understand which proof, content and sources help competitors get recommended.</p>
+                      <div className="mt-6 grid grid-cols-2 border-y border-[#E4D8C8] py-5">
+                        <div className="pr-8"><div className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#A9531F]">Why they appear</div><ul className="mt-4 space-y-3 text-[14px] leading-relaxed text-[#5C5148]">{competitorSignals.map((item) => <li key={item} className="flex gap-2.5"><Check className="mt-1 h-4 w-4 shrink-0 text-[#A9531F]" />{item}</li>)}</ul></div>
+                        <div className="border-l border-[#E4D8C8] pl-8"><div className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#8D7B6B]">What you&rsquo;re missing</div><ul className="mt-4 space-y-3 text-[14px] leading-relaxed text-[#6E5A50]">{missingSignals.map((item) => <li key={item} className="flex gap-2.5"><Minus className="mt-1 h-4 w-4 shrink-0 text-[#A99582]" />{item}</li>)}</ul></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {active && index === 2 && (
+                    <div className="mt-5">
+                      <p className="text-[13px] leading-relaxed text-[#7A6857]">Get clear, prioritized changes your team can implement.</p>
+                      <ol className="mt-5 divide-y divide-[#E4D8C8] border-y border-[#E4D8C8]">{actions.map((action, actionIndex) => <li key={action} className="grid grid-cols-[42px_1fr_auto] items-center gap-4 py-4"><span className="text-[11px] font-bold tracking-[0.14em] text-[#A9531F]">{String(actionIndex + 1).padStart(2, '0')}</span><span className="text-[15px] font-medium leading-relaxed text-[#4A3A2D]">{action}</span><ArrowRight className="h-4 w-4 text-[#A9531F]" /></li>)}</ol>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </article>
+              </button>
+            )
+          })}
 
-          <article className="min-w-0 border-x border-white/10 px-7 py-8 xl:px-8">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E9A96B]">Explain</span>
-              <ArrowRight className="h-4 w-4 text-white/25" aria-hidden />
-            </div>
-            <h3 className="mt-3 text-[21px] font-semibold text-white">Why competitors appear</h3>
-            <p className="mt-2 text-[13px] leading-relaxed text-[#BCA894]">The audit compares the proof and sources supporting the businesses AI chooses.</p>
-            <div className="mt-6 grid grid-cols-2 gap-5">
-              <div>
-                <div className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#F0A46F]">They have</div>
-                <ul className="mt-3 space-y-3 text-[12.5px] leading-relaxed text-[#F6EDE5]">
-                  {competitorSignals.map((item) => <li key={item} className="flex gap-2"><Check className="mt-1 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}
-                </ul>
-              </div>
-              <div className="border-l border-white/10 pl-5">
-                <div className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#BCA894]">You&rsquo;re missing</div>
-                <ul className="mt-3 space-y-3 text-[12.5px] leading-relaxed text-[#D5C4B3]">
-                  {missingSignals.map((item) => <li key={item} className="flex gap-2"><Minus className="mt-1 h-3.5 w-3.5 shrink-0 text-[#A99582]" />{item}</li>)}
-                </ul>
-              </div>
-            </div>
-          </article>
+          <button type="button" aria-label="Previous product step" onClick={() => selectStage((displayedStage + 2) % 3)} className="absolute left-2 top-[205px] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#2C2018]/90 text-white shadow-lg backdrop-blur transition-colors hover:bg-[#3B2A20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B]"><ArrowRight className="h-4 w-4 rotate-180" /></button>
+          <button type="button" aria-label="Next product step" onClick={() => selectStage((displayedStage + 1) % 3)} className="absolute right-2 top-[205px] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#2C2018]/90 text-white shadow-lg backdrop-blur transition-colors hover:bg-[#3B2A20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B]"><ArrowRight className="h-4 w-4" /></button>
 
-          <article className="min-w-0 px-7 py-8 xl:px-8">
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E9A96B]">Act</span>
-            <h3 className="mt-3 text-[21px] font-semibold text-white">What to fix first</h3>
-            <p className="mt-2 text-[13px] leading-relaxed text-[#BCA894]">Three focused changes, ordered so your team knows where to begin.</p>
-            <ol className="mt-5 divide-y divide-white/10">
-              {actions.map((action, index) => (
-                <li key={action} className="flex gap-3 py-4 first:pt-1 last:pb-0">
-                  <span className="text-[11px] font-bold tracking-[0.12em] text-[#F0A46F]">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="text-[13.5px] font-medium leading-relaxed text-[#F6EDE5]">{action}</span>
-                </li>
-              ))}
-            </ol>
-          </article>
+          <div className="absolute inset-x-0 bottom-1 z-40 flex items-center justify-center gap-2" aria-label="Product story progress">
+            {desktopStages.map((stage, index) => (
+              <button
+                key={stage.label}
+                type="button"
+                onMouseEnter={() => {
+                  stopAutoplay()
+                  if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+                  hoverTimerRef.current = setTimeout(() => setPreviewStage(index), 180)
+                }}
+                onMouseLeave={() => {
+                  if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+                  setPreviewStage(null)
+                }}
+                onFocus={(event) => {
+                  if (event.currentTarget.matches(':focus-visible')) {
+                    stopAutoplay()
+                    setPreviewStage(index)
+                  }
+                }}
+                onBlur={() => setPreviewStage(null)}
+                onMouseDown={() => selectStage(index)}
+                onClick={() => selectStage(index)}
+                aria-current={displayedStage === index ? 'step' : undefined}
+                className="min-h-11 rounded-full border px-4 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B]"
+                style={displayedStage === index ? { borderColor: 'rgba(233,169,107,0.7)', backgroundColor: 'rgba(169,83,31,0.32)', color: '#FFF8F0' } : { borderColor: 'rgba(255,255,255,0.1)', color: '#BCA894' }}
+              >
+                {String(index + 1).padStart(2, '0')} {stage.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mx-auto mt-7 max-w-2xl overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.065] backdrop-blur-xl lg:hidden">

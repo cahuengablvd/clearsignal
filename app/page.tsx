@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, BriefcaseBusiness, Building2, Check, FileText, HelpCircle, Link2, MapPinned, Minus, Plus, SearchCheck } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Building2, Check, Link2, MapPinned, Minus, Plus } from 'lucide-react'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -387,26 +387,35 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
   const priorityActions = [
     {
       priority: 'High priority',
+      mobilePriority: 'High',
       title: 'Make your service area clear',
-      problem: 'AI may not clearly understand where your business operates.',
+      problem: 'AI may not understand where your business operates.',
       change: 'Add your city and service area to the homepage heading.',
-      Icon: MapPinned,
     },
     {
       priority: 'High priority',
-      title: 'Answer the questions buyers ask',
-      problem: 'AI may not find clear answers about your services, pricing and process.',
-      change: 'Add a short FAQ section with structured data.',
-      Icon: HelpCircle,
+      mobilePriority: 'High',
+      title: 'Answer buyer questions',
+      problem: 'Your site does not clearly explain services, pricing and process.',
+      change: 'Add a concise FAQ section.',
     },
     {
       priority: 'Next step',
-      title: 'Give AI stronger proof',
-      problem: 'Competitors provide clearer reviews, credentials and comparison content.',
-      change: 'Add customer proof and a page explaining why buyers should choose you.',
-      Icon: SearchCheck,
+      mobilePriority: 'Next',
+      title: 'Add stronger proof',
+      problem: 'Competitors show clearer reviews and credentials.',
+      change: 'Add customer proof and comparison content.',
     },
   ]
+
+  const engineStates = [
+    { Logo: OpenAILogo, engine: 'ChatGPT', state: 'Missing', active: false },
+    { Logo: PerplexityLogo, engine: 'Perplexity', state: 'Cited', active: true },
+    { Logo: AnthropicLogo, engine: 'Claude', state: 'Appears', active: true },
+  ]
+
+  const competitorSignals = ['Strong customer reviews', 'Clear service-area page', 'Mentioned in local comparison sources']
+  const missingSignals = ['Location information is unclear', 'Limited third-party proof', 'Missing from sources AI cites']
 
   return (
     <section id="workflow" className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #2B2018 0%, #211812 55%, #1C140F 100%)' }}>
@@ -417,7 +426,7 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
       <div className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-3xl text-center">
           <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#E9A96B' }}>The product</div>
-          <h2 className="mt-4 text-[clamp(1.8rem,8vw,2rem)] font-semibold leading-[1.06] tracking-[-0.025em] text-white sm:text-[clamp(2rem,3.9vw,3.1rem)]">See where you stand, and what to fix first.</h2>
+          <h2 className="mt-4 text-[clamp(2.25rem,10vw,2.75rem)] font-semibold leading-[1.04] tracking-[-0.025em] text-white sm:text-[clamp(2rem,3.9vw,3.1rem)]">See where you stand &mdash; and what to fix first.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-[14px] leading-relaxed text-[#C6B4A2] sm:text-[15px]">
             ClearSignal shows how AI understands your business, why competitors appear, and which changes should come first.
           </p>
@@ -432,7 +441,7 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
                 role="tab"
                 aria-selected={tab === i}
                 onClick={() => onTabChange(i)}
-                className="rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-200"
+                className="rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-200 motion-reduce:transition-none"
                 style={tab === i ? { backgroundColor: COPPER, color: '#fff', boxShadow: '0 8px 22px -12px rgba(169,83,31,0.9)' } : { color: '#C6B4A2' }}
               >
                 {label}
@@ -441,144 +450,177 @@ function ProductShowcase({ tab, onTabChange }: { tab: number; onTabChange: (tab:
           </div>
         </div>
 
-        <div className="mt-8 grid gap-2 sm:hidden">
-          {[
-            { title: 'Where you stand', copy: 'Named, cited or missing.', Icon: SearchCheck },
-            { title: 'Why competitors appear', copy: 'The proof and sources behind them.', Icon: Link2 },
-            { title: 'What to fix first', copy: 'Three priorities to act on.', Icon: FileText },
-          ].map(({ title, copy, Icon }, index) => (
-            <div
-              key={title}
-              className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left"
-              style={index === 2
-                ? { borderColor: 'rgba(233,169,107,0.48)', backgroundColor: 'rgba(169,83,31,0.18)' }
-                : { borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.055)' }}
+        <div className="mt-7 grid grid-cols-3 rounded-full border border-white/10 bg-white/[0.055] p-1 sm:hidden" role="tablist" aria-label="Audit outcomes">
+          {['Stand', 'Competitors', 'Fix first'].map((label, index) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={tab === index}
+              onClick={() => onTabChange(index)}
+              className="min-h-11 rounded-full px-2 text-[12px] font-semibold transition-colors duration-200 motion-reduce:transition-none"
+              style={tab === index ? { backgroundColor: COPPER, color: '#fff' } : { color: '#CDBCAA' }}
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.08]" style={{ color: '#E9A96B' }}><Icon className="h-4 w-4" /></span>
-              <span>
-                <span className="block text-[13.5px] font-semibold text-white">{title}</span>
-                <span className="block text-[11px] leading-tight text-[#CDBCAA]">{copy}</span>
-              </span>
-            </div>
+              {label}
+            </button>
           ))}
         </div>
 
-        <div className="mx-auto mt-4 max-w-[1040px] overflow-hidden rounded-xl border border-[#E8DCCB] bg-[#FBF7F1] shadow-[0_28px_70px_-45px_rgba(0,0,0,0.7)] sm:mt-8 sm:rounded-2xl sm:border-white/10 sm:bg-white sm:shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)] lg:max-w-[1120px]">
-          <div className="hidden items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-5 py-3 sm:flex">
-            <div className="flex gap-1.5">
-              {['#E7CDB8', '#EAD9C4', '#E2D3BE'].map((color) => <span key={color} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />)}
-            </div>
-            <div className="mx-auto flex items-center gap-2 rounded-md border border-[#EFE7DB] bg-white px-3 py-1 text-[10.5px] text-[#8D7B6B] sm:text-[11.5px]">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: COPPER }} /> app.clearsignal.com / audit
-            </div>
-          </div>
-
-          <div className="bg-[#FBF7F1] p-4 sm:bg-white sm:p-7">
-            {tab === 0 && (
-              <div>
-                <div className="text-[17px] font-semibold">Where you stand</div>
-                <p className="mt-1 text-[12.5px] text-[#8D7B6B]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-[0.85fr_1.3fr]">
-                  <div className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
-                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">AI visibility score</div>
-                    <div className="mt-2 text-[48px] font-semibold leading-none" style={{ color: ESPRESSO }}>34<span className="text-[16px] font-medium text-[#B4A69A]">/100</span></div>
-                    <div className="mt-5 grid grid-cols-2 gap-2">
-                      {[
-                        ['Mention rate', '21%'],
-                        ['Citation rate', '14%'],
-                      ].map(([label, value]) => (
-                        <div key={label} className="rounded-lg bg-white p-3">
-                          <div className="text-[20px] font-semibold" style={{ color: COPPER }}>{value}</div>
-                          <div className="mt-0.5 text-[10.5px] text-[#8D7B6B]">{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[#EFE7DB] p-4 sm:p-5">
-                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Engine results</div>
-                    <div className="mt-3 divide-y divide-[#F1E9DE]">
-                      {[
-                        { Logo: OpenAILogo, engine: 'ChatGPT', state: 'Missing', active: false },
-                        { Logo: PerplexityLogo, engine: 'Perplexity', state: 'Cited', active: true },
-                        { Logo: AnthropicLogo, engine: 'Claude', state: 'Appears', active: true },
-                      ].map(({ Logo, engine, state, active }) => (
-                        <div key={engine} className="flex min-h-12 items-center justify-between gap-3 py-2.5">
-                          <span className="flex items-center gap-2.5 text-[13px] font-medium text-[#4A3A2D]"><Logo className="h-4 w-4" />{engine}</span>
-                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={active ? { borderColor: 'rgba(169,83,31,0.35)', color: COPPER, backgroundColor: 'rgba(169,83,31,0.05)' } : { borderColor: '#E4DACB', color: '#9B8A78' }}>{state}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {tab === 1 && (
-              <div>
-                <div className="text-[17px] font-semibold">Why competitors appear</div>
-                <p className="mt-1 text-[12.5px] text-[#8D7B6B]">Compare the proof and content supporting the businesses AI chooses.</p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: COPPER }}><Check className="h-3.5 w-3.5" />Competitor appears</div>
-                    <div className="mt-3 text-[18px] font-semibold text-[#4A3A2D]">Supported by customer reviews and a clear service-area page.</div>
-                    <p className="mt-3 text-[12.5px] leading-relaxed text-[#7A6857]">AI can find specific proof and location information to support the recommendation.</p>
-                  </div>
-                  <div className="rounded-xl border border-[#EFE7DB] p-5">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#8D7B6B]"><Minus className="h-3.5 w-3.5" />Your business is missing</div>
-                    <div className="mt-3 text-[18px] font-semibold text-[#4A3A2D]">Clear location information and third-party proof.</div>
-                    <p className="mt-3 text-[12.5px] leading-relaxed text-[#7A6857]">The audit shows the evidence gap so your team knows what to strengthen first.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {tab === 2 && (
-              <div>
-                <div className="flex items-end justify-between gap-4">
+        <div className="mt-5 rounded-[22px] border border-white/10 bg-white/[0.065] p-5 shadow-[0_28px_70px_-45px_rgba(0,0,0,0.8)] backdrop-blur sm:hidden">
+          <div className="grid">
+            {[0, 1, 2].map((state) => (
+              <div
+                key={state}
+                aria-hidden={tab !== state}
+                className="col-start-1 row-start-1 min-w-0 transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
+                style={{ opacity: tab === state ? 1 : 0, pointerEvents: tab === state ? 'auto' : 'none', transform: tab === state ? 'translateY(0)' : 'translateY(6px)' }}
+              >
+                {state === 0 && (
                   <div>
-                    <div className="text-[17px] font-semibold">Your top priorities</div>
-                    <p className="mt-1 text-[12.5px] text-[#8D7B6B]">Clear problems and recommended changes, ordered by priority.</p>
-                  </div>
-                  <span className="hidden rounded-full bg-[#FBF7F1] px-3 py-1 text-[11px] font-medium text-[#8D7B6B] sm:block">3 priorities</span>
-                </div>
-                <div className="mt-3 divide-y divide-[#E4D8C8] sm:hidden">
-                  {priorityActions.map(({ priority, title, problem, change }, index) => (
-                    <article key={title} className="py-4 first:pt-1 last:pb-1">
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-[11px] font-bold tracking-[0.14em]" style={{ color: COPPER }}>{String(index + 1).padStart(2, '0')}</span>
-                        <span className="shrink-0 whitespace-nowrap rounded-full border border-[#DECDBB] bg-white/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#7A6857]">{priority}</span>
-                      </div>
-                      <h3 className="mt-2 text-[15px] font-semibold leading-snug text-[#4A3A2D]">{title}</h3>
-                      <p className="mt-1 text-[12.5px] leading-relaxed text-[#7A6857]">{problem}</p>
-                      <p className="mt-2 flex items-start gap-2 text-[12.5px] font-medium leading-relaxed text-[#5C5148]">
-                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: COPPER }} />
-                        <span>{change}</span>
-                      </p>
-                    </article>
-                  ))}
-                </div>
-                <div className="mt-5 hidden gap-3 sm:grid">
-                  {priorityActions.map(({ priority, title, problem, change, Icon }) => (
-                    <div key={title} className="grid grid-cols-[44px_1fr_1fr] items-center gap-3 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}><Icon className="h-[18px] w-[18px]" /></span>
+                    <h3 className="text-[22px] font-semibold leading-tight text-white">Where you stand</h3>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-[#D1C0AF]">See whether AI names, cites or misses your business.</p>
+                    <div className="mt-5 flex items-center justify-between border-y border-white/10 py-4">
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: COPPER }}>{priority}</div>
-                        <div className="mt-1 text-[15px] font-semibold leading-snug text-[#4A3A2D]">{title}</div>
-                        <div className="mt-1.5 text-[12px] leading-relaxed text-[#7A6857]"><span className="font-semibold text-[#5C5148]">Problem:</span> {problem}</div>
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#C6A98E]">AI visibility score</div>
+                        <div className="mt-1 text-[42px] font-semibold leading-none text-white">34<span className="text-[14px] font-medium text-[#A99582]">/100</span></div>
                       </div>
-                      <div className="rounded-lg border border-[#EFE7DB] bg-white p-3 text-[12px] leading-relaxed text-[#6E5A50]"><span className="font-semibold text-[#4A3A2D]">Recommended change:</span> {change}</div>
+                      <svg width="66" height="66" viewBox="0 0 72 72" aria-label="34 out of 100">
+                        <circle cx="36" cy="36" r="29" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="7" />
+                        <circle cx="36" cy="36" r="29" fill="none" stroke="#D8793E" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" />
+                      </svg>
                     </div>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-2 border-b border-white/10 py-3">
+                      <div><div className="text-[20px] font-semibold text-[#F0A46F]">21%</div><div className="text-[11px] text-[#BDAA98]">Mention rate</div></div>
+                      <div className="border-l border-white/10 pl-4"><div className="text-[20px] font-semibold text-[#F0A46F]">14%</div><div className="text-[11px] text-[#BDAA98]">Citation rate</div></div>
+                    </div>
+                    <div className="divide-y divide-white/10">
+                      {engineStates.map(({ Logo, engine, state: engineState, active }) => (
+                        <div key={engine} className="flex min-h-11 items-center justify-between gap-3 py-2.5">
+                          <span className="flex items-center gap-2.5 text-[14px] font-medium text-white"><Logo className="h-4 w-4" />{engine}</span>
+                          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: active ? '#F0A46F' : '#A99582' }}>{engineState}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {state === 1 && (
+                  <div>
+                    <h3 className="text-[22px] font-semibold leading-tight text-white">Why competitors appear</h3>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-[#D1C0AF]">See which proof and content help other businesses get recommended.</p>
+                    <div className="mt-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F0A46F]">Why they appear</div>
+                      <ul className="mt-2.5 space-y-2 text-[14px] leading-relaxed text-[#F5EDE4]">
+                        {['Strong reviews', 'Clear location page', 'Mentioned in comparison sources'].map((item) => <li key={item} className="flex gap-2"><Check className="mt-1 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}
+                      </ul>
+                    </div>
+                    <div className="my-5 h-px bg-white/10" />
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#C6A98E]">What you&rsquo;re missing</div>
+                      <ul className="mt-2.5 space-y-2 text-[14px] leading-relaxed text-[#D1C0AF]">
+                        {['Location information', 'Third-party proof', 'Presence in cited sources'].map((item) => <li key={item} className="flex gap-2"><Minus className="mt-1 h-3.5 w-3.5 shrink-0 text-[#A99582]" />{item}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {state === 2 && (
+                  <div>
+                    <h3 className="text-[22px] font-semibold leading-tight text-white">Your top priorities</h3>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-[#D1C0AF]">Clear problems and recommended changes, ordered by priority.</p>
+                    <div className="mt-4 divide-y divide-white/10">
+                      {priorityActions.map(({ mobilePriority, title, problem, change }, index) => (
+                        <article key={title} className="py-[18px] first:pt-2 last:pb-1">
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-[11px] font-bold tracking-[0.16em] text-[#F0A46F]">{String(index + 1).padStart(2, '0')}</span>
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#C6A98E]">{mobilePriority}</span>
+                          </div>
+                          <h4 className="mt-2 text-[18px] font-semibold leading-snug text-white">{title}</h4>
+                          <p className="mt-1 text-[14px] leading-relaxed text-[#D1C0AF]">{problem}</p>
+                          <p className="mt-2 flex items-start gap-2 text-[14px] font-medium leading-relaxed text-[#F3DED0]"><ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" /><span>{change}</span></p>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
         </div>
 
-        <div id="what-you-get" className="mx-auto mt-6 max-w-[1040px] rounded-xl border border-white/10 bg-white/[0.055] px-4 py-4 text-center backdrop-blur sm:mt-7 sm:px-6 lg:max-w-[1120px]">
-          <p className="text-[13px] leading-relaxed text-[#E8DCCD] sm:text-[13.5px]">You receive the evidence, prioritized recommendations and implementation materials in a web dashboard and PDF report.</p>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-medium text-[#FFF8F0] sm:text-[12.5px]">
-            {['Real AI answer evidence', 'Prioritized website fixes', 'Expert-reviewed before delivery'].map((item) => (
+        <div className="mx-auto mt-8 hidden max-w-[1120px] overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_60px_120px_-45px_rgba(0,0,0,0.75)] sm:block">
+          <div className="flex items-center gap-3 border-b border-[#EFE7DB] bg-[#FBF7F1] px-5 py-3">
+            <div className="flex gap-1.5">{['#E7CDB8', '#EAD9C4', '#E2D3BE'].map((color) => <span key={color} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />)}</div>
+            <div className="mx-auto flex items-center gap-2 rounded-md border border-[#EFE7DB] bg-white px-3 py-1 text-[11.5px] text-[#8D7B6B]"><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: COPPER }} /> app.clearsignal.com / audit</div>
+          </div>
+          <div className="grid min-h-[410px] items-center bg-white px-7 py-6 lg:px-10">
+            {[0, 1, 2].map((state) => (
+              <div
+                key={state}
+                aria-hidden={tab !== state}
+                className="col-start-1 row-start-1 mx-auto w-full max-w-[820px] transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
+                style={{ opacity: tab === state ? 1 : 0, pointerEvents: tab === state ? 'auto' : 'none', transform: tab === state ? 'translateY(0)' : 'translateY(6px)' }}
+              >
+                {state === 0 && (
+                  <div>
+                    <h3 className="text-[19px] font-semibold text-[#3D2E22]">Where you stand</h3>
+                    <p className="mt-1 text-[13px] text-[#8D7B6B]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
+                    <div className="mt-5 grid grid-cols-[0.72fr_1.28fr] gap-4">
+                      <div className="rounded-xl border border-[#EFE7DB] bg-[#FBF7F1] p-5">
+                        <div className="flex items-center justify-between gap-4">
+                          <div><div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">AI visibility score</div><div className="mt-1.5 text-[44px] font-semibold leading-none text-[#3D2E22]">34<span className="text-[14px] font-medium text-[#B4A69A]">/100</span></div></div>
+                          <svg width="66" height="66" viewBox="0 0 72 72" aria-label="34 out of 100"><circle cx="36" cy="36" r="29" fill="none" stroke="#EDE5DA" strokeWidth="7" /><circle cx="36" cy="36" r="29" fill="none" stroke={COPPER} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" /></svg>
+                        </div>
+                        <div className="mt-5 grid grid-cols-2 border-t border-[#E8DED1] pt-4"><div><div className="text-[19px] font-semibold text-[#A9531F]">21%</div><div className="text-[10.5px] text-[#8D7B6B]">Mention rate</div></div><div className="border-l border-[#E8DED1] pl-4"><div className="text-[19px] font-semibold text-[#A9531F]">14%</div><div className="text-[10.5px] text-[#8D7B6B]">Citation rate</div></div></div>
+                      </div>
+                      <div className="rounded-xl border border-[#EFE7DB] px-5 py-4">
+                        <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Engine results</div>
+                        <div className="mt-2 divide-y divide-[#F1E9DE]">
+                          {engineStates.map(({ Logo, engine, state: engineState, active }) => <div key={engine} className="flex min-h-[58px] items-center justify-between gap-3"><span className="flex items-center gap-2.5 text-[13.5px] font-medium text-[#4A3A2D]"><Logo className="h-4 w-4" />{engine}</span><span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: active ? COPPER : '#9B8A78' }}>{engineState}</span></div>)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {state === 1 && (
+                  <div>
+                    <h3 className="text-[19px] font-semibold text-[#3D2E22]">Why competitors appear</h3>
+                    <p className="mt-1 text-[13px] text-[#8D7B6B]">ClearSignal shows which proof, content and cited sources create the visibility gap.</p>
+                    <div className="relative mt-5 grid grid-cols-2 rounded-xl border border-[#EFE7DB] bg-[#FBF7F1]">
+                      <div className="p-6 pr-8"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#A9531F]">Why they appear</div><ul className="mt-4 space-y-3 text-[13.5px] text-[#5C5148]">{competitorSignals.map((item) => <li key={item} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-[#A9531F]" />{item}</li>)}</ul></div>
+                      <div className="border-l border-[#E4D8C8] p-6 pl-8"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8D7B6B]">What you&rsquo;re missing</div><ul className="mt-4 space-y-3 text-[13.5px] text-[#6E5A50]">{missingSignals.map((item) => <li key={item} className="flex items-center gap-2.5"><Minus className="h-4 w-4 shrink-0 text-[#A99582]" />{item}</li>)}</ul></div>
+                      <span className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#E4D8C8] bg-white text-[9px] font-bold uppercase tracking-wider text-[#A9531F]">vs</span>
+                    </div>
+                  </div>
+                )}
+
+                {state === 2 && (
+                  <div>
+                    <h3 className="text-[19px] font-semibold text-[#3D2E22]">Your top priorities</h3>
+                    <p className="mt-1 text-[13px] text-[#8D7B6B]">Clear problems and recommended changes, ordered by priority.</p>
+                    <div className="mt-5 grid grid-cols-[1.08fr_0.92fr] gap-3">
+                      <article className="flex h-full flex-col rounded-xl border border-[#E6D8C9] bg-[#FBF7F1] p-5">
+                        <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#A9531F]">{priorityActions[0].priority}</div><h4 className="mt-2 text-[20px] font-semibold leading-snug text-[#3D2E22]">{priorityActions[0].title}</h4><p className="mt-2 text-[13px] leading-relaxed text-[#7A6857]">{priorityActions[0].problem}</p><p className="mt-auto flex items-start gap-2 border-t border-[#E4D8C8] pt-4 text-[13px] font-medium leading-relaxed text-[#5C5148]"><ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-[#A9531F]" />{priorityActions[0].change}</p>
+                      </article>
+                      <div className="grid gap-3">
+                        {priorityActions.slice(1).map(({ priority, title, problem, change }) => <article key={title} className="rounded-xl border border-[#E6D8C9] bg-[#FBF7F1] p-4"><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#A9531F]">{priority}</div><h4 className="mt-1.5 text-[16px] font-semibold leading-snug text-[#3D2E22]">{title}</h4><p className="mt-1.5 text-[12px] leading-relaxed text-[#7A6857]">{problem}</p><p className="mt-2 flex items-start gap-2 border-t border-[#E4D8C8] pt-2.5 text-[12px] font-medium leading-relaxed text-[#5C5148]"><ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#A9531F]" />{change}</p></article>)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div id="what-you-get" className="mx-auto mt-5 max-w-[1120px] border-t border-white/10 pt-4 sm:mt-6 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-7 sm:gap-y-2 sm:border-t-0 sm:pt-0">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D7C5B4] sm:text-[12.5px] sm:normal-case sm:tracking-normal">
+            <span className="sm:hidden">Web dashboard + PDF report</span>
+            <span className="hidden sm:inline">Available in web dashboard and PDF report</span>
+          </p>
+          <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11.5px] font-medium text-[#FFF8F0] sm:mt-0 sm:gap-x-6 sm:text-[12.5px]">
+            {['Real AI evidence', 'Prioritized fixes', 'Expert review'].map((item) => (
               <span key={item} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" style={{ color: '#E9A96B' }} strokeWidth={3} />{item}</span>
             ))}
           </div>

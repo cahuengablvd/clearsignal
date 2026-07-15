@@ -622,7 +622,7 @@ function ProductShowcase() {
                 }}
                 className="group border-b border-white/10 last:border-b-0"
               >
-                <summary className="flex min-h-[76px] cursor-pointer list-none items-center gap-3 px-4 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] sm:px-5 [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-[76px] cursor-pointer list-none items-center gap-3 border-l-2 border-transparent px-4 py-3 text-left outline-none transition-colors group-open:border-[#C77843] group-open:bg-[#5B3D2D]/55 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] sm:px-5 [&::-webkit-details-marker]:hidden">
                   <span className="shrink-0 text-[11px] font-bold tracking-[0.15em] text-[#E9A96B]">{String(index + 1).padStart(2, '0')}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[16px] font-semibold leading-tight text-white">{stage.title}</span>
@@ -633,28 +633,30 @@ function ProductShowcase() {
                     <Minus className="hidden h-4 w-4 group-open:block" />
                   </span>
                 </summary>
-                <div className="px-4 pb-5 sm:px-5">
+                <div className="px-3 pb-3 pt-2.5 sm:px-4">
+                  <div className="rounded-[15px] border border-[#E3CFB7] bg-[#F1E5D5] p-3.5 text-[#3D2E22] shadow-[0_10px_28px_-22px_rgba(0,0,0,0.85)]">
                     {index === 0 && (
                       <div>
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-y border-white/10 py-4">
-                          <div><div className="text-[10.5px] uppercase tracking-wider text-[#BCA894]">AI visibility score</div><div className="mt-1 text-[40px] font-semibold leading-none text-white">34<span className="text-[13px] text-[#9F8D7B]">/100</span></div></div>
-                          <div className="grid grid-cols-2 gap-5 text-right"><div><div className="text-[19px] font-semibold text-[#F0A46F]">21%</div><div className="text-[10px] text-[#BCA894]">Mentioned</div></div><div><div className="text-[19px] font-semibold text-[#F0A46F]">14%</div><div className="text-[10px] text-[#BCA894]">Cited</div></div></div>
+                        <div className="grid grid-cols-[1fr_auto] items-end gap-3 border-b border-[#D9C5AE] pb-2">
+                          <div><div className="text-[9px] font-semibold uppercase tracking-wider text-[#8D725F]">AI visibility score</div><div className="mt-0.5 text-[30px] font-semibold leading-none">34<span className="text-[11px] text-[#8D725F]">/100</span></div></div>
+                          <div className="grid grid-cols-2 gap-3 text-right"><div><div className="text-[16px] font-semibold text-[#A9531F]">21%</div><div className="text-[9px] text-[#8D725F]">Mentioned</div></div><div><div className="text-[16px] font-semibold text-[#A9531F]">14%</div><div className="text-[9px] text-[#8D725F]">Cited</div></div></div>
                         </div>
-                        <div className="divide-y divide-white/10">{engineStates.map(({ engine, state }) => <div key={engine} className="flex min-h-11 items-center justify-between py-2 text-[13px]"><span className="text-white">{engine}</span><span className="text-[10px] font-semibold uppercase tracking-wider text-[#E9A96B]">{state}</span></div>)}</div>
+                        <div className="divide-y divide-[#D9C5AE]">{engineStates.map(({ engine, state }) => <div key={engine} className="flex min-h-8 items-center justify-between gap-3 py-1 text-[12px]"><span className="font-medium">{engine}</span><span className="text-[9px] font-bold uppercase tracking-wider text-[#A9531F]">{state}</span></div>)}</div>
                       </div>
                     )}
                     {index === 1 && (
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div><div className="text-[10.5px] font-bold uppercase tracking-[0.15em] text-[#F0A46F]">They have</div><ul className="mt-2 space-y-2 text-[13px] leading-relaxed text-[#F6EDE5]">{competitorSignals.map((item) => <li key={item} className="flex gap-2"><Check className="mt-1 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
-                        <div className="border-t border-white/10 pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0"><div className="text-[10.5px] font-bold uppercase tracking-[0.15em] text-[#BCA894]">You&rsquo;re missing</div><ul className="mt-2 space-y-2 text-[13px] leading-relaxed text-[#D5C4B3]">{missingSignals.map((item) => <li key={item} className="flex gap-2"><Minus className="mt-1 h-3.5 w-3.5 shrink-0 text-[#A99582]" />{item}</li>)}</ul></div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#A9531F]">They have</div><ul className="mt-1.5 space-y-1.5 text-[11px] leading-[1.25] text-[#4D3B2E]">{competitorSignals.map((item) => <li key={item} className="flex gap-1.5"><Check className="mt-0.5 h-3 w-3 shrink-0 text-[#A9531F]" />{item}</li>)}</ul></div>
+                        <div className="border-l border-[#D9C5AE] pl-2.5"><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#7E6858]">You&rsquo;re missing</div><ul className="mt-1.5 space-y-1.5 text-[11px] leading-[1.25] text-[#5F4D40]">{missingSignals.map((item) => <li key={item} className="flex gap-1.5"><Minus className="mt-0.5 h-3 w-3 shrink-0 text-[#9B7E68]" />{item}</li>)}</ul></div>
                       </div>
                     )}
                     {index === 2 && (
-                      <ol className="divide-y divide-white/10">
-                        {actions.map((action, actionIndex) => <li key={action} className="flex gap-3 py-3 first:pt-0 last:pb-0"><span className="text-[11px] font-bold text-[#F0A46F]">{String(actionIndex + 1).padStart(2, '0')}</span><span className="text-[13.5px] font-medium leading-relaxed text-[#F6EDE5]">{action}</span></li>)}
+                      <ol className="divide-y divide-[#D9C5AE]">
+                        {actions.map((action) => <li key={action} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"><span className="text-[12px] font-medium leading-snug">{action}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#A9531F]" /></li>)}
                       </ol>
                     )}
                   </div>
+                </div>
               </details>
           ))}
         </div>

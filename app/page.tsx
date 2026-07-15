@@ -23,16 +23,19 @@ const AUDIENCES = [
   {
     name: 'Service businesses',
     copy: '"Who should I hire for this?" is now an AI conversation. See who AI recommends, which sources it trusts, and where your website falls short.',
+    mobileCopy: 'Buyers increasingly ask AI who to hire locally. See which businesses it recommends, which sources it trusts, and where your website falls short.',
     cta: 'Get your free AI visibility score',
   },
   {
     name: 'Agencies',
     copy: 'Answer the question clients are already asking: "What does AI say about us?" ClearSignal turns AI visibility gaps into competitor evidence, source issues and implementation work you can run for client websites.',
+    mobileCopy: 'See how AI describes your clients, which competitors appear instead, and where your agency can create the most valuable improvements.',
     cta: 'Get your free AI visibility score',
   },
   {
     name: 'SaaS & B2B teams',
     copy: 'See which competitors AI recommends, which sources it trusts, and what your website is missing before buyers reach a shortlist.',
+    mobileCopy: 'See which vendors AI shortlists for category and solution queries — and what proof, content and product signals your website is missing.',
     cta: 'Get your free AI visibility score',
   },
 ]
@@ -802,8 +805,8 @@ export default function LandingPage() {
 
       {/* ============ SECTION 2: USE CASES ============ */}
       <section className="border-t border-[#EDE5D9] bg-white">
-        <div className="mx-auto grid max-w-6xl items-start gap-14 px-6 py-24 lg:grid-cols-2">
-          <div className="flex flex-col">
+        <div className="mx-auto grid max-w-6xl items-start px-6 py-24 lg:grid-cols-2 lg:gap-14">
+          <div className="flex flex-col lg:col-start-1 lg:row-start-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#9E6238' }}>Who it&rsquo;s for</div>
             <h2 className="mt-4 max-w-md text-[clamp(1.7rem,3vw,2.4rem)] font-semibold leading-[1.12] tracking-[-0.01em]">Built for teams whose buyers ask AI before they buy.</h2>
             <div className="mt-8 space-y-2">
@@ -841,15 +844,45 @@ export default function LandingPage() {
                 )
               })}
             </div>
-            <p className="mt-6 max-w-sm text-[14.5px] leading-relaxed text-[#6E5A50]">{AUDIENCES[visibleAudience].copy}</p>
-            <div className="mt-6">
+            <p className="mt-6 hidden max-w-sm text-[14.5px] leading-relaxed text-[#6E5A50] lg:block">{AUDIENCES[visibleAudience].copy}</p>
+            <div className="mt-6 hidden lg:block">
               <Link href="/score" className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:w-auto sm:px-6 sm:text-sm" style={{ backgroundColor: ESPRESSO }}>
                 {AUDIENCES[visibleAudience].cta} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
 
-          <AudienceAuditPreview activeIndex={visibleAudience} />
+          <div className="mt-6 lg:col-start-2 lg:row-start-1 lg:mt-0">
+            <AudienceAuditPreview activeIndex={visibleAudience} />
+          </div>
+
+          <div className="mt-4 lg:hidden">
+            <div className="grid min-h-[92px]" aria-live="polite">
+              {AUDIENCES.map((segment, index) => {
+                const active = index === visibleAudience
+
+                return (
+                  <p
+                    key={segment.name}
+                    aria-hidden={!active}
+                    className="col-start-1 row-start-1 text-[14.5px] leading-relaxed text-[#6E5A50] transition-[opacity,transform] duration-200 ease-out"
+                    style={{
+                      opacity: active ? 1 : 0,
+                      pointerEvents: active ? 'auto' : 'none',
+                      transform: active ? 'translateY(0)' : 'translateY(7px)',
+                    }}
+                  >
+                    {segment.mobileCopy}
+                  </p>
+                )
+              })}
+            </div>
+            <div className="mt-6">
+              <Link href="/score" className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90" style={{ backgroundColor: ESPRESSO }}>
+                {AUDIENCES[visibleAudience].cta} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

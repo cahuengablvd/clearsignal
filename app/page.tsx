@@ -12,8 +12,8 @@ const COPPER = '#A9531F'
 const ESPRESSO = '#2E2116'
 const INK = '#3D2E22' // high-contrast supporting text
 const NAV_ITEMS = [
+  { label: "Who it's for", href: '#who-its-for' },
   { label: 'Workflow', href: '#workflow' },
-  { label: 'What you get', href: '#what-you-get' },
   { label: 'Pricing', href: '#pricing' },
 ]
 
@@ -453,7 +453,7 @@ function ProductShowcase() {
   }, [])
 
   return (
-    <section ref={showcaseRef} id="workflow" className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #2B2018 0%, #211812 55%, #1C140F 100%)' }}>
+    <section ref={showcaseRef} id="workflow" className="relative scroll-mt-6 overflow-hidden" style={{ background: 'linear-gradient(180deg, #2B2018 0%, #211812 55%, #1C140F 100%)' }}>
       <div aria-hidden className="pointer-events-none absolute -left-40 top-10 h-[38rem] w-[38rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(169,83,31,0.30), transparent 62%)', filter: 'blur(30px)' }} />
       <div aria-hidden className="pointer-events-none absolute -right-32 bottom-0 h-[34rem] w-[34rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(233,169,107,0.18), transparent 62%)', filter: 'blur(30px)' }} />
       <SignalOverlay tone="light" />
@@ -802,7 +802,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SECTION 2: USE CASES ============ */}
-      <section className="border-t border-[#EDE5D9] bg-white">
+      <section id="who-its-for" className="scroll-mt-6 border-t border-[#EDE5D9] bg-white">
         <div className="mx-auto grid max-w-6xl items-start px-6 py-24 lg:grid-cols-2 lg:gap-14">
           <div className="flex flex-col lg:col-start-1 lg:row-start-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#9E6238' }}>Who it&rsquo;s for</div>
@@ -993,7 +993,7 @@ export default function LandingPage() {
       <ProductShowcase />
 
       {/* ============ SECTION 6: PRICING ============ */}
-      <section id="pricing" className="relative overflow-hidden border-t border-[#E6DBCB]" style={{ background: 'linear-gradient(180deg, #FBF6EE 0%, #F5EDE1 100%)' }}>
+      <section id="pricing" className="relative scroll-mt-6 overflow-hidden border-t border-[#E6DBCB]" style={{ background: 'linear-gradient(180deg, #FBF6EE 0%, #F5EDE1 100%)' }}>
         <SignalOverlay />
         <div className="relative z-10 mx-auto max-w-6xl px-5 py-14 sm:px-6 sm:py-24">
           <Reveal className="mx-auto max-w-2xl text-center">
@@ -1089,8 +1089,8 @@ export default function LandingPage() {
             </div>
             <nav className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[12.5px] text-[#D2C2B0] sm:text-[13px]">
               {[
+                { label: "Who it's for", href: '#who-its-for' },
                 { label: 'Workflow', href: '#workflow' },
-                { label: 'What you get', href: '#what-you-get', hideMobile: true },
                 { label: 'Pricing', href: '#pricing' },
                 { label: 'FAQ', href: '#faq' },
                 { label: 'Sample audit', href: '/sample', hideMobile: true },

@@ -471,6 +471,7 @@ function ProductShowcase() {
 
         <div
           className="relative mx-auto mt-11 hidden h-[530px] w-full max-w-[1280px] overflow-visible lg:block"
+          style={{ perspective: '1600px', perspectiveOrigin: '50% 44%' }}
           aria-label="ClearSignal product story"
           onMouseEnter={stopAutoplay}
           onFocusCapture={stopAutoplay}
@@ -488,6 +489,14 @@ function ProductShowcase() {
             if (event.key === 'End') selectStage(2)
           }}
         >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-[52px] h-[390px] w-[820px] -translate-x-1/2 opacity-70 blur-[100px] transition-transform duration-[580ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 64%, rgba(185,89,38,0.34) 0%, rgba(122,62,34,0.18) 38%, transparent 72%), radial-gradient(ellipse at 72% 50%, rgba(192,119,64,0.16) 0%, transparent 62%)',
+              transform: `translateX(calc(-50% + ${(activeStage - 1) * 46}px))`,
+            }}
+          />
           {desktopStages.map((stage, index) => {
             const relative = (index - activeStage + 3) % 3
             const active = relative === 0
@@ -503,17 +512,28 @@ function ProductShowcase() {
                 style={{
                   width: 'min(960px, calc(100% - 250px))',
                   zIndex: active ? 30 : 10,
-                  opacity: active ? 1 : 0.62,
+                  opacity: active ? 1 : 0.58,
                   pointerEvents: active ? 'auto' : 'none',
-                  filter: active ? 'none' : 'brightness(0.82)',
+                  filter: active ? 'none' : 'blur(0.65px) brightness(0.78)',
                   backgroundColor: active ? 'rgba(66, 47, 37, 0.96)' : 'rgba(54, 39, 31, 0.97)',
                   borderColor: active ? 'rgba(233,169,107,0.34)' : 'rgba(233,169,107,0.18)',
-                  boxShadow: active ? '0 44px 100px -42px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.055)' : '0 25px 55px -36px rgba(0,0,0,0.82)',
+                  boxShadow: active ? '0 54px 120px -44px rgba(0,0,0,0.96), 0 22px 56px -38px rgba(199,104,48,0.42), inset 0 1px 0 rgba(255,255,255,0.055)' : '0 30px 70px -38px rgba(0,0,0,0.92)',
+                  transformStyle: 'preserve-3d',
                   transform: active
-                    ? 'translateX(-50%) translateY(0) scale(1)'
-                    : `translateX(calc(-50% + ${direction * 210}px)) translateY(14px) scale(0.95)`,
+                    ? 'translate3d(-50%, 0, 0) rotateY(0deg) scale(1)'
+                    : `translate3d(calc(-50% + ${direction * 286}px), 14px, -130px) rotateY(${direction * -6}deg) scale(0.94)`,
                 }}
               >
+                {!active && (
+                  <>
+                    <span aria-hidden className={`pointer-events-none absolute inset-y-0 z-20 w-px bg-[#E9A96B]/50 ${direction > 0 ? 'left-0' : 'right-0'}`} />
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 z-10"
+                      style={{ background: direction > 0 ? 'linear-gradient(90deg, rgba(233,169,107,0.07), transparent 32%, rgba(18,12,9,0.46) 100%)' : 'linear-gradient(270deg, rgba(233,169,107,0.07), transparent 32%, rgba(18,12,9,0.46) 100%)' }}
+                    />
+                  </>
+                )}
                 <div className="h-full px-7 py-6 text-[#FFF8F0] xl:px-8 xl:py-7">
                   <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#E9A96B]">{String(index + 1).padStart(2, '0')} {stage.label}</div>
                   <h3 className="mt-1.5 text-[26px] font-semibold leading-tight">{stage.title}</h3>
@@ -615,25 +635,25 @@ function ProductShowcase() {
                 </button>
                 <div id={`product-stage-panel-${index}`} aria-hidden={!active} className="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" style={{ gridTemplateRows: active ? '1fr' : '0fr' }}>
                   <div className="overflow-hidden">
-                    <div className={`mx-2 mb-2 rounded-b-[14px] border-t border-[#A06D54]/55 bg-[#6A4A3A] px-4 pb-5 pt-4 text-[#FFF8F0] transition-[opacity,transform] duration-300 ease-out motion-reduce:translate-y-0 motion-reduce:transition-opacity sm:px-5 ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>
+                    <div className={`mx-2 mb-2 rounded-b-[14px] border-t border-[#A06D54]/55 bg-[#6A4A3A] p-3 text-[#FFF8F0] transition-[opacity,transform] duration-300 ease-out motion-reduce:translate-y-0 motion-reduce:transition-opacity sm:p-3.5 ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>
                       {index === 0 && (
                         <div>
-                          <div className="grid grid-cols-[1fr_auto] items-end gap-3 border-b border-white/10 pb-3">
+                          <div className="grid grid-cols-[1fr_auto] items-end gap-3 px-1 pb-3">
                             <div><div className="text-[9px] font-semibold uppercase tracking-wider text-[#BCA894]">AI visibility score</div><div className="mt-0.5 text-[30px] font-semibold leading-none">34<span className="text-[11px] text-[#BCA894]">/100</span></div></div>
                             <div className="grid grid-cols-2 gap-3 text-right"><div><div className="text-[16px] font-semibold text-[#F0A46F]">21%</div><div className="text-[9px] text-[#BCA894]">Mentioned</div></div><div><div className="text-[16px] font-semibold text-[#F0A46F]">14%</div><div className="text-[9px] text-[#BCA894]">Cited</div></div></div>
                           </div>
-                          <div className="divide-y divide-white/10">{engineStates.map(({ engine, state }, rowIndex) => <div key={engine} className={`flex min-h-10 items-center justify-between gap-3 py-2 text-[13px] transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><span className="font-medium">{engine}</span><span className="text-[10px] font-bold uppercase tracking-wider text-[#F0A46F]">{state}</span></div>)}</div>
+                          <div className="mt-2 space-y-2">{engineStates.map(({ Logo, engine, state, signal }, rowIndex) => <div key={engine} className={`rounded-[11px] border border-[#A36F55]/35 bg-[#493228]/90 px-3 py-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><div className="flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-[12.5px] font-medium"><Logo className="h-3.5 w-3.5 text-[#E9D8CA]" />{engine}</span><span className="text-[9.5px] font-bold uppercase tracking-wider text-[#F0A46F]">{state}</span></div><div className="mt-2 h-0.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#D2763C] transition-[width] duration-300 motion-reduce:transition-none" style={{ width: active ? `${signal}%` : '0%' }} /></div></div>)}</div>
                         </div>
                       )}
                       {index === 1 && (
-                        <div>
-                          <div><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#F0A46F]">They have</div><ul className="mt-2.5 space-y-2.5 text-[12.5px] leading-[1.35] text-[#F6EDE5]">{competitorSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
-                          <div className="mt-4 border-t border-white/15 pt-4"><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#C9B5A3]">You&rsquo;re missing</div><ul className="mt-2.5 space-y-2.5 text-[12.5px] leading-[1.35] text-[#E0CFC0]">{missingSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${190 + rowIndex * 40}ms` : '0ms' }}><Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B9A492]" />{item}</li>)}</ul></div>
+                        <div className="space-y-2.5">
+                          <div className="rounded-[11px] border border-[#A36F55]/35 bg-[#493228]/90 p-3"><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#F0A46F]">They have</div><ul className="mt-2.5 space-y-2 text-[12.5px] leading-[1.35] text-[#F6EDE5]">{competitorSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
+                          <div className="rounded-[11px] border border-[#8C6652]/35 bg-[#493228]/90 p-3"><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#C9B5A3]">You&rsquo;re missing</div><ul className="mt-2.5 space-y-2 text-[12.5px] leading-[1.35] text-[#E0CFC0]">{missingSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${190 + rowIndex * 40}ms` : '0ms' }}><Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B9A492]" />{item}</li>)}</ul></div>
                         </div>
                       )}
                       {index === 2 && (
-                        <ol className="divide-y divide-white/15">
-                          {actions.map((action, actionIndex) => <li key={action} className={`grid grid-cols-[18px_1fr] items-center gap-3 py-3 first:pt-0 last:pb-0 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + actionIndex * 40}ms` : '0ms' }}><ArrowRight className="h-4 w-4 shrink-0 text-[#F0A46F]" /><span className="text-[13px] font-medium leading-snug">{action}</span></li>)}
+                        <ol className="space-y-2">
+                          {actions.map((action, actionIndex) => <li key={action} className={`grid grid-cols-[18px_1fr] items-center gap-3 rounded-[11px] border border-[#A36F55]/35 bg-[#493228]/90 px-3 py-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + actionIndex * 40}ms` : '0ms' }}><ArrowRight className="h-4 w-4 shrink-0 text-[#F0A46F]" /><span className="text-[12.5px] font-medium leading-snug">{action}</span></li>)}
                         </ol>
                       )}
                     </div>

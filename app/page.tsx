@@ -33,7 +33,7 @@ const AUDIENCES = [
   {
     name: 'SaaS & B2B teams',
     copy: 'See which competitors AI recommends, which sources it trusts, and what your website is missing before buyers reach a shortlist.',
-    mobileCopy: 'See which vendors AI shortlists for category and solution queries — and what proof, content and product signals your website is missing.',
+    mobileCopy: 'See which vendors AI shortlists for category and solution queries, and what proof, content and product signals your website is missing.',
     cta: 'Get your free AI visibility score',
   },
 ]

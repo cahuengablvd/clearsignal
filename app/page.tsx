@@ -11,8 +11,6 @@ const BACKGROUNDS = [
 const COPPER = '#A9531F'
 const ESPRESSO = '#2E2116'
 const INK = '#3D2E22' // high-contrast supporting text
-// TODO: swap the fallback for the live Stripe payment link before taking real payments.
-const STRIPE_AUDIT_URL = process.env.NEXT_PUBLIC_STRIPE_AUDIT_URL || 'https://buy.stripe.com/test_aFa8wP8Vx8aO4bIcaM7IY00'
 const NAV_ITEMS = [
   { label: 'Workflow', href: '#workflow' },
   { label: 'What you get', href: '#what-you-get' },
@@ -1036,9 +1034,9 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <a href={STRIPE_AUDIT_URL} className="mt-5 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
+              <Link href="/checkout" className="mt-5 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
                 Order the full audit &middot; &euro;149 <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
               <Link href="/score" className="mt-1 inline-flex min-h-11 items-center justify-center whitespace-nowrap text-[12px] font-semibold underline decoration-[#C9B7A4] underline-offset-4 transition-opacity hover:opacity-70 sm:text-[13px]">
                 Not ready yet? Get your free score &rarr;
               </Link>

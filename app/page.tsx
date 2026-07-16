@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowRight, BriefcaseBusiness, Building2, Check, FileText, Link2, MapPinned, Minus, Plus, Star, TrendingUp } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Building2, Check, ChevronLeft, ChevronRight, Link2, MapPinned, Minus, Plus } from 'lucide-react'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -470,7 +470,7 @@ function ProductShowcase() {
         </Reveal>
 
         <div
-          className="relative mx-auto mt-11 hidden h-[550px] w-full max-w-[1240px] overflow-visible lg:block"
+          className="relative mx-auto mt-11 hidden h-[530px] w-full max-w-[1280px] overflow-visible lg:block"
           aria-label="ClearSignal product story"
           onMouseEnter={stopAutoplay}
           onFocusCapture={stopAutoplay}
@@ -499,27 +499,27 @@ function ProductShowcase() {
                 aria-label={`Show ${stage.label}: ${stage.title}`}
                 aria-current={active ? 'step' : undefined}
                 onClick={() => selectStage(index)}
-                className="absolute left-1/2 top-0 h-[440px] overflow-hidden rounded-[28px] border p-0 text-left outline-none backdrop-blur-xl transition-[transform,opacity,filter,background-color,box-shadow] duration-[580ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-[#E9A96B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#211812] motion-reduce:transition-opacity motion-reduce:duration-200"
+                className="absolute left-1/2 top-0 h-[420px] overflow-hidden rounded-[26px] border p-0 text-left outline-none backdrop-blur-xl transition-[transform,opacity,filter,background-color,box-shadow] duration-[580ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-[#E9A96B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#211812] motion-reduce:transition-opacity motion-reduce:duration-200"
                 style={{
-                  width: 'min(920px, calc(100% - 220px))',
+                  width: 'min(960px, calc(100% - 250px))',
                   zIndex: active ? 30 : 10,
-                  opacity: active ? 1 : 0.5,
+                  opacity: active ? 1 : 0.62,
                   pointerEvents: active ? 'auto' : 'none',
-                  filter: active ? 'none' : 'brightness(0.68)',
-                  backgroundColor: active ? 'rgba(76, 54, 41, 0.92)' : 'rgba(58, 42, 33, 0.94)',
-                  borderColor: active ? 'rgba(233,169,107,0.26)' : 'rgba(255,255,255,0.11)',
+                  filter: active ? 'none' : 'brightness(0.82)',
+                  backgroundColor: active ? 'rgba(66, 47, 37, 0.96)' : 'rgba(54, 39, 31, 0.97)',
+                  borderColor: active ? 'rgba(233,169,107,0.34)' : 'rgba(233,169,107,0.18)',
                   boxShadow: active ? '0 44px 100px -42px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.055)' : '0 25px 55px -36px rgba(0,0,0,0.82)',
-                    transform: active
-                      ? 'translateX(-50%) translateY(0) scale(1)'
-                      : `translateX(calc(-50% + ${direction * 180}px)) translateY(18px) scale(0.93)`,
+                  transform: active
+                    ? 'translateX(-50%) translateY(0) scale(1)'
+                    : `translateX(calc(-50% + ${direction * 210}px)) translateY(14px) scale(0.95)`,
                 }}
               >
-                <div className="h-full px-8 py-7 text-[#FFF8F0]">
-                  <div className="text-[10.5px] font-bold uppercase tracking-[0.2em] text-[#E9A96B]">{String(index + 1).padStart(2, '0')} {stage.label}</div>
-                  <h3 className="mt-1.5 text-[25px] font-semibold leading-tight">{stage.title}</h3>
+                <div className="h-full px-7 py-6 text-[#FFF8F0] xl:px-8 xl:py-7">
+                  <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#E9A96B]">{String(index + 1).padStart(2, '0')} {stage.label}</div>
+                  <h3 className="mt-1.5 text-[26px] font-semibold leading-tight">{stage.title}</h3>
 
                   {!active && (
-                    <div className={`absolute top-[112px] w-[170px] border-t border-white/12 pt-5 text-[12.5px] leading-relaxed text-[#D7C5B4] ${direction > 0 ? 'right-7 text-right' : 'left-7'}`}>
+                    <div className={`absolute top-[108px] w-[190px] border-t border-[#E9A96B]/25 pt-5 text-[14px] leading-relaxed text-[#D7C5B4] ${direction > 0 ? 'right-7 text-right' : 'left-7'}`}>
                       {index === 0 && <><div className="text-[38px] font-semibold leading-none text-white">34<span className="text-[12px] text-[#BCA894]">/100</span></div><div className="mt-3">21% mentioned<br />14% cited</div></>}
                       {index === 1 && <><div className="font-semibold text-white">Recommendation signals</div><div className="mt-2">Reviews, service pages and cited sources.</div></>}
                       {index === 2 && <ol className="space-y-2">{['Add location', 'Add FAQ', 'Add proof'].map((item, itemIndex) => <li key={item}><span className="text-[#E9A96B]">0{itemIndex + 1}</span> {item}</li>)}</ol>}
@@ -527,40 +527,41 @@ function ProductShowcase() {
                   )}
 
                   {active && index === 0 && (
-                    <div className="mt-4 grid grid-cols-[0.82fr_1.18fr] gap-5">
-                      <div className="rounded-[20px] border border-[#E5D4C1] bg-[#F2E5D6] p-5 text-[#3D2E22] shadow-[0_24px_45px_-34px_rgba(0,0,0,0.7)]">
-                        <p className="text-[12.5px] leading-relaxed text-[#705B4B]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
-                        <div className="mt-4 flex items-center justify-between">
-                          <div><div className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[#8D725F]">AI visibility score</div><div className="mt-1 text-[44px] font-semibold leading-none">34<span className="text-[13px] text-[#9B806B]">/100</span></div></div>
-                          <svg width="74" height="74" viewBox="0 0 72 72" aria-label="34 out of 100"><circle cx="36" cy="36" r="29" fill="none" stroke="#D9C9B7" strokeWidth="7" /><circle cx="36" cy="36" r="29" fill="none" stroke="#C76830" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" /></svg>
+                    <div className="mt-3">
+                      <p className="text-[14px] leading-relaxed text-[#D7C5B4]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
+                      <div className="mt-4 grid h-[238px] grid-cols-[0.8fr_1.2fr] gap-4">
+                        <div className="rounded-[18px] border border-[#A66A47]/45 bg-[#573E31] p-5">
+                          <div className="flex items-center justify-between gap-4">
+                            <div><div className="text-[12px] font-semibold uppercase tracking-[0.13em] text-[#D8B091]">AI visibility score</div><div className="mt-2 text-[50px] font-semibold leading-none text-white">34<span className="text-[15px] text-[#BFA994]">/100</span></div></div>
+                            <svg width="82" height="82" viewBox="0 0 72 72" aria-label="34 out of 100"><circle cx="36" cy="36" r="29" fill="none" stroke="#745747" strokeWidth="7" /><circle cx="36" cy="36" r="29" fill="none" stroke="#D2763C" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" /></svg>
+                          </div>
+                          <div className="mt-5 grid grid-cols-2 border-t border-[#876250] pt-4"><div><div className="text-[24px] font-semibold text-[#F0A46F]">21%</div><div className="text-[12px] text-[#C9B5A3]">Mention rate</div></div><div className="border-l border-[#876250] pl-5"><div className="text-[24px] font-semibold text-[#F0A46F]">14%</div><div className="text-[12px] text-[#C9B5A3]">Citation rate</div></div></div>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 border-t border-[#D6C3AE] pt-3"><div><div className="text-[20px] font-semibold text-[#A9531F]">21%</div><div className="text-[10px] text-[#806B59]">Mention rate</div></div><div className="border-l border-[#D6C3AE] pl-4"><div className="text-[20px] font-semibold text-[#A9531F]">14%</div><div className="text-[10px] text-[#806B59]">Citation rate</div></div></div>
-                        <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#E8D8C5] px-3 py-2 text-[10.5px] font-medium text-[#705B4B]"><TrendingUp className="h-3.5 w-3.5 text-[#A9531F]" /> Baseline signal recorded</div>
-                      </div>
-                      <div className="rounded-[20px] border border-white/10 bg-white/[0.055] p-5">
-                        <div className="flex items-center justify-between"><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#E9A96B]">Engine status</div><div className="text-[10px] text-[#BCA894]">3 engines checked</div></div>
-                        <div className="mt-3 space-y-2.5">{engineStates.map(({ Logo, engine, state, signal }) => <div key={engine} className="rounded-[14px] border border-white/10 bg-black/10 px-4 py-3"><div className="flex items-center justify-between gap-3"><span className="flex items-center gap-2.5 text-[13.5px] font-medium"><Logo className="h-4 w-4" />{engine}</span><span className="rounded-full border border-[#A96D46]/60 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#F0A46F]">{state}</span></div><div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#C76830]" style={{ width: `${signal}%` }} /></div></div>)}</div>
+                        <div className="rounded-[18px] border border-white/10 bg-[#50382C] p-5">
+                          <div className="flex items-center justify-between"><div className="text-[15px] font-semibold text-[#F4E9DE]">Engine status</div><div className="text-[12px] text-[#BCA894]">3 engines checked</div></div>
+                          <div className="mt-3 space-y-2">{engineStates.map(({ Logo, engine, state, signal }) => <div key={engine} className="rounded-[12px] border border-white/10 bg-[#432F26] px-4 py-2.5"><div className="flex items-center justify-between gap-3"><span className="flex items-center gap-2.5 text-[15px] font-medium"><Logo className="h-[17px] w-[17px]" />{engine}</span><span className="rounded-full border border-[#B87852]/70 px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide text-[#F0A46F]">{state}</span></div><div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#C76830]" style={{ width: `${signal}%` }} /></div></div>)}</div>
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {active && index === 1 && (
-                    <div className="mt-4">
-                      <p className="text-[12.5px] leading-relaxed text-[#D7C5B4]">Understand which proof, content and sources help competitors get recommended.</p>
-                      <div className="mt-4 grid h-[230px] grid-cols-[1fr_0.72fr_1fr] gap-4">
-                        <div className="flex h-full flex-col justify-center rounded-[18px] border border-white/10 bg-white/[0.055] p-5"><div className="text-[9.5px] font-bold uppercase tracking-[0.17em] text-[#E9A96B]">Competitor signals</div><ul className="mt-4 space-y-3 text-[12.5px] leading-snug text-[#F6EDE5]">{competitorSignals.map((item) => <li key={item} className="flex gap-2.5"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
-                        <div className="relative flex flex-col items-center justify-center border-x border-white/10 px-3"><div className="absolute inset-y-8 left-1/2 w-px -translate-x-1/2 bg-[#A96D46]/45" /><div className="relative z-10 rounded-full border border-[#A96D46]/55 bg-[#3A291F] px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#F0A46F]">AI shortlist</div><div className="relative z-10 mt-4 space-y-2">{[{ label: 'Reviews', Icon: Star }, { label: 'Service page', Icon: MapPinned }, { label: 'Comparison source', Icon: FileText }].map(({ label, Icon }) => <div key={label} className="flex items-center gap-1.5 rounded-full border border-white/12 bg-[#2E211A] px-3 py-1.5 text-[9.5px] text-[#D7C5B4]"><Icon className="h-3 w-3 text-[#E9A96B]" />{label}</div>)}</div></div>
-                        <div className="flex h-full flex-col justify-center rounded-[18px] border border-white/10 bg-black/10 p-5"><div className="text-[9.5px] font-bold uppercase tracking-[0.17em] text-[#BCA894]">Your missing signals</div><ul className="mt-4 space-y-3 text-[12.5px] leading-snug text-[#D7C5B4]">{missingSignals.map((item) => <li key={item} className="flex gap-2.5"><Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#9F8D7B]" />{item}</li>)}</ul></div>
+                    <div className="mt-3">
+                      <p className="text-[14px] leading-relaxed text-[#D7C5B4]">Understand which proof, content and sources help competitors get recommended.</p>
+                      <div className="relative mt-4 grid h-[238px] grid-cols-2 overflow-hidden rounded-[18px] border border-white/10 bg-[#51392D]">
+                        <div className="flex flex-col justify-center p-7"><div className="text-[16px] font-semibold uppercase tracking-[0.1em] text-[#E9A96B]">Why they appear</div><ul className="mt-5 space-y-4 text-[15px] leading-snug text-[#F6EDE5]">{competitorSignals.map((item) => <li key={item} className="flex gap-3"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
+                        <div className="flex flex-col justify-center border-l border-[#8A6250] bg-[#493328] p-7"><div className="text-[16px] font-semibold uppercase tracking-[0.1em] text-[#D2B49C]">What you&rsquo;re missing</div><ul className="mt-5 space-y-4 text-[15px] leading-snug text-[#E0CFC0]">{missingSignals.map((item) => <li key={item} className="flex gap-3"><Minus className="mt-0.5 h-4 w-4 shrink-0 text-[#A99482]" />{item}</li>)}</ul></div>
+                        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#B87852] bg-[#3A291F] text-[#F0A46F]"><ArrowRight className="h-4 w-4" /></div>
                       </div>
                     </div>
                   )}
 
                   {active && index === 2 && (
-                    <div className="mt-4">
-                      <p className="text-[12.5px] leading-relaxed text-[#D7C5B4]">Get clear, prioritized changes your team can implement.</p>
-                      <ol className="mt-4 grid h-[240px] grid-cols-[1.12fr_0.88fr] grid-rows-2 gap-4">
-                        <li className="row-span-2 flex flex-col rounded-[20px] border border-[#E2CFB9] bg-[#F2E5D6] p-6 text-[#3D2E22]"><div className="flex items-center justify-between"><span className="text-[11px] font-bold tracking-[0.14em] text-[#A9531F]">01</span><span className="rounded-full border border-[#C98A61] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#A9531F]">High impact</span></div><p className="mt-auto max-w-[300px] text-[19px] font-semibold leading-snug">{actions[0]}</p><div className="mt-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[#806B59]">Start here <ArrowRight className="h-3.5 w-3.5 text-[#A9531F]" /></div></li>
-                        {actions.slice(1).map((action, actionIndex) => <li key={action} className="flex items-center gap-4 rounded-[18px] border border-white/10 bg-white/[0.055] p-5"><span className="text-[11px] font-bold tracking-[0.14em] text-[#E9A96B]">0{actionIndex + 2}</span><div className="min-w-0 flex-1"><div className="text-[9px] font-bold uppercase tracking-wider text-[#BCA894]">{actionIndex === 0 ? 'High impact' : 'Next step'}</div><p className="mt-1.5 text-[13px] font-medium leading-snug text-[#FFF8F0]">{action}</p></div><ArrowRight className="h-4 w-4 shrink-0 text-[#E9A96B]" /></li>)}
+                    <div className="mt-3">
+                      <p className="text-[14px] leading-relaxed text-[#D7C5B4]">Get clear, prioritized changes your team can implement.</p>
+                      <ol className="mt-4 grid h-[238px] grid-cols-[1.08fr_0.92fr] grid-rows-2 gap-4">
+                        <li className="row-span-2 flex flex-col rounded-[18px] border border-[#B87852]/65 bg-[#5A4032] p-6"><div className="flex items-center justify-between"><span className="text-[12px] font-bold tracking-[0.14em] text-[#F0A46F]">01</span><span className="rounded-full border border-[#B87852] px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-[#F0A46F]">High impact</span></div><p className="mt-auto max-w-[330px] text-[20px] font-semibold leading-snug text-white">{actions[0]}</p></li>
+                        {actions.slice(1).map((action, actionIndex) => <li key={action} className="flex items-center gap-4 rounded-[16px] border border-white/10 bg-[#50382C] p-5"><span className="text-[12px] font-bold tracking-[0.14em] text-[#E9A96B]">0{actionIndex + 2}</span><div className="min-w-0 flex-1"><div className="text-[12px] font-bold uppercase tracking-wide text-[#D2B49C]">{actionIndex === 0 ? 'High impact' : 'Next step'}</div><p className="mt-2 text-[15px] font-medium leading-snug text-[#FFF8F0]">{action}</p></div><ArrowRight className="h-5 w-5 shrink-0 text-[#E9A96B]" /></li>)}
                       </ol>
                     </div>
                   )}
@@ -573,27 +574,24 @@ function ProductShowcase() {
             type="button"
             aria-label={`Show previous story: ${desktopStages[(activeStage + 2) % 3].title}`}
             onClick={() => selectStage((activeStage + 2) % 3)}
-            className="absolute bottom-[104px] left-0 top-10 z-40 w-[110px] cursor-pointer bg-gradient-to-r from-[#C76830]/[0.04] to-transparent outline-none transition-colors hover:from-[#C76830]/[0.08] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] xl:w-[150px]"
+            className="absolute left-2 top-[210px] z-40 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#A66A47]/60 bg-[#35261E]/95 text-[#E9A96B] shadow-lg outline-none transition-[border-color,background-color,color,transform] hover:scale-105 hover:border-[#E9A96B] hover:bg-[#4A3328] hover:text-white focus-visible:ring-2 focus-visible:ring-[#E9A96B] xl:left-10"
           >
-            <span className="sr-only">Previous product story</span>
+            <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             type="button"
             aria-label={`Show next story: ${desktopStages[(activeStage + 1) % 3].title}`}
             onClick={() => selectStage((activeStage + 1) % 3)}
-            className="absolute bottom-[104px] right-0 top-10 z-40 w-[110px] cursor-pointer bg-gradient-to-l from-[#C76830]/[0.04] to-transparent outline-none transition-colors hover:from-[#C76830]/[0.08] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] xl:w-[150px]"
+            className="absolute right-2 top-[210px] z-40 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#A66A47]/60 bg-[#35261E]/95 text-[#E9A96B] shadow-lg outline-none transition-[border-color,background-color,color,transform] hover:scale-105 hover:border-[#E9A96B] hover:bg-[#4A3328] hover:text-white focus-visible:ring-2 focus-visible:ring-[#E9A96B] xl:right-10"
           >
-            <span className="sr-only">Next product story</span>
+            <ChevronRight className="h-5 w-5" />
           </button>
 
-          <div className="absolute bottom-6 left-1/2 z-40 flex w-[min(760px,72%)] -translate-x-1/2 items-center" aria-label="Product story progress">
+          <div className="absolute bottom-7 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#2F211A]/90 p-1.5 backdrop-blur" aria-label="Product story progress">
             {desktopStages.map((stage, index) => (
-              <div key={stage.label} className="flex flex-1 items-center last:flex-none">
-                <button type="button" onClick={() => selectStage(index)} aria-current={activeStage === index ? 'step' : undefined} className={`min-h-11 shrink-0 px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B] ${activeStage === index ? 'text-[#F0A46F]' : 'text-[#9F8D7B]'}`}>
-                  <span className="mr-1.5 text-[9px] tracking-wider">0{index + 1}</span>{stage.label}
-                </button>
-                {index < desktopStages.length - 1 && <span aria-hidden className={`mx-3 h-px flex-1 transition-colors duration-500 ${activeStage > index ? 'bg-[#C76830]' : 'bg-white/15'}`} />}
-              </div>
+              <button key={stage.label} type="button" onClick={() => selectStage(index)} aria-current={activeStage === index ? 'step' : undefined} className={`min-h-11 rounded-full border px-4 text-[13px] font-semibold transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B] ${activeStage === index ? 'border-[#C77843] bg-[#B55B2A] text-white' : 'border-transparent text-[#BCA894] hover:border-white/10 hover:bg-white/[0.04] hover:text-white'}`}>
+                <span className="mr-2 text-[11px] tracking-wider">0{index + 1}</span>{stage.label}
+              </button>
             ))}
           </div>
         </div>
@@ -603,8 +601,8 @@ function ProductShowcase() {
             const active = openStage === index
 
             return (
-              <div key={stage.title} className={`border-b border-white/10 border-l-2 transition-colors duration-300 last:border-b-0 ${active ? 'border-l-[#C77843] bg-[#5B3D2D]/48' : 'border-l-transparent'}`}>
-                <button type="button" aria-expanded={active} aria-controls={`product-stage-panel-${index}`} onClick={() => { stopAutoplay(); setOpenStage(active ? null : index) }} className={`flex min-h-[76px] w-full items-center gap-3 px-4 py-4 text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] sm:px-5 ${active ? 'bg-[#664735]/32' : ''}`}>
+              <div key={stage.title} className={`border-b border-white/10 border-l-2 transition-colors duration-300 last:border-b-0 ${active ? 'border-l-[#D2763C] bg-[#493228]' : 'border-l-transparent'}`}>
+                <button type="button" aria-expanded={active} aria-controls={`product-stage-panel-${index}`} onClick={() => { stopAutoplay(); setOpenStage(active ? null : index) }} className={`flex min-h-[76px] w-full items-center gap-3 px-4 py-4 text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] sm:px-5 ${active ? 'bg-[#5A3B2C]' : ''}`}>
                   <span className="shrink-0 text-[11px] font-bold tracking-[0.15em] text-[#E9A96B]">{String(index + 1).padStart(2, '0')}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[16px] font-semibold leading-tight text-white">{stage.title}</span>
@@ -617,25 +615,25 @@ function ProductShowcase() {
                 </button>
                 <div id={`product-stage-panel-${index}`} aria-hidden={!active} className="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" style={{ gridTemplateRows: active ? '1fr' : '0fr' }}>
                   <div className="overflow-hidden">
-                    <div className={`border-t border-white/10 bg-[#6B4B39]/24 px-4 pb-5 pt-4 text-[#FFF8F0] transition-[opacity,transform] duration-300 ease-out motion-reduce:translate-y-0 motion-reduce:transition-opacity sm:px-5 ${active ? 'translate-y-0 opacity-100' : '-translate-y-1.5 opacity-0'}`}>
+                    <div className={`mx-2 mb-2 rounded-b-[14px] border-t border-[#A06D54]/55 bg-[#6A4A3A] px-4 pb-5 pt-4 text-[#FFF8F0] transition-[opacity,transform] duration-300 ease-out motion-reduce:translate-y-0 motion-reduce:transition-opacity sm:px-5 ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>
                       {index === 0 && (
                         <div>
                           <div className="grid grid-cols-[1fr_auto] items-end gap-3 border-b border-white/10 pb-3">
                             <div><div className="text-[9px] font-semibold uppercase tracking-wider text-[#BCA894]">AI visibility score</div><div className="mt-0.5 text-[30px] font-semibold leading-none">34<span className="text-[11px] text-[#BCA894]">/100</span></div></div>
                             <div className="grid grid-cols-2 gap-3 text-right"><div><div className="text-[16px] font-semibold text-[#F0A46F]">21%</div><div className="text-[9px] text-[#BCA894]">Mentioned</div></div><div><div className="text-[16px] font-semibold text-[#F0A46F]">14%</div><div className="text-[9px] text-[#BCA894]">Cited</div></div></div>
                           </div>
-                          <div className="divide-y divide-white/10">{engineStates.map(({ engine, state }, rowIndex) => <div key={engine} className={`flex min-h-9 items-center justify-between gap-3 py-1.5 text-[12px] transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><span className="font-medium">{engine}</span><span className="text-[9px] font-bold uppercase tracking-wider text-[#F0A46F]">{state}</span></div>)}</div>
+                          <div className="divide-y divide-white/10">{engineStates.map(({ engine, state }, rowIndex) => <div key={engine} className={`flex min-h-10 items-center justify-between gap-3 py-2 text-[13px] transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><span className="font-medium">{engine}</span><span className="text-[10px] font-bold uppercase tracking-wider text-[#F0A46F]">{state}</span></div>)}</div>
                         </div>
                       )}
                       {index === 1 && (
                         <div>
-                          <div><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#F0A46F]">They have</div><ul className="mt-2 space-y-2 text-[11.5px] leading-[1.3] text-[#F6EDE5]">{competitorSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><Check className="mt-0.5 h-3 w-3 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
-                          <div className="mt-4 border-t border-white/10 pt-4"><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#BCA894]">You&rsquo;re missing</div><ul className="mt-2 space-y-2 text-[11.5px] leading-[1.3] text-[#D7C5B4]">{missingSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${190 + rowIndex * 40}ms` : '0ms' }}><Minus className="mt-0.5 h-3 w-3 shrink-0 text-[#9F8D7B]" />{item}</li>)}</ul></div>
+                          <div><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#F0A46F]">They have</div><ul className="mt-2.5 space-y-2.5 text-[12.5px] leading-[1.35] text-[#F6EDE5]">{competitorSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
+                          <div className="mt-4 border-t border-white/15 pt-4"><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#C9B5A3]">You&rsquo;re missing</div><ul className="mt-2.5 space-y-2.5 text-[12.5px] leading-[1.35] text-[#E0CFC0]">{missingSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2.5 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${190 + rowIndex * 40}ms` : '0ms' }}><Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B9A492]" />{item}</li>)}</ul></div>
                         </div>
                       )}
                       {index === 2 && (
-                        <ol className="divide-y divide-white/10">
-                          {actions.map((action, actionIndex) => <li key={action} className={`grid grid-cols-[26px_1fr_auto] items-center gap-2.5 py-2.5 first:pt-0 last:pb-0 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + actionIndex * 40}ms` : '0ms' }}><span className="text-[9px] font-bold tracking-wider text-[#F0A46F]">0{actionIndex + 1}</span><span className="text-[12px] font-medium leading-snug">{action}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#F0A46F]" /></li>)}
+                        <ol className="divide-y divide-white/15">
+                          {actions.map((action, actionIndex) => <li key={action} className={`grid grid-cols-[18px_1fr] items-center gap-3 py-3 first:pt-0 last:pb-0 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + actionIndex * 40}ms` : '0ms' }}><ArrowRight className="h-4 w-4 shrink-0 text-[#F0A46F]" /><span className="text-[13px] font-medium leading-snug">{action}</span></li>)}
                         </ol>
                       )}
                     </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowRight, BriefcaseBusiness, Building2, Check, Link2, MapPinned, Minus, Plus } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Building2, Check, FileText, Link2, MapPinned, Minus, Plus, Star, TrendingUp } from 'lucide-react'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -387,17 +387,15 @@ function AudienceAuditPreview({ activeIndex }: { activeIndex: number }) {
 }
 
 function ProductShowcase() {
-  const [openStage, setOpenStage] = useState(2)
+  const [openStage, setOpenStage] = useState<number | null>(2)
   const [activeStage, setActiveStage] = useState(0)
-  const [previewStage, setPreviewStage] = useState<number | null>(null)
   const showcaseRef = useRef<HTMLElement>(null)
   const autoplayTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([])
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const interactionRef = useRef(false)
   const engineStates = [
-    { Logo: OpenAILogo, engine: 'ChatGPT', state: 'Missing', active: false },
-    { Logo: PerplexityLogo, engine: 'Perplexity', state: 'Cited', active: true },
-    { Logo: AnthropicLogo, engine: 'Claude', state: 'Appears', active: true },
+    { Logo: OpenAILogo, engine: 'ChatGPT', state: 'Missing', signal: 28 },
+    { Logo: PerplexityLogo, engine: 'Perplexity', state: 'Cited', signal: 72 },
+    { Logo: AnthropicLogo, engine: 'Claude', state: 'Appears', signal: 56 },
   ]
   const competitorSignals = ['Strong customer reviews', 'Clear service-area pages', 'Mentions in comparison sources']
   const missingSignals = ['Clear location information', 'Third-party proof', 'Presence in cited sources']
@@ -416,8 +414,6 @@ function ProductShowcase() {
     { label: 'Explain', title: 'Why competitors appear' },
     { label: 'Act', title: 'What to fix first' },
   ]
-  const displayedStage = previewStage ?? activeStage
-
   const stopAutoplay = useCallback(() => {
     interactionRef.current = true
     autoplayTimersRef.current.forEach(clearTimeout)
@@ -425,9 +421,7 @@ function ProductShowcase() {
   }, [])
 
   const selectStage = useCallback((stage: number) => {
-    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
     stopAutoplay()
-    setPreviewStage(null)
     setActiveStage(stage)
   }, [stopAutoplay])
 
@@ -457,7 +451,6 @@ function ProductShowcase() {
       observer.disconnect()
       autoplayTimersRef.current.forEach(clearTimeout)
       autoplayTimersRef.current = []
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
     }
   }, [])
 
@@ -467,7 +460,7 @@ function ProductShowcase() {
       <div aria-hidden className="pointer-events-none absolute -right-32 bottom-0 h-[34rem] w-[34rem] rounded-full" style={{ background: 'radial-gradient(circle, rgba(233,169,107,0.18), transparent 62%)', filter: 'blur(30px)' }} />
       <SignalOverlay tone="light" />
 
-      <div className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-3xl text-center">
           <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#E9A96B]">The product</div>
           <h2 className="mt-4 text-[clamp(2.25rem,10vw,2.75rem)] font-semibold leading-[1.04] tracking-[-0.025em] text-white sm:text-[clamp(2rem,3.9vw,3.1rem)]">From AI visibility to clear next steps.</h2>
@@ -477,7 +470,7 @@ function ProductShowcase() {
         </Reveal>
 
         <div
-          className="relative mx-auto mt-9 hidden h-[540px] max-w-[1120px] overflow-hidden lg:block"
+          className="relative mx-auto mt-11 hidden h-[550px] w-full max-w-[1240px] overflow-visible lg:block"
           aria-label="ClearSignal product story"
           onMouseEnter={stopAutoplay}
           onFocusCapture={stopAutoplay}
@@ -485,18 +478,18 @@ function ProductShowcase() {
           onKeyDown={(event) => {
             if (event.key === 'ArrowLeft') {
               event.preventDefault()
-              selectStage((displayedStage + 2) % 3)
+              selectStage((activeStage + 2) % 3)
             }
             if (event.key === 'ArrowRight') {
               event.preventDefault()
-              selectStage((displayedStage + 1) % 3)
+              selectStage((activeStage + 1) % 3)
             }
             if (event.key === 'Home') selectStage(0)
             if (event.key === 'End') selectStage(2)
           }}
         >
           {desktopStages.map((stage, index) => {
-            const relative = (index - displayedStage + 3) % 3
+            const relative = (index - activeStage + 3) % 3
             const active = relative === 0
             const direction = relative === 1 ? 1 : -1
             return (
@@ -505,72 +498,70 @@ function ProductShowcase() {
                 type="button"
                 aria-label={`Show ${stage.label}: ${stage.title}`}
                 aria-current={active ? 'step' : undefined}
-                onFocus={(event) => {
-                  if (event.currentTarget.matches(':focus-visible')) {
-                    stopAutoplay()
-                    setPreviewStage(index)
-                  }
-                }}
-                onBlur={() => setPreviewStage(null)}
-                onMouseDown={() => selectStage(index)}
                 onClick={() => selectStage(index)}
-                className="absolute left-1/2 top-6 h-[430px] overflow-hidden rounded-[22px] border p-0 text-left outline-none transition-[transform,opacity,filter,background-color,box-shadow] duration-[560ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-[#E9A96B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#211812] motion-reduce:transition-opacity motion-reduce:duration-200"
+                className="absolute left-1/2 top-0 h-[440px] overflow-hidden rounded-[28px] border p-0 text-left outline-none backdrop-blur-xl transition-[transform,opacity,filter,background-color,box-shadow] duration-[580ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-[#E9A96B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#211812] motion-reduce:transition-opacity motion-reduce:duration-200"
                 style={{
-                  width: 'min(820px, calc(100% - 120px))',
+                  width: 'min(920px, calc(100% - 220px))',
                   zIndex: active ? 30 : 10,
-                  opacity: active ? 1 : 0.48,
-                  filter: active ? 'none' : 'blur(0.8px) brightness(0.72)',
-                  background: active ? '#FBF7F1' : 'rgba(64, 46, 35, 0.92)',
-                  borderColor: active ? 'rgba(255,255,255,0.56)' : 'rgba(255,255,255,0.12)',
-                  boxShadow: active ? '0 42px 90px -38px rgba(0,0,0,0.78)' : '0 24px 50px -32px rgba(0,0,0,0.7)',
-                  transform: active
-                    ? 'translateX(-50%) translateY(0) scale(1)'
-                    : `translateX(calc(-50% + ${direction * 238}px)) translateY(24px) scale(0.86)`,
+                  opacity: active ? 1 : 0.5,
+                  pointerEvents: active ? 'auto' : 'none',
+                  filter: active ? 'none' : 'brightness(0.68)',
+                  backgroundColor: active ? 'rgba(76, 54, 41, 0.92)' : 'rgba(58, 42, 33, 0.94)',
+                  borderColor: active ? 'rgba(233,169,107,0.26)' : 'rgba(255,255,255,0.11)',
+                  boxShadow: active ? '0 44px 100px -42px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.055)' : '0 25px 55px -36px rgba(0,0,0,0.82)',
+                    transform: active
+                      ? 'translateX(-50%) translateY(0) scale(1)'
+                      : `translateX(calc(-50% + ${direction * 180}px)) translateY(18px) scale(0.93)`,
                 }}
               >
-                <div className="h-full px-8 py-7" style={{ color: active ? '#3D2E22' : '#FFF8F0' }}>
-                  <div className="text-[10.5px] font-bold uppercase tracking-[0.2em]" style={{ color: active ? COPPER : '#E9A96B' }}>{String(index + 1).padStart(2, '0')} {stage.label}</div>
-                  <h3 className="mt-2 text-[24px] font-semibold leading-tight">{stage.title}</h3>
+                <div className="h-full px-8 py-7 text-[#FFF8F0]">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.2em] text-[#E9A96B]">{String(index + 1).padStart(2, '0')} {stage.label}</div>
+                  <h3 className="mt-1.5 text-[25px] font-semibold leading-tight">{stage.title}</h3>
 
                   {!active && (
-                    <div className={`mt-7 max-w-[270px] border-t border-white/12 pt-5 text-[13px] leading-relaxed text-[#D7C5B4] ${direction > 0 ? 'ml-auto text-right' : ''}`}>
-                      {index === 0 && <><div className="text-[42px] font-semibold leading-none text-white">34<span className="text-[13px] text-[#BCA894]">/100</span></div><div className="mt-3">21% mentioned · 14% cited</div></>}
-                      {index === 1 && <><div className="font-semibold text-white">They have stronger proof</div><div className="mt-2">Reviews, location pages and cited sources.</div></>}
-                      {index === 2 && <ol className="space-y-2">{['Add location', 'Add FAQ', 'Add proof'].map((item, itemIndex) => <li key={item}>{String(itemIndex + 1).padStart(2, '0')} {item}</li>)}</ol>}
+                    <div className={`absolute top-[112px] w-[170px] border-t border-white/12 pt-5 text-[12.5px] leading-relaxed text-[#D7C5B4] ${direction > 0 ? 'right-7 text-right' : 'left-7'}`}>
+                      {index === 0 && <><div className="text-[38px] font-semibold leading-none text-white">34<span className="text-[12px] text-[#BCA894]">/100</span></div><div className="mt-3">21% mentioned<br />14% cited</div></>}
+                      {index === 1 && <><div className="font-semibold text-white">Recommendation signals</div><div className="mt-2">Reviews, service pages and cited sources.</div></>}
+                      {index === 2 && <ol className="space-y-2">{['Add location', 'Add FAQ', 'Add proof'].map((item, itemIndex) => <li key={item}><span className="text-[#E9A96B]">0{itemIndex + 1}</span> {item}</li>)}</ol>}
                     </div>
                   )}
 
                   {active && index === 0 && (
-                    <div className="mt-5 grid grid-cols-[0.8fr_1.2fr] gap-8">
-                      <div>
-                        <p className="text-[13px] leading-relaxed text-[#7A6857]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
-                        <div className="mt-6 flex items-center justify-between border-y border-[#E4D8C8] py-4">
-                          <div><div className="text-[10.5px] uppercase tracking-wider text-[#8D7B6B]">AI visibility score</div><div className="mt-1 text-[46px] font-semibold leading-none">34<span className="text-[14px] text-[#A99582]">/100</span></div></div>
-                          <svg width="68" height="68" viewBox="0 0 72 72" aria-label="34 out of 100"><circle cx="36" cy="36" r="29" fill="none" stroke="#E9DED1" strokeWidth="7" /><circle cx="36" cy="36" r="29" fill="none" stroke="#D8793E" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" /></svg>
+                    <div className="mt-4 grid grid-cols-[0.82fr_1.18fr] gap-5">
+                      <div className="rounded-[20px] border border-[#E5D4C1] bg-[#F2E5D6] p-5 text-[#3D2E22] shadow-[0_24px_45px_-34px_rgba(0,0,0,0.7)]">
+                        <p className="text-[12.5px] leading-relaxed text-[#705B4B]">See whether your business is named, cited or missing from the buyer questions that matter.</p>
+                        <div className="mt-4 flex items-center justify-between">
+                          <div><div className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[#8D725F]">AI visibility score</div><div className="mt-1 text-[44px] font-semibold leading-none">34<span className="text-[13px] text-[#9B806B]">/100</span></div></div>
+                          <svg width="74" height="74" viewBox="0 0 72 72" aria-label="34 out of 100"><circle cx="36" cy="36" r="29" fill="none" stroke="#D9C9B7" strokeWidth="7" /><circle cx="36" cy="36" r="29" fill="none" stroke="#C76830" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${0.34 * 182} 182`} transform="rotate(-90 36 36)" /></svg>
                         </div>
-                        <div className="grid grid-cols-2 pt-4"><div><div className="text-[21px] font-semibold text-[#A9531F]">21%</div><div className="text-[11px] text-[#8D7B6B]">Mention rate</div></div><div className="border-l border-[#E4D8C8] pl-5"><div className="text-[21px] font-semibold text-[#A9531F]">14%</div><div className="text-[11px] text-[#8D7B6B]">Citation rate</div></div></div>
+                        <div className="mt-4 grid grid-cols-2 border-t border-[#D6C3AE] pt-3"><div><div className="text-[20px] font-semibold text-[#A9531F]">21%</div><div className="text-[10px] text-[#806B59]">Mention rate</div></div><div className="border-l border-[#D6C3AE] pl-4"><div className="text-[20px] font-semibold text-[#A9531F]">14%</div><div className="text-[10px] text-[#806B59]">Citation rate</div></div></div>
+                        <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#E8D8C5] px-3 py-2 text-[10.5px] font-medium text-[#705B4B]"><TrendingUp className="h-3.5 w-3.5 text-[#A9531F]" /> Baseline signal recorded</div>
                       </div>
-                      <div className="border-l border-[#E4D8C8] pl-8">
-                        <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8D7B6B]">Engine results</div>
-                        <div className="mt-3 divide-y divide-[#E9DED1]">{engineStates.map(({ Logo, engine, state }) => <div key={engine} className="flex min-h-[58px] items-center justify-between gap-3"><span className="flex items-center gap-2.5 text-[14px] font-medium"><Logo className="h-4 w-4" />{engine}</span><span className="rounded-full border border-[#DFCBB9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#A9531F]">{state}</span></div>)}</div>
+                      <div className="rounded-[20px] border border-white/10 bg-white/[0.055] p-5">
+                        <div className="flex items-center justify-between"><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#E9A96B]">Engine status</div><div className="text-[10px] text-[#BCA894]">3 engines checked</div></div>
+                        <div className="mt-3 space-y-2.5">{engineStates.map(({ Logo, engine, state, signal }) => <div key={engine} className="rounded-[14px] border border-white/10 bg-black/10 px-4 py-3"><div className="flex items-center justify-between gap-3"><span className="flex items-center gap-2.5 text-[13.5px] font-medium"><Logo className="h-4 w-4" />{engine}</span><span className="rounded-full border border-[#A96D46]/60 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#F0A46F]">{state}</span></div><div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#C76830]" style={{ width: `${signal}%` }} /></div></div>)}</div>
                       </div>
                     </div>
                   )}
 
                   {active && index === 1 && (
-                    <div className="mt-5">
-                      <p className="text-[13px] leading-relaxed text-[#7A6857]">Understand which proof, content and sources help competitors get recommended.</p>
-                      <div className="mt-6 grid grid-cols-2 border-y border-[#E4D8C8] py-5">
-                        <div className="pr-8"><div className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#A9531F]">Why they appear</div><ul className="mt-4 space-y-3 text-[14px] leading-relaxed text-[#5C5148]">{competitorSignals.map((item) => <li key={item} className="flex gap-2.5"><Check className="mt-1 h-4 w-4 shrink-0 text-[#A9531F]" />{item}</li>)}</ul></div>
-                        <div className="border-l border-[#E4D8C8] pl-8"><div className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#8D7B6B]">What you&rsquo;re missing</div><ul className="mt-4 space-y-3 text-[14px] leading-relaxed text-[#6E5A50]">{missingSignals.map((item) => <li key={item} className="flex gap-2.5"><Minus className="mt-1 h-4 w-4 shrink-0 text-[#A99582]" />{item}</li>)}</ul></div>
+                    <div className="mt-4">
+                      <p className="text-[12.5px] leading-relaxed text-[#D7C5B4]">Understand which proof, content and sources help competitors get recommended.</p>
+                      <div className="mt-4 grid h-[230px] grid-cols-[1fr_0.72fr_1fr] gap-4">
+                        <div className="flex h-full flex-col justify-center rounded-[18px] border border-white/10 bg-white/[0.055] p-5"><div className="text-[9.5px] font-bold uppercase tracking-[0.17em] text-[#E9A96B]">Competitor signals</div><ul className="mt-4 space-y-3 text-[12.5px] leading-snug text-[#F6EDE5]">{competitorSignals.map((item) => <li key={item} className="flex gap-2.5"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
+                        <div className="relative flex flex-col items-center justify-center border-x border-white/10 px-3"><div className="absolute inset-y-8 left-1/2 w-px -translate-x-1/2 bg-[#A96D46]/45" /><div className="relative z-10 rounded-full border border-[#A96D46]/55 bg-[#3A291F] px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#F0A46F]">AI shortlist</div><div className="relative z-10 mt-4 space-y-2">{[{ label: 'Reviews', Icon: Star }, { label: 'Service page', Icon: MapPinned }, { label: 'Comparison source', Icon: FileText }].map(({ label, Icon }) => <div key={label} className="flex items-center gap-1.5 rounded-full border border-white/12 bg-[#2E211A] px-3 py-1.5 text-[9.5px] text-[#D7C5B4]"><Icon className="h-3 w-3 text-[#E9A96B]" />{label}</div>)}</div></div>
+                        <div className="flex h-full flex-col justify-center rounded-[18px] border border-white/10 bg-black/10 p-5"><div className="text-[9.5px] font-bold uppercase tracking-[0.17em] text-[#BCA894]">Your missing signals</div><ul className="mt-4 space-y-3 text-[12.5px] leading-snug text-[#D7C5B4]">{missingSignals.map((item) => <li key={item} className="flex gap-2.5"><Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#9F8D7B]" />{item}</li>)}</ul></div>
                       </div>
                     </div>
                   )}
 
                   {active && index === 2 && (
-                    <div className="mt-5">
-                      <p className="text-[13px] leading-relaxed text-[#7A6857]">Get clear, prioritized changes your team can implement.</p>
-                      <ol className="mt-5 divide-y divide-[#E4D8C8] border-y border-[#E4D8C8]">{actions.map((action, actionIndex) => <li key={action} className="grid grid-cols-[42px_1fr_auto] items-center gap-4 py-4"><span className="text-[11px] font-bold tracking-[0.14em] text-[#A9531F]">{String(actionIndex + 1).padStart(2, '0')}</span><span className="text-[15px] font-medium leading-relaxed text-[#4A3A2D]">{action}</span><ArrowRight className="h-4 w-4 text-[#A9531F]" /></li>)}</ol>
+                    <div className="mt-4">
+                      <p className="text-[12.5px] leading-relaxed text-[#D7C5B4]">Get clear, prioritized changes your team can implement.</p>
+                      <ol className="mt-4 grid h-[240px] grid-cols-[1.12fr_0.88fr] grid-rows-2 gap-4">
+                        <li className="row-span-2 flex flex-col rounded-[20px] border border-[#E2CFB9] bg-[#F2E5D6] p-6 text-[#3D2E22]"><div className="flex items-center justify-between"><span className="text-[11px] font-bold tracking-[0.14em] text-[#A9531F]">01</span><span className="rounded-full border border-[#C98A61] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#A9531F]">High impact</span></div><p className="mt-auto max-w-[300px] text-[19px] font-semibold leading-snug">{actions[0]}</p><div className="mt-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[#806B59]">Start here <ArrowRight className="h-3.5 w-3.5 text-[#A9531F]" /></div></li>
+                        {actions.slice(1).map((action, actionIndex) => <li key={action} className="flex items-center gap-4 rounded-[18px] border border-white/10 bg-white/[0.055] p-5"><span className="text-[11px] font-bold tracking-[0.14em] text-[#E9A96B]">0{actionIndex + 2}</span><div className="min-w-0 flex-1"><div className="text-[9px] font-bold uppercase tracking-wider text-[#BCA894]">{actionIndex === 0 ? 'High impact' : 'Next step'}</div><p className="mt-1.5 text-[13px] font-medium leading-snug text-[#FFF8F0]">{action}</p></div><ArrowRight className="h-4 w-4 shrink-0 text-[#E9A96B]" /></li>)}
+                      </ol>
                     </div>
                   )}
                 </div>
@@ -578,90 +569,81 @@ function ProductShowcase() {
             )
           })}
 
-          <button type="button" aria-label="Previous product step" onClick={() => selectStage((displayedStage + 2) % 3)} className="absolute left-2 top-[205px] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#2C2018]/90 text-white shadow-lg backdrop-blur transition-colors hover:bg-[#3B2A20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B]"><ArrowRight className="h-4 w-4 rotate-180" /></button>
-          <button type="button" aria-label="Next product step" onClick={() => selectStage((displayedStage + 1) % 3)} className="absolute right-2 top-[205px] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#2C2018]/90 text-white shadow-lg backdrop-blur transition-colors hover:bg-[#3B2A20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B]"><ArrowRight className="h-4 w-4" /></button>
+          <button
+            type="button"
+            aria-label={`Show previous story: ${desktopStages[(activeStage + 2) % 3].title}`}
+            onClick={() => selectStage((activeStage + 2) % 3)}
+            className="absolute bottom-[104px] left-0 top-10 z-40 w-[110px] cursor-pointer bg-gradient-to-r from-[#C76830]/[0.04] to-transparent outline-none transition-colors hover:from-[#C76830]/[0.08] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] xl:w-[150px]"
+          >
+            <span className="sr-only">Previous product story</span>
+          </button>
+          <button
+            type="button"
+            aria-label={`Show next story: ${desktopStages[(activeStage + 1) % 3].title}`}
+            onClick={() => selectStage((activeStage + 1) % 3)}
+            className="absolute bottom-[104px] right-0 top-10 z-40 w-[110px] cursor-pointer bg-gradient-to-l from-[#C76830]/[0.04] to-transparent outline-none transition-colors hover:from-[#C76830]/[0.08] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] xl:w-[150px]"
+          >
+            <span className="sr-only">Next product story</span>
+          </button>
 
-          <div className="absolute inset-x-0 bottom-1 z-40 flex items-center justify-center gap-2" aria-label="Product story progress">
+          <div className="absolute bottom-6 left-1/2 z-40 flex w-[min(760px,72%)] -translate-x-1/2 items-center" aria-label="Product story progress">
             {desktopStages.map((stage, index) => (
-              <button
-                key={stage.label}
-                type="button"
-                onMouseEnter={() => {
-                  stopAutoplay()
-                  if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
-                  hoverTimerRef.current = setTimeout(() => setPreviewStage(index), 180)
-                }}
-                onMouseLeave={() => {
-                  if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
-                  setPreviewStage(null)
-                }}
-                onFocus={(event) => {
-                  if (event.currentTarget.matches(':focus-visible')) {
-                    stopAutoplay()
-                    setPreviewStage(index)
-                  }
-                }}
-                onBlur={() => setPreviewStage(null)}
-                onMouseDown={() => selectStage(index)}
-                onClick={() => selectStage(index)}
-                aria-current={displayedStage === index ? 'step' : undefined}
-                className="min-h-11 rounded-full border px-4 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B]"
-                style={displayedStage === index ? { borderColor: 'rgba(233,169,107,0.7)', backgroundColor: 'rgba(169,83,31,0.32)', color: '#FFF8F0' } : { borderColor: 'rgba(255,255,255,0.1)', color: '#BCA894' }}
-              >
-                {String(index + 1).padStart(2, '0')} {stage.label}
-              </button>
+              <div key={stage.label} className="flex flex-1 items-center last:flex-none">
+                <button type="button" onClick={() => selectStage(index)} aria-current={activeStage === index ? 'step' : undefined} className={`min-h-11 shrink-0 px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9A96B] ${activeStage === index ? 'text-[#F0A46F]' : 'text-[#9F8D7B]'}`}>
+                  <span className="mr-1.5 text-[9px] tracking-wider">0{index + 1}</span>{stage.label}
+                </button>
+                {index < desktopStages.length - 1 && <span aria-hidden className={`mx-3 h-px flex-1 transition-colors duration-500 ${activeStage > index ? 'bg-[#C76830]' : 'bg-white/15'}`} />}
+              </div>
             ))}
           </div>
         </div>
 
-        <div className="mx-auto mt-7 max-w-2xl overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.065] backdrop-blur-xl lg:hidden">
-          {mobileStages.map((stage, index) => (
-              <details
-                key={stage.title}
-                name="product-showcase-stage"
-                open={openStage === index}
-                onToggle={(event) => {
-                  if (event.currentTarget.open) setOpenStage(index)
-                }}
-                className="group border-b border-white/10 last:border-b-0"
-              >
-                <summary className="flex min-h-[76px] cursor-pointer list-none items-center gap-3 border-l-2 border-transparent px-4 py-3 text-left outline-none transition-colors group-open:border-[#C77843] group-open:bg-[#5B3D2D]/55 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] sm:px-5 [&::-webkit-details-marker]:hidden">
+        <div className="mx-auto mt-7 max-w-2xl overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.055] backdrop-blur-xl lg:hidden">
+          {mobileStages.map((stage, index) => {
+            const active = openStage === index
+
+            return (
+              <div key={stage.title} className={`border-b border-white/10 border-l-2 transition-colors duration-300 last:border-b-0 ${active ? 'border-l-[#C77843] bg-[#5B3D2D]/48' : 'border-l-transparent'}`}>
+                <button type="button" aria-expanded={active} aria-controls={`product-stage-panel-${index}`} onClick={() => { stopAutoplay(); setOpenStage(active ? null : index) }} className={`flex min-h-[76px] w-full items-center gap-3 px-4 py-4 text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E9A96B] sm:px-5 ${active ? 'bg-[#664735]/32' : ''}`}>
                   <span className="shrink-0 text-[11px] font-bold tracking-[0.15em] text-[#E9A96B]">{String(index + 1).padStart(2, '0')}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[16px] font-semibold leading-tight text-white">{stage.title}</span>
-                    <span className="mt-1 block text-[12px] leading-snug text-[#BCA894] group-open:hidden">{stage.summary}</span>
+                    <span className={`mt-1 block text-[12px] leading-snug text-[#BCA894] transition-opacity duration-200 ${active ? 'opacity-0' : 'opacity-100'}`}>{stage.summary}</span>
                   </span>
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-[#E9A96B]">
-                    <Plus className="h-4 w-4 group-open:hidden" />
-                    <Minus className="hidden h-4 w-4 group-open:block" />
+                  <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors duration-300 ${active ? 'border-[#C77843]/70 text-[#F0A46F]' : 'border-white/10 text-[#E9A96B]'}`}>
+                    <Plus className={`absolute h-4 w-4 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'rotate-180 opacity-0' : 'rotate-0 opacity-100'}`} />
+                    <Minus className={`absolute h-4 w-4 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'rotate-180 opacity-100' : 'rotate-0 opacity-0'}`} />
                   </span>
-                </summary>
-                <div className="px-3 pb-3 pt-2.5 sm:px-4">
-                  <div className="rounded-[15px] border border-[#E3CFB7] bg-[#F1E5D5] p-3.5 text-[#3D2E22] shadow-[0_10px_28px_-22px_rgba(0,0,0,0.85)]">
-                    {index === 0 && (
-                      <div>
-                        <div className="grid grid-cols-[1fr_auto] items-end gap-3 border-b border-[#D9C5AE] pb-2">
-                          <div><div className="text-[9px] font-semibold uppercase tracking-wider text-[#8D725F]">AI visibility score</div><div className="mt-0.5 text-[30px] font-semibold leading-none">34<span className="text-[11px] text-[#8D725F]">/100</span></div></div>
-                          <div className="grid grid-cols-2 gap-3 text-right"><div><div className="text-[16px] font-semibold text-[#A9531F]">21%</div><div className="text-[9px] text-[#8D725F]">Mentioned</div></div><div><div className="text-[16px] font-semibold text-[#A9531F]">14%</div><div className="text-[9px] text-[#8D725F]">Cited</div></div></div>
+                </button>
+                <div id={`product-stage-panel-${index}`} aria-hidden={!active} className="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" style={{ gridTemplateRows: active ? '1fr' : '0fr' }}>
+                  <div className="overflow-hidden">
+                    <div className={`border-t border-white/10 bg-[#6B4B39]/24 px-4 pb-5 pt-4 text-[#FFF8F0] transition-[opacity,transform] duration-300 ease-out motion-reduce:translate-y-0 motion-reduce:transition-opacity sm:px-5 ${active ? 'translate-y-0 opacity-100' : '-translate-y-1.5 opacity-0'}`}>
+                      {index === 0 && (
+                        <div>
+                          <div className="grid grid-cols-[1fr_auto] items-end gap-3 border-b border-white/10 pb-3">
+                            <div><div className="text-[9px] font-semibold uppercase tracking-wider text-[#BCA894]">AI visibility score</div><div className="mt-0.5 text-[30px] font-semibold leading-none">34<span className="text-[11px] text-[#BCA894]">/100</span></div></div>
+                            <div className="grid grid-cols-2 gap-3 text-right"><div><div className="text-[16px] font-semibold text-[#F0A46F]">21%</div><div className="text-[9px] text-[#BCA894]">Mentioned</div></div><div><div className="text-[16px] font-semibold text-[#F0A46F]">14%</div><div className="text-[9px] text-[#BCA894]">Cited</div></div></div>
+                          </div>
+                          <div className="divide-y divide-white/10">{engineStates.map(({ engine, state }, rowIndex) => <div key={engine} className={`flex min-h-9 items-center justify-between gap-3 py-1.5 text-[12px] transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><span className="font-medium">{engine}</span><span className="text-[9px] font-bold uppercase tracking-wider text-[#F0A46F]">{state}</span></div>)}</div>
                         </div>
-                        <div className="divide-y divide-[#D9C5AE]">{engineStates.map(({ engine, state }) => <div key={engine} className="flex min-h-8 items-center justify-between gap-3 py-1 text-[12px]"><span className="font-medium">{engine}</span><span className="text-[9px] font-bold uppercase tracking-wider text-[#A9531F]">{state}</span></div>)}</div>
-                      </div>
-                    )}
-                    {index === 1 && (
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <div><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#A9531F]">They have</div><ul className="mt-1.5 space-y-1.5 text-[11px] leading-[1.25] text-[#4D3B2E]">{competitorSignals.map((item) => <li key={item} className="flex gap-1.5"><Check className="mt-0.5 h-3 w-3 shrink-0 text-[#A9531F]" />{item}</li>)}</ul></div>
-                        <div className="border-l border-[#D9C5AE] pl-2.5"><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#7E6858]">You&rsquo;re missing</div><ul className="mt-1.5 space-y-1.5 text-[11px] leading-[1.25] text-[#5F4D40]">{missingSignals.map((item) => <li key={item} className="flex gap-1.5"><Minus className="mt-0.5 h-3 w-3 shrink-0 text-[#9B7E68]" />{item}</li>)}</ul></div>
-                      </div>
-                    )}
-                    {index === 2 && (
-                      <ol className="divide-y divide-[#D9C5AE]">
-                        {actions.map((action) => <li key={action} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"><span className="text-[12px] font-medium leading-snug">{action}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#A9531F]" /></li>)}
-                      </ol>
-                    )}
+                      )}
+                      {index === 1 && (
+                        <div>
+                          <div><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#F0A46F]">They have</div><ul className="mt-2 space-y-2 text-[11.5px] leading-[1.3] text-[#F6EDE5]">{competitorSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + rowIndex * 40}ms` : '0ms' }}><Check className="mt-0.5 h-3 w-3 shrink-0 text-[#F0A46F]" />{item}</li>)}</ul></div>
+                          <div className="mt-4 border-t border-white/10 pt-4"><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#BCA894]">You&rsquo;re missing</div><ul className="mt-2 space-y-2 text-[11.5px] leading-[1.3] text-[#D7C5B4]">{missingSignals.map((item, rowIndex) => <li key={item} className={`flex gap-2 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${190 + rowIndex * 40}ms` : '0ms' }}><Minus className="mt-0.5 h-3 w-3 shrink-0 text-[#9F8D7B]" />{item}</li>)}</ul></div>
+                        </div>
+                      )}
+                      {index === 2 && (
+                        <ol className="divide-y divide-white/10">
+                          {actions.map((action, actionIndex) => <li key={action} className={`grid grid-cols-[26px_1fr_auto] items-center gap-2.5 py-2.5 first:pt-0 last:pb-0 transition-[opacity,transform] duration-300 motion-reduce:transition-none ${active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`} style={{ transitionDelay: active ? `${70 + actionIndex * 40}ms` : '0ms' }}><span className="text-[9px] font-bold tracking-wider text-[#F0A46F]">0{actionIndex + 1}</span><span className="text-[12px] font-medium leading-snug">{action}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#F0A46F]" /></li>)}
+                        </ol>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </details>
-          ))}
+              </div>
+            )
+          })}
         </div>
 
         <div id="what-you-get" className="mx-auto mt-5 flex max-w-[1120px] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center text-[11px] font-medium text-[#D7C5B4] sm:mt-6 sm:text-[12.5px]">

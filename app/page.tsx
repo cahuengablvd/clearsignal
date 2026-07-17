@@ -1106,6 +1106,18 @@ export default function LandingPage() {
             <span>Expert-reviewed AI visibility audits for teams that want to be found, cited and recommended.</span>
             <span className="text-[#8C7862]">ClearSignal measures a tested query set. Results may vary as AI systems and source data change.</span>
           </div>
+          <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[12px] text-[#A08D77] md:justify-start">
+            {[
+              { label: 'Terms', href: '/terms' },
+              { label: 'Privacy', href: '/privacy' },
+              { label: 'Refund', href: '/refund' },
+            ].map((l, i) => (
+              <span key={l.label} className="flex items-center gap-2">
+                {i > 0 && <span className="text-[#6B5844]">&middot;</span>}
+                <Link href={l.href} className="transition-colors duration-200 hover:text-white">{l.label}</Link>
+              </span>
+            ))}
+          </nav>
         </div>
       </footer>
     </div>

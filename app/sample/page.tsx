@@ -4,11 +4,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
+import { PublicPageHeader } from '@/components/public-page-header'
 import { buildJsonLd } from '@/lib/materials'
 import { priorityForFix } from '@/lib/prioritization'
 import {
-  ArrowLeft,
-  ArrowRight,
   BarChart3,
   CheckCircle,
   CircleAlert,
@@ -18,7 +17,6 @@ import {
   ShieldAlert,
   Sparkles,
   Target,
-  Zap,
 } from 'lucide-react'
 
 const scoreCards = [
@@ -166,10 +164,10 @@ const fixes = [
 ]
 
 function statusClass(tone: string) {
-  if (tone === 'risk') return 'border-red-200 bg-red-50 text-red-700'
-  if (tone === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700'
-  if (tone === 'ok') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  return 'border-slate-200 bg-slate-50 text-slate-700'
+  if (tone === 'risk') return 'border-[#E6BEB1] bg-[#FFF3EE] text-[#94402D]'
+  if (tone === 'warn') return 'border-[#E7D3A8] bg-[#FFF8E9] text-[#8B5E1B]'
+  if (tone === 'ok') return 'border-[#BBD8C4] bg-[#F2F8F3] text-[#35654D]'
+  return 'border-[#E5D7C5] bg-[#FBF6EE] text-[#5F4D42]'
 }
 
 function statusIcon(tone: string) {
@@ -179,74 +177,62 @@ function statusIcon(tone: string) {
 }
 
 function impactClass(impact: string) {
-  if (impact === 'high') return 'bg-red-50 text-red-700 border-red-200'
-  return 'bg-amber-50 text-amber-700 border-amber-200'
+  if (impact === 'high') return 'bg-[#FFF3EE] text-[#94402D] border-[#E6BEB1]'
+  return 'bg-[#FFF8E9] text-[#8B5E1B] border-[#E7D3A8]'
 }
 
 function priorityClass(bucket: string) {
-  if (bucket === 'Do now') return 'bg-green-50 text-green-700 border-green-200'
-  if (bucket === 'This month') return 'bg-blue-50 text-blue-700 border-blue-200'
-  if (bucket === 'Later') return 'bg-amber-50 text-amber-700 border-amber-200'
-  return 'bg-slate-50 text-slate-700 border-slate-200'
+  if (bucket === 'Do now') return 'bg-[#F2F8F3] text-[#35654D] border-[#BBD8C4]'
+  if (bucket === 'This month') return 'bg-[#F2F1EA] text-[#5F5946] border-[#D8D3C2]'
+  if (bucket === 'Later') return 'bg-[#FFF8E9] text-[#8B5E1B] border-[#E7D3A8]'
+  return 'bg-[#FBF6EE] text-[#5F4D42] border-[#E5D7C5]'
 }
 
 export default function SampleReportPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
-      <nav className="border-b bg-white">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-slate-500 hover:text-slate-950">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-            <Link href="/" className="text-xl font-bold tracking-tight">ClearSignal</Link>
-          </div>
-          <Link href="/score">
-            <Button size="sm" className="gap-2">
-              Get your free score <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
-        </div>
-      </nav>
+    <div className="min-h-screen overflow-x-hidden bg-[#FBF6EE] text-[#2E2116] [&_button]:min-h-11">
+      <PublicPageHeader actionHref="/score" actionLabel="Get your free score" />
 
-      <main className="max-w-6xl mx-auto px-6 py-10">
-        <div className="border border-amber-200 bg-amber-50 rounded-lg p-4 mb-8">
-          <p className="text-sm text-amber-800 font-medium">
+      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14">
+        <div className="mb-8 rounded-xl border border-[#E7D3A8] bg-[#FFF8E9] p-4">
+          <p className="text-sm font-medium text-[#7C571E]">
             Sample report for demo purposes. Data is fictional, but mirrors the structure of a paid ClearSignal audit.
           </p>
         </div>
 
-        <section className="grid lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
-          <div>
-            <Badge variant="secondary" className="mb-4">Automated AI Visibility Audit</Badge>
+        <section className="grid items-start gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="min-w-0">
+            <Badge className="mb-4 border border-[#D9C3AC] bg-[#FFF9F2] text-[#8C421A] hover:bg-[#FFF9F2]">
+              Expert-reviewed AI Visibility Audit
+            </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
               Example SaaS is visible, but competitors own the recommendations.
             </h1>
-            <p className="mt-4 text-slate-600">https://example-saas.com</p>
-            <p className="mt-4 text-lg text-slate-600 leading-relaxed">
+            <p className="mt-4 text-[#8D7B6B]">https://example-saas.com</p>
+            <p className="mt-4 text-lg leading-relaxed text-[#6E5A50]">
               Across 18 answer-engine results, Example SaaS appeared in only 22% of answers
               and was cited once. Competitors with comparison pages, review profiles, and clearer
               proof signals dominate the buyer discovery moment.
             </p>
           </div>
 
-          <Card className="border-red-200 bg-red-50">
+          <Card className="min-w-0 border-[#E6BEB1] bg-[#FFF8F4] shadow-[0_22px_70px_rgba(78,49,27,0.10)]">
             <CardContent className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-sm font-medium text-slate-600">AI Visibility Score</div>
-                  <div className="text-7xl font-bold tracking-tight text-red-600 mt-2">31</div>
-                  <div className="text-sm text-slate-600 mt-1">out of 100</div>
+                  <div className="text-sm font-medium text-[#6E5A50]">AI Visibility Score</div>
+                  <div className="mt-2 text-7xl font-bold tracking-tight text-[#A64B35]">31</div>
+                  <div className="mt-1 text-sm text-[#6E5A50]">out of 100</div>
                 </div>
-                <Badge className="bg-white/70 text-slate-700 border-slate-200">ChatGPT, Claude, Perplexity</Badge>
+                <Badge className="max-w-full whitespace-normal border-[#DCCDBA] bg-white/70 text-right text-[#5B493F]">ChatGPT, Claude, Perplexity</Badge>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 mt-6">
                 {scoreCards.map((card) => (
-                  <div key={card.label} className="border rounded-lg bg-white/80 p-3">
-                    <div className={card.tone === 'risk' ? 'text-2xl font-bold text-red-600' : card.tone === 'warn' ? 'text-2xl font-bold text-amber-600' : 'text-2xl font-bold'}>
+                  <div key={card.label} className="rounded-lg border border-[#E5D7C5] bg-white/80 p-3">
+                    <div className={card.tone === 'risk' ? 'text-2xl font-bold text-[#A64B35]' : card.tone === 'warn' ? 'text-2xl font-bold text-[#9A6A20]' : 'text-2xl font-bold'}>
                       {card.value}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">{card.label}</div>
+                    <div className="mt-1 text-xs text-[#756257]">{card.label}</div>
                   </div>
                 ))}
               </div>
@@ -254,12 +240,12 @@ export default function SampleReportPage() {
           </Card>
         </section>
 
-        <Card className="mt-8 border-slate-200 bg-slate-50">
+        <Card className="mt-8 border-[#E5D7C5] bg-[#FFFDF9] shadow-sm">
           <CardContent className="p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#A9531F]">
               Executive summary
             </div>
-            <p className="leading-relaxed text-slate-700">
+            <p className="leading-relaxed text-[#5F4D42]">
               Example SaaS has a credible product, but its homepage and surrounding content do not
               give answer engines enough specific, citable signals. The fastest path to better AI
               visibility is to publish comparison content, add third-party proof, and rewrite the
@@ -272,21 +258,21 @@ export default function SampleReportPage() {
           <div className="flex items-end justify-between gap-4 mb-4">
             <div>
               <h2 className="text-2xl font-bold">Answer-engine evidence</h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="mt-1 text-sm text-[#756257]">
                 The paid report shows the actual buyer questions tested and who appeared in the answers.
               </p>
             </div>
             <Badge variant="outline">18 engine results</Badge>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
-            <div className="hidden md:grid grid-cols-[1fr_8rem_1fr_9rem] gap-4 bg-slate-50 border-b px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="overflow-hidden rounded-xl border border-[#E5D7C5] bg-[#FFFDF9]">
+            <div className="hidden border-b border-[#E5D7C5] bg-[#F7EFE4] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#756257] md:grid md:grid-cols-[1fr_8rem_1fr_9rem] md:gap-4">
               <div>Buyer question</div>
               <div>Engine</div>
               <div>Who AI named / cited</div>
               <div className="text-right">Your status</div>
             </div>
-            <div className="divide-y">
+            <div className="divide-y divide-[#E8DCCB]">
               {queryRows.map((row) => (
                 <QueryRow key={`${row.engine}-${row.question}`} row={row} />
               ))}
@@ -306,7 +292,7 @@ export default function SampleReportPage() {
             ))}
           </InsightCard>
           <InsightCard icon={CircleAlert} title="Citation gaps" tone="risk">
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-sm text-[#5F4D42]">
               {citationGaps.map((gap) => (
                 <li key={gap}>{gap}</li>
               ))}
@@ -319,41 +305,41 @@ export default function SampleReportPage() {
             <FileSearch className="h-5 w-5" />
             <h2 className="text-xl font-bold">Why these sources get cited (and you don&apos;t)</h2>
           </div>
-          <p className="text-sm text-slate-600 mb-4">
+          <p className="mb-4 text-sm text-[#756257]">
             We scrape the pages AI actually cites and compare their citation signals to your site.
           </p>
           <div className="grid gap-3">
             {sourceGaps.map((s) => (
-              <Card key={s.cited_source}>
+              <Card key={s.cited_source} className="border-[#E5D7C5] bg-[#FFFDF9]">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <h3 className="font-semibold">{s.cited_source}</h3>
                     <Badge variant="outline">cited source</Badge>
                   </div>
-                  <p className="text-sm text-slate-600 mb-3">{s.why}</p>
+                  <p className="mb-3 text-sm text-[#756257]">{s.why}</p>
                   <div className="mb-3">
                     <div className="text-xs font-medium mb-1">This source has:</div>
                     <div className="flex flex-wrap gap-1.5">
                       {s.has.map((sig) => (
-                        <span key={sig} className="text-xs border rounded-full px-2 py-0.5 bg-slate-50 text-slate-600">
+                        <span key={sig} className="rounded-full border border-[#E5D7C5] bg-[#FBF6EE] px-2 py-0.5 text-xs text-[#6E5A50]">
                           {sig}
                         </span>
                       ))}
                     </div>
                   </div>
                   <div className="mb-3">
-                    <div className="text-xs font-medium text-red-700 mb-1">You&apos;re missing:</div>
+                    <div className="mb-1 text-xs font-medium text-[#94402D]">You&apos;re missing:</div>
                     <div className="flex flex-wrap gap-1.5">
                       {s.missing.map((sig) => (
-                        <span key={sig} className="text-xs border border-red-200 rounded-full px-2 py-0.5 bg-red-50 text-red-700">
+                        <span key={sig} className="rounded-full border border-[#E6BEB1] bg-[#FFF3EE] px-2 py-0.5 text-xs text-[#94402D]">
                           {sig}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="text-sm bg-emerald-50 border border-emerald-200 rounded p-3">
-                    <span className="font-medium text-emerald-800">Fix:</span>{' '}
-                    <span className="text-emerald-900">{s.fix}</span>
+                  <div className="rounded border border-[#BBD8C4] bg-[#F2F8F3] p-3 text-sm">
+                    <span className="font-medium text-[#35654D]">Fix:</span>{' '}
+                    <span className="text-[#2F5844]">{s.fix}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -366,7 +352,7 @@ export default function SampleReportPage() {
             <Search className="h-5 w-5" />
             <h2 className="text-xl font-bold">Verified signals</h2>
           </div>
-          <p className="text-sm text-slate-600 mb-4">
+          <p className="mb-4 text-sm text-[#756257]">
             Detected directly from the page - each with how it was checked and a confidence score.
           </p>
           <div className="grid gap-3">
@@ -397,29 +383,29 @@ export default function SampleReportPage() {
               },
             ].map((f) => {
               const cls = f.status === 'present'
-                ? 'bg-green-100 text-green-800 border-green-200'
+                ? 'bg-[#F2F8F3] text-[#35654D] border-[#BBD8C4]'
                 : f.status === 'absent'
-                  ? 'bg-red-100 text-red-800 border-red-200'
-                  : 'bg-amber-100 text-amber-800 border-amber-200'
+                  ? 'bg-[#FFF3EE] text-[#94402D] border-[#E6BEB1]'
+                  : 'bg-[#FFF8E9] text-[#8B5E1B] border-[#E7D3A8]'
               const label = f.status === 'present' ? 'detected present' : f.status === 'absent' ? 'verified absent' : 'manual verification'
               return (
-                <Card key={f.label}>
+                <Card key={f.label} className="border-[#E5D7C5] bg-[#FFFDF9]">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3 mb-1">
                       <h3 className="font-semibold text-sm">{f.label}</h3>
                       <div className="flex items-center gap-2 shrink-0">
                         <Badge className={cls}>{label}</Badge>
-                        <span className="text-xs font-mono text-slate-500">{f.conf}%</span>
+                        <span className="font-mono text-xs text-[#8D7B6B]">{f.conf}%</span>
                       </div>
                     </div>
-                    <p className="text-sm text-slate-600">{f.detail}</p>
-                    <p className="text-xs text-slate-500 mt-2"><span className="font-medium">How checked:</span> {f.basis}</p>
+                    <p className="text-sm text-[#6E5A50]">{f.detail}</p>
+                    <p className="mt-2 text-xs text-[#8D7B6B]"><span className="font-medium">How checked:</span> {f.basis}</p>
                     <details className="mt-3 text-xs">
-                      <summary className="cursor-pointer font-medium text-slate-500 hover:text-slate-700">Evidence details</summary>
-                      <div className="mt-2 rounded border bg-slate-50 p-3 text-slate-600">
-                        <div><span className="font-medium text-slate-900">URL:</span> https://example-saas.com</div>
-                        <div><span className="font-medium text-slate-900">Checked:</span> sample timestamp</div>
-                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded bg-white p-2">{f.evidence}</pre>
+                      <summary className="cursor-pointer font-medium text-[#8D7B6B] hover:text-[#4B3424]">Evidence details</summary>
+                      <div className="mt-2 rounded border border-[#E5D7C5] bg-[#FBF6EE] p-3 text-[#6E5A50]">
+                        <div><span className="font-medium text-[#2E2116]">URL:</span> https://example-saas.com</div>
+                        <div><span className="font-medium text-[#2E2116]">Checked:</span> sample timestamp</div>
+                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded bg-[#FFFDF9] p-2">{f.evidence}</pre>
                       </div>
                     </details>
                   </CardContent>
@@ -436,13 +422,13 @@ export default function SampleReportPage() {
           </div>
           <div className="grid md:grid-cols-5 gap-3">
             {clarityScores.map(([label, score, severity]) => (
-              <Card key={label} className={severity === 'critical' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}>
+              <Card key={label} className={severity === 'critical' ? 'border-[#E6BEB1] bg-[#FFF3EE]' : 'border-[#E7D3A8] bg-[#FFF8E9]'}>
                 <CardContent className="p-4">
                   <div className="text-sm font-medium">{label}</div>
-                  <div className={severity === 'critical' ? 'text-3xl font-bold mt-3 text-red-600' : 'text-3xl font-bold mt-3 text-amber-600'}>
+                  <div className={severity === 'critical' ? 'mt-3 text-3xl font-bold text-[#A64B35]' : 'mt-3 text-3xl font-bold text-[#9A6A20]'}>
                     {score}
                   </div>
-                  <div className="text-xs text-slate-500 mt-1">out of 100</div>
+                  <div className="mt-1 text-xs text-[#756257]">out of 100</div>
                 </CardContent>
               </Card>
             ))}
@@ -458,14 +444,14 @@ export default function SampleReportPage() {
             {fixes.map((fix, index) => {
               const priority = priorityForFix(fix)
               return (
-                <Card key={fix.title}>
+                <Card key={fix.title} className="border-[#E5D7C5] bg-[#FFFDF9]">
                   <CardContent className="p-5">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                       <div>
-                        <div className="text-xs font-semibold text-slate-500 mb-2">Fix #{index + 1}</div>
+                        <div className="mb-2 text-xs font-semibold text-[#A9531F]">Fix #{index + 1}</div>
                         <h3 className="font-semibold">{fix.title}</h3>
-                        <p className="text-sm text-slate-600 mt-2 leading-relaxed">{fix.desc}</p>
-                          <p className="mt-2 text-xs text-slate-500">
+                        <p className="mt-2 text-sm leading-relaxed text-[#6E5A50]">{fix.desc}</p>
+                          <p className="mt-2 text-xs text-[#8D7B6B]">
                             Priority score: <span className="font-mono">{priority.score}</span> (Impact x Confidence / Effort; sample confidence 75%).
                           </p>
                       </div>
@@ -488,7 +474,7 @@ export default function SampleReportPage() {
             <Target className="h-5 w-5" />
             <h2 className="text-xl font-bold">Hand off by role</h2>
           </div>
-          <p className="text-sm text-slate-600 mb-3">
+          <p className="mb-3 text-sm text-[#756257]">
             The same fixes, grouped by who should do them - copy a task list straight to the right person.
           </p>
           <RoleExport
@@ -502,7 +488,7 @@ export default function SampleReportPage() {
             <Target className="h-5 w-5" />
             <h2 className="text-xl font-bold">Implementation briefs</h2>
           </div>
-          <p className="text-sm text-slate-600 mb-4">
+          <p className="mb-4 text-sm text-[#756257]">
             Each top fix as a ticket - concrete steps and acceptance criteria you can check off.
           </p>
           <div className="grid gap-3">
@@ -518,17 +504,17 @@ export default function SampleReportPage() {
                 criteria: ['Done when the page is live and indexable (returns 200, not noindex)'],
               },
             ].map((b) => (
-              <Card key={b.title}>
+              <Card key={b.title} className="border-[#E5D7C5] bg-[#FFFDF9]">
                 <CardContent className="p-5">
                   <h3 className="font-semibold mb-3">{b.title}</h3>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Steps</div>
-                  <ol className="list-decimal list-inside text-sm space-y-1 text-slate-600 mb-3">
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#8D7B6B]">Steps</div>
+                  <ol className="mb-3 list-inside list-decimal space-y-1 text-sm text-[#6E5A50]">
                     {b.steps.map((s) => <li key={s}>{s}</li>)}
                   </ol>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Acceptance criteria</div>
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#8D7B6B]">Acceptance criteria</div>
                   <ul className="text-sm space-y-1">
                     {b.criteria.map((c) => (
-                      <li key={c} className="flex gap-2"><span className="text-emerald-600">&#9744;</span><span>{c}</span></li>
+                      <li key={c} className="flex gap-2"><span className="text-[#40735B]">&#9744;</span><span>{c}</span></li>
                     ))}
                   </ul>
                 </CardContent>
@@ -542,58 +528,58 @@ export default function SampleReportPage() {
             <FileSearch className="h-5 w-5" />
             <h2 className="text-xl font-bold">Draft copy for operator review</h2>
           </div>
-          <p className="text-sm text-slate-600 mb-4">
+          <p className="mb-4 text-sm text-[#756257]">
             Review these meta tags, FAQ, JSON-LD and CTA options before publishing.
           </p>
           <div className="grid gap-3">
-            <Card>
+            <Card className="border-[#E5D7C5] bg-[#FFFDF9]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between gap-3 mb-1">
                   <h3 className="font-semibold text-sm">Meta title</h3>
                   <CopyButton text="Deployment platform for mid-market SaaS teams | Example SaaS" />
                 </div>
-                <p className="text-sm text-slate-600">Deployment platform for mid-market SaaS teams | Example SaaS</p>
+                <p className="text-sm text-[#6E5A50]">Deployment platform for mid-market SaaS teams | Example SaaS</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-[#E5D7C5] bg-[#FFFDF9]">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-sm mb-2">FAQ (sample)</h3>
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="font-medium">What is the best deployment platform for mid-market SaaS?</p>
-                    <p className="text-slate-600">Example SaaS focuses on zero-downtime deploys for product and engineering teams of 50-500.</p>
+                    <p className="text-[#6E5A50]">Example SaaS focuses on zero-downtime deploys for product and engineering teams of 50-500.</p>
                   </div>
                   <div>
                     <p className="font-medium">How is Example SaaS different from Competitor A?</p>
-                    <p className="text-slate-600">It pairs zero-downtime releases with a simpler setup aimed at mid-market teams.</p>
+                    <p className="text-[#6E5A50]">It pairs zero-downtime releases with a simpler setup aimed at mid-market teams.</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-[#E5D7C5] bg-[#FFFDF9]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <h3 className="font-semibold text-sm">Schema.org JSON-LD</h3>
                   <CopyButton text={sampleJsonLd} />
                 </div>
-                <pre className="text-xs bg-slate-50 rounded p-3 overflow-x-auto whitespace-pre-wrap">{sampleJsonLd}</pre>
+                <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-[#F7EFE4] p-3 text-xs text-[#5F4D42]">{sampleJsonLd}</pre>
               </CardContent>
             </Card>
           </div>
         </section>
 
-        <section className="mt-10 border rounded-lg bg-slate-950 text-white p-6 grid lg:grid-cols-[1fr_auto] gap-6 items-center">
+        <section className="mt-10 grid items-center gap-6 rounded-2xl border border-[#5C4331] bg-[#2E2116] p-6 text-white shadow-[0_24px_70px_rgba(46,33,22,0.18)] lg:grid-cols-[1fr_auto]">
           <div>
             <Badge className="bg-white/10 text-white border-white/20 mb-4">ClearSignal audit</Badge>
             <h2 className="text-2xl font-bold">Get this report for your own homepage.</h2>
-            <p className="text-slate-300 mt-3 max-w-2xl">
+            <p className="mt-3 max-w-2xl text-[#D8C8BA]">
               Start with a free AI visibility score, then unlock the full audit with competitor
               share-of-voice, cited-domain analysis, messaging gaps, and 10 prioritized fixes.
             </p>
           </div>
           <Link href="/score">
-            <Button size="lg" variant="secondary" className="gap-2 w-full lg:w-auto">
-              Start with a free score <Sparkles className="h-4 w-4" />
+            <Button size="lg" variant="secondary" className="w-full gap-2 rounded-full bg-[#FFF7ED] text-[#2E2116] hover:bg-white lg:w-auto">
+              Get your free AI visibility score <Sparkles className="h-4 w-4" />
             </Button>
           </Link>
         </section>
@@ -622,25 +608,25 @@ function QueryRow({
     <div className="px-5 py-4 text-sm">
       <div className="grid md:grid-cols-[1fr_8rem_1fr_9rem] gap-3 md:gap-4">
         <div>
-          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Buyer question</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#8D7B6B] md:hidden">Buyer question</div>
           <div className="font-medium leading-relaxed">{row.question}</div>
         </div>
         <div>
-          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Engine</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#8D7B6B] md:hidden">Engine</div>
           <Badge variant="outline">{row.engine}</Badge>
         </div>
         <div>
-          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Who AI named / cited</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#8D7B6B] md:hidden">Who AI named / cited</div>
           <div className="flex flex-wrap gap-2">
             {named.map((item) => (
-              <span key={item} className="border rounded-full px-2 py-1 text-xs bg-slate-50 text-slate-600">
+              <span key={item} className="rounded-full border border-[#E5D7C5] bg-[#FBF6EE] px-2 py-1 text-xs text-[#6E5A50]">
                 {item}
               </span>
             ))}
           </div>
         </div>
         <div className="md:text-right">
-          <div className="md:hidden text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Your status</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#8D7B6B] md:hidden">Your status</div>
           <span className={`inline-flex items-center gap-1 border rounded-full px-3 py-1 text-xs font-medium ${statusClass(row.tone)}`}>
             <StatusIcon className="h-3 w-3" />
             {row.status}
@@ -648,10 +634,10 @@ function QueryRow({
         </div>
       </div>
       <details className="mt-3">
-        <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
+        <summary className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-[#8D7B6B] hover:text-[#4B3424]">
           <FileSearch className="h-3 w-3" /> Show the actual AI answer
         </summary>
-        <blockquote className="mt-2 border-l-2 border-slate-200 pl-3 text-xs text-slate-600 leading-relaxed italic">
+        <blockquote className="mt-2 border-l-2 border-[#D9C3AC] pl-3 text-xs italic leading-relaxed text-[#6E5A50]">
           {row.excerpt}
         </blockquote>
       </details>
@@ -671,7 +657,7 @@ function InsightCard({
   tone?: 'default' | 'risk'
 }) {
   return (
-    <Card className={tone === 'risk' ? 'border-amber-200 bg-amber-50/50' : ''}>
+    <Card className={tone === 'risk' ? 'border-[#E7D3A8] bg-[#FFF8E9]' : 'border-[#E5D7C5] bg-[#FFFDF9]'}>
       <CardContent className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <Icon className="h-5 w-5" />
@@ -686,8 +672,8 @@ function InsightCard({
 function MetricLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-slate-700">{label}</span>
-      <span className="font-mono text-slate-500">{value}</span>
+      <span className="text-[#5F4D42]">{label}</span>
+      <span className="font-mono text-[#8D7B6B]">{value}</span>
     </div>
   )
 }

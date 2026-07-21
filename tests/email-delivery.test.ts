@@ -65,4 +65,19 @@ describe('report email delivery', () => {
     )
     expect(sendMock).not.toHaveBeenCalled()
   })
+
+  it('sends a paid-order confirmation with the shared delivery promise and reply-to', async () => {
+    process.env.ADMIN_ALERT_EMAIL = 'support@example.com'
+    sendMock.mockResolvedValue({ data: { id: 'email_order_123' }, error: null })
+    const { sendOrderConfirmationEmail } = await import('../lib/resend')
+    const { DELIVERY_PROMISE } = await import('../lib/delivery-promise')
+
+    await sendOrderConfirmationEmail('buyer@example.com', 'https://example.com')
+
+    expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
+      to: 'buyer@example.com',
+      replyTo: 'support@example.com',
+      html: expect.stringContaining(DELIVERY_PROMISE),
+    }))
+  })
 })

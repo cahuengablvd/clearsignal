@@ -95,7 +95,7 @@ export function containsUrl(value: string): boolean {
 /** ICP is a free-text description, NEVER a URL (the URL belongs in `url`). */
 export const icpTextSchema = z
   .string()
-  .max(1000)
+  .max(2000, 'ICP description must be 2000 characters or fewer')
   .refine((v) => !looksLikeUrl(v) && !containsUrl(v), {
     message: 'ICP must be a text description, not a URL',
   })
@@ -116,6 +116,37 @@ export const competitorUrlSchema = z
   }, { message: 'Competitor must be an http(s) URL' })
   .optional()
   .or(z.literal(''))
+
+/**
+ * Paid checkout intake is persisted before the customer leaves for Stripe.
+ * Stripe metadata receives only the resulting audit id, never these free-text fields.
+ */
+export const CheckoutIntakeSchema = z.object({
+  email: z.string().trim().email('Enter a valid email address'),
+  url: z.string().trim().url('Enter a valid homepage URL'),
+  competitor_1: competitorUrlSchema,
+  competitor_2: competitorUrlSchema,
+  competitor_3: competitorUrlSchema,
+  icp_description: icpTextSchema,
+  business_context: z.object({
+    business_model: enumOrCustom(businessModelSchema).optional().default('unknown'),
+    primary_conversion_goal: enumOrCustom(conversionGoalSchema).optional().default('unknown'),
+    target_markets_languages: z
+      .string()
+      .max(1000, 'Target markets and languages must be 1000 characters or fewer')
+      .optional()
+      .default(''),
+    verified_facts: z
+      .string()
+      .max(2000, 'Verified facts must be 2000 characters or fewer')
+      .optional()
+      .default(''),
+  }).optional().default({}),
+  score_id: z.string().optional().default(''),
+  score_token: z.string().optional().default(''),
+})
+
+export type CheckoutIntake = z.infer<typeof CheckoutIntakeSchema>
 
 // --- Trust Layer: typed findings (deterministic confidence) ---
 

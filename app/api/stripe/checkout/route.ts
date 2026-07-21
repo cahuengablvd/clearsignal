@@ -1,28 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { stripe } from '@/lib/stripe'
+import { supabaseAdmin } from '@/lib/supabase'
 import { enforceRateLimits, clientIp, emailDomain } from '@/lib/rate-limit'
 import { verifyToken } from '@/lib/tokens'
+import { BusinessContextSchema, CheckoutIntakeSchema } from '@/lib/schemas'
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
-const requestSchema = z.object({
-  email: z.string().email(),
-  url: z.string().url(),
-  competitor_1: z.string().optional().default(''),
-  competitor_2: z.string().optional().default(''),
-  competitor_3: z.string().optional().default(''),
-  icp_description: z.string().optional().default(''),
-  score_id: z.string().optional().default(''),
-  score_token: z.string().optional().default(''),
-})
-
 export async function POST(req: NextRequest) {
   try {
-    // --- Debug: validate env var before hitting Stripe ---
     const priceId = process.env.STRIPE_PRICE_ID_399
-    console.log('[checkout] STRIPE_PRICE_ID_399 exists:', !!priceId)
-    console.log('[checkout] STRIPE_PRICE_ID_399 prefix:', priceId ? priceId.slice(0, 7) : 'MISSING')
 
     if (!priceId) {
       console.error('[checkout] STRIPE_PRICE_ID_399 is not set')
@@ -37,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const input = requestSchema.parse(body)
+    const input = CheckoutIntakeSchema.parse(body)
 
     if (input.score_id && !verifyToken('score', input.score_id, input.score_token)) {
       return NextResponse.json({ error: 'Invalid score access token' }, { status: 403 })
@@ -57,7 +45,30 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log('[checkout] Creating Stripe session for:', input.email, input.url)
+    const businessContext = BusinessContextSchema.parse(input.business_context)
+    const { data: audit, error: insertError } = await supabaseAdmin
+      .from('audits')
+      .insert({
+        email: input.email,
+        url: input.url,
+        competitor_1: input.competitor_1 || null,
+        competitor_2: input.competitor_2 || null,
+        competitor_3: input.competitor_3 || null,
+        icp_description: input.icp_description || null,
+        score_id: input.score_id || null,
+        stripe_session: null,
+        payment_status: 'pending',
+        audit_status: 'awaiting_payment',
+        tier: 'automated',
+        business_context: businessContext,
+      })
+      .select('id')
+      .single()
+
+    if (insertError || !audit) {
+      console.error('[checkout] Failed to persist pending order:', insertError)
+      return NextResponse.json({ error: 'Could not save your order. Please try again.' }, { status: 500 })
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -70,25 +81,32 @@ export async function POST(req: NextRequest) {
         },
       ],
       metadata: {
-        email: input.email,
-        url: input.url,
-        competitor_1: input.competitor_1,
-        competitor_2: input.competitor_2,
-        competitor_3: input.competitor_3,
-        icp_description: input.icp_description,
-        score_id: input.score_id,
+        audit_id: audit.id,
         tier: 'automated',
       },
       success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/checkout`,
     })
 
+    const { error: updateError } = await supabaseAdmin
+      .from('audits')
+      .update({ stripe_session: session.id })
+      .eq('id', audit.id)
+
+    if (updateError) {
+      console.error('[checkout] Failed to attach Stripe session to pending order:', updateError)
+      return NextResponse.json({ error: 'Could not prepare payment. Please try again.' }, { status: 500 })
+    }
+
     return NextResponse.json({ url: session.url })
   } catch (err: unknown) {
-    console.error('Stripe checkout error:', err)
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+      return NextResponse.json(
+        { error: err.errors[0]?.message || 'Invalid input', details: err.errors },
+        { status: 400 }
+      )
     }
+    console.error('Stripe checkout error:', err)
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Failed to create checkout session' },
       { status: 500 }

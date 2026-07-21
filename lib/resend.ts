@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { signToken } from './tokens'
+import { DELIVERY_PROMISE } from './delivery-promise'
 
 let _resend: Resend | null = null
 
@@ -62,6 +63,44 @@ export async function sendReportEmail(email: string, auditId: string, url: strin
 
   if (error) {
     throw new Error(`Resend rejected the delivery email: ${JSON.stringify(error)}`)
+  }
+  return data
+}
+
+export function buildOrderConfirmationEmailHtml(url: string): string {
+  return `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #2E2116;">
+        <p style="font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #A9531F;">
+          Order confirmed
+        </p>
+        <h1 style="font-size: 26px; color: #2E2116;">We received your ClearSignal audit order</h1>
+        <p style="font-size: 16px; color: #5F4B40; line-height: 1.6;">
+          We will analyze <strong>${url}</strong> across the configured AI engines, review the findings,
+          and email you when the web report and PDF are ready.
+        </p>
+        <p style="font-size: 16px; color: #5F4B40; line-height: 1.6;">${DELIVERY_PROMISE}</p>
+        <p style="font-size: 14px; color: #756257; line-height: 1.6;">
+          Questions about your order? Reply to this email and we will help.
+        </p>
+      </div>
+    `
+}
+
+export async function sendOrderConfirmationEmail(email: string, url: string) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is not set')
+  }
+
+  const { data, error } = await getResend().emails.send({
+    from: process.env.RESEND_FROM || 'ClearSignal <onboarding@resend.dev>',
+    to: email,
+    replyTo: process.env.RESEND_REPLY_TO || process.env.ADMIN_ALERT_EMAIL || 'alexanderkalinko@gmail.com',
+    subject: `Your ClearSignal audit order is confirmed - ${url}`,
+    html: buildOrderConfirmationEmailHtml(url),
+  })
+
+  if (error) {
+    throw new Error(`Resend rejected the order confirmation email: ${JSON.stringify(error)}`)
   }
   return data
 }

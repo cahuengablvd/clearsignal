@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, BriefcaseBusiness, Building2, Check, ChevronLeft, ChevronRight, Link2, MapPinned, Minus, Plus } from 'lucide-react'
+import { DELIVERY_PROMISE } from '@/lib/delivery-promise'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -128,7 +129,7 @@ const FAQS = [
   },
   {
     q: 'How long does the full audit take?',
-    a: "Founding audits are reviewed manually before delivery. You'll receive an estimated delivery window before the audit starts.",
+    a: DELIVERY_PROMISE,
   },
   {
     q: 'Can agencies use ClearSignal for client audits?',
@@ -1123,4 +1124,3 @@ export default function LandingPage() {
     </div>
   )
 }
-

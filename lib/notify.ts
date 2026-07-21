@@ -15,6 +15,8 @@ export type AlertEvent =
   | 'admin_auth_rate_limited'
   | 'rate_limit_degraded'
   | 'email_delivery_failed'
+  | 'confirmation_email_failed'
+  | 'paid_audit_received'
 
 export async function notify(event: AlertEvent, details: Record<string, unknown>): Promise<void> {
   const payload = {

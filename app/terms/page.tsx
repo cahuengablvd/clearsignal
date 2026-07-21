@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { DELIVERY_PROMISE } from '@/lib/delivery-promise'
 
 export const metadata: Metadata = {
   title: 'Terms of Service — ClearSignal',
@@ -105,12 +106,8 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-[19px] font-semibold text-[#2E2116]">7. Delivery</h2>
-            <p className="mt-3">
-              We aim to deliver your report <strong>within 2 business days</strong> of confirmed payment. Because every
-              report is reviewed by a person before delivery, this is a target rather than a guaranteed deadline. If we
-              expect a material delay, we will tell you by email. If we cannot deliver at all, we will refund you in
-              full.
-            </p>
+            <p className="mt-3">{DELIVERY_PROMISE}</p>
+            <p className="mt-3">If we cannot deliver the audit at all, we will refund you in full.</p>
           </section>
 
           <section>

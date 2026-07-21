@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase'
 import { enqueueAudit } from '@/lib/audit-queue'
 import { notify } from '@/lib/notify'
+import { sendOrderConfirmationEmail } from '@/lib/resend'
 import Stripe from 'stripe'
 
 // Allow up to 5 minutes on Vercel Pro; on Hobby it's capped at 60s.
@@ -45,16 +46,33 @@ export async function POST(req: Request) {
   const stripeSessionId = session.id
 
   console.log('[webhook] checkout.session.completed -- session:', stripeSessionId)
-  console.log('[webhook] metadata email:', meta.email, 'url:', meta.url)
 
   try {
-    const { data: existing } = await supabaseAdmin
-      .from('audits')
-      .select('id, payment_status, audit_status, processing_started_at')
-      .eq('stripe_session', stripeSessionId)
-      .single()
+    let existing = null
+
+    if (meta.audit_id) {
+      const { data } = await supabaseAdmin
+        .from('audits')
+        .select('id, email, url, payment_status, audit_status, processing_started_at')
+        .eq('id', meta.audit_id)
+        .single()
+      existing = data
+    }
+
+    // Backward compatibility for Checkout sessions created before pending
+    // orders stored their audit id in Stripe metadata.
+    if (!existing) {
+      const { data } = await supabaseAdmin
+        .from('audits')
+        .select('id, email, url, payment_status, audit_status, processing_started_at')
+        .eq('stripe_session', stripeSessionId)
+        .single()
+      existing = data
+    }
 
     let auditId: string
+    let customerEmail = meta.email || session.customer_email || ''
+    let customerUrl = meta.url || ''
 
     if (existing) {
       console.log(
@@ -74,12 +92,24 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ received: true, message: 'Audit already in progress' }), { status: 200 })
       }
 
-      await supabaseAdmin
+      const { error: updateError } = await supabaseAdmin
         .from('audits')
-        .update({ payment_status: 'paid', audit_status: 'queued', processing_started_at: null })
+        .update({
+          stripe_session: stripeSessionId,
+          payment_status: 'paid',
+          audit_status: 'queued',
+          processing_started_at: null,
+        })
         .eq('id', existing.id)
 
+      if (updateError) {
+        console.error('[webhook] Failed to mark pending audit as paid:', updateError)
+        return new Response(JSON.stringify({ error: 'DB update failed' }), { status: 500 })
+      }
+
       auditId = existing.id
+      customerEmail = existing.email || customerEmail
+      customerUrl = existing.url || customerUrl
     } else {
       console.log('[webhook] Creating new audit record for session:', stripeSessionId)
 
@@ -105,7 +135,7 @@ export async function POST(req: Request) {
         if (insertError?.code === '23505') {
           const { data: duplicate } = await supabaseAdmin
             .from('audits')
-            .select('id, payment_status, audit_status, processing_started_at')
+            .select('id, email, url, payment_status, audit_status, processing_started_at')
             .eq('stripe_session', stripeSessionId)
             .single()
 
@@ -116,12 +146,19 @@ export async function POST(req: Request) {
             if (duplicate.payment_status === 'paid' && duplicate.audit_status === 'processing' && duplicate.processing_started_at) {
               return new Response(JSON.stringify({ received: true, message: 'Audit already in progress' }), { status: 200 })
             }
-            await supabaseAdmin
+            const { error: duplicateUpdateError } = await supabaseAdmin
               .from('audits')
               .update({ payment_status: 'paid', audit_status: 'queued', processing_started_at: null })
               .eq('id', duplicate.id)
 
+            if (duplicateUpdateError) {
+              console.error('[webhook] Failed to recover duplicate Stripe session:', duplicateUpdateError)
+              return new Response(JSON.stringify({ error: 'DB update failed' }), { status: 500 })
+            }
+
             auditId = duplicate.id
+            customerEmail = duplicate.email || customerEmail
+            customerUrl = duplicate.url || customerUrl
             console.log('[webhook] Recovered duplicate Stripe session as audit:', auditId)
           } else {
             console.error('[webhook] Failed to resolve duplicate Stripe session:', insertError)
@@ -150,6 +187,22 @@ export async function POST(req: Request) {
         error: enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr),
       })
       return new Response(JSON.stringify({ error: 'Audit enqueue failed' }), { status: 500 })
+    }
+
+    await notify('paid_audit_received', {
+      audit_id: auditId,
+      stripe_session: stripeSessionId,
+      url: customerUrl,
+    })
+
+    try {
+      await sendOrderConfirmationEmail(customerEmail, customerUrl)
+    } catch (emailErr) {
+      await notify('confirmation_email_failed', {
+        audit_id: auditId,
+        stripe_session: stripeSessionId,
+        error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+      })
     }
 
     return new Response(JSON.stringify({ received: true, audit_id: auditId }), { status: 200 })

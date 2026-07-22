@@ -17,6 +17,8 @@ import { ASTROTURFING_PATTERNS, BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS }
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from './trust/decisions'
 import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import { buildGeoSummary } from './geo'
+import { buildQueryAnalysis } from './geo/query-taxonomy'
+import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
 
 export type ReportValidation = {
@@ -625,6 +627,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   dropEmptyActionItems(walked, warn)
   validateEmptyClientFields(walked, errors)
   validatePublishableFacts(walked, errors)
+  rebuildGeoMeasurementV2(walked, warn)
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
@@ -971,6 +974,34 @@ function extractVerifiedDuration(ctx?: BusinessContext): string | undefined {
   const text = ctx?.verified_facts || ''
   const match = text.match(/\b\d+\s*(?:-|to|\u2013|\u2014)\s*\d+\s*(?:business\s+days?|days?|weeks?|months?|hours?)\b|\bwithin\s+\d+\s*(?:business\s+days?|days?|weeks?|months?|hours?)\b/i)
   return match?.[0]?.replace(/\s+/g, ' ').trim()
+}
+
+function rebuildGeoMeasurementV2(report: ClearSignalReport, warn: (message: string) => void): void {
+  const geo = report.geo
+  if (!geo) return
+
+  if (Array.isArray(geo.evidence)) {
+    const queryAnalysis = buildQueryAnalysis(geo.evidence)
+    if (JSON.stringify(geo.query_analysis) !== JSON.stringify(queryAnalysis)) {
+      geo.query_analysis = queryAnalysis
+      warn('geo: rebuilt buyer-intent taxonomy from saved evidence')
+    }
+  }
+
+  const eligibility = report.technical_eligibility || geo.technical_eligibility
+  if (eligibility) {
+    report.technical_eligibility = eligibility
+    geo.technical_eligibility = eligibility
+  }
+  if (Array.isArray(geo.recommendations)) {
+    geo.staged_recommendations = buildStagedGeoRecommendations(
+      geo.recommendations,
+      eligibility || undefined
+    )
+  }
+  if (report.action && Array.isArray(report.action.top_fixes)) {
+    report.action = attachActionRecommendationStages(report.action, eligibility || undefined)
+  }
 }
 
 function validateFaqSanity(

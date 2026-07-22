@@ -33,6 +33,7 @@ import {
 } from '../prompts'
 import { availableEngines, queryEngine, type EngineId } from './engines'
 import { analyzeCitedSources } from './sources'
+import { buildQueryAnalysis, classifyQueryIntent } from './query-taxonomy'
 import { scrapeUrl } from '../firecrawl'
 import { normalizeMarkdown } from '../normalize-markdown'
 import { boundSampleClaims } from '../sanitize'
@@ -266,6 +267,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       brand_position,
       competitors_mentioned,
       cited_domains: citedDomains(r.citations),
+      query_intent: classifyQueryIntent(r.query),
     }
   })
 
@@ -430,6 +432,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     cited_domains_ranked,
     ...narrative,
     source_gap_analysis,
+    query_analysis: buildQueryAnalysis(evidence),
   }
 
   return GeoResultSchema.parse(result)

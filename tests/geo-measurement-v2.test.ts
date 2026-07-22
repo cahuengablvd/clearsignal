@@ -1,0 +1,139 @@
+import { describe, expect, it } from 'vitest'
+import { checkTechnicalEligibility, eligibilityInternals } from '../lib/geo/eligibility'
+import { buildQueryAnalysis, classifyQueryIntent } from '../lib/geo/query-taxonomy'
+import {
+  attachActionRecommendationStages,
+  buildStagedGeoRecommendations,
+  recommendationStageFor,
+} from '../lib/geo/recommendation-stages'
+import { GeoResultSchema, type ActionBlock, type GeoEvidence } from '../lib/schemas'
+
+function fetcherFor(args: { targetStatus?: number; robotsStatus?: number; robots?: string }) {
+  return (async (input: URL | RequestInfo) => {
+    const url = String(input)
+    if (url.endsWith('/robots.txt')) {
+      return new Response(args.robots || '', { status: args.robotsStatus ?? 200 })
+    }
+    return new Response('<html><body>ok</body></html>', {
+      status: args.targetStatus ?? 200,
+      headers: { 'content-type': 'text/html' },
+    })
+  }) as typeof fetch
+}
+
+describe('technical AI eligibility', () => {
+  it('detects an engine-specific robots block without claiming every engine is blocked', async () => {
+    const result = await checkTechnicalEligibility({
+      url: 'https://example.com/services',
+      renderedHtml: '<html><head><link rel="canonical" href="https://example.com/services"></head><body>' + 'Useful text '.repeat(30) + '</body></html>',
+      markdown: 'Useful text '.repeat(30),
+      fetcher: fetcherFor({
+        robots: 'User-agent: OAI-SearchBot\nDisallow: /\n\nUser-agent: PerplexityBot\nAllow: /',
+      }),
+    })
+
+    expect(result.overall_status).toBe('limited')
+    expect(result.crawler_access.find((item) => item.crawler === 'OAI-SearchBot')?.status).toBe('blocked')
+    expect(result.crawler_access.find((item) => item.crawler === 'PerplexityBot')?.status).toBe('eligible')
+  })
+
+  it('treats an explicit noindex as a global blocker', async () => {
+    const result = await checkTechnicalEligibility({
+      url: 'https://example.com/',
+      renderedHtml: '<html><head><meta name="robots" content="noindex"></head><body>' + 'Text '.repeat(60) + '</body></html>',
+      markdown: 'Text '.repeat(60),
+      fetcher: fetcherFor({ robotsStatus: 404 }),
+    })
+
+    expect(result.overall_status).toBe('blocked')
+    expect(result.checks.find((item) => item.id === 'ELIG-INDEX-001')?.status).toBe('blocked')
+  })
+
+  it('uses the longest matching robots rule and lets Allow win a tie', () => {
+    const robots = 'User-agent: *\nDisallow: /private\nAllow: /private/public'
+    expect(eligibilityInternals.crawlerAllowed(robots, 'OAI-SearchBot', '/private/file').allowed).toBe(false)
+    expect(eligibilityInternals.crawlerAllowed(robots, 'OAI-SearchBot', '/private/public/page').allowed).toBe(true)
+  })
+})
+
+describe('query intent taxonomy', () => {
+  it.each([
+    ['best moving company near me', 'local'],
+    ['Acme vs Example for enterprise teams', 'comparison'],
+    ['alternatives to Acme', 'alternatives'],
+    ['how much does a moving service cost', 'pricing'],
+    ['most reliable certified movers', 'trust'],
+    ['project management software for agencies', 'use_case'],
+    ['how do I choose a moving company', 'problem'],
+    ['which moving company should I hire', 'category_discovery'],
+  ] as const)('classifies %s as %s', (query, intent) => {
+    expect(classifyQueryIntent(query)).toBe(intent)
+  })
+
+  it('builds intent coverage from existing evidence without another model call', () => {
+    const evidence: GeoEvidence[] = [
+      {
+        engine: 'openai', query: 'best mover near me', answer_excerpt: '', citations: [],
+        brand_mentioned: true, brand_cited: false, brand_position: 1,
+        competitors_mentioned: [], cited_domains: [], evidence_id: 'GEO-QUERY-001',
+      },
+      {
+        engine: 'perplexity', query: 'best mover near me', answer_excerpt: '', citations: ['https://example.com'],
+        brand_mentioned: false, brand_cited: true, brand_position: null,
+        competitors_mentioned: [], cited_domains: ['example.com'], evidence_id: 'GEO-QUERY-002',
+      },
+    ]
+    const analysis = buildQueryAnalysis(evidence)
+    expect(analysis.queries).toEqual([{ query: 'best mover near me', intent: 'local' }])
+    expect(analysis.coverage[0]).toMatchObject({
+      intent: 'local', query_count: 1, successful_combinations: 2,
+      mentioned_combinations: 1, cited_combinations: 1, mention_rate: 50, citation_rate: 50,
+    })
+  })
+})
+
+describe('stage-aware recommendations', () => {
+  it('classifies common actions by the mechanism they address', () => {
+    expect(recommendationStageFor('Allow OAI-SearchBot in robots.txt')).toBe('ACCESS')
+    expect(recommendationStageFor('Add Organization JSON-LD')).toBe('ENTITY')
+    expect(recommendationStageFor('Earn independent customer reviews')).toBe('AUTHORITY')
+    expect(recommendationStageFor('Create an FAQ page for buyer questions')).toBe('RETRIEVAL')
+    expect(recommendationStageFor('Rewrite the hero headline')).toBe('PROMINENCE')
+    expect(recommendationStageFor('Re-run the same query set after launch')).toBe('MEASUREMENT')
+  })
+
+  it('puts an explicit access fix first and marks downstream work as dependent', () => {
+    const staged = buildStagedGeoRecommendations(['Create a comparison page'], {
+      overall_status: 'limited',
+      checked_at: new Date(0).toISOString(),
+      checks: [],
+      crawler_access: [{
+        engine: 'OpenAI / ChatGPT Search', crawler: 'OAI-SearchBot', status: 'blocked',
+        detail: 'robots.txt blocks this crawler for the audited path.',
+      }],
+    })
+    expect(staged[0]).toMatchObject({ stage: 'ACCESS', depends_on_access: false })
+    expect(staged[1]).toMatchObject({ stage: 'RETRIEVAL', depends_on_access: true })
+  })
+
+  it('adds optional stages without changing the number of action items', () => {
+    const action = {
+      executive_summary: 'Summary', ship_first: [], ignore_for_now: [], outreach_messages: [],
+      top_fixes: [{ id: 1, title: 'Rewrite the H1', description: 'Clarify positioning.', impact: 'high', effort: 'easy', category: 'copy' }],
+    } as unknown as ActionBlock
+    const result = attachActionRecommendationStages(action)
+    expect(result.top_fixes).toHaveLength(1)
+    expect(result.top_fixes[0].recommendation_stage).toBe('PROMINENCE')
+  })
+})
+
+describe('measurement v2 backward compatibility', () => {
+  it('continues to parse a legacy GEO result without v2 fields', () => {
+    expect(GeoResultSchema.safeParse({
+      brand: 'Example', brand_domain: 'example.com', queries_tested: 0, engines_tested: [],
+      ai_visibility_score: 0, mention_rate: 0, citation_rate: 0, share_of_voice: 0, avg_position: null,
+      score_breakdown: { mention_rate: 0, citation_rate: 0, position_score: 0, share_of_voice: 0, weights: { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 } },
+      evidence: [], competitor_visibility: [], cited_domains_ranked: [], missing_signals: [], recommendations: [], summary: '',
+    }).success).toBe(true)
+  })
+})

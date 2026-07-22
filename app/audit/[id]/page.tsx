@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
 import { footerText } from '@/lib/pdf-footer'
+import { queryIntentLabel } from '@/lib/geo/query-taxonomy'
 import { Download, ArrowLeft } from 'lucide-react'
 
 // Never cache this route. A report link is often opened while the audit is
@@ -204,6 +205,7 @@ export default async function AuditPage({
 
   const report = audit.report as ClearSignalReport
   const isPdf = searchParams.pdf === 'true'
+  const technicalEligibility = report.technical_eligibility || report.geo?.technical_eligibility
 
   return (
     <div className={`min-h-screen ${isPdf ? 'p-8' : ''}`}>
@@ -382,6 +384,50 @@ export default async function AuditPage({
           </>
         )}
 
+        {/* ========== TECHNICAL ELIGIBILITY GATE ========== */}
+        {technicalEligibility && (
+          <>
+            <h2 className="text-2xl font-bold mb-1 mt-10">Technical AI eligibility</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Access checks run before downstream visibility recommendations. CDN or WAF behavior remains unconfirmed unless an explicit rule was observed.
+            </p>
+            <Card className="mb-6">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="font-semibold">Eligibility gate</h3>
+                  <Badge variant="outline" className={
+                    technicalEligibility.overall_status === 'eligible'
+                      ? 'border-green-200 bg-green-50 text-green-800'
+                      : technicalEligibility.overall_status === 'blocked'
+                        ? 'border-red-200 bg-red-50 text-red-800'
+                        : 'border-amber-200 bg-amber-50 text-amber-800'
+                  }>
+                    {technicalEligibility.overall_status}
+                  </Badge>
+                </div>
+                <div className="grid gap-2">
+                  {[...technicalEligibility.checks, ...technicalEligibility.crawler_access.map((item) => ({
+                    id: `crawler-${item.crawler}`,
+                    label: `${item.engine} crawler access`,
+                    status: item.status,
+                    detail: item.detail,
+                    evidence: item.crawler,
+                  }))].map((check) => (
+                    <div key={check.id} className="flex items-start justify-between gap-4 border-b last:border-b-0 py-2 text-sm">
+                      <div className="min-w-0">
+                        <div className="font-medium">{check.label}</div>
+                        <div className="text-muted-foreground">{check.detail}</div>
+                        {check.evidence && <div className="mt-1 break-all font-mono text-xs text-muted-foreground">{check.evidence}</div>}
+                      </div>
+                      <Badge variant="outline" className="shrink-0">{check.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
         {/* ========== GEO / AI VISIBILITY BLOCK ========== */}
         {report.geo && (
           <>
@@ -446,6 +492,31 @@ export default async function AuditPage({
               </CardContent>
             </Card>
 
+            {report.geo.query_analysis && report.geo.query_analysis.coverage.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="p-5">
+                  <h3 className="font-semibold mb-1">Visibility by buyer intent</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    The same tested queries are grouped deterministically; no additional AI calls are used.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {report.geo.query_analysis.coverage.map((item) => (
+                      <div key={item.intent} className="rounded border p-3 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium">{queryIntentLabel(item.intent)}</span>
+                          <span className="text-xs text-muted-foreground">{item.query_count} {item.query_count === 1 ? 'query' : 'queries'}</span>
+                        </div>
+                        <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+                          <span>Mentioned: {Math.round(item.mention_rate)}%</span>
+                          <span>Cited: {Math.round(item.citation_rate)}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
               {report.geo.competitor_visibility.length > 0 && (
                 <Card>
@@ -496,17 +567,29 @@ export default async function AuditPage({
               </Card>
             )}
 
-            {report.geo.recommendations.length > 0 && (
+            {(report.geo.staged_recommendations?.length || report.geo.recommendations.length > 0) && (
               <Card className="mb-8 border-green-200 bg-green-50/50">
                 <CardContent className="p-5">
                   <h3 className="font-semibold text-green-800 mb-2">
                     Actions that may improve citation potential
                   </h3>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-                    {report.geo.recommendations.map((r, i) => (
-                      <li key={i}>{r}</li>
+                  <div className="grid gap-2">
+                    {(report.geo.staged_recommendations || report.geo.recommendations.map((action) => ({
+                      stage: 'RETRIEVAL' as const,
+                      action,
+                      depends_on_access: false,
+                    }))).map((item, i) => (
+                      <div key={`${item.stage}-${i}`} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <Badge variant="outline" className="shrink-0 bg-white">{item.stage}</Badge>
+                        <div>
+                          <p>{item.action}</p>
+                          {item.depends_on_access && (
+                            <p className="mt-1 text-xs text-amber-800">Depends on resolving or confirming the access gate first.</p>
+                          )}
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -811,9 +894,15 @@ export default async function AuditPage({
                       <ImpactBadge impact={fix.impact} />
                       <EffortBadge effort={fix.effort} />
                       <Badge variant="outline">{fix.category}</Badge>
+                      {fix.recommendation_stage && <Badge variant="outline">{fix.recommendation_stage}</Badge>}
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>
+                  {fix.depends_on_access && (
+                    <p className="mt-2 ml-8 text-xs text-amber-800">
+                      Dependency: resolve or confirm the technical access gate before relying on this recommendation.
+                    </p>
+                  )}
                   {(fix.owner || fix.contributor || fix.implementer) && (
                     <p className="mt-2 ml-8 text-xs text-muted-foreground">
                       {fix.owner && <>Owner: {fix.owner}</>}

@@ -246,6 +246,18 @@ export const GeoEvidenceSchema = z.object({
   brand_position: z.number().nullable(),
   competitors_mentioned: z.array(z.string()),
   cited_domains: z.array(z.string()),
+  // Deterministic buyer-intent taxonomy. Optional for saved legacy evidence.
+  query_intent: z.enum([
+    'category_discovery',
+    'comparison',
+    'alternatives',
+    'problem',
+    'local',
+    'trust',
+    'pricing',
+    'use_case',
+    'other',
+  ]).optional(),
 })
 
 export type GeoEvidence = z.infer<typeof GeoEvidenceSchema>
@@ -287,6 +299,77 @@ export const GeoSourceGapSchema = z.object({
 })
 
 export type GeoSourceGap = z.infer<typeof GeoSourceGapSchema>
+
+export const GeoQueryIntentSchema = z.enum([
+  'category_discovery',
+  'comparison',
+  'alternatives',
+  'problem',
+  'local',
+  'trust',
+  'pricing',
+  'use_case',
+  'other',
+])
+export type GeoQueryIntent = z.infer<typeof GeoQueryIntentSchema>
+
+export const GeoQueryAnalysisSchema = z.object({
+  taxonomy_version: z.literal('v1'),
+  queries: z.array(z.object({
+    query: z.string(),
+    intent: GeoQueryIntentSchema,
+  })),
+  coverage: z.array(z.object({
+    intent: GeoQueryIntentSchema,
+    query_count: z.number().int().nonnegative(),
+    successful_combinations: z.number().int().nonnegative(),
+    mentioned_combinations: z.number().int().nonnegative(),
+    cited_combinations: z.number().int().nonnegative(),
+    mention_rate: z.number().min(0).max(100),
+    citation_rate: z.number().min(0).max(100),
+  })),
+})
+export type GeoQueryAnalysis = z.infer<typeof GeoQueryAnalysisSchema>
+
+export const EligibilityStatusSchema = z.enum(['eligible', 'blocked', 'warning', 'unknown'])
+export const TechnicalEligibilitySchema = z.object({
+  overall_status: z.enum(['eligible', 'limited', 'blocked', 'unknown']),
+  checked_at: z.string(),
+  checks: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    status: EligibilityStatusSchema,
+    detail: z.string(),
+    evidence: z.string().optional(),
+  })),
+  crawler_access: z.array(z.object({
+    engine: z.string(),
+    crawler: z.string(),
+    status: EligibilityStatusSchema,
+    detail: z.string(),
+  })),
+})
+export type TechnicalEligibility = z.infer<typeof TechnicalEligibilitySchema>
+
+export const RecommendationStageSchema = z.enum([
+  'ACCESS',
+  'RETRIEVAL',
+  'CITATION',
+  'ENTITY',
+  'AUTHORITY',
+  'PROMINENCE',
+  'MEASUREMENT',
+])
+export type RecommendationStage = z.infer<typeof RecommendationStageSchema>
+
+export const StagedGeoRecommendationSchema = z.object({
+  stage: RecommendationStageSchema,
+  action: z.string(),
+  depends_on_access: z.boolean(),
+  blocking_reason: z.string().optional(),
+  evidence_ids: z.array(z.string()).optional(),
+})
+export type StagedGeoRecommendation = z.infer<typeof StagedGeoRecommendationSchema>
 
 // --- Weekly monitoring ---
 
@@ -345,6 +428,10 @@ export const GeoResultSchema = z.object({
   // Evidence-based "why these sources get cited" analysis. Optional so older
   // reports and runs without source analysis still validate.
   source_gap_analysis: z.array(GeoSourceGapSchema).optional().nullable(),
+  // Measurement v2 fields are optional so historical reports remain valid.
+  query_analysis: GeoQueryAnalysisSchema.optional(),
+  technical_eligibility: TechnicalEligibilitySchema.optional(),
+  staged_recommendations: z.array(StagedGeoRecommendationSchema).optional(),
 })
 
 export type GeoResult = z.infer<typeof GeoResultSchema>
@@ -495,6 +582,9 @@ const actionSchema = z.object({
     // Evidence linkage: ids of the findings/GEO items this fix is grounded in.
     evidence_ids: z.array(z.string()).optional(),
     evidence_basis: z.string().optional(),
+    recommendation_stage: RecommendationStageSchema.optional(),
+    depends_on_access: z.boolean().optional(),
+    blocking_reason: z.string().optional(),
   })).min(5).max(10),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),
@@ -532,6 +622,8 @@ export const ClearSignalReportSchema = z.object({
   // Deterministic, evidence-backed structural findings (Trust Layer). Optional
   // for backward compatibility with reports generated before this existed.
   technical_findings: z.array(FindingSchema).optional().nullable(),
+  // Technical access/indexability gate. Independent from whether AI engines responded.
+  technical_eligibility: TechnicalEligibilitySchema.optional().nullable(),
   // Ready-to-ship deliverables (meta, FAQ, JSON-LD, CTA variants). Optional.
   ready_materials: ReadyMaterialsSchema.optional().nullable(),
   // Ticket-style implementation briefs with acceptance criteria. Optional.

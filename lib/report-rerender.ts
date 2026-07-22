@@ -5,6 +5,7 @@ import { rebuildReusedGeoNarrative } from './audit-runner'
 import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
 import { appendAdminNote } from './admin-notes'
+import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import type { BusinessContext, ClearSignalReport } from './schemas'
 
 export async function rerenderStoredAuditReport(auditId: string): Promise<{
@@ -26,10 +27,19 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
 
   const existing = audit.report as ClearSignalReport
   const businessContext = (existing.meta.business_context || audit.business_context) as BusinessContext | undefined
-  const geo = existing.geo ? rebuildReusedGeoNarrative(existing.geo, {
+  const rebuiltGeo = existing.geo ? rebuildReusedGeoNarrative(existing.geo, {
     canonicalBrand: existing.meta.canonical_brand,
     alternativeBrandForms: existing.meta.alternative_brand_forms,
   }) : null
+  const technicalEligibility = existing.technical_eligibility || rebuiltGeo?.technical_eligibility
+  const geo = rebuiltGeo ? {
+    ...rebuiltGeo,
+    technical_eligibility: technicalEligibility || rebuiltGeo.technical_eligibility,
+    staged_recommendations: buildStagedGeoRecommendations(
+      rebuiltGeo.recommendations,
+      technicalEligibility || undefined
+    ),
+  } : null
   const verifiedFactsLayer = buildVerifiedFactsLayer({
     businessContext,
     observedBusinessContext: existing.meta.observed_business_context,
@@ -45,7 +55,9 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
       business_context: businessContext ?? existing.meta.business_context,
       verified_facts_layer: verifiedFactsLayer,
     },
+    action: attachActionRecommendationStages(existing.action, technicalEligibility || undefined),
     geo,
+    technical_eligibility: technicalEligibility || null,
     data_limitations: [
       ...(geo ? ['AI visibility evidence was reused from the previous completed scan for this audit.'] : []),
       ...(geo ? ['Reused AI visibility evidence was rechecked with the current brand-alias detector over stored answer excerpts; this can recover missed mentions in excerpts but cannot prove absence beyond the stored excerpt.'] : []),

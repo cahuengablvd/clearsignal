@@ -38,6 +38,9 @@ import {
 import { deliverAuditEmail } from './email-delivery'
 import { buildGeoSummary, runGeoScan } from './geo'
 import { buildVariants, citationsInclude, textMentions, firstMentionIndex } from './geo/detect'
+import { buildQueryAnalysis } from './geo/query-taxonomy'
+import { checkTechnicalEligibility } from './geo/eligibility'
+import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import { notify } from './notify'
 import { sanitizeGeneratedProse, sanitizeGeneratedReportValue } from './sanitize'
 import { attachActionConfidence } from './action-confidence'
@@ -205,6 +208,7 @@ export function recomputeReusedGeoEvidence(
       share_of_voice,
       weights: REUSED_GEO_WEIGHTS,
     },
+    query_analysis: buildQueryAnalysis(evidence),
   }
 }
 
@@ -472,6 +476,14 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       markdown: targetMarkdown,
     })
     const brand = brandEntity.canonical_brand
+    const eligibilityPromise = checkTechnicalEligibility({
+      url: audit.url,
+      renderedHtml: targetPage.html,
+      markdown: targetMarkdown,
+    }).catch((err) => {
+      console.warn(`Technical eligibility check failed for ${auditId}:`, err)
+      return null
+    })
 
     // 3b. Live AI-visibility (GEO/AEO) scan - full breadth across every
     // configured engine. Runs alongside the messaging analysis below.
@@ -586,11 +598,26 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     )
 
     const geo = await geoPromise
+    const technicalEligibility = await eligibilityPromise
+    if (geo) {
+      geo.query_analysis = buildQueryAnalysis(geo.evidence)
+      if (technicalEligibility) {
+        geo.technical_eligibility = technicalEligibility
+      }
+      geo.staged_recommendations = buildStagedGeoRecommendations(
+        geo.recommendations,
+        technicalEligibility || undefined
+      )
+    }
 
     // 6b. Trust Layer: strip any invented or over-broad language the model
     // slipped into prose, then attach deterministic confidence to actions.
     sanitizeReportProse(clarity, gap, action, geo, businessContext)
     const actionWithConfidence = attachActionConfidence(action, technicalFindings, geo)
+    const actionWithStages = attachActionRecommendationStages(
+      actionWithConfidence,
+      technicalEligibility || undefined
+    )
 
     // 6c. Ready-to-ship materials (meta/FAQ/CTA + deterministic JSON-LD).
     let readyMaterials: ReadyMaterials | null = null
@@ -636,7 +663,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     // 6d. Implementation briefs (acceptance criteria) for the top fixes.
     let implementationBriefs: ImplementationBrief[] | null = null
     try {
-      const topFixes = actionWithConfidence.top_fixes.slice(0, 5).map((f) => ({
+      const topFixes = actionWithStages.top_fixes.slice(0, 5).map((f) => ({
         title: f.title,
         description: f.description,
         category: f.category,
@@ -685,10 +712,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       },
       clarity,
       gap,
-      action: actionWithConfidence,
+      action: actionWithStages,
       data_limitations: buildDataLimitations(geo, Boolean(reusedGeo)),
       geo,
       technical_findings: technicalFindings,
+      technical_eligibility: technicalEligibility,
       ready_materials: readyMaterials,
       implementation_briefs: implementationBriefs,
     }
@@ -798,7 +826,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       trust_score: clarity.trust_proof.score,
       // Prefer the live AI-visibility measurement; fall back to the heuristic.
       ai_search_score: geo?.ai_visibility_score ?? gap.ai_search.score,
-      top_issues: actionWithConfidence.top_fixes.slice(0, 3).map((f) => f.title),
+      top_issues: actionWithStages.top_fixes.slice(0, 3).map((f) => f.title),
       competitor_patterns: gap.where_you_lose.slice(0, 5),
     }, {
       onConflict: 'audit_id',

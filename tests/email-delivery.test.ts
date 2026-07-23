@@ -19,7 +19,7 @@ describe('report email delivery', () => {
     delete process.env.RESEND_FROM
   })
 
-  it('uses the Resend onboarding sender as the beta-safe fallback', async () => {
+  it('uses the verified ClearSignal sender as the fallback', async () => {
     sendMock.mockResolvedValue({ data: { id: 'email_123' }, error: null })
     const { sendReportEmail } = await import('../lib/resend')
 
@@ -27,7 +27,7 @@ describe('report email delivery', () => {
 
     expect(sendMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: 'ClearSignal <onboarding@resend.dev>',
+        from: 'ClearSignal <reports@getclearsignal.io>',
         to: 'buyer@example.com',
       })
     )

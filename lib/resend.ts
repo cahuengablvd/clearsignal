@@ -55,7 +55,7 @@ export async function sendReportEmail(email: string, auditId: string, url: strin
   // (e.g. an unverified sender domain). Surface the error so a failed send is
   // logged and the audit is not falsely marked "delivered".
   const { data, error } = await getResend().emails.send({
-    from: process.env.RESEND_FROM || 'ClearSignal <onboarding@resend.dev>',
+    from: process.env.RESEND_FROM || 'ClearSignal <reports@getclearsignal.io>',
     to: email,
     subject: `Your AI Visibility report is ready - ${url}`,
     html: buildReportEmailHtml(url, reportLink, pdfLink),
@@ -92,9 +92,9 @@ export async function sendOrderConfirmationEmail(email: string, url: string) {
   }
 
   const { data, error } = await getResend().emails.send({
-    from: process.env.RESEND_FROM || 'ClearSignal <onboarding@resend.dev>',
+    from: process.env.RESEND_FROM || 'ClearSignal <reports@getclearsignal.io>',
     to: email,
-    replyTo: process.env.RESEND_REPLY_TO || process.env.ADMIN_ALERT_EMAIL || 'alexanderkalinko@gmail.com',
+    replyTo: process.env.RESEND_REPLY_TO || process.env.ADMIN_ALERT_EMAIL || 'hello@getclearsignal.io',
     subject: `Your ClearSignal audit order is confirmed - ${url}`,
     html: buildOrderConfirmationEmailHtml(url),
   })

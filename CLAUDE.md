@@ -17,7 +17,7 @@ stage-aware implementation plan. A person reviews every report before delivery.
 - **Buyer (in priority order):** marketing/SEO agencies first (they resell the work), then B2B/SaaS,
   then service businesses (only via agencies).
 - **Status:** pre-revenue, solo founder (Alexander Kalinko, Latvia). Engine works end to end; not
-  yet taking real money.
+  yet taking real money. Production domain: `https://getclearsignal.io`.
 
 ## Stack & topology
 
@@ -55,15 +55,10 @@ generates → admin human-review gate (/admin) → Resend delivers web report + 
 
 ## Remaining launch blockers (owner tasks, not code)
 
-1. **Domain** — keep the name "ClearSignal"; buy any free variant (.io/.co/.app/get-/use-). Needed
-   for #2.
-2. **Resend sender domain** — until a verified domain replaces `onboarding@resend.dev`, report emails
-   reach only the account owner, so **no paying customer receives their report**. This is the #1
-   blocker.
-3. **Live Stripe** — verification, live €149 product, live webhook, keys scoped **Production only**
+1. **Live Stripe** — verification, live €149 product, live webhook, keys scoped **Production only**
    (test keys stay on Preview/Dev). Then one real-card purchase + refund as an end-to-end check.
-4. Legal review of `/terms`, `/privacy`, `/refund` and VAT treatment (accountant).
-5. `next` has DoS-class advisories; the fix is a major upgrade (14→15/16), so it's a deferred batch,
+2. Legal review of `/terms`, `/privacy`, `/refund` and VAT treatment (accountant).
+3. `next` has DoS-class advisories; the fix is a major upgrade (14→15/16), so it's a deferred batch,
    not a launch blocker.
 
 ## How work happens here

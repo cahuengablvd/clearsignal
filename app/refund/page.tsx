@@ -54,7 +54,7 @@ export default function RefundPage() {
             <p className="mt-3">
               <strong>However, we stand behind the quality of the report.</strong> If within <strong>14 days</strong> of
               delivery you can show that the report contains material factual errors about your business, or that it is
-              unusable, contact us at <a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a> with the specifics. We will either correct and re-issue the
+              unusable, contact us at <a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a> with the specifics. We will either correct and re-issue the
               report, or refund you. We would rather fix it than keep money for work that did not help you.
             </p>
           </section>
@@ -72,7 +72,7 @@ export default function RefundPage() {
           <section>
             <h2 className="text-[19px] font-semibold text-[#2E2116]">How to request a refund</h2>
             <p className="mt-3">
-              Email <a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a> from the address used for the order, with your order details and the reason.
+              Email <a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a> from the address used for the order, with your order details and the reason.
               Approved refunds are returned to the original payment method via Stripe, normally within 5–10 business
               days depending on your bank.
             </p>
@@ -96,7 +96,7 @@ export default function RefundPage() {
 
           <section>
             <h2 className="text-[19px] font-semibold text-[#2E2116]">Contact</h2>
-            <p className="mt-3"><a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a></p>
+            <p className="mt-3"><a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a></p>
           </section>
         </div>
       </div>

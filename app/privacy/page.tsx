@@ -39,7 +39,7 @@ export default function PrivacyPage() {
             <p className="mt-3">
               The data controller is Alexander Kalinko, a sole trader based at Gaujas street 5C, M&#257;rupe, LV-2167,
               Latvia, operating as ClearSignal. For any privacy question or request, contact{' '}
-              <a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a>.
+              <a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a>.
             </p>
           </section>
 
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
             <p className="mt-3">
               Under the GDPR you have the right to access your data, correct it, delete it, restrict or object to its
               processing, and receive it in a portable format. To exercise any of these, email{' '}
-              <a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a>. We will
+              <a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a>. We will
               respond within one month.
             </p>
             <p className="mt-3">
@@ -166,7 +166,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-[19px] font-semibold text-[#2E2116]">12. Contact</h2>
             <p className="mt-3">
-              <a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a>
+              <a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a>
             </p>
           </section>
         </div>

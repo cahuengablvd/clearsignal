@@ -26,7 +26,7 @@ export default function TermsPage() {
             <p className="mt-3">
               ClearSignal (&ldquo;ClearSignal&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) is operated by Alexander Kalinko,
               a sole trader based in Latvia, Gaujas street 5C, M&#257;rupe, LV-2167, Latvia. You can reach us at{' '}
-              <a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a>.
+              <a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a>.
             </p>
           </section>
 
@@ -173,7 +173,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-[19px] font-semibold text-[#2E2116]">15. Contact</h2>
             <p className="mt-3">
-              <a href="mailto:alexanderkalinko@gmail.com" className="font-semibold text-[#A9531F] hover:opacity-80">alexanderkalinko@gmail.com</a>
+              <a href="mailto:hello@getclearsignal.io" className="font-semibold text-[#A9531F] hover:opacity-80">hello@getclearsignal.io</a>
             </p>
           </section>
         </div>

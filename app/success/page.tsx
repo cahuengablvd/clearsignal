@@ -4,7 +4,7 @@ import { PublicPageHeader } from '@/components/public-page-header'
 import { DELIVERY_PROMISE } from '@/lib/delivery-promise'
 import { isPaidCheckoutSession } from '@/lib/stripe-session'
 
-const CONTACT_EMAIL = 'alexanderkalinko@gmail.com'
+const CONTACT_EMAIL = 'hello@getclearsignal.io'
 
 export default async function SuccessPage({
   searchParams,

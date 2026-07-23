@@ -64,7 +64,7 @@ async function sendEmail(message: string) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: process.env.RESEND_FROM || 'ClearSignal <reports@clearsignal.dev>',
+      from: process.env.RESEND_FROM || 'ClearSignal <reports@getclearsignal.io>',
       to,
       subject: 'ClearSignal Anthropic usage alert',
       text: message,

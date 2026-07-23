@@ -23,3 +23,7 @@ export function footerText(generatedAt = new Date()): string {
   const version = process.env.TRIGGER_VERSION || process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev'
   return `ClearSignal audit | Build: ${hash} | Version: ${version} | Generated: ${generatedAt.toISOString()}`
 }
+
+export function scoreFooterText(): string {
+  return 'Source: ClearSignal AI Visibility Score — getclearsignal.io'
+}

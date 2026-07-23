@@ -38,7 +38,7 @@ export default function ScorePage() {
       }
 
       const data = await res.json()
-      router.push(`/score/${data.id}`)
+      router.push(`/score/${data.id}?token=${encodeURIComponent(data.token)}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setLoading(false)

@@ -5,13 +5,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PublicPageHeader } from '@/components/public-page-header'
-import { trySignToken } from '@/lib/tokens'
+import { isAdminAuthenticated } from '@/lib/auth'
+import { trySignToken, verifyToken } from '@/lib/tokens'
 import type { GeoEvidence, GeoResult } from '@/lib/schemas'
+import { ScorePdfView } from './score-pdf-view'
 import {
   ArrowRight,
   BarChart3,
   CheckCircle,
   CircleAlert,
+  Download,
   ExternalLink,
   FileSearch,
   Search,
@@ -84,7 +87,19 @@ function unique<T>(items: T[]): T[] {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function ScoreResultPage({ params }: { params: { id: string } }) {
+export default async function ScoreResultPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: { pdf?: string; token?: string }
+}) {
+  const hasAccess =
+    verifyToken('score', params.id, searchParams.token) || isAdminAuthenticated()
+  if (!hasAccess) {
+    notFound()
+  }
+
   const { data: score, error } = await supabaseAdmin
     .from('scores')
     .select('*')
@@ -97,8 +112,14 @@ export default async function ScoreResultPage({ params }: { params: { id: string
 
   const scores = score.scores as Record<string, number | string | GeoResult | null>
   const geo = scores.geo as GeoResult | null | undefined
-  const scoreToken = trySignToken('score', score.id)
+  const scoreToken =
+    verifyToken('score', score.id, searchParams.token)
+      ? searchParams.token || null
+      : trySignToken('score', score.id)
   const checkoutHref = scoreToken ? `/checkout?score_id=${score.id}&token=${scoreToken}` : null
+  const downloadHref = scoreToken
+    ? `/api/score/${score.id}/pdf?token=${encodeURIComponent(scoreToken)}`
+    : null
   const avg = Math.round(
     dimensions.reduce((sum, d) => sum + (Number(scores[d]) || 0), 0) / dimensions.length
   )
@@ -111,6 +132,20 @@ export default async function ScoreResultPage({ params }: { params: { id: string
   const missingSignals = geo?.missing_signals.slice(0, 4) ?? []
   const recommendations = geo?.recommendations.slice(0, 4) ?? []
   const sourceGaps = geo?.source_gap_analysis?.slice(0, 2) ?? []
+
+  if (searchParams.pdf === 'true') {
+    return (
+      <ScorePdfView
+        id={score.id}
+        createdAt={(score.created_at as string | null | undefined) ?? null}
+        url={score.url as string}
+        scores={scores}
+        geo={geo}
+        average={avg}
+        checkoutHref={checkoutHref}
+      />
+    )
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FBF6EE] text-[#2E2116] [&_button]:min-h-11">
@@ -143,6 +178,17 @@ export default async function ScoreResultPage({ params }: { params: { id: string
                 <Button size="lg" className="gap-2 rounded-full" disabled>
                   Full audit checkout offline <Sparkles className="h-4 w-4" />
                 </Button>
+              )}
+              {downloadHref && (
+                <a href={downloadHref}>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="gap-2 rounded-full border-[#DCCDBA] bg-[#FFFDF9] hover:bg-[#FFF7ED]"
+                  >
+                    <Download className="h-4 w-4" /> Download PDF
+                  </Button>
+                </a>
               )}
               <Link href="/sample">
                 <Button variant="outline" size="lg" className="rounded-full border-[#DCCDBA] bg-[#FFFDF9] hover:bg-[#FFF7ED]">

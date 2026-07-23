@@ -14,6 +14,7 @@ import {
 import { MODEL_SCORE, SCORE_SYSTEM, scoreUserPrompt } from '@/lib/prompts'
 import { runGeoScan } from '@/lib/geo'
 import { enforceRateLimits, clientIp, emailDomain } from '@/lib/rate-limit'
+import { signToken } from '@/lib/tokens'
 
 // Free score runs a live multi-engine GEO probe, which can take ~30-45s.
 export const maxDuration = 60
@@ -150,7 +151,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to save score' }, { status: 500 })
     }
 
-    return NextResponse.json({ id: row.id, scores, geo })
+    return NextResponse.json({
+      id: row.id,
+      token: signToken('score', row.id),
+      scores,
+      geo,
+    })
   } catch (err: unknown) {
     console.error('Score API error:', err)
     if (err instanceof z.ZodError) {

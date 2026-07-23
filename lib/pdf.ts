@@ -9,7 +9,7 @@
  */
 import puppeteer from 'puppeteer-core'
 import { signToken } from './tokens'
-import { footerText } from './pdf-footer'
+import { footerText, scoreFooterText } from './pdf-footer'
 
 const fallbackBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
@@ -76,6 +76,40 @@ export async function generateAuditPDF(auditId: string, origin?: string): Promis
       headerTemplate: '<span></span>',
       footerTemplate: `<div style="box-sizing:border-box;width:100%;padding:0 40px;font-family:Arial,sans-serif;font-size:7px;color:#777;text-align:center;">${escapeHtml(footerText())}</div>`,
       margin: { top: '40px', bottom: '52px', left: '40px', right: '40px' },
+    })
+
+    return Buffer.from(pdf)
+  } finally {
+    await browser.close()
+  }
+}
+
+export async function generateScorePDF(scoreId: string, origin?: string): Promise<Buffer> {
+  const baseUrl = origin || fallbackBaseUrl
+  const browser = await getBrowser()
+
+  try {
+    const page = await browser.newPage()
+    const token = signToken('score', scoreId)
+    const response = await page.goto(
+      `${baseUrl}/score/${scoreId}?pdf=true&token=${encodeURIComponent(token)}`,
+      {
+        waitUntil: 'networkidle0',
+        timeout: 45000,
+      }
+    )
+    if (!response || !response.ok()) {
+      throw new Error(`Score PDF render failed with HTTP ${response?.status() ?? 'unknown'}`)
+    }
+
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: `<div style="box-sizing:border-box;width:100%;padding:0 40px;font-family:Arial,sans-serif;font-size:7px;color:#77685d;text-align:center;">${escapeHtml(scoreFooterText())}</div>`,
+      margin: { top: '34px', bottom: '48px', left: '38px', right: '38px' },
     })
 
     return Buffer.from(pdf)

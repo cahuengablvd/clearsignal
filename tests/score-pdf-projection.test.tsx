@@ -60,4 +60,30 @@ describe('free score PDF projection', () => {
     expect(markup).not.toContain('PRIVATE TARGET GAP')
     expect(markup).not.toContain('private-source.example')
   })
+
+  it('renders legacy numeric score ids', async () => {
+    const { ScorePdfView } = await import('../app/score/[id]/score-pdf-view')
+    const geo = {
+      ai_visibility_score: 34,
+      mention_rate: 21,
+      share_of_voice: 14,
+      engines_tested: ['Claude'],
+      evidence: [],
+      competitor_visibility: [],
+    } as unknown as GeoResult
+
+    expect(() =>
+      renderToStaticMarkup(
+        <ScorePdfView
+          id={16}
+          createdAt="2026-07-23T12:00:00.000Z"
+          url="https://example.com"
+          scores={{ geo }}
+          geo={geo}
+          average={0}
+          checkoutHref="/checkout?score_id=16&token=signed-token"
+        />
+      )
+    ).not.toThrow()
+  })
 })

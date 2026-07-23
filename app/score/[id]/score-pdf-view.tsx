@@ -46,7 +46,7 @@ export function ScorePdfView({
   average,
   checkoutHref,
 }: {
-  id: string
+  id: string | number
   createdAt: string | null
   url: string
   scores: Record<string, number | string | GeoResult | null>
@@ -87,7 +87,7 @@ export function ScorePdfView({
         <div className="text-right text-xs leading-5 text-[#756257]">
           <div>Generated {generatedDate.toLocaleDateString('en-GB')}</div>
           <div>Build {buildHash()}</div>
-          <div className="font-mono">{id.slice(0, 8)}</div>
+          <div className="font-mono">{String(id).slice(0, 8)}</div>
         </div>
       </header>
 

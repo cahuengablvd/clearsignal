@@ -17,9 +17,9 @@ export function buildReportEmailHtml(url: string, reportLink: string, pdfLink: s
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; color: #111;">Your AI Visibility report is ready</h1>
         <p style="font-size: 16px; color: #444; line-height: 1.6;">
-          We've finished analyzing <strong>${url}</strong> across ChatGPT, Perplexity and Google AI.
-          Your report shows your AI Visibility Score, how you compare to competitors, which sources
-          AI cites, and the exact fixes to get recommended more often.
+          We've finished analyzing <strong>${url}</strong> across the configured AI engines.
+          Your report shows the measured AI visibility, competitor and source evidence,
+          and the prioritized changes identified in the audit.
         </p>
         <a href="${reportLink}" style="display: inline-block; background: #111; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 16px; margin: 20px 0;">
           View your report
@@ -29,7 +29,7 @@ export function buildReportEmailHtml(url: string, reportLink: string, pdfLink: s
         </p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
         <p style="font-size: 12px; color: #999;">
-          ClearSignal - AI Visibility audits for B2B SaaS
+          ClearSignal - Expert-reviewed AI Visibility Audits
         </p>
       </div>
     `

@@ -5,22 +5,33 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { enforceRateLimits, clientIp, emailDomain } from '@/lib/rate-limit'
 import { verifyToken } from '@/lib/tokens'
 import { BusinessContextSchema, CheckoutIntakeSchema } from '@/lib/schemas'
+import { auditPriceConfigurationError } from '@/lib/audit-price'
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
 export async function POST(req: NextRequest) {
   try {
-    const priceId = process.env.STRIPE_PRICE_ID_399
+    const priceId = process.env.STRIPE_PRICE_ID_AUDIT
 
     if (!priceId) {
-      console.error('[checkout] STRIPE_PRICE_ID_399 is not set')
+      console.error('[checkout] STRIPE_PRICE_ID_AUDIT is not set')
       return NextResponse.json({ error: 'Stripe price not configured' }, { status: 500 })
     }
     if (!priceId.startsWith('price_')) {
-      console.error('[checkout] STRIPE_PRICE_ID_399 does not start with price_ - got:', priceId.slice(0, 8))
+      console.error('[checkout] STRIPE_PRICE_ID_AUDIT does not start with price_ - got:', priceId.slice(0, 8))
       return NextResponse.json(
         { error: `Invalid Stripe price ID format. Expected price_... but got ${priceId.slice(0, 8)}...` },
         { status: 500 }
+      )
+    }
+
+    const configuredPrice = await stripe.prices.retrieve(priceId)
+    const priceError = auditPriceConfigurationError(configuredPrice)
+    if (priceError) {
+      console.error('[checkout] Invalid audit price configuration:', priceError)
+      return NextResponse.json(
+        { error: 'Audit checkout is temporarily unavailable' },
+        { status: 503 }
       )
     }
 

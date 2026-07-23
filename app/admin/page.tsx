@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, RefreshCw, ExternalLink, LogIn, X, Plus } from 'lucide-react'
+import { pollAuditStatus } from '@/lib/audit-polling'
 
 type Audit = {
   id: string
@@ -282,12 +283,21 @@ export default function AdminPage() {
 
   async function loadAudits() {
     setLoading(true)
-    const res = await fetch('/api/admin/audits')
-    if (res.ok) {
-      const data = await res.json()
-      setAudits(data.audits)
-    }
+    await refreshAudits()
     setLoading(false)
+  }
+
+  async function refreshAudits(): Promise<Audit[]> {
+    const res = await fetch('/api/admin/audits', { cache: 'no-store' })
+    if (!res.ok) return []
+    const data = await res.json()
+    const nextAudits = (data.audits || []) as Audit[]
+    setAudits(nextAudits)
+    return nextAudits
+  }
+
+  async function pollAuditUntilTerminal(auditId: string): Promise<Audit | null> {
+    return pollAuditStatus(auditId, refreshAudits)
   }
 
   async function regenerateAudit(auditId: string) {
@@ -321,7 +331,22 @@ export default function AdminPage() {
       } else {
         setRegenMsg({ ok: false, text: data.error || `Regeneration failed (${res.status})` })
       }
-      await loadAudits()
+      if (res.ok) {
+        const terminal = await pollAuditUntilTerminal(auditId)
+        if (terminal) {
+          setRegenMsg({
+            ok: !['failed', 'failed-validation'].includes(terminal.audit_status),
+            text: `Regeneration finished with status: ${terminal.audit_status}`,
+          })
+        } else {
+          setRegenMsg({
+            ok: false,
+            text: 'Regeneration is still running after 30 minutes. Use Refresh to check its status.',
+          })
+        }
+      } else {
+        await refreshAudits()
+      }
     } catch (err) {
       console.error('Regeneration failed:', err)
       setRegenMsg({ ok: false, text: 'Regeneration request failed' })
@@ -974,6 +999,17 @@ export default function AdminPage() {
                       <a href={audit.report_url || `/audit/${audit.id}`} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm" className="gap-1">
                           <ExternalLink className="h-3 w-3" /> View Report
+                        </Button>
+                      </a>
+                    )}
+                    {audit.has_report && (
+                      <a
+                        href={`/admin/audits/${audit.id}/operator`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm" className="gap-1">
+                          Operator appendix
                         </Button>
                       </a>
                     )}

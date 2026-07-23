@@ -7,6 +7,7 @@ import { CopyButton } from '@/components/copy-button'
 import { PublicPageHeader } from '@/components/public-page-header'
 import { buildJsonLd } from '@/lib/materials'
 import { priorityForFix } from '@/lib/prioritization'
+import { AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
 import {
   BarChart3,
   CheckCircle,
@@ -203,7 +204,7 @@ export default function SampleReportPage() {
         <section className="grid items-start gap-8 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="min-w-0">
             <Badge className="mb-4 border border-[#D9C3AC] bg-[#FFF9F2] text-[#8C421A] hover:bg-[#FFF9F2]">
-              Expert-reviewed AI Visibility Audit
+              {AUDIT_PRODUCT_LABEL}
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
               Example SaaS is visible, but competitors own the recommendations.

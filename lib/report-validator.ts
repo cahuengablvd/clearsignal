@@ -19,6 +19,12 @@ import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import { buildGeoSummary } from './geo'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
+import { splitSentences } from './trust/sentences'
+import {
+  FUTURE_DATE_CLAIM_PATTERN,
+  removeUnsupportedFutureDateClaims,
+  temporalClaimContext,
+} from './temporal-claims'
 import type { BusinessContext, ClearSignalReport, Finding } from './schemas'
 
 export type ReportValidation = {
@@ -309,8 +315,14 @@ function repairWrongDomainMentions(text: string, domain?: string): string {
   return text.replace(new RegExp(`\\b${escaped}\\.(?!${tld}\\b)[a-z]{2,}\\b`, 'gi'), normalized)
 }
 
-function normalizeEncodingArtifacts(text: string): string {
+export function normalizeEncodingArtifacts(text: string): string {
   return text
+    .replace(/\uFB00/g, 'ff')
+    .replace(/\uFB01/g, 'fi')
+    .replace(/\uFB02/g, 'fl')
+    .replace(/\uFB03/g, 'ffi')
+    .replace(/\uFB04/g, 'ffl')
+    .replace(/\uFB05|\uFB06/g, 'st')
     .replace(/[\u0432][\u201a][\u00ac]|\u20ac/g, 'EUR ')
     .replace(/[\u0432][\u0402][\u2122]/g, "'")
     .replace(/[\u0432][\u0402][\u201c\u201d\u2013\u2014]/g, ' - ')
@@ -419,6 +431,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   const businessContext = report.meta.business_context as BusinessContext | undefined
   const brand = (report.meta.canonical_brand || '').trim()
   const domain = report.meta.domain
+  const temporalContext = temporalClaimContext(report, report.meta.generated_at, 'UTC')
   sanitizeObservedBusinessContext(report, businessContext, warn)
   report.meta.verified_facts_layer = buildVerifiedFactsLayer({
     businessContext,
@@ -464,6 +477,12 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     if (withoutInternalInstructions !== out) {
       warn(`text: removed internal instruction sentence at ${path.join('.') || '<root>'}`)
       out = withoutInternalInstructions
+    }
+
+    const withoutFalseFutureDateClaims = removeUnsupportedFutureDateClaims(out, temporalContext)
+    if (withoutFalseFutureDateClaims !== out) {
+      warn(`temporal_claim: removed an unsupported future-date statement at ${path.join('.') || '<root>'}`)
+      out = withoutFalseFutureDateClaims
     }
 
     if (/implementation_briefs\./.test(path.join('.'))) {
@@ -636,6 +655,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   warnSlashJoinedReadyMaterials(walked, warn)
   validatePolicyWording(walked, errors, warnings)
   validateReadyMaterialsCategory(walked, errors)
+  validateRecommendedSchemaCoverage(walked, errors)
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
@@ -687,6 +707,12 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   validateActionUsability(walked, errors)
   for (const artifact of collectClientArtifacts(walked)) {
     errors.push(artifact)
+  }
+  if (
+    !temporalContext.hasSupportedFutureDateClaim &&
+    hasClientFutureDateClaim(walked)
+  ) {
+    errors.push('temporal_claim: unsupported future-date wording remained after deterministic repair')
   }
 
   return { report: walked, warnings, errors }
@@ -1190,13 +1216,30 @@ function schemaTypeMentions(text: string): string[] {
     'ItemList',
     'OfferCatalog',
   ]
-  return known.filter((type) => {
-    const escaped = escapeRegExp(type)
-    const typeContext = new RegExp(`\\b${escaped}\\b\\s+(?:schema|markup|type)\\b`, 'i')
-    const atTypeContext = new RegExp(`@type["']?\\s*:\\s*["']${escaped}["']`, 'i')
-    const schemaOrgContext = new RegExp(`schema\\.org/${escaped}\\b`, 'i')
-    return typeContext.test(text) || atTypeContext.test(text) || schemaOrgContext.test(text)
-  })
+  return known.filter((type) =>
+    splitSentences(text).some((sentence) => {
+      const escaped = escapeRegExp(type)
+      const exactTypeMention = new RegExp(`\\b${escaped}\\b`)
+      const typeContext = new RegExp(`\\b${escaped}\\b\\s+(?:schema|markup|type)\\b`, 'i')
+      const atTypeContext = new RegExp(`@type["']?\\s*:\\s*["']${escaped}["']`, 'i')
+      const schemaOrgContext = new RegExp(`schema\\.org/${escaped}\\b`, 'i')
+      const match =
+        exactTypeMention.exec(sentence) ||
+        typeContext.exec(sentence) ||
+        atTypeContext.exec(sentence) ||
+        schemaOrgContext.exec(sentence)
+      if (!match) return false
+      const before = sentence.slice(Math.max(0, match.index - 100), match.index)
+      if (/\b(?:do not|don't|never|avoid|without|no)\b[\s\S]*$/i.test(before)) return false
+      const hasSchemaContext = /\b(?:schema(?:\.org)?|json-ld|structured data|markup)\b/i.test(sentence)
+      return (
+        (type !== 'Review' && hasSchemaContext && exactTypeMention.test(sentence)) ||
+        typeContext.test(sentence) ||
+        atTypeContext.test(sentence) ||
+        schemaOrgContext.test(sentence)
+      )
+    })
+  )
 }
 
 function validateReadyMaterialsCategory(report: ClearSignalReport, errors: string[]): void {
@@ -1413,4 +1456,70 @@ function collectClientArtifacts(value: unknown, path: string[] = []): string[] {
     }
   }
   return out
+}
+
+const SCHEMA_CLIENT_SIDE_MARKER =
+  /\bclient-side implementation\b[^.?!]*\bnot included in the attached json-ld\b/i
+
+const SCHEMA_DELIVERY_EQUIVALENTS: Record<string, string[]> = {
+  Organization: ['Organization', 'LocalBusiness', 'MovingCompany', 'ProfessionalService', 'ArtGallery'],
+  LocalBusiness: ['LocalBusiness', 'MovingCompany', 'ProfessionalService', 'ArtGallery'],
+}
+
+function deliveredSchemaType(delivered: Set<string>, recommended: string): boolean {
+  const acceptable = SCHEMA_DELIVERY_EQUIVALENTS[recommended] || [recommended]
+  return acceptable.some((type) => delivered.has(type))
+}
+
+function validateRecommendedSchemaCoverage(report: ClearSignalReport, errors: string[]): void {
+  const delivered = new Set(jsonLdTypes(report.ready_materials?.json_ld))
+  const recommendationFields: Array<[string, string]> = []
+
+  report.action?.top_fixes?.forEach((fix, index) => {
+    recommendationFields.push(
+      [`action.top_fixes.${index}.title`, fix.title || ''],
+      [`action.top_fixes.${index}.description`, fix.description || '']
+    )
+  })
+  report.implementation_briefs?.forEach((brief, briefIndex) => {
+    recommendationFields.push([`implementation_briefs.${briefIndex}.fix_title`, brief.fix_title || ''])
+    brief.steps.forEach((step, stepIndex) => {
+      recommendationFields.push([`implementation_briefs.${briefIndex}.steps.${stepIndex}`, step])
+    })
+    brief.acceptance_criteria.forEach((criterion, criterionIndex) => {
+      recommendationFields.push([
+        `implementation_briefs.${briefIndex}.acceptance_criteria.${criterionIndex}`,
+        criterion,
+      ])
+    })
+  })
+
+  for (const [path, text] of recommendationFields) {
+    const types = schemaTypeMentions(text)
+    if (types.length === 0 || SCHEMA_CLIENT_SIDE_MARKER.test(text)) continue
+    for (const type of types) {
+      if (!deliveredSchemaType(delivered, type)) {
+        errors.push(
+          `schema_deliverable_mismatch at ${path}: ${type} is recommended but is not present in ready_materials.json_ld and is not labelled as client-side implementation`
+        )
+      }
+    }
+  }
+}
+
+function hasClientFutureDateClaim(value: unknown, path: string[] = []): boolean {
+  if (typeof value === 'string') {
+    const key = path[path.length - 1]
+    return !isRawPath(path, key) && FUTURE_DATE_CLAIM_PATTERN.test(value)
+  }
+  if (Array.isArray(value)) {
+    return value.some((item, index) => hasClientFutureDateClaim(item, [...path, String(index)]))
+  }
+  if (value && typeof value === 'object') {
+    return Object.entries(value).some(([key, item]) => {
+      const childPath = [...path, key]
+      return !isRawPath(childPath, key) && hasClientFutureDateClaim(item, childPath)
+    })
+  }
+  return false
 }

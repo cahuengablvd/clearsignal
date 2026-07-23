@@ -532,7 +532,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       () => callClaudeJSON<ClarityBlock>({
         model: MODEL_AUDIT,
         system: CLARITY_SYSTEM,
-        user: clarityUserPrompt(targetMarkdown, icp, brand, businessContext),
+        user: clarityUserPrompt(targetMarkdown, icp, brand, businessContext, processingStartedAt),
         validate: (data) => ClarityBlockSchema.parse(data),
         maxTokens: 4096,
         purpose: 'audit:clarity',
@@ -556,7 +556,14 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       () => callClaudeJSON<GapBlock>({
         model: MODEL_AUDIT,
         system: GAP_SYSTEM,
-        user: gapUserPrompt(targetMarkdown, competitors, JSON.stringify(clarity), brand, businessContext),
+        user: gapUserPrompt(
+          targetMarkdown,
+          competitors,
+          JSON.stringify(clarity),
+          brand,
+          businessContext,
+          processingStartedAt
+        ),
         validate: (data) => GapBlockSchema.parse(data),
         maxTokens: 4096,
         purpose: 'audit:gap',
@@ -580,7 +587,14 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       () => callClaudeJSON<ActionBlock>({
         model: MODEL_AUDIT,
         system: ACTION_SYSTEM,
-        user: actionUserPrompt(JSON.stringify(clarity), JSON.stringify(gap), icp, brand, businessContext),
+        user: actionUserPrompt(
+          JSON.stringify(clarity),
+          JSON.stringify(gap),
+          icp,
+          brand,
+          businessContext,
+          processingStartedAt
+        ),
         validate: (data) => ActionBlockSchema.parse(data),
         maxTokens: 4096,
         purpose: 'audit:action',
@@ -628,7 +642,15 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         () => callClaudeJSON({
           model: MODEL_AUDIT,
           system: MATERIALS_SYSTEM,
-          user: materialsUserPrompt(brand, audit.url, icp, JSON.stringify(clarity), geo?.summary || '', businessContext),
+          user: materialsUserPrompt(
+            brand,
+            audit.url,
+            icp,
+            JSON.stringify(clarity),
+            geo?.summary || '',
+            businessContext,
+            processingStartedAt
+          ),
           validate: (d) => ReadyMaterialsLlmSchema.parse(d),
           maxTokens: 2048,
           purpose: 'audit:ready_materials',
@@ -674,7 +696,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         () => callClaudeJSON({
           model: MODEL_AUDIT,
           system: BRIEF_SYSTEM,
-          user: briefUserPrompt(brand, audit.url, topFixes, businessContext),
+          user: briefUserPrompt(brand, audit.url, topFixes, businessContext, processingStartedAt),
           validate: (d) => ImplementationBriefsLlmSchema.parse(d),
           maxTokens: 2048,
           purpose: 'audit:implementation_briefs',

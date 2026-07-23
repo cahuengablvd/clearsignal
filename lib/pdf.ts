@@ -9,8 +9,18 @@
  */
 import puppeteer from 'puppeteer-core'
 import { signToken } from './tokens'
+import { footerText } from './pdf-footer'
 
 const fallbackBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
 
 async function getBrowser() {
   const isServerless = !!process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL === '1'
@@ -50,15 +60,22 @@ export async function generateAuditPDF(auditId: string, origin?: string): Promis
     const page = await browser.newPage()
     // The audit page is access-gated; the renderer authenticates with a token.
     const token = signToken('audit', auditId)
-    await page.goto(`${baseUrl}/audit/${auditId}?pdf=true&token=${token}`, {
+    const response = await page.goto(`${baseUrl}/audit/${auditId}?pdf=true&token=${token}`, {
       waitUntil: 'networkidle0',
       timeout: 45000,
     })
+    if (!response || !response.ok()) {
+      throw new Error(`Client report render failed with HTTP ${response?.status() ?? 'unknown'}`)
+    }
 
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '40px', bottom: '40px', left: '40px', right: '40px' },
+      preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: `<div style="box-sizing:border-box;width:100%;padding:0 40px;font-family:Arial,sans-serif;font-size:7px;color:#777;text-align:center;">${escapeHtml(footerText())}</div>`,
+      margin: { top: '40px', bottom: '52px', left: '40px', right: '40px' },
     })
 
     return Buffer.from(pdf)

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, BriefcaseBusiness, Building2, Check, ChevronLeft, ChevronRight, Link2, MapPinned, Minus, Plus } from 'lucide-react'
 import { DELIVERY_PROMISE } from '@/lib/delivery-promise'
+import { AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
 
 const BACKGROUNDS = [
   { src: '/hero-bg-1.jpg', label: 'A1' },
@@ -708,7 +709,7 @@ export default function LandingPage() {
 
         <div className="relative z-20 mx-auto grid w-full max-w-6xl flex-1 items-center gap-4 px-5 pb-8 pt-10 sm:px-6 sm:pb-14 lg:grid-cols-[1fr_1fr] lg:gap-10 lg:pb-24 lg:pt-14">
           <div className="text-center lg:text-left">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.26em]" style={{ color: '#9E6238' }}>Expert-reviewed AI Visibility Audit</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.26em]" style={{ color: '#9E6238' }}>{AUDIT_PRODUCT_LABEL}</div>
             <h1 className="mt-5 text-[clamp(2.1rem,4.1vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.02em]">
               When buyers ask AI who to choose, does it recommend you, or your <span style={{ color: COPPER }}>competitor</span>?
             </h1>

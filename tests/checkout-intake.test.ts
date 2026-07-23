@@ -7,12 +7,16 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   updateEq: vi.fn(),
   createSession: vi.fn(),
+  retrievePrice: vi.fn(),
   enforceRateLimits: vi.fn(),
   verifyToken: vi.fn(),
 }))
 
 vi.mock('@/lib/stripe', () => ({
-  stripe: { checkout: { sessions: { create: mocks.createSession } } },
+  stripe: {
+    prices: { retrieve: mocks.retrievePrice },
+    checkout: { sessions: { create: mocks.createSession } },
+  },
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -47,9 +51,15 @@ function request(body: Record<string, unknown>) {
 describe('paid checkout intake', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    process.env.STRIPE_PRICE_ID_399 = 'price_test_149'
+    process.env.STRIPE_PRICE_ID_AUDIT = 'price_test_149'
     mocks.enforceRateLimits.mockResolvedValue({ allowed: true })
     mocks.verifyToken.mockReturnValue(true)
+    mocks.retrievePrice.mockResolvedValue({
+      active: true,
+      currency: 'eur',
+      unit_amount: 14900,
+      type: 'one_time',
+    })
     mocks.insertSingle.mockResolvedValue({ data: { id: 'audit-pending-1' }, error: null })
     mocks.createSession.mockResolvedValue({ id: 'cs_test_1', url: 'https://checkout.stripe.test/session' })
     mocks.updateEq.mockResolvedValue({ error: null })
@@ -117,6 +127,24 @@ describe('paid checkout intake', () => {
     }))
 
     expect(response.status).toBe(403)
+    expect(mocks.insert).not.toHaveBeenCalled()
+    expect(mocks.createSession).not.toHaveBeenCalled()
+  })
+
+  it('fails closed before persisting an order when the configured price is not EUR 149', async () => {
+    mocks.retrievePrice.mockResolvedValue({
+      active: true,
+      currency: 'eur',
+      unit_amount: 39900,
+      type: 'one_time',
+    })
+    const { POST } = await import('../app/api/stripe/checkout/route')
+    const response = await POST(request({
+      email: 'buyer@example.com',
+      url: 'https://example.com',
+    }))
+
+    expect(response.status).toBe(503)
     expect(mocks.insert).not.toHaveBeenCalled()
     expect(mocks.createSession).not.toHaveBeenCalled()
   })

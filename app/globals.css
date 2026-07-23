@@ -43,3 +43,25 @@
     scroll-behavior: auto;
   }
 }
+
+.pdf-code {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "clig" 0;
+}
+
+@media print {
+  @page {
+    size: A4;
+  }
+
+  .audit-report {
+    min-height: 0 !important;
+  }
+
+  .audit-report pre,
+  .audit-report code {
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "clig" 0;
+  }
+
+}

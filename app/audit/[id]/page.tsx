@@ -12,6 +12,8 @@ import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
 import { footerText } from '@/lib/pdf-footer'
 import { queryIntentLabel } from '@/lib/geo/query-taxonomy'
+import { buildClientReport, validateClientReportProjection } from '@/lib/client-report'
+import { AUDIT_PROCESS_LABEL, AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
 import { Download, ArrowLeft } from 'lucide-react'
 
 // Never cache this route. A report link is often opened while the audit is
@@ -203,12 +205,15 @@ export default async function AuditPage({
     return <AuditProcessing status={audit.audit_status as string} />
   }
 
-  const report = audit.report as ClearSignalReport
+  const report = buildClientReport(audit.report as ClearSignalReport)
+  if (validateClientReportProjection(report).length > 0) {
+    notFound()
+  }
   const isPdf = searchParams.pdf === 'true'
   const technicalEligibility = report.technical_eligibility || report.geo?.technical_eligibility
 
   return (
-    <div className={`min-h-screen ${isPdf ? 'p-8' : ''}`}>
+    <div className={isPdf ? 'audit-report p-8' : 'min-h-screen'}>
       {!isPdf && (
         <nav className="border-b print:hidden">
           <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -232,8 +237,8 @@ export default async function AuditPage({
       <div className={`max-w-4xl mx-auto ${isPdf ? '' : 'px-6 py-10'}`}>
         {/* Header */}
         <div className="mb-10">
-          <Badge variant="secondary" className="mb-3">{report.meta.tier} audit</Badge>
-          <h1 className="text-3xl font-bold mb-2">ClearSignal Audit Report</h1>
+          <Badge variant="secondary" className="mb-3">{AUDIT_PROCESS_LABEL}</Badge>
+          <h1 className="text-3xl font-bold mb-2">{AUDIT_PRODUCT_LABEL}</h1>
           {report.meta.canonical_brand ? (
             <>
               <p className="text-lg font-semibold">{report.meta.canonical_brand}</p>
@@ -1081,7 +1086,7 @@ export default async function AuditPage({
                     <h3 className="font-semibold text-sm">Schema.org JSON-LD</h3>
                     <CopyButton text={report.ready_materials.json_ld} />
                   </div>
-                  <pre className="text-xs bg-muted rounded p-3 overflow-x-auto whitespace-pre-wrap">
+                  <pre className="pdf-code text-xs bg-muted rounded p-3 overflow-x-auto whitespace-pre-wrap">
                     {report.ready_materials.json_ld}
                   </pre>
                 </CardContent>
@@ -1090,21 +1095,8 @@ export default async function AuditPage({
           </>
         )}
 
-        {/* Outreach Messages */}
-        <h3 className="text-lg font-semibold mb-3">Rewritten Outreach Messages</h3>
-        <div className="grid gap-4 mb-10">
-          {report.action.outreach_messages.map((msg, i) => (
-            <Card key={i}>
-              <CardContent className="p-5">
-                <Badge variant="outline" className="mb-2">{msg.channel}</Badge>
-                <div className="bg-muted rounded p-3 text-sm mb-2 whitespace-pre-wrap">{msg.message}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {isPdf && (
-          <footer className="mt-10 border-t pt-3 text-[10px] leading-relaxed text-muted-foreground">
+        {!isPdf && (
+          <footer className="mt-6 border-t pt-3 text-[10px] leading-relaxed text-muted-foreground">
             {footerText()}
           </footer>
         )}

@@ -13,6 +13,7 @@ export type MaterialCategory =
   | 'video_production'
   | 'tailoring_atelier'
   | 'art_gallery'
+  | 'marketplace'
   | 'default'
 
 function orgName(brand: string, url: string): string {
@@ -33,6 +34,9 @@ export function materialCategoryForContext(
   observed?: ObservedBusinessContext
 ): MaterialCategory {
   if (businessContext?.business_model === 'gallery') return 'art_gallery'
+  if (['marketplace', 'two_sided_marketplace'].includes(businessContext?.business_model || '')) {
+    return 'marketplace'
+  }
 
   const contextText = [
     businessContext?.verified_facts,
@@ -44,7 +48,9 @@ export function materialCategoryForContext(
   if (/\b(video production|motion design|explainer video|product video|animation studio)\b/.test(contextText)) {
     return 'video_production'
   }
-  if (/\b(bespoke|tailor|tailoring|atelier|menswear|suits?)\b/.test(contextText)) return 'tailoring_atelier'
+  if (/\b(bespoke|tailor(?:ed|ing)?|atelier|menswear|custom suits?|made-to-measure)\b/.test(contextText)) {
+    return 'tailoring_atelier'
+  }
   if (/\b(art gallery|gallery|artworks?|visual art|artist)\b/.test(contextText)) return 'art_gallery'
 
   const labels = [

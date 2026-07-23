@@ -2,102 +2,94 @@
   "gap": {
     "ai_search": {
       "score": 62,
-      "finding": "Rozie's homepage exhibits several properties that support AI-search visibility for local-intent queries in Malta. The geographic entity signals are strong: eleven town names are listed explicitly, paired with location-specific context ('Valletta townhouses', 'coastal apartments with salt-film windows', 'new builds after construction'), which gives a large-language-model sufficient named-entity density to associate the page with Malta cleaning queries. The service taxonomy is clearly enumerated (regular, deep, end-of-tenancy, Airbnb, office, extras), making the page a plausible candidate for structured answers to 'what types of cleaning services are available in Malta.' section is valuable but would benefit from an explicit FAQ format with question-and-answer pairs, as this pattern is more readily extracted by generative AI for featured-snippet-style answers. Entity authority signals — such as press mentions, third-party directory citations, or named partnership references — are absent, which may weaken the page's standing as a citable source versus a generic informational page on the same topic. The review dates appearing as future dates ('14 July 2026') in the crawled content could create a data-quality signal that automated systems flag as anomalous. Compared to competitors, Rozie's content is more structured and entity-rich than Briiz (which relies heavily on emotional copy with low factual density) and malta-cleaners.com (which has strong pricing tables but thin informational copy). Pristine-cleaning.eu's FAQ reference and service-specific landing-page structure may give it an edge for informational AI queries in the commercial cleaning segment. Overall, Rozie is reasonably positioned for AI-assisted local queries about Malta cleaning services and marketplace comparisons, but inferred to fall short of citation-readiness for authoritative or definitional queries due to the absence of structured markup, FAQ schema, and third-party entity validation.",
+      "finding": "Rozie's homepage contains several signals that support AI-search retrievability but also has notable gaps that may reduce the likelihood of being surfaced as a cited source in AI-generated answers about cleaning services in Malta. On the positive side: the page uses explicit geographic entity signals (Malta, plus a named list of twelve specific localities), names the service category precisely ('cleaning services in Malta'), provides a structured comparison table with labelled rows, and includes a dedicated pricing-context section with a linked guide. These are characteristics that AI retrieval systems tend to favour when assembling location-specific service answers. The 'How Much Do Cleaning Services Cost in Malta?' section with a stated hourly range (inferred from competitor norms and linked to a dedicated guide) is the type of factual, query-matching content that may be cited in response to cost-related questions. However, several gaps may weaken AI-search visibility. The page does not include an explicit FAQ section with question-and-answer structure, which is a strong citation-worthiness signal for AI answer engines. The cleaner vetting process is described only in marketing terms ('ID-checked, rated & reviewed') without procedural specificity that would make the description independently informative. The insurance mechanism is explained at a high level but not in a way that would anchor a precise answer to a query like 'does Rozie cover damage caused by cleaners in Malta'. The page lacks named operational details (e.g. how payment escrow works, what triggers the 7-day protection window) that would give AI systems quotable, factual content to extract. Entity signals for Rozie as an organisation — founding context, registered address, regulatory or app-store entity identifiers — are not prominently present in the crawled content, which may reduce the confidence with which an AI system associates named facts with the Rozie entity. The secondary ICP (cleaner registration) is nearly invisible in the content, meaning AI systems are unlikely to surface Rozie in response to queries from cleaners seeking platforms to find work in Malta.",
       "severity": "medium",
       "is_likely_cited": false,
       "missing_signals": [
-        "Schema.org structured data (LocalBusiness, Service, Review, FAQPage) not detected in crawled content — limits machine-readable entity signals for AI parsers",
-        "No FAQ section with explicit question-and-answer formatting — this pattern is strongly associated with AI-extractable answers for 'how', 'what' and 'how much' queries",
-        "No third-party press mentions, directory listings or named partnerships visible on the homepage — reduces external entity authority that AI systems use to assess citation-worthiness",
-        "Review dates appearing as future dates in crawled content may create a data-quality anomaly that reduces confidence in the review corpus as a citable source",
-        "No dedicated author byline, publication date or editorial transparency signals on the pricing guide content — reduces E-E-A-T-style authority for informational queries about Malta cleaning costs",
-        "Cleaner vetting process ('ID-checked') is named but not described in detail — a short, factual explanation of the verification steps would increase specificity and citation value for trust-related queries"
+        "Procedural detail on the cleaner verification process (e.g. which ID documents are checked, whether criminal record checks are conducted) to make the vetting claim independently informative and citable",
+        "Named organisational entity signals such as company registration number, registered address or app-store developer name to strengthen entity disambiguation for AI retrieval",
+        "Explicit explanation of the 7-day payment protection mechanism — what triggers it, what it covers and how a customer makes a claim — so the claim is factually extractable rather than a marketing assertion",
+        "A cleaner-facing section with its own structured content (how to register, what Rozie charges cleaners, how jobs are assigned) to capture AI-search queries from the supply side of the marketplace",
+        "Schema markup or structured data signals (e.g. LocalBusiness, FAQPage, Review schema) that would help AI crawlers and search engines identify entity type, location and review data from page structure rather than requiring inference from prose"
       ]
     },
     "where_you_win": [
-      "Marketplace transparency: Rozie is the only platform in the set that enables customers to post a job once and receive multiple competing offers with prices, ratings and reviews attached. No competitor offers provider comparison; they each present a single take-it-or-leave-it quote. This is a structurally distinct and observable advantage that the comparison table ('Rozie vs a Traditional Cleaning Company') makes explicit.",
-      "For busy professionals and expats, this speed signal is a meaningful differentiator if substantiated.",
-      "Quantified insurance coverage: Rozie names 'EUR 1,000,000 per occurrence' liability cover. The quantified amount is a more credible and specific trust signal than a general claim, inferred to be more persuasive to property managers and landlords.",
-      "Dual-sided payment protection: The 7-day payment protection mechanism — money held safely until the job is complete — is not replicated by any competitor in the crawled content. This structurally reduces booking risk in a way that a single-company insurer arrangement does not, because the payment is withheld rather than refunded after a dispute.",
-      "Geographic specificity: Rozie names eleven Malta localities by name (Sliema, St Julian's, Gzira, Msida, Valletta, Birkirkara, Mosta, Naxxar, Bugibba, St Paul's Bay, Melliéha, Marsascala). No competitor lists coverage at this granularity on their homepage, which may aid local search relevance and reassure visitors that their area is served.",
-      "These are publicly verifiable aggregate signals that no single-company competitor can replicate — they are structural to the marketplace model and function as crowd-sourced endorsement at scale.",
-      "Cleaner vetting transparency: Rozie specifies 'ID-checked, rated and reviewed' as a vetting standard. Competitors state 'vetted' or 'background-checked' without naming the check type. The specificity of ID-checking as a named process is a marginally stronger signal for trust-sensitive segments such as families and tenants."
+      "Price comparison mechanism: the ability to receive multiple competing offers and choose by price, rating and availability is structurally absent from all three competitors, making Rozie the only option that gives customers genuine market-level price transparency rather than a single take-it-or-leave-it quote",
+      "Structured trust layer: EUR 1,000,000 liability insurance per occurrence with Rozie covering deductibles, 7-day payment protection held in-app, and verified app-store ratings (4.7 and 4.8) with attributed review counts are a more complete and verifiable trust package than any observed competitor presents",
+      "Locality coverage specificity: naming Sliema, St Julian's, Gzira, Msida, Valletta, Birkirkara, Mosta, Naxxar, Bugibba, St Paul's Bay, Melliéha and Marsascala by name on the homepage gives Rozie stronger local search relevance signals across Malta's distinct communities than any observed competitor homepage",
+      "Comparison table positioning: the 'Rozie vs a Traditional Cleaning Company' table directly exploits the single-quote limitation of all three competitors and frames the marketplace model as the rational default — this is a persuasive device none of the competitors use against Rozie"
     ],
     "where_you_lose": [
-      "Above-the-fold CTA gap: Rozie's hero section contains no visible action button in the crawled content, while competitors such as malta-cleaners.com (WhatsApp book button) and pristine-cleaning.eu ('Book Your Cleaning Quote') place a clickable next step immediately in view — visitors arriving with high intent on mobile may not encounter an actionable prompt without scrolling.",
-      "Rozie's 7-day payment protection exists but is not framed as a satisfaction guarantee or refund promise, which may leave first-time bookers feeling less protected than on a competitor site.",
-      "Luxury and premium segment positioning: Pristine directly addresses 'Malta's most prestigious villas, homes, and estates' and frames its service around quality outcomes for high-value properties. Rozie's messaging leads with budget-fit framing ('find specialized cleaning services that fit into your budget'), which may underserve affluent expats and property managers who prioritise quality over price comparison.",
-      "Airbnb host outcome specificity: malta-cleaners.com names photo documentation, linen change, restock checks and Superhost-rating protection as explicit outcomes in structured pricing tiers. Rozie mentions 'Airbnb and holiday-let turnover' as a service category but does not articulate host-specific outcomes or protections on the homepage, which may be less compelling to a property manager evaluating options.",
-      "Eco-friendly credentials: Both Pristine and Briiz make eco-friendly, non-toxic or refillable-product messaging a visible differentiator. Rozie does not address cleaning product safety, environmental impact or family/pet safety anywhere in the crawled homepage content, which may weaken appeal to health-conscious families and environmental buyers.",
-      "Cleaner-side acquisition: No competitor directly competes for cleaner registrations on their homepage (all are single-company models), yet Rozie's homepage also fails to develop this proposition — the cleaner value story (flexible hours, own rates, platform job flow) is absent above the fold and underdeveloped throughout, which may slow supply-side growth without a parallel outreach channel."
+      "Published starting prices: both Pristine Cleaning and malta-cleaners.com show explicit euro-per-hour rates on their homepages, giving budget-oriented visitors an immediate price anchor, while Rozie directs visitors to a separate cost guide or the app — this may cause price-sensitive prospects to exit before downloading",
+      "No-app entry point: all three competitors offer a web-based quote or booking form, meaning prospects on desktop who are reluctant to download immediately have an alternative path; Rozie's observed conversion funnel requires the app download as the only stated next step, which may create friction for that segment",
+      "Free site visit or no-commitment quote: Pristine Cleaning's 'Free Site Visit — No Obligation' CTA is a low-risk entry offer; Rozie does not appear to offer an equivalent zero-barrier web-based first step beyond pointing to the app",
+      "Property manager and Airbnb host-specific messaging: malta-cleaners.com presents a tiered, bedroom-count Airbnb pricing calculator with photo proof and linen-change options prominently on its homepage; Rozie mentions Airbnb turnover in a bullet list but does not address host-specific pain points (photo proof, same-day coordination, recurring schedules) with comparable depth",
+      "Eco-friendly and health-safety positioning: Pristine Cleaning explicitly emphasises 'non-toxic, scent-free, family and pet safe' products with named equipment (Kärcher, HEPA filtration); Rozie does not address cleaning product standards or air-quality concerns anywhere in the observed content, leaving that prospect concern unaddressed",
+      "Cleaner vetting transparency: Briiz describes supervisors checking before and after each job; Pristine Cleaning references background checks and expert training; Rozie uses the label 'ID-checked, rated & reviewed' without explaining what the ID check or verification standard actually involves, which may be less persuasive to prospects who weight vetting detail heavily"
     ],
     "competitor_analysis": [
       {
         "url": "https://briiz.com.mt/",
         "headline": "We care, because you deserve better cleaning.",
         "strengths": [
-          "Emotionally resonant headline that speaks to quality aspiration rather than process mechanics",
-          "Offers an eco-cleaning product line (refillable pods) as a tangible brand differentiator that competitors lack",
-          "",
-          "Features supervisor quality-check mentions ('Supervisors checking in before and after'), implying a managed service layer that some quality-sensitive buyers prefer",
-          "Corporate packages explicitly called out, signalling B2B segment awareness"
+          "Emotional, empathy-led headline ('we also live in dwellings, go to work') attempts to create personal connection with the customer",
+          "Explicit 'money back guaranteed' claim and supervisor quality-check process signal strong service accountability",
+          "Eco cleaning pod product line creates a distinctive brand asset and sustainability differentiator not found on Rozie",
+          "Comparison table ('Briiz vs the rest') mirrors Rozie's approach but includes 'next day availability' and 'corporate packages' as explicit feature claims",
+          "Interactive room-by-room cleaning task breakdown (hotspot images) may help prospects visualise scope and build confidence"
         ],
         "weaknesses": [
-          "No transparent pricing visible on the homepage — visitors must contact for a quote, introducing friction",
-          "No app or marketplace dynamic; single-company model means no provider comparison or competitive pricing",
-          "Comparison table claims all advantages versus unnamed 'Competitors' using unverified binary tick/cross format, which informed buyers may discount",
-          "",
-          "No geographic coverage list; unclear which Malta localities are served",
-          "No stated insurance amount or payment protection mechanism"
+          "Headline is entirely benefit-free and geographically unanchored — 'deserve better cleaning' gives no indication of location, model or price",
+          "No marketplace or price-comparison mechanism; operates as a single-company model, which Rozie's comparison table directly exploits",
+          "No app download or digital self-service booking path visible in crawled content; conversion appears to depend on a contact or booking form",
+          "Review count and platform source are not clearly disclosed, reducing third-party verifiability of testimonials shown",
+          "No locality coverage list observed, which may weaken local search relevance across specific Malta towns"
         ],
-        "clarity_score": 58
+        "clarity_score": 52
       },
       {
         "url": "https://pristine-cleaning.eu/",
         "headline": "Trusted Cleaning Services in Malta — Professional cleaning for homes and businesses.",
         "strengths": [
-          "Explicitly targets premium and luxury segments ('Malta's most prestigious villas, homes, and estates'), differentiating on quality tier rather than price",
-          "Names specific equipment brand (Kärcher and HEPA filtration) as a tangible proof point that signals professionalism",
-          "Free site visit offer reduces perceived booking risk, a conversion mechanism Rozie does not offer",
-          "Eco-friendly and non-toxic positioning is prominent and repeated, appealing to health-conscious and family segments",
-          "Airbnb Superhost protection framing ('protect your Superhost rating') is outcome-specific and directly relevant to short-let property managers",
-          "Pricing anchors visible on the homepage (e.g., 'Starts at EUR 12/hr', 'Turnover Plans from EUR 40') aid pre-qualification"
+          "Clear published starting prices (e.g. 'EUR 12/hr', 'EUR 14/hr', 'Turnover Plans from EUR 40') reduce friction for budget-conscious prospects comparing options",
+          "Free site visit CTA is a low-commitment entry point that may appeal to prospects reluctant to commit without seeing a quote",
+          "Specific equipment brand ('Kärcher', 'HEPA filtration') signals professional-grade quality and may aid AI-search entity recognition",
+          "Eco-friendly and non-toxic positioning is explicit and repeated, targeting a health-conscious or family-oriented sub-segment",
+          "Dedicated Airbnb, post-construction and office service pages with distinct conversion paths may capture intent-specific searches"
         ],
         "weaknesses": [
           "",
-          "No marketplace or comparison mechanic; visitors receive one company's quote only",
-          "No app; conversion funnel relies on a form and 24-hour callback, introducing wait time Rozie eliminates",
-          "No stated coverage of specific Malta towns, making geographic reach opaque",
-          "Review evidence on homepage is sparse — a single named testimonial is shown",
-          ""
+          "No marketplace model — single company with assigned cleaners, meaning no price comparison or cleaner choice for the customer",
+          "'5-Star' in the page title and '🥇' emoji are self-declared and lack an attributed review platform count or link in the crawled hero section",
+          "",
+          "Geographic coverage detail is less granular than Rozie's named-locality list, which may reduce relevance signals for specific Malta town searches"
         ],
-        "clarity_score": 62
+        "clarity_score": 58
       },
       {
         "url": "https://malta-cleaners.com/",
         "headline": "Premium Home Cleaning by Latin Professionals",
         "strengths": [
-          "Transparent, structured Airbnb pricing table (by bedroom count, three tiers with line-item inclusions) is the most detailed public pricing of any competitor reviewed — directly aids comparison shopping",
-          "Photo documentation ('before/after photos') on every Airbnb turnover is a concrete, outcome-specific trust signal for property managers",
-          "Ironing-only service listed as a standalone offering, capturing a niche not addressed by Rozie or other competitors",
-          "Launch discount framing ('EUR 15/hr instead of EUR 18/hr') creates time-sensitive incentive, which may lift immediate conversion",
-          "WhatsApp booking path reduces friction for mobile-first users common in Malta"
+          "Transparent, granular Airbnb pricing table (by bedroom count and tier) with an interactive quote calculator is a strong decision-support tool not found on Rozie",
+          "Explicit launch pricing ('EUR 15/hr instead of EUR 18/hr') creates urgency and anchors the discount without hiding standard rates",
+          "Photo documentation and before/after proof for Airbnb turnovers is a concrete trust mechanism that addresses host accountability concerns",
+          "WhatsApp booking path lowers friction for mobile users already on their phone",
+          "Ironing-only service is a niche add-on not observed among other competitors, which may capture a distinct search segment"
         ],
         "weaknesses": [
-          "Headline reliance on ethnic identity ('Latin Professionals', 'Latin American Difference') as the primary differentiator is a narrow and potentially divisive positioning rather than a universal quality signal",
-          "No app, no marketplace; single-company model with no provider comparison",
-          "Trust signals are assertion-based ('5-Star Reputation', 'hundreds of satisfied homeowners') with no verified review count or platform-sourced ratings shown",
-          "No insurance amount, payment protection, or cleaner vetting detail provided",
-          "No geographic coverage list for standard home cleaning; Airbnb coverage mentions 'Malta and Gozo' only",
-          "No stated end-of-tenancy or commercial office cleaning offering visible on the homepage"
+          "The 'Latin American cleaner' ethnic-identity differentiator is an unusual and potentially polarising positioning choice that may not translate reliably across Malta's diverse resident and expat audience",
+          "No cleaner vetting, insurance or payment protection details are visible in crawled content — trust infrastructure is thin compared with Rozie's EUR 1M insurance and 7-day payment protection",
+          "No app or marketplace model; WhatsApp and form-based booking lack the verification, rating and comparison features Rozie offers",
+          "'5-Star Reputation' and 'hundreds of satisfied homeowners' are stated without a linked review platform count or third-party verification signal in the observed content",
+          "The 'launch special' framing implies a new or unproven business, which may reduce confidence among risk-averse prospects"
         ],
         "clarity_score": 55
       }
     ]
   },
   "geo": {
-    "brand": "Rozie - Cleaning Made Simple",
-    "summary": "Rozie - Cleaning Made Simple was named in 9 of 13 successfully tested engine-query combinations across Claude, Perplexity and OpenAI. The measured AI visibility score was 69/100; mention rate was 69.2% and citation rate was 61.5%. AI visibility evidence was reused from the previous completed scan. Likely contributing factors include limited owned-page answer density, limited citations of rozie.app, and stronger third-party source visibility for competitors in the tested responses.",
+    "brand": "Rozie",
+    "summary": "Rozie was named in 9 of 13 successfully tested engine-query combinations across Claude, Perplexity and OpenAI. The measured AI visibility score was 69/100; mention rate was 69.2% and citation rate was 61.5%. AI visibility evidence was reused from the previous completed scan. Likely contributing factors include limited owned-page answer density, limited citations of rozie.app, and stronger third-party source visibility for competitors in the tested responses.",
     "evidence": [
       {
         "query": "best app to hire cleaners in Malta",
@@ -567,7 +559,7 @@
     },
     "share_of_voice": 45,
     "missing_signals": [
-      "Rozie - Cleaning Made Simple was mentioned in part of the successfully tested engine-query sample.",
+      "Rozie was mentioned in part of the successfully tested engine-query sample.",
       "rozie.app was cited in part of the successfully tested responses."
     ],
     "recommendations": [
@@ -747,7 +739,7 @@
           "evidence": "18280 text characters observed"
         }
       ],
-      "checked_at": "2026-07-22T16:07:13.941Z",
+      "checked_at": "2026-07-23T12:08:29.777Z",
       "crawler_access": [
         {
           "detail": "No matching robots.txt disallow rule was observed.",
@@ -796,7 +788,7 @@
       "https://pristine-cleaning.eu/",
       "https://malta-cleaners.com/"
     ],
-    "generated_at": "2026-07-22T16:11:25.547Z",
+    "generated_at": "2026-07-23T12:12:25.394Z",
     "canonical_brand": "Rozie",
     "icp_description": "Residents, expats, busy professionals, families and property managers in Malta who need reliable home or apartment cleaning services and want to compare verified cleaners by price, ratings and availability before booking. Secondary ICP: independent cleaners and cleaning companies in Malta looking for flexible work, more bookings and a reliable payment platform.",
     "business_context": {
@@ -861,30 +853,7 @@
       {
         "id": 1,
         "owner": "Founder / marketing",
-        "title": "Add a visible, high-contrast CTA button above the fold",
-        "effort": "easy",
-        "impact": "high",
-        "control": "high",
-        "category": "cta",
-        "confidence": 40,
-        "claim_level": "recommended",
-        "contributor": "Copywriter",
-        "description": "Observed: no action button is present in the hero section of the crawled content. Add a primary button — for example, 'Get Exact Prices in the App' or 'Post Your Job Free — Offers in 15 Min' — that links directly to the relevant app store. Place it immediately below the headline on both mobile and desktop layouts. Competitors such as malta-cleaners.com and pristine-cleaning.eu place a clickable next step in the first viewport; Rozie currently does not.",
-        "implementer": "Developer",
-        "probability": "low",
-        "evidence_ids": [
-          "OBS-CTA-001"
-        ],
-        "evidence_basis": "Based on: OBS-CTA-001",
-        "confidence_basis": "No <button> or CTA-styled link found in rendered HTML (may be an image or JS-rendered)",
-        "confidence_level": "low",
-        "depends_on_access": false,
-        "recommendation_stage": "PROMINENCE"
-      },
-      {
-        "id": 2,
-        "owner": "Founder / marketing",
-        "title": "Rewrite the headline to lead with outcome, not mechanism",
+        "title": "Recommended fix",
         "effort": "easy",
         "impact": "high",
         "control": "high",
@@ -892,7 +861,7 @@
         "confidence": 98,
         "claim_level": "inferred",
         "contributor": "Copywriter",
-        "description": "Observed: the current headline 'Cleaning Services in Malta — Compare Offers from Verified Cleaners' names a process step rather than a resolved outcome. Swap the hierarchy: make the outcome and speed the headline, and demote the process description to the sub-headline.",
+        "description": "' Keep the current sub-headline as supporting copy. This surfaces the differentiator before a visitor decides whether to scroll.",
         "implementer": "Developer",
         "probability": "high",
         "evidence_ids": [
@@ -905,16 +874,61 @@
         "recommendation_stage": "PROMINENCE"
       },
       {
-        "id": 3,
+        "id": 2,
         "owner": "Founder / marketing",
-        "title": "Fix or explain the future-dated review timestamps",
+        "title": "Add a web-based job-posting entry point alongside the app download CTA",
+        "effort": "medium",
+        "impact": "high",
+        "control": "high",
+        "category": "cta",
+        "confidence": 40,
+        "claim_level": "recommended",
+        "contributor": "Copywriter",
+        "description": "Observed: the only stated conversion path is downloading the app. Inferred: desktop visitors who are not yet ready to install an app have no intermediate step available. All three observed competitors (Briiz, Pristine Cleaning, malta-cleaners.com) provide a web-based quote or contact form as an alternative path. Add a secondary CTA on the homepage — such as 'Post your job on the web' or a simple embeddable form — that captures intent before requiring an app download. This is particularly relevant for first-visit desktop traffic.",
+        "implementer": "Developer",
+        "probability": "low",
+        "evidence_ids": [
+          "OBS-CTA-001"
+        ],
+        "evidence_basis": "Based on: OBS-CTA-001",
+        "confidence_basis": "No <button> or CTA-styled link found in rendered HTML (may be an image or JS-rendered)",
+        "confidence_level": "low",
+        "depends_on_access": false,
+        "recommendation_stage": "PROMINENCE"
+      },
+      {
+        "id": 3,
+        "owner": "SEO",
+        "title": "Add a structured FAQ section targeting common search and AI-retrieval queries",
+        "effort": "medium",
+        "impact": "high",
+        "control": "high",
+        "category": "ai_search",
+        "confidence": 88,
+        "claim_level": "observed",
+        "description": "Observed: no FAQ section exists in the crawled content. The AI-search audit found this to be a missing signal that may reduce the likelihood of Rozie being cited in AI-generated answers about cleaning services in Malta. Add a minimum of six question-and-answer pairs covering: 'How does Rozie work?', 'How much do cleaning services cost in Malta?', 'Are cleaners on Rozie insured?', 'How does the 7-day payment protection work?', 'How do I cancel or reschedule a booking?', and 'How can a cleaner join Rozie?'. Write answers in plain, factually extractable prose. Implement FAQPage schema on this section — this type is included in the attached JSON-LD deliverable.",
+        "implementer": "Developer",
+        "probability": "high",
+        "evidence_ids": [
+          "OBS-SCHEMA-001"
+        ],
+        "evidence_basis": "Based on: OBS-SCHEMA-001",
+        "confidence_basis": "No application/ld+json script present in the rendered HTML",
+        "confidence_level": "high",
+        "depends_on_access": false,
+        "recommendation_stage": "ENTITY"
+      },
+      {
+        "id": 4,
+        "owner": "Founder / marketing",
+        "title": "Reconcile and unify all review count figures across the page",
         "effort": "easy",
         "impact": "high",
         "control": "medium",
         "category": "proof",
         "confidence": 60,
         "claim_level": "inferred",
-        "description": "Observed: reviews in the crawled content carry dates such as '14 July 2026,' which is a future date relative to the time of analysis. This may appear as a display or data error to visitors who notice it, and may create a data-quality anomaly for AI crawlers assessing the review corpus. Investigate whether this is a timezone rendering issue, a Trustindex widget misconfiguration, or a content error, and correct it. If the dates are correct and reflect a calendar system difference, add a plain-language label to avoid misinterpretation.",
+        "description": "Observed: the page shows '592 ratings' in one location and '292 total reviews' for the App Store in another location on the same page. This inconsistency, if simultaneously visible to a visitor, may prompt scepticism about the stated figures. Audit every instance where app-store ratings, review counts or user numbers are displayed, confirm the current verified figures from the app store dashboards, and update all instances to a single consistent set of numbers. Add a note clarifying the distinction between 'ratings' and 'written reviews' if both figures are legitimately correct.",
         "implementer": "Developer",
         "probability": "medium",
         "evidence_ids": [
@@ -927,61 +941,37 @@
         "recommendation_stage": "AUTHORITY"
       },
       {
-        "id": 4,
-        "owner": "SEO",
-        "title": "Add Schema.org structured data — LocalBusiness, Service, FAQPage, and Review",
-        "effort": "medium",
-        "impact": "high",
-        "control": "high",
-        "category": "ai_search",
-        "confidence": 88,
-        "claim_level": "observed",
-        "description": "Observed: no Schema.org markup was detected in the crawled HTML. Inferred: absence of structured data reduces machine-readable entity signals for AI-assisted search and limits the page's candidacy for structured answers. Add LocalBusiness markup (name, address, telephone, url, geo), Service markup for each service category, FAQPage markup for the pricing section questions, and Review or review-rating markup only if the review source (Trustindex/Google) can be reliably attributed. This is the highest-leverage single action for improving AI-search citation-readiness. Note: do not implement review-rating unless the review-source data feeding it is verified and attributable.",
-        "implementer": "Developer",
-        "probability": "high",
-        "evidence_ids": [
-          "OBS-SCHEMA-001"
-        ],
-        "evidence_basis": "Based on: OBS-SCHEMA-001",
-        "confidence_basis": "No application/ld+json script present in the rendered HTML",
-        "confidence_level": "high",
-        "depends_on_access": false,
-        "recommendation_stage": "ENTITY"
-      },
-      {
         "id": 5,
-        "owner": "SEO",
-        "title": "Reformat the pricing section as explicit FAQ question-and-answer pairs",
+        "owner": "Founder / marketing",
+        "title": "Expand the cleaner vetting description to make it substantively informative",
         "effort": "easy",
         "impact": "medium",
         "control": "high",
-        "category": "ai_search",
-        "confidence": 88,
-        "claim_level": "observed",
-        "description": "Observed: 'How Much Do Cleaning Services Cost in Malta?' is a strong informational section with specific figures (EUR 10–EUR 25/hr range, deep-clean uplift). However, it is not structured as explicit Q&A pairs, which is the pattern most readily extracted by AI summarisers for cost-related queries. Reformat it as discrete questions ('How much does regular home cleaning cost in Malta?', 'What affects the price of a deep clean?') each followed by a direct answer paragraph. Pair this with FAQPage schema (Fix 4) to maximise extractability.",
+        "category": "proof",
+        "confidence": 65,
+        "claim_level": "inferred",
+        "contributor": "Copywriter",
+        "description": "Observed: cleaner verification is described only as 'ID-checked, rated & reviewed' with no procedural detail. Competitors Briiz and Pristine Cleaning reference supervisory checks and background verification in their copy. Inferred: a prospect weighing trust may find Rozie's label less persuasive than a described process. Add a short section — or expand an existing one — explaining what the ID-check involves (e.g. which document types are accepted, whether address verification is included) and how the rating system works as an ongoing quality control mechanism. This also gives AI-retrieval systems extractable, factual content to associate with Rozie's vetting claim.",
         "implementer": "Developer",
-        "probability": "high",
-        "evidence_ids": [
-          "OBS-SCHEMA-001"
-        ],
-        "evidence_basis": "Based on: OBS-SCHEMA-001",
-        "confidence_basis": "No application/ld+json script present in the rendered HTML",
-        "confidence_level": "high",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+        "confidence_level": "medium",
         "depends_on_access": false,
-        "recommendation_stage": "ENTITY"
+        "recommendation_stage": "PROMINENCE"
       },
       {
         "id": 6,
         "owner": "Founder / marketing",
-        "title": "Add a secondary CTA for cleaner registration",
+        "title": "Add a dedicated above-the-fold or early-page CTA for the cleaner/supplier ICP",
         "effort": "easy",
         "impact": "medium",
         "control": "high",
         "category": "cta",
         "confidence": 40,
         "claim_level": "recommended",
-        "contributor": "Copywriter",
-        "description": "Observed: the cleaner-side conversion goal is represented only by a stat ('140+ Cleaners Using Rozie') and a comparison table row. There is no dedicated headline, benefit statement, or CTA directed at cleaners anywhere on the page. Add a short section — or a persistent banner near the bottom — with a direct line such as 'Are You a Cleaner? Set Your Own Rates and Receive Job Requests Through Rozie' plus a registration link. This directly supports the stated secondary conversion goal without restructuring the customer-facing flow.",
+        "description": "Observed: the secondary ICP — independent cleaners seeking work — has no visible CTA or dedicated section in the observed above-the-fold content. The AI-search audit notes that AI systems are unlikely to surface Rozie in response to supply-side queries as a result. Add a clearly labelled secondary CTA early in the page — for example: 'Are you a cleaner in Malta? Join Rozie to receive job requests and manage payments.' Link this to a dedicated cleaner registration page or section. This also supports the secondary conversion goal identified in the verified business context.",
         "implementer": "Developer",
         "probability": "low",
         "evidence_ids": [
@@ -991,40 +981,20 @@
         "confidence_basis": "No <button> or CTA-styled link found in rendered HTML (may be an image or JS-rendered)",
         "confidence_level": "low",
         "depends_on_access": false,
-        "recommendation_stage": "PROMINENCE"
+        "recommendation_stage": "AUTHORITY"
       },
       {
         "id": 7,
         "owner": "Founder / marketing",
-        "title": "Substantiate the EUR 1,000,000 insurance claim with a linked summary",
+        "title": "Add a property manager and Airbnb host sub-section with tailored messaging",
         "effort": "medium",
         "impact": "medium",
-        "control": "medium",
-        "category": "proof",
-        "confidence": 65,
-        "claim_level": "inferred",
-        "description": "Observed: the page states 'liability cover up to EUR 1,000,000 per occurrence' with a qualifier that terms and exclusions apply, but no link or plain-language summary is visible in the crawled content.",
-        "implementer": "Founder / marketing",
-        "probability": "medium",
-        "evidence_ids": [],
-        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
-        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
-        "confidence_level": "medium",
-        "depends_on_access": false,
-        "recommendation_stage": "RETRIEVAL"
-      },
-      {
-        "id": 8,
-        "owner": "Founder / marketing",
-        "title": "Render social proof statistics as static text, not only animated counters",
-        "effort": "easy",
-        "impact": "medium",
-        "control": "medium",
-        "category": "ai_search",
+        "control": "high",
+        "category": "copy",
         "confidence": 60,
         "claim_level": "inferred",
-        "contributor": "SEO",
-        "description": "Inferred: counter-rendered numbers may not be reliably parsed by web crawlers that feed AI indexes, reducing the citation value of these specific data points. Ensure each statistic also exists as a static, crawlable text node in the HTML — the animation can remain for visual effect, but the underlying value must be present in the DOM without JavaScript execution.",
+        "contributor": "Copywriter",
+        "description": "Observed: property managers and Airbnb hosts are mentioned in a bullet list ('Office & commercial cleaning', 'Airbnb turnover') but receive no messaging addressing their specific decision criteria. Competitor malta-cleaners.com presents a bedroom-count Airbnb pricing calculator with photo-proof documentation prominently on its homepage. Inferred: Rozie's current copy may not resonate with this sub-segment, which is part of the stated primary ICP. Add a short section — or a dedicated page linked from the homepage — addressing recurring schedule reliability, same-day coordination, and documentation of job completion for property managers and Airbnb operators.",
         "implementer": "Developer",
         "probability": "medium",
         "evidence_ids": [
@@ -1034,157 +1004,180 @@
         "confidence_basis": "Indirect keyword match (testimonials/logos/reviews) - not an exact element",
         "confidence_level": "medium",
         "depends_on_access": false,
+        "recommendation_stage": "PROMINENCE"
+      },
+      {
+        "id": 8,
+        "owner": "SEO",
+        "title": "Implement Organization and FAQPage schema via the attached JSON-LD",
+        "effort": "easy",
+        "impact": "medium",
+        "control": "high",
+        "category": "ai_search",
+        "confidence": 88,
+        "claim_level": "observed",
+        "description": "This item was removed because it could not be validated safely. Review the source evidence before publishing a replacement.",
+        "implementer": "Developer",
+        "probability": "high",
+        "evidence_ids": [
+          "OBS-SCHEMA-001"
+        ],
+        "evidence_basis": "Based on: OBS-SCHEMA-001",
+        "confidence_basis": "No application/ld+json script present in the rendered HTML",
+        "confidence_level": "high",
+        "depends_on_access": false,
         "recommendation_stage": "ENTITY"
       },
       {
         "id": 9,
         "owner": "Founder / marketing",
-        "title": "Add Airbnb host-specific outcome language to the holiday-let service section",
+        "title": "Explain the 7-day payment protection mechanism in plain, factually specific terms",
         "effort": "easy",
         "impact": "medium",
         "control": "medium",
-        "category": "copy",
-        "confidence": 60,
-        "claim_level": "inferred",
-        "description": "Observed: 'Airbnb & holiday-let turnover' is listed as a service category but without host-specific outcome language. Competitor malta-cleaners.com articulates outcomes such as photo documentation per turnover and Superhost-rating protection, and pristine-cleaning.eu uses 'protect your Superhost rating' framing. Rozie should add two to three outcome-oriented lines to this section — for example, addressing turnaround speed, linen or restock handling, and booking-gap flexibility — to make the offer more directly relevant to a property manager evaluating options.",
+        "category": "proof",
+        "confidence": 84,
+        "claim_level": "observed",
+        "description": "Observed: '7-day payment protection' is stated as a trust signal but the page does not explain what triggers it, what it covers, or how a customer makes a claim. Inferred: this limits both human persuasive impact (a sceptical visitor cannot verify the protection is meaningful) and AI-search citability (an AI system cannot extract a precise answer to a query like 'what happens if my cleaner doesn't show up on Rozie'). Add two to three sentences in the trust or features section explaining the mechanism in plain terms, consistent with how the platform actually operates.",
         "implementer": "Founder / marketing",
         "probability": "medium",
-        "evidence_ids": [],
-        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
-        "confidence_basis": "Copy recommendation is based on audit synthesis; no single direct evidence item proves the business impact",
+        "evidence_ids": [
+          "OBS-FAQ-001"
+        ],
+        "evidence_basis": "Based on: OBS-FAQ-001",
+        "confidence_basis": "Matched a question-style heading in the rendered HTML",
         "confidence_level": "medium",
         "depends_on_access": false,
-        "recommendation_stage": "PROMINENCE"
+        "recommendation_stage": "RETRIEVAL"
       },
       {
         "id": 10,
         "owner": "Founder / marketing",
-        "title": "Reframe the problem statement away from budget-first language",
+        "title": "Move or repeat the 'Why Rozie Instead of a Single Cleaning Company?' argument closer to the hero",
         "effort": "easy",
         "impact": "medium",
         "control": "high",
-        "category": "copy",
-        "confidence": 98,
+        "category": "structure",
+        "confidence": 65,
         "claim_level": "inferred",
         "contributor": "Copywriter",
-        "description": "Observed: the feature section opens with 'It's been a struggle for many people to find specialized cleaning services that fit into their budget,' framing Rozie primarily as a cost solution. Gap analysis: this may underserve expat and property-manager segments whose primary pain is reliability and convenience, not price. Rewrite the lead-in to address reliability and time as the primary problems ('Finding a reliable, vetted cleaner in Malta — at a time that suits you — is harder than it should be'), with price transparency positioned as one benefit rather than the headline driver.",
+        "description": "Observed: the comparison section and 'Why Rozie?' argument are positioned mid-page. For a first-time visitor whose primary mental model is 'I'll call a cleaning company', this is the most persuasive reframe available — but it requires scrolling to reach. Inferred: surfacing the core marketplace advantage (competing offers, price transparency, no single-quote dependency) higher on the page may improve early-stage differentiation. Either move the comparison table above the fold or extract its two or three strongest claims into the hero section as supporting copy beneath the primary headline.",
         "implementer": "Developer",
-        "probability": "high",
-        "evidence_ids": [
-          "OBS-H1-001"
-        ],
-        "evidence_basis": "Based on: OBS-H1-001",
-        "confidence_basis": "Matched a single <h1> element in the rendered HTML",
-        "confidence_level": "high",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+        "confidence_level": "medium",
         "depends_on_access": false,
         "recommendation_stage": "PROMINENCE"
       }
     ],
     "ship_first": [
-      "Add a visible above-the-fold CTA button in the hero section linking to the app download (Fix 1) — this is the highest-priority conversion gap and requires only a single button element.",
-      "Investigate and correct the future-dated review timestamps (Fix 3) — this is a trust-integrity issue that can be resolved quickly and may affect both visitor confidence and crawler data quality.",
-      "Render social proof statistics as static crawlable text in addition to any animated counter (Fix 8) — a low-effort HTML change that protects the citation value of existing data.",
-      "Reformat the pricing section as explicit FAQ Q&A pairs (Fix 5) — low writing effort, high AI-search upside, and can be done without a developer.",
-      "Add a secondary CTA for cleaner registration near the bottom of the page (Fix 6) — a single short section that directly supports the secondary conversion goal already stated."
+      "",
+      "Reconcile all app-store review and rating counts to a single consistent set of verified figures (Fix 4) — content update only",
+      "Deploy the attached JSON-LD with Organization and FAQPage schema in the page <head> (Fix 8) — one code addition",
+      "Add a secondary cleaner-facing CTA above the fold or in the page header (Fix 6) — low development effort, addresses the secondary conversion goal",
+      "Expand the cleaner vetting description with at least two sentences of procedural detail (Fix 5) — copy addition only"
     ],
     "ignore_for_now": [
-      "Eco-friendly or non-toxic product messaging — while competitors Briiz and Pristine use this positioning, Rozie is a marketplace and does not control cleaner product choices; adding this claim without verified supplier-level data could create a misleading impression and is low-control to substantiate.",
-      "Third-party press mentions, directory citations, or independent entity databases entries — these are low-control, require independent editorial decisions by third parties, and should only be pursued once owned-channel improvements are stable and the content is citation-ready."
+      "Wikipedia-style entity listings (pursue only once the brand has enough independent coverage to qualify) — these are low-control options requiring independent notability criteria to be met and are not a standard SEO task for a platform at this stage.",
+      "review-rating schema implementation — no verified first-party review-source data has been provided to anchor this markup; defer until a confirmed review-feed integration is available.",
+      "Eco-friendly product positioning — while a gap versus Pristine Cleaning, it requires product or supply-chain decisions that extend beyond copy changes and should be evaluated as a roadmap item rather than a quick fix"
     ],
-    "executive_summary": "Rozie's homepage communicates its core marketplace mechanic clearly and holds meaningful structural advantages over single-company competitors in Malta — notably offer comparison, speed of price discovery, quantified insurance, and dual-sided payment protection. However, the page's above-the-fold section contains no visible action button in the crawled content, meaning high-intent visitors may arrive and encounter no immediate next step before scrolling. Several trust signals may weaken under scrutiny — review dates appearing as future dates, an unlinked insurance claim, and social proof statistics potentially rendered as animated counters rather than static text. Addressing the CTA gap, trust-signal integrity, and Schema.org structured-data absence would strengthen both immediate conversion and AI-search citation-readiness without requiring a full redesign.",
+    "executive_summary": "Rozie was reviewed against the crawled page, selected competitors, and tested AI responses. The highest-priority opportunities are: Recommended fix; Add a web-based job-posting entry point alongside the app download CTA.",
     "outreach_messages": [
       {
-        "note": "Recommended for a founder, head of growth, or product lead at Rozie. Tone is peer-level and diagnostic.",
+        "note": "Tone is diagnostic and peer-level. Does not claim revenue impact, invent outcomes, or imply urgency. Personalise the opening with the recipient's name and role.",
         "channel": "linkedin",
-        "message": "Hi — I took a look at the Rozie homepage ahead of reaching out. A few things stood out. The comparison table makes that clear. But there are a couple of structural gaps that may be making that story harder to land: - The hero section in the crawled content has no visible action button, which means a high-intent visitor on mobile may not encounter a next step without scrolling.\n- The pricing FAQ section ('How Much Do Cleaning Services Cost in Malta?') reads as a strong informational asset, but it is not formatted or marked up in a way that AI-assisted search tools can easily extract — which may reduce how often Rozie surfaces for cost-related queries.\n- Review dates in the crawled content appear as future dates (e.g., July 2026), which could affect how the review block reads to cautious visitors. These are specific, fixable things — not a positioning overhaul. Happy to walk through what I found if it is useful."
+        "message": "Hi, I had a look at the Rozie homepage and noticed something that may be worth a quick conversation."
       },
       {
-        "note": "Recommended for a direct outreach to a Rozie marketing or product contact. Tone is specific and non-alarmist.",
+        "note": "Three-point structure keeps the email scannable. Each point references a specific observed finding. No performance claims, no invented results, no scarcity language.",
         "channel": "email",
-        "message": "Subject: A few specific things I noticed on the Rozie homepage Hi, I reviewed the Rozie homepage as part of a brief competitive audit of cleaning marketplace positioning in Malta. I wanted to flag three things that seemed worth a look. 1. No above-the-fold CTA. The hero section in the crawled content contains no action button. Competitors like malta-cleaners.com and pristine-cleaning.eu place a clickable prompt in the first viewport. For paid or search traffic arriving with booking intent, the absence of an immediate next step may reduce the proportion of visitors who proceed to the app. 2. FAQ and schema gap. The 'How Much Do Cleaning Services Cost in Malta?' section contains specific, useful figures (EUR 10–EUR 25/hr, deep-clean uplifts). Reformatting it as explicit question-and-answer pairs and adding FAQPage structured data would make those figures more accessible to AI-assisted search tools — which increasingly surface this type of local cost information. 3. Future-dated reviews. Review timestamps in the crawled content show dates in 2026. This may be a widget rendering issue, but it is the kind of detail that can affect visitor trust if noticed, and may register as anomalous to automated crawlers. None of these require a redesign. I can put together a short brief if that would be a useful starting point."
+        "message": "Hi, I looked at the Rozie homepage as part of a structured audit and wanted to share three observations that stood out. 1. The headline leads with the category ('Cleaning Services in Malta') rather than the speed benefit. Moving it to the H1 is a one-line copy change. 2. The only conversion path is the app download. All three main Malta competitors I reviewed offer a web form or quote path for visitors on desktop. Adding even a lightweight web-based entry point could reduce the drop-off among visitors who aren't yet ready to install. 3. The cleaner-registration side of the marketplace has no visible CTA above the fold. If supply-side growth matters, the current page structure doesn't give that audience a clear signal that Rozie is for them. None of these require large development effort. Happy to share the full audit findings if they'd be useful. Best,"
       },
       {
-        "note": "Recommended as a public or DM-based opener. Keep it observational and non-alarmist. Adjust '@RozieApp' to the verified Twitter/X handle before posting.",
+        "note": "Keeps the character count manageable. Opens with a specific, evidence-based observation rather than a generic compliment or alarm. Thread framing invites engagement without overpromising. Replace @RozieApp with the verified handle if different.",
         "channel": "twitter",
-        "message": "Took a look at @RozieApp's homepage — strong marketplace mechanic (post once, compare offers, 5–15 min pricing) and solid geographic specificity for Malta. Three quick things that may be worth a look: no above-the-fold CTA in the crawled content, the pricing FAQ section isn't structured for AI-search extraction, and review dates appear as future dates in the HTML. All fixable without a rebuild. Happy to share the notes if useful."
+        "message": "Small placement change, meaningful difference in first-impression clarity. Three other structural gaps in the thread if useful 🧵"
       }
     ]
   },
   "clarity": {
     "cta": {
-      "score": 55,
-      "finding": "The primary call-to-action is the app download (App Store and Google Play badges), but this CTA appears late in the page flow — after the trust bar, feature grid, service list, location list, pricing guide, comparison table and reviews. Above the fold, the hero section contains no visible CTA button in the crawled content; visitors who do not scroll may encounter no actionable next step. The download section is labelled 'Download. Book. Done. Try Rozie Today.' which is serviceable but generic. The App Store and Google Play badges are standard assets that do not communicate a specific reason to download now versus later. There is no secondary CTA directing cleaner-side visitors to register. The absence of a prominent above-the-fold CTA may reduce immediate conversion, particularly for mobile visitors who arrive via paid or search traffic with high intent.",
-      "severity": "critical",
-      "suggested_rewrite": "Above the fold: add a high-contrast button — e.g., 'Get Exact Prices in the App' or 'Post Your Job Free — Offers in 15 Min' — linking directly to the relevant app store. Near the bottom, add a parallel CTA for cleaners: 'Are You a Cleaner? Join 140+ Professionals on rozie.app a Quote."
+      "score": 60,
+      "finding": "The primary CTA observed is 'Download. Book. Done. Try Rozie Today.' paired with App Store and Google Play badges. This CTA appears to be positioned well down the page rather than immediately adjacent to the hero headline, which may reduce early-stage conversion for visitors who do not scroll. The phrase 'Try Rozie Today' uses soft commitment language ('try') which could imply uncertainty about the product's value. For a marketplace where the first step is simply posting a job — not a paid subscription — a more action-specific CTA tied to the immediate benefit (e.g. 'Post your job free — get offers in minutes') may better reduce perceived friction. Additionally, no web-based entry point or lead-capture alternative (such as 'Post a job on the web') appears in the observed content, meaning visitors on desktop who hesitate to download an app immediately may have no intermediate conversion path available. The secondary ICP (cleaners seeking work) appears to lack a distinct CTA in the observed content.",
+      "severity": "medium",
+      "suggested_rewrite": "Download the Rozie App."
     },
     "headline": {
-      "score": 58,
-      "finding": "The headline is clear and geographically specific, which is appropriate for a local marketplace. However, it reads as a descriptive category label rather than a value proposition with urgency or differentiation. The phrase 'Compare Offers from Verified Cleaners' names a mechanism but does not communicate the primary outcome the visitor cares about (a reliable clean, at a fair price, without hassle). The word 'Compare' also introduces a cognitive step that may delay the sense of resolution a first-time visitor needs. There is no emotional payoff or specificity about what life looks like after booking.",
+      "score": 65,
+      "finding": "The headline is functional and geographically specific, which aids search relevance.",
       "severity": "medium",
       "current_headline": "Cleaning Services in Malta — Compare Offers from Verified Cleaners",
-      "suggested_rewrite": "Post your job once, compare real offers, and book the cleaner that fits your home and budget."
+      "suggested_rewrite": ""
     },
     "trust_proof": {
-      "score": 70,
-      "finding": "These are meaningful and above average for a local marketplace. However, several gaps may weaken trust for a sceptical first-time visitor. The insurance claim ('liability cover up to EUR 1,000,000 per occurrence') is qualified with 'Terms, exclusions and reporting requirements apply' but no link to the policy or a plain-language summary is visible in the crawled content, which may cause cautious users to discount the claim. The Google reviews shown are dated '14 July 2026,' a future date relative to the time of analysis, which may appear as a data or display error and could may weaken credibility if noticed by visitors. Named reviewer identities are absent from the excerpt (only first names of cleaners appear), reducing the specificity of testimonials. There is no visible press mention, third-party accreditation or case study for the property-manager or commercial segment.",
+      "score": 74,
+      "finding": "The insurance claim includes appropriate qualifying language ('Terms, exclusions and reporting requirements apply'), which is a positive practice. However, two observations may affect trust impact. Second, the App Store rating section shows '592 ratings' in one location and '292 total reviews' in another location on the same page — this inconsistency, if visible to users simultaneously, may undermine confidence in the stated figures. The cleaner vetting process is described as 'ID-checked, rated & reviewed' but no detail about what the verification entails is provided, which may leave trust partly unsubstantiated for visitors who weigh vetting criteria carefully.",
       "severity": "medium",
       "missing_elements": [
-        "Link or summary of insurance policy terms to substantiate the EUR 1,000,000 claim",
-        "Correction or explanation of review dates that appear in the future (e.g., '14 July 2026')",
-        "Testimonials attributed to named, identifiable customers or property managers",
-        "Press mentions, third-party accreditation or recognisable endorsement",
-        "A dedicated trust signal or case example for the commercial/property-manager segment"
+        "",
+        "Consistent and reconciled review counts across all instances on the page",
+        "Named or anonymised case examples illustrating a completed booking outcome",
+        "A visible cleaner registration trust signal (e.g. number of active jobs posted) to reassure the secondary ICP",
+        "Clear indication of what happens if a claim under the EUR 1M insurance policy is made, to substantiate the protection promise"
       ]
     },
     "messaging_fit": {
-      "score": 63,
-      "finding": "The core value proposition — post once, receive competing offers, compare by price and rating, book instantly — is coherent and differentiating versus the traditional cleaning company framing used in the comparison table. The comparison table itself ('Rozie vs a Traditional Cleaning Company') is a strong conversion asset that makes the switching rationale explicit. However, several messaging patterns may reduce fit with the stated ICP. First, the feature section leads with a problem framing ('It's been a struggle for many people to find specialized cleaning services that fit into their budget') that positions Rozie as a budget tool; this may underserve the expat and property-manager segments whose primary pain is reliability and convenience rather than cost. Second, the phrase 'you'll never waste time booking a cleaning service' in the Effortless Booking section uses negative framing ('waste time') which may weaken the aspirational tone. Third, the 'How Much Do Cleaning Services Cost in Malta?' section provides a pricing range (EUR 10–EUR 25/hour) that may anchor expectations before a visitor has experienced Rozie's competitive-offer dynamic, potentially causing sticker shock or premature comparison shopping off-platform. Fourth, the cleaner-side value proposition is not developed enough to support the secondary conversion goal — the page does not explain how quickly cleaners receive jobs, what the platform fee structure looks like, or what makes Rozie preferable to direct customer acquisition.",
+      "score": 66,
+      "finding": "The page's core narrative — post once, receive competing offers, compare by price and ratings, book the best fit — is coherent and consistently repeated across the hero, features, comparison table and services sections. The comparison table ('Rozie vs a Traditional Cleaning Company') is a strong positioning device that addresses the likely mental model of a prospect who has previously called individual companies. However, several copy choices may reduce messaging precision. The features section includes the phrase 'you'll never waste time booking a cleaning service', which uses absolute language that may be difficult to substantiate universally. The 'Simple & Easy to Use' bullet list largely restates feature names already covered elsewhere and adds limited new persuasive weight. The 'Why Rozie Instead of a Single Cleaning Company?' section is well-targeted but buried mid-page; moving its core argument closer to the hero could improve early-stage differentiation. For property managers and Airbnb operators — named in the services list — the messaging does not address their specific pain points such as same-day coordination reliability, documentation of clean completion or recurring scheduling management, which may weaken resonance with those sub-segments. The cleaner-side value proposition (flexible scheduling, set your own rates, access to jobs) is not prominently surfaced, meaning the secondary ICP may not recognise the page as relevant to them without significant scrolling.",
       "severity": "medium"
     },
-    "overall_score": 67,
+    "overall_score": 68,
     "icp_visibility": {
       "score": 72,
-      "finding": "The page addresses the primary ICP (Malta residents, expats, families, professionals and property managers) with reasonable clarity — location-specific copy ('Cleaning Services in Malta'), a named list of 11 covered towns, and service categories like 'End-of-tenancy cleaning' and 'Airbnb & holiday-let turnover' that align with property managers and expats. However, the secondary ICP (cleaners seeking work) is inferred only from the stat '140+ Cleaners Using Rozie' and a passing comparison table row; there is no dedicated headline, benefit statement or call-to-action directed at cleaners above the fold. Visitors who land with cleaner intent may not immediately recognise the platform as relevant to them, which may reduce secondary-conversion registrations.",
+      "finding": "The page addresses Malta residents, expats and property managers reasonably well. The headline 'Cleaning Services in Malta — Compare Offers from Verified Cleaners' names the geography and the core action. The 'Where Our Cleaners Work' section lists specific Malta localities (Sliema, St Julian's, Valletta, etc.), which may strengthen relevance for local searchers. However, the secondary ICP — independent cleaners seeking work — receives minimal above-the-fold visibility. Cleaner registration appears to lack a dedicated CTA or section in the observed content, meaning that audience may not self-identify as a target user until late in the page, if at all. Property managers, a distinct sub-segment of the primary ICP, are named only in passing ('Office & commercial cleaning') and receive no tailored messaging about recurring schedules, invoice management or multi-unit coordination that might address their specific decision criteria.",
       "severity": "medium"
     }
   },
   "ready_materials": {
     "faq": [
       {
-        "answer": "You submit your location, preferred date and time through the Rozie app, then receive offers from independent cleaners and cleaning companies. You can compare providers by price, ratings and availability before confirming the booking that suits you best.",
+        "answer": "Submit your location, preferred date and time through the Rozie app. Verified cleaners and cleaning companies send you offers, which you can compare by price, ratings and availability for this move the one that suits you best.",
         "question": "How does Rozie work for booking a cleaner in Malta?"
       },
       {
-        "answer": "Rozie lists independent cleaners and cleaning companies who register through the platform. Providers are rated by customers after each job, so you can review their track record before accepting an offer.",
-        "question": "Are the cleaners on Rozie verified?"
+        "answer": "Cleaners on the Rozie platform are ID-checked, rated and reviewed by previous customers. You can view each provider's ratings before accepting their offer.",
+        "question": "Are the cleaners on Rozie vetted or verified?"
       },
       {
-        "answer": "Rozie covers multiple towns and localities across Malta. When you submit a job request in the app, you will see offers from cleaners available in your specific area.",
+        "answer": "Rozie connects customers with cleaners across Malta, including Sliema, St Julian's, Valletta and surrounding localities. Enter your address in the app to see available providers in your area.",
         "question": "Which areas in Malta does Rozie cover?"
       },
       {
-        "answer": "Rozie supports a range of cleaning needs including regular home cleaning, end-of-tenancy cleaning and Airbnb or holiday-let turnovers, among others. You specify what you need when you post your request.",
-        "question": "What types of cleaning services can I book through Rozie?"
+        "answer": "When you post a job, cleaners send you their individual offers with pricing, so you can compare costs directly before committing to a booking. There is no fixed rate imposed by Rozie — providers set their own prices.",
+        "question": "How do I know what the cleaning will cost before I book?"
       },
       {
-        "answer": "Yes. Independent cleaners and cleaning companies in Malta can register on Rozie to receive customer job requests, set their own rates and manage bookings and payments through the platform.",
-        "question": "Can I join Rozie as a cleaner or cleaning company?"
+        "answer": "Rozie supports flexible and recurring scheduling requests. Property managers and Airbnb hosts can post cleaning jobs and compare available providers each time, or work with a preferred cleaner through the app.",
+        "question": "Can I use Rozie if I manage multiple properties or need regular cleaning?"
       },
       {
-        "answer": "Rozie is available through major mobile app stores on both iOS and Android. Search for Rozie or visit rozie.app to find the download links. For questions, you can contact the team at hello@rozie.app.",
-        "question": "How do I download the Rozie app?"
+        "answer": "Yes. Independent cleaners and cleaning companies can register on Rozie, set their own rates and availability, and receive job requests from customers in their area. Payments are facilitated through the platform.",
+        "question": "I am a cleaner or cleaning company — can I join Rozie to find work in Malta?"
       }
     ],
-    "json_ld": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@graph\": [\n    {\n      \"@type\": \"Organization\",\n      \"name\": \"Rozie\",\n      \"url\": \"https://rozie.app/\"\n    },\n    {\n      \"@type\": \"FAQPage\",\n      \"mainEntity\": [\n        {\n          \"@type\": \"Question\",\n          \"name\": \"How does Rozie work for booking a cleaner in Malta?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"You submit your location, preferred date and time through the Rozie app, then receive offers from independent cleaners and cleaning companies. You can compare providers by price, ratings and availability before confirming the booking that suits you best.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Are the cleaners on Rozie verified?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Rozie lists independent cleaners and cleaning companies who register through the platform. Providers are rated by customers after each job, so you can review their track record before accepting an offer.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Which areas in Malta does Rozie cover?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Rozie covers multiple towns and localities across Malta. When you submit a job request in the app, you will see offers from cleaners available in your specific area.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"What types of cleaning services can I book through Rozie?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Rozie supports a range of cleaning needs including regular home cleaning, end-of-tenancy cleaning and Airbnb or holiday-let turnovers, among others. You specify what you need when you post your request.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Can I join Rozie as a cleaner or cleaning company?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Yes. Independent cleaners and cleaning companies in Malta can register on Rozie to receive customer job requests, set their own rates and manage bookings and payments through the platform.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"How do I download the Rozie app?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Rozie is available through major mobile app stores on both iOS and Android. Search for Rozie or visit rozie.app to find the download links. For questions, you can contact the team at hello@rozie.app.\"\n          }\n        }\n      ]\n    }\n  ]\n}\n</script>",
+    "json_ld": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@graph\": [\n    {\n      \"@type\": \"Organization\",\n      \"name\": \"Rozie\",\n      \"url\": \"https://rozie.app/\"\n    },\n    {\n      \"@type\": \"FAQPage\",\n      \"mainEntity\": [\n        {\n          \"@type\": \"Question\",\n          \"name\": \"How does Rozie work for booking a cleaner in Malta?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Submit your location, preferred date and time through the Rozie app. Verified cleaners and cleaning companies send you offers, which you can compare by price, ratings and availability for this move the one that suits you best.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Are the cleaners on Rozie vetted or verified?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Cleaners on the Rozie platform are ID-checked, rated and reviewed by previous customers. You can view each provider's ratings before accepting their offer.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Which areas in Malta does Rozie cover?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Rozie connects customers with cleaners across Malta, including Sliema, St Julian's, Valletta and surrounding localities. Enter your address in the app to see available providers in your area.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"How do I know what the cleaning will cost before I book?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"When you post a job, cleaners send you their individual offers with pricing, so you can compare costs directly before committing to a booking. There is no fixed rate imposed by Rozie — providers set their own prices.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"Can I use Rozie if I manage multiple properties or need regular cleaning?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Rozie supports flexible and recurring scheduling requests. Property managers and Airbnb hosts can post cleaning jobs and compare available providers each time, or work with a preferred cleaner through the app.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"I am a cleaner or cleaning company — can I join Rozie to find work in Malta?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Yes. Independent cleaners and cleaning companies can register on Rozie, set their own rates and availability, and receive job requests from customers in their area. Payments are facilitated through the platform.\"\n          }\n        }\n      ]\n    }\n  ]\n}\n</script>",
     "meta_title": "Book Verified Cleaners in Malta | Rozie App",
     "cta_variants": [
-      "Get Offers from Cleaners Near You",
-      "Post Your Job Free — Compare Cleaners in the App",
-      "Download Rozie and Book Your Clean Today",
-      "Are You a Cleaner? Join Professionals on Rozie",
-      "See Prices and Availability in the App"
+      "Post Your Cleaning Job Free",
+      "Compare Cleaners and Book in the App",
+      "Get Offers from Verified Malta Cleaners",
+      "Download Rozie and Book Today",
+      "Are You a Cleaner? Join Rozie and Start Receiving Jobs"
     ],
-    "meta_description": "Post your cleaning job on Rozie, compare offers from rated local cleaners by price and availability, and book in minutes. Available on iOS and Android in Malta."
+    "meta_description": "Compare offers from ID-checked Malta cleaners by price, ratings and availability. Post your job free, receive offers and book through the Rozie app."
   },
   "data_limitations": [
     "Reused AI visibility evidence was rechecked with the current brand-alias detector over stored answer excerpts; this can recover missed mentions in excerpts but cannot prove absence beyond the stored excerpt.",
@@ -1202,7 +1195,7 @@
       "status": "unknown",
       "evidence": {
         "url": "https://rozie.app/",
-        "checked_at": "2026-07-22T16:07:06.224Z",
+        "checked_at": "2026-07-23T12:08:05.105Z",
         "html_snippet": null,
         "extracted_text": null
       },
@@ -1218,7 +1211,7 @@
       "status": "present",
       "evidence": {
         "url": "https://rozie.app/",
-        "checked_at": "2026-07-22T16:07:06.224Z",
+        "checked_at": "2026-07-23T12:08:05.105Z",
         "html_snippet": "<h1 class=\"silicon-elementor-highlighted-heading__title text-center text-md-start mb-4 display-4\"><span class=\"si-multipurpose-text__before\">Cleaning Services in Malta — Compare Offers from Verified Cleaners</span></h1>",
         "extracted_text": "Cleaning Services in Malta — Compare Offers from Verified Cleaners"
       },
@@ -1234,7 +1227,7 @@
       "status": "absent",
       "evidence": {
         "url": "https://rozie.app/",
-        "checked_at": "2026-07-22T16:07:06.224Z",
+        "checked_at": "2026-07-23T12:08:05.105Z",
         "html_snippet": null,
         "extracted_text": null
       },
@@ -1250,7 +1243,7 @@
       "status": "absent",
       "evidence": {
         "url": "https://rozie.app/",
-        "checked_at": "2026-07-22T16:07:06.224Z",
+        "checked_at": "2026-07-23T12:08:05.105Z",
         "html_snippet": null,
         "extracted_text": null
       },
@@ -1266,7 +1259,7 @@
       "status": "present",
       "evidence": {
         "url": "https://rozie.app/",
-        "checked_at": "2026-07-22T16:07:06.224Z",
+        "checked_at": "2026-07-23T12:08:05.105Z",
         "html_snippet": null,
         "extracted_text": "rated"
       },
@@ -1282,7 +1275,7 @@
       "status": "present",
       "evidence": {
         "url": "https://rozie.app/",
-        "checked_at": "2026-07-22T16:07:06.224Z",
+        "checked_at": "2026-07-23T12:08:05.105Z",
         "html_snippet": null,
         "extracted_text": null
       },
@@ -1293,92 +1286,92 @@
     }
   ],
   "validation_warnings": [
+    "validation: degraded unsafe generated fields before save",
+    "validation_degraded: schema_mismatch at implementation_briefs.1.steps.0: Service is not allowed for marketplace",
+    "validation_degraded: schema_deliverable_mismatch at action.top_fixes.7.description: LocalBusiness is recommended but is not present in ready_materials.json_ld and is not labelled as client-side implementation",
+    "validation_degraded: schema_deliverable_mismatch at action.top_fixes.7.description: Service is recommended but is not present in ready_materials.json_ld and is not labelled as client-side implementation",
+    "validation_degraded: schema_deliverable_mismatch at implementation_briefs.1.steps.0: Service is recommended but is not present in ready_materials.json_ld and is not labelled as client-side implementation",
+    "validation_degraded: internal instruction at implementation_briefs.2.steps.0: \"Write a minimum of six FAQ pairs in plain, factually extractable prose covering at least: 'How does Rozie work?', 'How much do cleaning services cost in Malta?', 'Are cleaners o...\"",
     "placeholder: removed bracketed internal placeholder from client copy",
-    "text: removed internal instruction sentence at action.outreach_messages.0.note",
-    "placeholder: removed bracketed internal placeholder from client copy",
-    "text: removed internal instruction sentence at action.outreach_messages.1.note",
-    "text: removed internal instruction sentence at action.outreach_messages.2.note",
+    "temporal_claim: removed an unsupported future-date statement at clarity.trust_proof.finding",
     "placeholder: removed bracketed internal placeholder from client copy",
     "placeholder: removed bracketed internal placeholder from client copy",
     "placeholder: removed bracketed internal placeholder from client copy",
     "placeholder: removed bracketed internal placeholder from client copy",
     "placeholder: removed bracketed internal placeholder from client copy",
-    "brief: replaced unsupported review-rating schema instruction",
-    "brief: replaced unsupported review-rating schema instruction",
+    "placeholder: removed bracketed internal placeholder from client copy",
+    "placeholder: removed bracketed internal placeholder from client copy",
     "placeholder: removed bracketed internal placeholder from client copy",
     "ready_materials: rebuilt publishable materials from verified/observed facts",
-    "gap.ai_search.missing_signals: dropped empty item after legacy cleanup"
+    "gap.where_you_win: dropped empty item after legacy cleanup",
+    "gap.ai_search.missing_signals: dropped empty item after legacy cleanup",
+    "action.top_fixes: replaced empty title with neutral fallback",
+    "executive_summary: rebuilt empty summary from validated action items",
+    "ready_materials: rebuilt publishable materials from verified/observed facts"
   ],
   "implementation_briefs": [
     {
       "steps": [
-        "Design a primary CTA button with high-contrast colours (meeting WCAG AA contrast ratio) and label it with an outcome-oriented phrase such as 'Get Exact Prices in the App' or 'Post Your Job Free — Offers in 15 Min'.",
-        "Link the button directly to the relevant app store listing (iOS App Store and/or Google Play) so tapping or clicking opens the store page without intermediate redirects.",
-        "Place the button immediately below the hero headline in the DOM, visible without scrolling on both a 375 px mobile viewport and a 1280 px desktop viewport.",
-        "Confirm placement does not conflict with any sticky nav or cookie banner that would obscure the button on load."
+        "Identify the current sub-headline element in the homepage markup and confirm it is positioned immediately below or adjacent to the primary headline, visible without scrolling on both mobile and desktop viewports.",
+        "If the sub-headline has been moved, deprioritised, or hidden at any breakpoint, restore it to its above-the-fold position in the DOM and stylesheet.",
+        "QA the updated layout across common screen sizes (320 px, 768 px, 1280 px) to confirm the sub-headline renders before the fold on each."
       ],
-      "fix_title": "Add a visible, high-contrast CTA button above the fold",
+      "fix_title": "Keep the current sub-headline as supporting copy. This surfaces the differentiator before a visitor decides whether to scroll.",
       "acceptance_criteria": [
-        "Done when a browser screenshot at 375 px and 1280 px viewport widths shows the CTA button visible within the first viewport without scrolling.",
-        "Done when clicking or tapping the button navigates directly to a valid app store listing URL with no intermediate redirect errors.",
-        "Done when the button's text-to-background contrast ratio is ≥ 4.5:1, verified by an automated accessibility checker such as axe or Lighthouse."
+        "Done when the sub-headline is visible on the homepage without scrolling at viewport widths of 320 px, 768 px, and 1280 px as verified by a browser screenshot or automated visual-regression test.",
+        "Done when the sub-headline appears in the crawled HTML source of the homepage in a position before the first scroll-triggering container."
       ]
     },
     {
       "steps": [
-        "Identify the primary resolved outcome customers seek (e.g. a clean home booked quickly and at a transparent price) and draft a headline that states that outcome and its speed or ease — for example, 'A Clean Home in Malta, Booked in Minutes'.",
-        "Move the current headline text ('Cleaning Services in Malta — Compare Offers from Verified Cleaners') or equivalent process description to the sub-headline or supporting copy line directly below the new headline.",
-        "A/B test or review the rewrite with at least one stakeholder representative of the target audience (Malta resident, expat, or property manager) before publishing.",
-        "Update the page <title> and meta description to reflect the outcome-led framing if they currently mirror the old mechanism-led headline."
+        "Connect the web form or CTA to the existing app-download funnel where technically feasible (e.g. follow-up email with app download link), so intent captured on the web can continue in-app.",
+        "Validate that the secondary CTA is keyboard-accessible and passes WCAG 2.1 AA contrast requirements."
       ],
-      "fix_title": "Rewrite the headline to lead with outcome, not mechanism",
+      "fix_title": "Add a web-based job-posting entry point alongside the app download CTA",
       "acceptance_criteria": [
-        "Done when the live hero section H1 leads with a customer outcome or benefit rather than a platform process step, confirmed by a content review against the agreed copy.",
-        "Done when the previous process-description text is present on the page as sub-headline or supporting copy, not removed entirely.",
-        "Done when the page <title> or meta description no longer duplicates the old mechanism-led phrasing verbatim, verified via View Source or a meta-tag inspector."
+        "Done when a visitor on a desktop browser (1280 px viewport) can see and interact with a web-based job-posting CTA on the homepage without being required to download the app first.",
+        "Done when a test submission through the web entry point produces a confirmation message to the user and a corresponding record in the backend or CRM.",
+        "Done when the secondary CTA passes an automated accessibility check for keyboard focus order and colour contrast ratio (minimum 4.5: 1 for normal text)."
       ]
     },
     {
       "steps": [
-        "Audit the Trustindex widget configuration and its data source to identify why review timestamps render as future dates (e.g. '14 July 2026'); check for timezone offset errors, date-format parsing bugs, or widget misconfiguration.",
-        "If the cause is a timezone or format error, correct the configuration so timestamps render in the local Malta timezone (CET/CEST) and in an unambiguous format (e.g. DD Month YYYY).",
-        "If the dates are confirmed correct due to a non-Gregorian calendar system or other valid reason, add a visible plain-language label adjacent to the date (e.g. 'Date shown in calendar') to prevent visitor misinterpretation.",
-        "Re-crawl or preview the page after the fix and confirm no review carries a date in the future relative to the current date."
+        "Add the FAQ section to the homepage (or a dedicated /faq page linked from the homepage) using visible, crawlable HTML — not content loaded exclusively via client-side JavaScript after initial render.",
+        "Implement FAQPage schema (included in the attached JSON-LD deliverable) with Question and Answer markup wrapping each pair, and validate the output using Google's Rich Results Test or equivalent schema-validation tool."
       ],
-      "fix_title": "Fix or explain the future-dated review timestamps",
+      "fix_title": "Add a structured FAQ section targeting common search and AI-retrieval queries",
       "acceptance_criteria": [
-        "Done when all displayed review timestamps on the live page show dates on or before the current calendar date, confirmed by visual inspection after deployment.",
-        "Done when the root cause (timezone error, widget misconfiguration, or other) is documented in an internal fix log so it can be prevented in future widget updates.",
-        "Done when, if a non-standard calendar explanation is applied, a plain-language label is visible adjacent to each affected date in a browser screenshot."
+        "Done when at least six FAQ pairs are present in the crawled HTML source of the page, each containing a question and a prose answer of at least one full sentence.",
+        "Done when a schema-validation tool (e.g. Google Rich Results Test) returns zero errors for FAQPage markup on the target page.",
+        "Done when none of the FAQ answers contain commercial claims (pricing figures, insurance confirmation, guarantee terms) that are not explicitly supported by operator-verified facts."
       ]
     },
     {
       "steps": [
-        "Implement LocalBusiness (or ProfessionalService) JSON-LD markup in the <head> of the homepage, including at minimum: name, url, address (St Julian's, Malta), telephone, and email (hello@rozie.app).",
-        "Add Service JSON-LD blocks for each distinct service category offered through the platform (e.g. regular home cleaning, deep cleaning), each referencing the LocalBusiness entity as the provider.",
-        "Implement FAQPage JSON-LD covering the questions and answers in the pricing section (see Fix 5); ensure each Question and Answer is an exact match to the visible on-page text.",
-        "Use LocalBusiness, ProfessionalService, Service, FAQPage, Organization schema unless verified review-source data is supplied.",
-        "Validate all markup using Google's Rich Results Test and Schema.org Validator before deploying to production."
+        "Audit every location on the homepage (and any other public-facing page) where app-store ratings counts, written review counts, or aggregate user numbers are displayed, and document the exact figure and label used at each location.",
+        "Retrieve the current verified rating count and written review count from the relevant app store dashboards (e.g. App Store Connect, Google Play Console) and record these as the single source of truth.",
+        "Update all on-page instances to match the verified figures; if both a 'ratings' figure and a 'written reviews' figure are legitimately correct and different, display both with distinct, clearly labelled text — for example: '592 ratings (including 292 written reviews on the App Store)' — so visitors understand why the numbers differ.",
+        "Add a brief inline note or tooltip wherever two different figures appear together, explaining the distinction between a star rating and a written review."
       ],
-      "fix_title": "Add Schema.org structured data — LocalBusiness, Service, FAQPage, and Review",
+      "fix_title": "Reconcile and unify all review count figures across the page",
       "acceptance_criteria": [
-        "Done when Google's Rich Results Test returns no errors for LocalBusiness and FAQPage markup on the live homepage URL.",
-        "Done when Schema.org Validator confirms valid JSON-LD for all implemented types (LocalBusiness, Service, FAQPage) with no critical errors.",
-        "Use LocalBusiness, ProfessionalService, Service, FAQPage, Organization schema unless verified review-source data is supplied."
+        "Done when a manual review of the live homepage finds no two rating or review count figures that are numerically inconsistent without an accompanying explanatory label.",
+        "Done when each displayed figure can be traced to a corresponding screenshot or export from the relevant app store dashboard, stored as an internal reference document.",
+        "Done when any page displaying both a 'ratings' count and a 'reviews' count includes visible label text distinguishing the two figures."
       ]
     },
     {
       "steps": [
-        "Break the existing 'How Much Do Cleaning Services Cost in Malta?' section into discrete, self-contained questions — for example: 'How much does regular home cleaning cost in Malta?', 'What affects the price of a deep clean in Malta?', 'How do I get an exact price for my cleaning job?' — each followed by a direct answer paragraph that stands alone.",
-        "Ensure each answer paragraph contains the specific figures already present on the page (e.g. the EUR 10–EUR 25/hr range, deep-clean uplift context) so the content is accurate and the restructure does not remove verified information.",
-        "Mark up the Q&A section in the HTML using semantically appropriate heading and paragraph elements (e.g. <h3> for each question, <p> for each answer) so the structure is crawler-readable without relying solely on schema.",
-        "Pair this HTML restructure with the FAQPage JSON-LD added in Fix 4, ensuring each Question/Answer in the schema exactly mirrors the visible on-page text."
+        "Work with the Rozie operations team to document the actual ID-check process: which document types are accepted (e.g. national ID, passport), whether address verification is included, and at what point in onboarding the check occurs — only include details the operator can confirm as accurate.",
+        "Write a short prose section (3–6 sentences minimum) describing the vetting process using the confirmed details; present it on the homepage or a dedicated 'How we vet cleaners' section, in crawlable HTML.",
+        "Extend the description to explain how the star-rating and review system functions as an ongoing quality mechanism (e.g. ratings are collected after each completed booking, cleaners below a threshold may be reviewed) — again, only include details the operator confirms.",
+        "Review the updated copy against the operator-verified facts to ensure no claim about insurance, certification, or background-check depth is made unless it is explicitly confirmed."
       ],
-      "fix_title": "Reformat the pricing section as explicit FAQ question-and-answer pairs",
+      "fix_title": "Expand the cleaner vetting description to make it substantively informative",
       "acceptance_criteria": [
-        "Done when the pricing section on the live page contains at least three discrete visible question headings each immediately followed by a standalone answer paragraph, confirmed by visual inspection.",
-        "Done when the FAQPage JSON-LD entities match the visible question and answer text character-for-character, verified by comparing the schema output (via Rich Results Test) against the rendered page copy.",
-        "Done when no pricing figures that existed in the original section have been removed in the restructure, confirmed by a before-and-after content diff."
+        "Done when the live page contains a vetting description of at least three sentences that names at least one specific document type accepted and explains at least one aspect of how ratings feed into quality control, with all claims traceable to operator-confirmed facts.",
+        "Done when the updated section is present in the crawled HTML (not rendered solely client-side) so it is indexable.",
+        "Done when a content review confirms the section contains no claim about insurance, certification scope, or guarantee that is not explicitly supported by the operator-verified facts supplied to this brief."
       ]
     }
   ],
@@ -1411,7 +1404,7 @@
         "evidence": "18280 text characters observed"
       }
     ],
-    "checked_at": "2026-07-22T16:07:13.941Z",
+    "checked_at": "2026-07-23T12:08:29.777Z",
     "crawler_access": [
       {
         "detail": "No matching robots.txt disallow rule was observed.",

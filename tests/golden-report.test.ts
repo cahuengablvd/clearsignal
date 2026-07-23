@@ -17,7 +17,7 @@ const verticalFixtures = [
   { slug: 'blvdprod', category: 'video_production', schemaBaseline: 'historical' },
   { slug: 'latvianart', category: 'art_gallery', schemaBaseline: 'historical' },
   { slug: 'monokelriga', category: 'tailoring_atelier', schemaBaseline: 'historical' },
-  { slug: 'rozie', category: 'marketplace', schemaBaseline: 'historical' },
+  { slug: 'rozie', category: 'marketplace', schemaBaseline: 'strict' },
 ] as const
 
 function loadGoldenReport(): ClearSignalReport {
@@ -265,7 +265,7 @@ describe('golden-report regression test', () => {
   }
 
   it('keeps the Rozie marketplace and dual-ICP context without foreign vertical drift', () => {
-    const report = clientSafeFixture('rozie', 'historical')
+    const report = clientSafeFixture('rozie', 'strict')
     const text = clientText(report)
 
     expect(report.meta.business_context?.business_model).toBe('two_sided_marketplace')

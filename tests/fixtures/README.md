@@ -7,6 +7,7 @@ tests/fixtures/golden-report-az-moving.json
 tests/fixtures/golden-report-blvdprod.json
 tests/fixtures/golden-report-latvianart.json
 tests/fixtures/golden-report-monokelriga.json
+tests/fixtures/golden-report-rozie.json
 ```
 
 Export only the `report` / `generated_report` JSON from Supabase, not the PDF

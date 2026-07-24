@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Loader2, RefreshCw, ExternalLink, LogIn, X, Plus } from 'lucide-react'
 import { pollAuditStatus } from '@/lib/audit-polling'
 import { normalizeWebsiteUrl } from '@/lib/normalize-url'
+import { BAND_LABEL, bandFor } from '@/lib/audit-bands'
 
 type Audit = {
   id: string
@@ -860,8 +861,17 @@ export default function AdminPage() {
           <div className="text-center py-20 text-muted-foreground">No audits yet.</div>
         ) : (
           <div className="space-y-4">
-            {audits.map((audit) => (
-              <Card key={audit.id}>
+            {audits.map((audit, index) => (
+              <Fragment key={audit.id}>
+              {(index === 0 || bandFor(audits[index - 1].audit_status) !== bandFor(audit.audit_status)) && (
+                <div className="flex items-baseline gap-2 pt-4 first:pt-0">
+                  <h2 className="text-sm font-semibold">{BAND_LABEL[bandFor(audit.audit_status)]}</h2>
+                  <span className="text-xs text-muted-foreground">
+                    {audits.filter((item) => bandFor(item.audit_status) === bandFor(audit.audit_status)).length}
+                  </span>
+                </div>
+              )}
+              <Card>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
@@ -1121,6 +1131,7 @@ export default function AdminPage() {
                   </div>
                 </CardContent>
               </Card>
+              </Fragment>
             ))}
           </div>
         )}

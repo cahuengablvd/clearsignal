@@ -5,6 +5,18 @@
  * HTTP-only site; callers that know the user omitted the scheme may retry the
  * scrape once over HTTP, but must never downgrade an explicitly supplied URL.
  */
+/**
+ * The bare hostname for display - subject lines, headings, plain-text bodies.
+ * A raw "https://" in an email subject reads as spam to filters and to people.
+ */
+export function displayDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, '').toLowerCase()
+  } catch {
+    return url
+  }
+}
+
 export function normalizeWebsiteUrl(raw: string): string | null {
   const compact = raw.trim().replace(/\s+/g, '')
   if (!compact) return null

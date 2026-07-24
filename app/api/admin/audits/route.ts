@@ -2,21 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { trySignToken } from '@/lib/tokens'
-
-const STATUS_PRIORITY: Record<string, number> = {
-  processing: 0,
-  queued: 1,
-  'failed-validation': 2,
-  failed: 3,
-  delivery_failed: 4,
-  awaiting_review: 5,
-  done: 6,
-  delivered: 7,
-}
-
-function statusPriority(status: string): number {
-  return STATUS_PRIORITY[status] ?? 99
-}
+// Shared with the admin screen so the order and the band headers cannot drift.
+import { statusPriority } from '@/lib/audit-bands'
 
 function lastActivityAt(audit: {
   created_at: string

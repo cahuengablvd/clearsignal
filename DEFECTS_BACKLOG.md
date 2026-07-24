@@ -1,0 +1,116 @@
+# Defects backlog
+
+Process: defects found in real audits land here (date, audit/vertical, field path, quoted
+text, proposed fix). Fixed in batches — each fix starts with a failing fixture test. R1 is
+the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships BEFORE the
+20-audit run.
+
+## R1 — Re-render does not recompute GEO detection over stored evidence (DO NOW: unmet F9)
+
+- Seen: 2026-07-03, monokelriga re-render on e2554b2. Evidence header says "best custom
+  tailored suits in Riga for men / perplexity / **Not named**" while the stored answer
+  literally opens with "The best custom-tailored suits for men in **Riga** are offered by
+  **Monokel Riga**". Score stuck at 2/14 — the alias fix (da54fbf) never applied to this
+  report.
+- Root cause: `rebuildReusedGeoNarrative` (lib/audit-runner.ts) rebuilds narrative/summary
+  from the STORED `brand_mentioned` flags; nothing recomputes detection with the new
+  alias-aware `buildVariants`.
+- Fix: in the re-render path (and anywhere reused GEO evidence flows into a report), first
+  recompute per-evidence `brand_mentioned`, `brand_cited`, `brand_position`,
+  `competitors_mentioned` from stored `answer_excerpt` + `citations` using current
+  `buildVariants` (with `alternative_brand_forms` from meta), then recompute mention/citation
+  rates, share of voice, position score, `ai_visibility_score`, and only then rebuild the
+  narrative. Document the caveat: recompute runs over the 700-char excerpt, so it can only
+  ADD mentions relative to stored flags, never prove absence beyond the excerpt.
+- Acceptance: monokelriga fixture re-render flips the Riga query to Named; mention count
+  >= 3 of 14; evidence header shows Named; summary/score/stat blocks all agree.
+
+## R2 — Neutral meta fallback produces "Monokelriga provides services."
+
+- Seen: 2026-07-03, monokelriga e2554b2 ready materials: "Monokelriga provides services.
+  Contact the business to discuss options, availability, and next steps." Empty observed
+  context degraded the fallback to filler copy — while the operator's verified_facts contain
+  "Business type: bespoke menswear atelier" and locations include Riga.
+- Fix: `neutralMetaDescription` inputs must include the verified-facts business type and the
+  material category (lib/verified-facts.ts already parses these). Never emit the bare
+  "provides services" — when no category is resolvable, fall back to brand + conversion
+  action only ("Monokelriga — contact the atelier to book a consultation.").
+- Acceptance: mono fixture → meta description names the business type or drops the
+  "provides X" clause entirely; the literal string "provides services." never appears.
+
+## R3 — Brief schema guidance suggests MovingCompany to non-moving businesses
+
+- Seen: 2026-07-03, monokelriga + latvianart briefs: "Use Organization, Service,
+  LocalBusiness/MovingCompany, or FAQPage schema unless verified review-source data is
+  supplied." — an atelier and an art gallery being told about MovingCompany.
+- Root cause: the AggregateRating replacement text in report-validator.ts is a hardcoded
+  string with a moving-flavored schema list.
+- Fix: build the replacement from the F1 schema allowlist for
+  `materialCategoryForContext(...)`: gallery → "ArtGallery, Organization, VisualArtwork, or
+  FAQPage", atelier → "LocalBusiness, ProfessionalService, Service, or FAQPage", etc.
+- Acceptance: no `MovingCompany` token in any non-moving report (extend the F1 vocabulary
+  test to cover brief text).
+
+## R5 — Recovery sweep retries deterministic failures forever (DO NOW: burns money)
+
+- Seen: 2026-07-03 ~15:00-15:20. The prompt/schema contradiction (fixed in 0f7071a) made
+  every full generation fail after ~6 min. `audit-recovery-sweep` (cron, every 10 min)
+  re-enqueued the failed audits each cycle: 2 failed runs + 1 executing + 3 queued before
+  ops intervention (runs canceled, statuses reset by hand). Left alone this loop burns
+  LLM + Trigger money indefinitely — each cycle a full audit's worth of API calls, forever.
+- Fix in `lib/audit-recovery.ts`:
+  1. Attempt budget: add `recovery_attempts` counter (or count report_versions/notes marks);
+     after N=2 re-enqueues an audit goes to `failed` (not swept) + `notify` escalation.
+  2. Staleness must key off a `processing_started_at` timestamp, not `created_at` — any
+     old audit re-entering processing is instantly "stale" today.
+  3. The sweep must never re-enqueue an audit whose latest run failed with a validation
+    /schema error (deterministic — retry cannot help); only crash/timeout classes retry.
+- Acceptance: unit test — an audit whose run failed twice with a zod error is NOT
+  re-enqueued and lands in `failed` with an escalation notify.
+
+## R6 — Successful runs must clear stale failure text from admin_notes
+
+- Seen: 2026-07-03. After the 14:46 re-render SUCCEEDED, the old "Report validation
+  blocked re-render: replacement_phrase..." text stayed in admin_notes — the operator
+  (reasonably) read it as a fresh failure and re-triggered generation, feeding the R5 loop.
+- Fix: on successful re-render/generation, append a timestamped "OK: re-render succeeded,
+  N warnings" line (or clear resolved failure lines). admin_notes must always end with the
+  latest outcome.
+
+## R7 — Prompt/schema drift guard (partially done in 0f7071a)
+
+- The class: prompt instructions and zod constraints evolve independently; F4 hardened the
+  schema (exactly 3 unique outreach channels) while a later prompt edit relaxed the wording
+  ("only messages that fit") — every generation then failed schema validation.
+- Done: contract-guard tests for outreach count + repair-prompt-restates-request.
+- Remaining for Codex: extend the same contract tests to every enum the prompts promise
+  (top_fixes.category, impact, effort, channel; materials FAQ counts) so a prompt edit that
+  contradicts the schema fails CI, not production.
+
+## R4 — Legacy reports left with 1-2 outreach channels after dedupe (warning only)
+
+- Seen: 2026-07-03: latvianart shows 1 channel (email), monokelriga and az-moving show 2.
+  The F4 dedupe removes duplicates from legacy reports but cannot invent the missing
+  channels without an LLM call.
+- Decision: for legacy re-renders this is acceptable — add a validator WARNING
+  ("outreach: N of 3 channels after legacy dedupe") so it surfaces in admin review, and an
+  operator-checklist line. New generations already enforce 3 unique channels via schema.
+- Do not add an LLM top-up call for legacy reports; not worth the cost before launch.
+
+## R8 — Marketplace JSON-LD deliverable is the generic pair (quality, not a blocker)
+
+- Seen: 2026-07-24, rozie re-render on b1cc310. `ready_materials.json_ld.@graph` ships only
+  `Organization` + `FAQPage`, while the marketplace allowlist permits `Organization, WebSite,
+  FAQPage, ItemList, OfferCatalog` (lib/industry-profiles/schema-allowlist.ts:12).
+- Not a gate defect: the schema-deliverable gate behaved correctly — it narrowed the
+  recommendations to what is actually attached and deferred `Review` until a confirmed
+  review-feed integration exists. Consistency is exactly what it is there for.
+- The gap is in the materials, not the validator: for a marketplace, `ItemList` and
+  `OfferCatalog` are the types that carry real value (listing/offer structure). Shipping the
+  generic pair makes the section read as boilerplate for this vertical.
+- Fix direction: extend the materials builder so an affirmatively-`marketplace` business also
+  emits `WebSite` (with SearchAction) and an `ItemList`/`OfferCatalog` block built ONLY from
+  listing/offer structure actually observed on the page. Never invent offers or prices — if the
+  page shows no listing structure, keep the generic pair and say nothing.
+- Acceptance: rozie fixture yields at least one marketplace-specific type in the deliverable, and
+  every recommended type still passes the schema-deliverable gate unchanged.

@@ -48,7 +48,9 @@ Two confirmations still open, both needing a login this side of the repo:
 ## In flight
 
 - `TASKS_FUNNEL_INPUT.md` is deployed in Vercel commit `764e008` and Trigger version
-  `20260724.3`; production mobile smoke verification remains.
+  `20260724.3`. Production smoke accepted bare `rozie.app`, survived closing/reopening the
+  result URL, and reached `done`; it was still honestly `processing` at 40 seconds and completed
+  at roughly 70 seconds.
 
 ## Cost
 

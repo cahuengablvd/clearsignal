@@ -51,10 +51,19 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
 
 ## In flight
 
-- `TASKS_DELIVERY_POLISH.md` — brand the report delivery email (it is currently unstyled HTML
-  after a €149 purchase) and label the admin queue's priority bands. Not started.
+- **Two-week sales test** (owner-led): the validation kit lives in `validation/` — plan,
+  outreach messages, agency interview script, tracking sheet. Segment order: SEO/digital
+  agencies first, then service businesses. Go/no-go criteria are in `validation/PLAN.md`.
+  No product changes during the test; objections land in `tracking.csv`, defects in
+  `DEFECTS_BACKLOG.md`.
 
 ## Shipped
+
+- `TASKS_DELIVERY_POLISH.md` — commit `b3f3cf5`. Both transactional emails share a branded
+  table-based shell (site palette, text wordmark, dark mode, plain-text alternative, bare
+  domain in subjects); the admin queue shows "Needs attention" / "Finished" band headers over
+  the unchanged priority sort. Frontend-only, no Trigger deploy needed. Owner still to eyeball
+  the email in Gmail + a dark-mode client after the Vercel deploy.
 
 - `TASKS_FUNNEL_INPUT.md` — Vercel commit `764e008`, Trigger version `20260724.3`. Production
   smoke accepted bare `rozie.app`, survived closing and reopening the result URL, was honestly

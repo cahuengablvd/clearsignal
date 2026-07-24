@@ -24,10 +24,15 @@
 
 **CRITICAL: Always deploy from `C:\csdeploy` (no-space path).**
 
+**Pin the CLI to the SDK version in `package.json` — never `@latest`.** The CLI aborts when its
+version differs from the installed `@trigger.dev/*` packages. Working around that by bumping the
+SDK inside `C:\csdeploy` (as happened before 2026-07-24, leaving the worker on an SDK version
+absent from the repo) is how the deploy silently drifts from `main`.
+
 ```powershell
 cd C:\csdeploy
 git pull origin main
-npx trigger.dev@latest deploy
+npx trigger.dev@4.4.6 deploy   # the version from package.json, not @latest
 ```
 
 Wait for:

@@ -15,6 +15,9 @@ Quick reminders that matter most when implementing:
   `C:\csdeploy` (see `DEPLOY.md`). Non-ASCII in source uses `\u` escapes (Windows CP1251).
 - Task specs live in `TASKS_*.md` at the repo root. After changes: `npx tsc --noEmit`,
   `npm run build`, and the vitest suite must pass.
+- **`STATUS.md` is the handoff.** Read it before starting; update it at the end of a session when
+  external state changed (a Trigger deploy, a verification outcome, work handed to someone else).
+  Nothing is emailed or copied between machines — `git pull` carries it.
 
 ## Cost discipline (read this before starting anything)
 

@@ -71,6 +71,8 @@ generates → admin human-review gate (/admin) → Resend delivers web report + 
 
 ## Key docs
 
+- `STATUS.md` — external state git cannot know (deployed Trigger version, what is blocked on the
+  owner, work in flight). Read it first; update it at the end of a session.
 - `DECISION_MEMO.md` — strategy, real competitor pricing, 60-day plan, kill criteria.
 - `DEPLOY.md` — the Vercel + Trigger deploy procedure (the C:\csdeploy rule).
 - `TASKS_LAUNCH_PASS.md` — the paid-funnel launch review.

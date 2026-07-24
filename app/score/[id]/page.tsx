@@ -9,6 +9,7 @@ import { isAdminAuthenticated } from '@/lib/auth'
 import { trySignToken, verifyToken } from '@/lib/tokens'
 import type { GeoEvidence, GeoResult } from '@/lib/schemas'
 import { ScorePdfView } from './score-pdf-view'
+import { ScoreProgress } from './score-progress'
 import {
   ArrowRight,
   BarChart3,
@@ -108,6 +109,36 @@ export default async function ScoreResultPage({
 
   if (error || !score) {
     notFound()
+  }
+
+  const processingScores =
+    score.scores && typeof score.scores === 'object' && !Array.isArray(score.scores)
+      ? score.scores as Record<string, unknown>
+      : null
+  const processingStartedAt = processingScores?._processing_started_at
+  const isStale =
+    score.status === 'processing' &&
+    typeof processingStartedAt === 'string' &&
+    Date.now() - new Date(processingStartedAt).getTime() > 10 * 60 * 1000
+  const pendingStatus = isStale ? 'failed' : score.status
+  if (pendingStatus === 'processing' || pendingStatus === 'failed') {
+    return (
+      <div className="min-h-screen bg-[#FBF6EE] text-[#2E2116]">
+        <PublicPageHeader actionHref="/sample" actionLabel="View sample report" />
+        <main className="px-5 py-16 sm:py-24">
+          <ScoreProgress
+            id={score.id}
+            token={searchParams.token || ''}
+            status={pendingStatus}
+            reason={
+              isStale
+                ? 'The check took too long to finish. Please start a new check.'
+                : score.top_insight
+            }
+          />
+        </main>
+      </div>
+    )
   }
 
   const scores = score.scores as Record<string, number | string | GeoResult | null>

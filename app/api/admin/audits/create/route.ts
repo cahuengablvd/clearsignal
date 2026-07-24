@@ -6,12 +6,17 @@ import { enqueueAudit } from '@/lib/audit-queue'
 import { notify } from '@/lib/notify'
 import { trySignToken } from '@/lib/tokens'
 import { BusinessContextSchema, competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
+import { normalizeWebsiteUrl } from '@/lib/normalize-url'
 
 export const maxDuration = 60
 
 const requestSchema = z.object({
   email: z.string().email(),
-  url: z.string().url(),
+  url: z
+    .string()
+    .trim()
+    .transform(normalizeWebsiteUrl)
+    .refine((value): value is string => value !== null, 'Enter a valid homepage URL'),
   competitor_1: competitorUrlSchema,
   competitor_2: competitorUrlSchema,
   competitor_3: competitorUrlSchema,

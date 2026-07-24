@@ -9,17 +9,32 @@ function getFirecrawl() {
   return _firecrawl
 }
 
-export async function scrapeUrl(url: string): Promise<string | null> {
+export async function scrapeUrl(
+  url: string,
+  options: { allowHttpFallback?: boolean } = {}
+): Promise<string | null> {
   try {
     const result = await getFirecrawl().v1.scrapeUrl(url, { formats: ['markdown'] })
     if (result.success && result.markdown) {
       return result.markdown
     }
-    return null
   } catch (err) {
     console.error(`Firecrawl scrape failed for ${url}:`, err)
-    return null
   }
+
+  // Bare inputs default to HTTPS. Retry HTTP only when the caller records that
+  // the user omitted the scheme; an explicitly typed HTTPS URL is never downgraded.
+  if (options.allowHttpFallback && url.startsWith('https://')) {
+    const fallbackUrl = `http://${url.slice('https://'.length)}`
+    try {
+      const result = await getFirecrawl().v1.scrapeUrl(fallbackUrl, { formats: ['markdown'] })
+      if (result.success && result.markdown) return result.markdown
+    } catch (err) {
+      console.error(`Firecrawl HTTP fallback failed for ${fallbackUrl}:`, err)
+    }
+  }
+
+  return null
 }
 
 /**

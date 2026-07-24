@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { PublicPageHeader } from '@/components/public-page-header'
 import { Check, Loader2, LockKeyhole } from 'lucide-react'
+import { normalizeWebsiteUrl } from '@/lib/normalize-url'
 
 const DRAFT_KEY = 'clearsignal-paid-checkout-draft'
 
@@ -95,15 +96,22 @@ function CheckoutContent() {
     setError('')
 
     try {
+      const url = normalizeWebsiteUrl(draft.url)
+      const competitor_1 = draft.competitor_1 ? normalizeWebsiteUrl(draft.competitor_1) : ''
+      const competitor_2 = draft.competitor_2 ? normalizeWebsiteUrl(draft.competitor_2) : ''
+      const competitor_3 = draft.competitor_3 ? normalizeWebsiteUrl(draft.competitor_3) : ''
+      if (!url || (draft.competitor_1 && !competitor_1) || (draft.competitor_2 && !competitor_2) || (draft.competitor_3 && !competitor_3)) {
+        throw new Error('Enter a valid homepage URL')
+      }
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: draft.email,
-          url: draft.url,
-          competitor_1: draft.competitor_1,
-          competitor_2: draft.competitor_2,
-          competitor_3: draft.competitor_3,
+          url,
+          competitor_1,
+          competitor_2,
+          competitor_3,
           icp_description: draft.icp_description,
           business_context: {
             business_model: draft.business_model || 'unknown',
@@ -179,7 +187,7 @@ function CheckoutContent() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <Field label="Homepage URL *" id="url">
-                <Input id="url" type="url" required value={draft.url} onChange={(e) => updateDraft('url', e.target.value)} placeholder="https://yourproduct.com" className={fieldClass} />
+                <Input id="url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={draft.url} onChange={(e) => updateDraft('url', e.target.value)} placeholder="yourproduct.com" className={fieldClass} />
               </Field>
               <Field label="Email *" id="email">
                 <Input id="email" type="email" required value={draft.email} onChange={(e) => updateDraft('email', e.target.value)} placeholder="you@company.com" className={fieldClass} />
@@ -190,7 +198,7 @@ function CheckoutContent() {
                   const field = `competitor_${number}` as 'competitor_1' | 'competitor_2' | 'competitor_3'
                   return (
                     <Field key={field} label={`Competitor ${number} (optional)`} id={field}>
-                      <Input id={field} type="url" value={draft[field]} onChange={(e) => updateDraft(field, e.target.value)} placeholder="https://competitor.com" className={fieldClass} />
+                      <Input id={field} type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={draft[field]} onChange={(e) => updateDraft(field, e.target.value)} placeholder="competitor.com" className={fieldClass} />
                     </Field>
                   )
                 })}

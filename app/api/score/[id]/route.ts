@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const { data, error } = await supabaseAdmin
     .from('scores')
-    .select('id, url, email, competitor_1')
+    .select('id, url, email, competitor_1, status, top_insight, scores')
     .eq('id', params.id)
     .single()
 
@@ -29,5 +29,21 @@ export async function GET(
     return NextResponse.json({ id: data.id, url: data.url, competitor_1: data.competitor_1 })
   }
 
-  return NextResponse.json(data)
+  const processingStartedAt =
+    data.scores && typeof data.scores === 'object' && !Array.isArray(data.scores)
+      ? (data.scores as Record<string, unknown>)._processing_started_at
+      : null
+  const stale =
+    data.status === 'processing' &&
+    typeof processingStartedAt === 'string' &&
+    Date.now() - new Date(processingStartedAt).getTime() > 10 * 60 * 1000
+
+  return NextResponse.json({
+    ...data,
+    scores: undefined,
+    status: stale ? 'failed' : data.status,
+    top_insight: stale
+      ? 'The check took too long to finish. Please start a new check.'
+      : data.top_insight,
+  })
 }

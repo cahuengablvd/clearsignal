@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, RefreshCw, ExternalLink, LogIn, X, Plus } from 'lucide-react'
 import { pollAuditStatus } from '@/lib/audit-polling'
+import { normalizeWebsiteUrl } from '@/lib/normalize-url'
 
 type Audit = {
   id: string
@@ -390,8 +391,21 @@ export default function AdminPage() {
     }
     setPreviewing(true)
     setCreateMsg(null)
+    const normalizedUrl = normalizeWebsiteUrl(form.url)
+    const rawCompetitors = [form.competitor_1, form.competitor_2, form.competitor_3]
+    const normalizedCompetitors = [form.competitor_1, form.competitor_2, form.competitor_3]
+      .map((value) => value ? normalizeWebsiteUrl(value) : '')
+    if (!normalizedUrl || normalizedCompetitors.some((value, index) => rawCompetitors[index] && !value)) {
+      setCreateMsg({ ok: false, text: 'Enter a valid homepage URL' })
+      setPreviewing(false)
+      return
+    }
     const payload = {
       ...form,
+      url: normalizedUrl,
+      competitor_1: normalizedCompetitors[0],
+      competitor_2: normalizedCompetitors[1],
+      competitor_3: normalizedCompetitors[2],
       business_context: resolvedBusinessContext(form.business_context),
     }
     try {
@@ -424,6 +438,10 @@ export default function AdminPage() {
     setCreateMsg(null)
     const payload = {
       ...form,
+      url: normalizeWebsiteUrl(form.url),
+      competitor_1: form.competitor_1 ? normalizeWebsiteUrl(form.competitor_1) : '',
+      competitor_2: form.competitor_2 ? normalizeWebsiteUrl(form.competitor_2) : '',
+      competitor_3: form.competitor_3 ? normalizeWebsiteUrl(form.competitor_3) : '',
       business_context: resolvedBusinessContext(form.business_context),
     }
     try {
@@ -720,26 +738,42 @@ export default function AdminPage() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
                 <Input
-                  type="url"
-                  placeholder="Homepage URL * (https://...)"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="Homepage URL * (yourproduct.com)"
                   required
                   value={form.url}
                   onChange={(e) => setForm({ ...form, url: e.target.value })}
                 />
                 <Input
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Competitor 1 (optional)"
                   value={form.competitor_1}
                   onChange={(e) => setForm({ ...form, competitor_1: e.target.value })}
                 />
                 <Input
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Competitor 2 (optional)"
                   value={form.competitor_2}
                   onChange={(e) => setForm({ ...form, competitor_2: e.target.value })}
                 />
                 <Input
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Competitor 3 (optional)"
                   value={form.competitor_3}
                   onChange={(e) => setForm({ ...form, competitor_3: e.target.value })}

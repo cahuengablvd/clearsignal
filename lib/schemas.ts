@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { normalizeWebsiteUrl } from './normalize-url'
 
 // --- Free Score ---
 
@@ -105,15 +106,9 @@ export const icpTextSchema = z
 /** A competitor is always a valid http(s) URL (or empty). */
 export const competitorUrlSchema = z
   .string()
-  .url()
-  .refine((v) => {
-    try {
-      const protocol = new URL(v).protocol
-      return protocol === 'http:' || protocol === 'https:'
-    } catch {
-      return false
-    }
-  }, { message: 'Competitor must be an http(s) URL' })
+  .trim()
+  .transform((value) => value === '' ? '' : normalizeWebsiteUrl(value))
+  .refine((value): value is string => value !== null, { message: 'Competitor must be an http(s) URL' })
   .optional()
   .or(z.literal(''))
 
@@ -123,7 +118,11 @@ export const competitorUrlSchema = z
  */
 export const CheckoutIntakeSchema = z.object({
   email: z.string().trim().email('Enter a valid email address'),
-  url: z.string().trim().url('Enter a valid homepage URL'),
+  url: z
+    .string()
+    .trim()
+    .transform(normalizeWebsiteUrl)
+    .refine((value): value is string => value !== null, 'Enter a valid homepage URL'),
   competitor_1: competitorUrlSchema,
   competitor_2: competitorUrlSchema,
   competitor_3: competitorUrlSchema,

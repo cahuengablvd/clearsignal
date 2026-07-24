@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { PublicPageHeader } from '@/components/public-page-header'
 import { BarChart3, FileCheck2, Loader2, SearchCheck } from 'lucide-react'
+import { normalizeWebsiteUrl } from '@/lib/normalize-url'
 
 export default function ScorePage() {
   const router = useRouter()
@@ -20,10 +21,17 @@ export default function ScorePage() {
     setError('')
 
     const form = new FormData(e.currentTarget)
-    const url = form.get('url') as string
+    const rawUrl = form.get('url') as string
     const email = form.get('email') as string
-    const competitor_1 = form.get('competitor_1') as string
+    const rawCompetitor = form.get('competitor_1') as string
     const icp_description = form.get('icp_description') as string
+    const url = normalizeWebsiteUrl(rawUrl)
+    const competitor_1 = rawCompetitor ? normalizeWebsiteUrl(rawCompetitor) : ''
+    if (!url || (rawCompetitor && !competitor_1)) {
+      setError('Enter a valid homepage URL')
+      setLoading(false)
+      return
+    }
 
     try {
       const res = await fetch('/api/score', {
@@ -33,8 +41,18 @@ export default function ScorePage() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Something went wrong')
+        let message = res.status === 429
+          ? 'Rate limit reached. Please try again later.'
+          : res.status >= 500
+            ? 'We could not finish the check. Please try again.'
+            : 'Something went wrong'
+        try {
+          const data = await res.json()
+          if (typeof data.error === 'string') message = data.error
+        } catch {
+          // Vercel errors can be HTML (for example a 504), not JSON.
+        }
+        throw new Error(message)
       }
 
       const data = await res.json()
@@ -104,8 +122,12 @@ export default function ScorePage() {
             <Input
               id="url"
               name="url"
-              type="url"
-              placeholder="https://yourproduct.com"
+              type="text"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="yourproduct.com"
               required
               className="mt-2 min-h-12 border-[#DCCDBA] bg-white text-[#2E2116] placeholder:text-[#A08E80] focus-visible:ring-[#A9531F]"
             />
@@ -128,8 +150,12 @@ export default function ScorePage() {
             <Input
               id="competitor_1"
               name="competitor_1"
-              type="url"
-              placeholder="https://competitor.com"
+              type="text"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="competitor.com"
               className="mt-2 min-h-12 border-[#DCCDBA] bg-white text-[#2E2116] placeholder:text-[#A08E80] focus-visible:ring-[#A9531F]"
             />
           </div>

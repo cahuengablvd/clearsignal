@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   supabaseSelect: vi.fn(),
   supabaseSingle: vi.fn(),
   supabaseFrom: vi.fn(),
+  enqueueFreeScore: vi.fn(),
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -63,6 +64,10 @@ vi.mock('@/lib/supabase', () => ({
   supabaseAdmin: {
     from: mocks.supabaseFrom,
   },
+}))
+
+vi.mock('@/lib/score-queue', () => ({
+  enqueueFreeScore: mocks.enqueueFreeScore,
 }))
 
 function request(body: Record<string, unknown>) {
@@ -141,5 +146,27 @@ describe('public cost-abuse guards', () => {
     expect(mocks.scrapeUrl).not.toHaveBeenCalled()
     expect(mocks.callClaudeJSON).not.toHaveBeenCalled()
     expect(mocks.runGeoScan).not.toHaveBeenCalled()
+    expect(mocks.enqueueFreeScore).not.toHaveBeenCalled()
+  })
+
+  it('returns a score id immediately after enqueueing background work', async () => {
+    const { POST } = await import('../app/api/score/route')
+
+    const res = await POST(request({
+      email: 'lead@example.com',
+      url: 'example.com',
+      competitor_1: '',
+      icp_description: 'Local service buyer',
+    }) as never)
+    const body = await res.json()
+
+    expect(res.status).toBe(202)
+    expect(body).toEqual({ id: 'score-1', token: 'signed-token' })
+    expect(mocks.enqueueFreeScore).toHaveBeenCalledWith(
+      'score-1',
+      expect.objectContaining({ url: 'https://example.com/', allowHttpFallback: true })
+    )
+    expect(mocks.scrapeUrl).not.toHaveBeenCalled()
+    expect(mocks.callClaudeJSON).not.toHaveBeenCalled()
   })
 })

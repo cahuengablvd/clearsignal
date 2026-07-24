@@ -11,13 +11,14 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-07-24, at commit `9054595`.
+**Last updated:** 2026-07-24, after commit `764e008`.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260724.1`**, deployed from `C:\csdeploy` at commit `d9251c4`,
-  4 tasks detected.
+- **Trigger.dev** — version **`20260724.3`**, deployed from `C:\csdeploy` at commit `764e008`,
+  5 tasks detected. This release adds the durable `run-free-score` task and the funnel URL
+  normalization/mobile-resume batch from `TASKS_FUNNEL_INPUT.md`.
   - Before this it sat on `4aa690f` (Jul 4), **41 commits behind** — generation ran July code
     while the site ran July 24 code. Anything touching `lib/audit-*`, `lib/report-*`,
     `lib/quality/*`, `trigger/*` or prompts needs a Trigger deploy or it simply is not live.
@@ -46,9 +47,8 @@ Two confirmations still open, both needing a login this side of the repo:
 
 ## In flight
 
-- `TASKS_FUNNEL_INPUT.md` with Codex: URL normalization (accept a bare domain) plus free-score
-  reliability (the mobile "Load failed"). Starts by reading the failing `/api/score` duration
-  out of the Vercel logs.
+- `TASKS_FUNNEL_INPUT.md` is deployed in Vercel commit `764e008` and Trigger version
+  `20260724.3`; production mobile smoke verification remains.
 
 ## Cost
 

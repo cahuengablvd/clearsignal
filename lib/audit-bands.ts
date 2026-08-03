@@ -15,26 +15,36 @@ export const STATUS_PRIORITY: Record<string, number> = {
   awaiting_review: 5,
   done: 6,
   delivered: 7,
+  // An abandoned checkout: the row exists because /api/stripe/checkout persists
+  // intake before Stripe, but nobody paid. Nothing an operator can act on, so it
+  // sits below finished work rather than at the top.
+  awaiting_payment: 8,
 }
+
+/** Unrecognized statuses sort last and land in the trailing band. */
+const UNKNOWN_PRIORITY = 99
 
 export function statusPriority(status: string): number {
-  return STATUS_PRIORITY[status] ?? 99
+  return STATUS_PRIORITY[status] ?? UNKNOWN_PRIORITY
 }
 
-export type AuditBand = 'attention' | 'finished'
+export type AuditBand = 'attention' | 'finished' | 'inactive'
 
 export const BAND_LABEL: Record<AuditBand, string> = {
   attention: 'Needs attention',
   finished: 'Finished',
+  inactive: 'Unpaid or inactive',
 }
 
 /**
- * `done` and `delivered` are finished work. Everything else - including an
- * unrecognized status - belongs in the band a person is expected to look at.
+ * Bands are contiguous ranges of the sort key, so a band header can never
+ * appear twice in one list. That invariant is what broke when `awaiting_payment`
+ * was missing from the table: it sorted last but banded as `attention`, printing
+ * a second "Needs attention" header below the finished work.
  */
 export function bandFor(status: string): AuditBand {
   const priority = statusPriority(status)
-  return priority === STATUS_PRIORITY.done || priority === STATUS_PRIORITY.delivered
-    ? 'finished'
-    : 'attention'
+  if (priority <= STATUS_PRIORITY.awaiting_review) return 'attention'
+  if (priority <= STATUS_PRIORITY.delivered) return 'finished'
+  return 'inactive'
 }

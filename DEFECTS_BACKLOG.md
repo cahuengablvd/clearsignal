@@ -97,6 +97,31 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
   operator-checklist line. New generations already enforce 3 unique channels via schema.
 - Do not add an LLM top-up call for legacy reports; not worth the cost before launch.
 
+## R9 — Schema gate blocks legacy re-renders into a dead end (wrong failure mode)
+
+- Seen: 2026-07-24, monokelriga re-render on `6ad9d73`. Five `schema_deliverable_mismatch`
+  errors (`LocalBusiness`, `ProfessionalService`, `Review` recommended in `action.top_fixes`
+  and `implementation_briefs` but absent from `ready_materials.json_ld`). The audit moved to
+  `failed-validation` and cannot return without a paid regeneration.
+- The DETECTION is correct and must not be weakened: the report really does tell the client to
+  implement types the attached deliverable omits. The report predates the gate (`8bb1f5c`,
+  2026-07-23), when prompts did not yet tie recommendations to the deliverable.
+- The FAILURE MODE is wrong for this path. `rerenderStoredAuditReport` rebuilds
+  deterministically from stored evidence with no LLM call, so nothing in the re-render path can
+  add the missing JSON-LD block or rewrite the recommendation text. Blocking therefore converts
+  a usable legacy report into a permanently stuck one. Fresh generation is unaffected — it has
+  the repair round-trip, and rozie run `9r5hcc01` confirmed the gate passes there.
+- Precedent: R4 settled this exact trade-off for legacy re-renders (warn, do not block, when
+  the deterministic path cannot fix what it detects).
+- Fix direction: on the re-render path only, downgrade `schema_deliverable_mismatch` to a
+  validator WARNING surfaced in admin review, so the operator sees the inconsistency and
+  decides. Keep it a blocking error on generation. Do not "repair" client prose by appending a
+  client-side-implementation label — that is the repair-the-repair pattern the trust-layer
+  refactor exists to eliminate.
+- Acceptance: a legacy fixture whose fixes recommend an undelivered schema type re-renders with
+  a warning and stays reviewable; the same report on the generation path still blocks.
+- Operator note until fixed: do not re-render audits generated before 2026-07-23.
+
 ## R8 — Marketplace JSON-LD deliverable is the generic pair (quality, not a blocker)
 
 - Seen: 2026-07-24, rozie re-render on b1cc310. `ready_materials.json_ld.@graph` ships only

@@ -42,6 +42,17 @@ describe('admin queue bands', () => {
     expect(bandFor('awaiting_payment')).toBe('inactive')
   })
 
+  it('ranks a report ready to send above stale failures and in-flight work', () => {
+    // The complaint that produced this test: a freshly generated audit sat at
+    // the BOTTOM of the queue, under old failed test rows, because
+    // awaiting_review used to be the last status in the band.
+    for (const below of ['failed', 'failed-validation', 'processing', 'queued']) {
+      expect(statusPriority('awaiting_review')).toBeLessThan(statusPriority(below))
+    }
+    // Except a paid customer whose delivery broke - that outranks everything.
+    expect(statusPriority('delivery_failed')).toBeLessThan(statusPriority('awaiting_review'))
+  })
+
   it('maps every audit_status the pipeline writes', () => {
     const written = [
       'awaiting_payment',
@@ -61,6 +72,6 @@ describe('admin queue bands', () => {
   it('labels every band', () => {
     expect(BAND_LABEL.attention).toBe('Needs attention')
     expect(BAND_LABEL.finished).toBe('Finished')
-    expect(BAND_LABEL.inactive).toBe('Unpaid or inactive')
+    expect(BAND_LABEL.inactive).toBe('Unpaid or unknown')
   })
 })

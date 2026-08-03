@@ -1,50 +1,58 @@
 /**
  * One source of truth for how the admin queue is ordered and grouped.
  *
- * The list is deliberately NOT sorted by recency: it is sorted by what needs a
- * human. A delivered audit sinks below `done` on purpose, because nothing is
- * left to do with it. Without a visible label that reads as a sorting fault, so
- * the admin screen renders these bands as headers.
+ * The list is sorted by what a human can act on RIGHT NOW, not by recency. The
+ * bands below are declared in display order, and both the sort key and the band
+ * headers derive from this one structure - so a band can never appear twice, and
+ * a status can never sort into a band it isn't listed in.
  */
-export const STATUS_PRIORITY: Record<string, number> = {
-  processing: 0,
-  queued: 1,
-  'failed-validation': 2,
-  failed: 3,
-  delivery_failed: 4,
-  awaiting_review: 5,
-  done: 6,
-  delivered: 7,
-  // An abandoned checkout: the row exists because /api/stripe/checkout persists
-  // intake before Stripe, but nobody paid. Nothing an operator can act on, so it
-  // sits below finished work rather than at the top.
-  awaiting_payment: 8,
-}
+export type AuditBand = 'attention' | 'finished' | 'inactive'
 
-/** Unrecognized statuses sort last and land in the trailing band. */
+const BANDS: ReadonlyArray<{ band: AuditBand; label: string; statuses: readonly string[] }> = [
+  {
+    band: 'attention',
+    label: 'Needs attention',
+    statuses: [
+      // A customer paid and delivery broke - nothing outranks that.
+      'delivery_failed',
+      // Reviewed-and-send is the step that completes a sale, so it sits above
+      // failures: a stale failed test audit must never bury a report that is
+      // ready to go out.
+      'awaiting_review',
+      'failed-validation',
+      'failed',
+      // In flight: visible so the operator knows work is running, but there is
+      // nothing to do about them, so they sit below everything actionable.
+      'processing',
+      'queued',
+    ],
+  },
+  { band: 'finished', label: 'Finished', statuses: ['done', 'delivered'] },
+  {
+    band: 'inactive',
+    label: 'Unpaid or unknown',
+    // /api/stripe/checkout persists intake BEFORE Stripe, so an order nobody
+    // paid for leaves a row behind. Unrecognized statuses land here too.
+    statuses: ['awaiting_payment'],
+  },
+]
+
+export const STATUS_PRIORITY: Record<string, number> = Object.fromEntries(
+  BANDS.flatMap((group) => group.statuses).map((status, index) => [status, index])
+)
+
+/** Unrecognized statuses sort last, into the trailing band. */
 const UNKNOWN_PRIORITY = 99
+
+export const BAND_LABEL = Object.fromEntries(
+  BANDS.map((group) => [group.band, group.label])
+) as Record<AuditBand, string>
 
 export function statusPriority(status: string): number {
   return STATUS_PRIORITY[status] ?? UNKNOWN_PRIORITY
 }
 
-export type AuditBand = 'attention' | 'finished' | 'inactive'
-
-export const BAND_LABEL: Record<AuditBand, string> = {
-  attention: 'Needs attention',
-  finished: 'Finished',
-  inactive: 'Unpaid or inactive',
-}
-
-/**
- * Bands are contiguous ranges of the sort key, so a band header can never
- * appear twice in one list. That invariant is what broke when `awaiting_payment`
- * was missing from the table: it sorted last but banded as `attention`, printing
- * a second "Needs attention" header below the finished work.
- */
 export function bandFor(status: string): AuditBand {
-  const priority = statusPriority(status)
-  if (priority <= STATUS_PRIORITY.awaiting_review) return 'attention'
-  if (priority <= STATUS_PRIORITY.delivered) return 'finished'
-  return 'inactive'
+  const group = BANDS.find((candidate) => candidate.statuses.includes(status))
+  return group ? group.band : BANDS[BANDS.length - 1].band
 }

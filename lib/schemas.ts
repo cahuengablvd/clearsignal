@@ -66,6 +66,12 @@ export const ObservedBusinessContextSchema = z.object({
   observed_service_category: z.string().optional(),
   observed_location: z.array(z.string()).optional(),
   observed_services: z.array(z.string()).optional(),
+  observed_marketplace_structure: z.object({
+    search_url_template: z.string().optional(),
+    list_name: z.string().optional(),
+    item_names: z.array(z.string()).optional(),
+    offer_catalog_name: z.string().optional(),
+  }).optional(),
 })
 export type ObservedBusinessContext = z.infer<typeof ObservedBusinessContextSchema>
 

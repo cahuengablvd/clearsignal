@@ -330,16 +330,19 @@ function publishableSafeMaterials(
   return safe
 }
 
-/** Build a valid Organization + FAQPage JSON-LD <script> block from the FAQ. */
+/** Build deterministic JSON-LD only from verified business type and observed page structure. */
 export function buildJsonLd(
   brand: string,
   url: string,
   faq: { question: string; answer: string }[],
   observed?: ObservedBusinessContext,
-  facts: VerifiedFact[] = []
+  facts: VerifiedFact[] = [],
+  businessContext?: BusinessContext
 ): string {
   const name = orgName(brand, url)
+  const category = materialCategoryForContext(businessContext, observed)
   const moving = isMovingBusiness({ observedBusinessContext: observed })
+  const marketplace = category === 'marketplace'
   const areas = moving ? areaServedFromFacts(facts, faq, observed) : []
   const graph: Record<string, unknown>[] = [
     moving
@@ -358,6 +361,38 @@ export function buildJsonLd(
       serviceType: 'Moving services',
       provider: { '@type': 'MovingCompany', name, url },
       ...(areas.length > 0 ? { areaServed: areas } : {}),
+    })
+  }
+  if (marketplace && observed?.observed_marketplace_structure?.search_url_template) {
+    graph.push({
+      '@type': 'WebSite',
+      name,
+      url,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: observed.observed_marketplace_structure.search_url_template,
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    })
+  }
+  const marketplaceStructure = marketplace ? observed?.observed_marketplace_structure : undefined
+  if (marketplaceStructure?.item_names?.length) {
+    graph.push({
+      '@type': 'ItemList',
+      ...(marketplaceStructure.list_name ? { name: marketplaceStructure.list_name } : {}),
+      itemListElement: marketplaceStructure.item_names.map((itemName, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: itemName,
+      })),
+    })
+  } else if (marketplaceStructure?.offer_catalog_name) {
+    graph.push({
+      '@type': 'OfferCatalog',
+      name: marketplaceStructure.offer_catalog_name,
     })
   }
   if (faq.length > 0) {
@@ -383,5 +418,15 @@ export function assembleMaterials(
 ): ReadyMaterials {
   const facts = factsFor(opts)
   const safe = publishableSafeMaterials(brand, url, llm, opts)
-  return { ...safe, json_ld: buildJsonLd(brand, url, safe.faq, opts?.observedBusinessContext, facts) }
+  return {
+    ...safe,
+    json_ld: buildJsonLd(
+      brand,
+      url,
+      safe.faq,
+      opts?.observedBusinessContext,
+      facts,
+      opts?.businessContext
+    ),
+  }
 }

@@ -303,6 +303,72 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
     expect(types).toEqual(['Organization'])
   })
 
+  it('builds marketplace schema only from observed search and listing structure', () => {
+    const materials = assembleMaterials(
+      'Example Market',
+      'https://market.example',
+      {
+        meta_title: 'Example Market',
+        meta_description: 'Compare local providers.',
+        faq: [{ question: 'How does it work?', answer: 'Search and compare providers.' }],
+        cta_variants: ['Search providers'],
+      },
+      {
+        businessContext: {
+          business_model: 'marketplace',
+          primary_conversion_goal: 'unknown',
+          purchase_availability: 'unknown',
+          ships_internationally: 'unknown',
+          provenance_or_authentication: 'unknown',
+          target_markets_languages: '',
+          verified_facts: '',
+        },
+        observedBusinessContext: {
+          observed_marketplace_structure: {
+            search_url_template: 'https://market.example/search?q={search_term_string}',
+            list_name: 'Available providers',
+            item_names: ['Northside Cleaners', 'Harbour Cleaning'],
+          },
+        },
+      }
+    )
+    const parsed = JSON.parse(materials.json_ld.replace(/<\/?script[^>]*>/g, '').trim())
+    const types = parsed['@graph'].map((g: { '@type': string }) => g['@type'])
+
+    expect(types).toEqual(expect.arrayContaining(['Organization', 'WebSite', 'ItemList', 'FAQPage']))
+    expect(JSON.stringify(parsed)).toContain('https://market.example/search?q={search_term_string}')
+    expect(JSON.stringify(parsed)).toContain('Northside Cleaners')
+    expect(JSON.stringify(parsed)).not.toMatch(/"price"|"Offer"/)
+  })
+
+  it('keeps marketplace JSON-LD generic when no listing or search structure was observed', () => {
+    const materials = assembleMaterials(
+      'Empty Market',
+      'https://empty.example',
+      {
+        meta_title: 'Empty Market',
+        meta_description: 'A marketplace.',
+        faq: [{ question: 'What is it?', answer: 'A marketplace.' }],
+        cta_variants: [],
+      },
+      {
+        businessContext: {
+          business_model: 'marketplace',
+          primary_conversion_goal: 'unknown',
+          purchase_availability: 'unknown',
+          ships_internationally: 'unknown',
+          provenance_or_authentication: 'unknown',
+          target_markets_languages: '',
+          verified_facts: '',
+        },
+      }
+    )
+    const parsed = JSON.parse(materials.json_ld.replace(/<\/?script[^>]*>/g, '').trim())
+    const types = parsed['@graph'].map((g: { '@type': string }) => g['@type'])
+
+    expect(types).toEqual(['Organization', 'FAQPage'])
+  })
+
   it('builds moving-service schema without inventing phone, address, hours or sameAs', () => {
     const block = buildJsonLd('A-Z Moving', 'https://az-moving.com', [
       {
@@ -2991,6 +3057,33 @@ describe('stored validation_warnings never re-trigger the artifact detector', ()
 })
 
 describe('pre-beta polish regressions', () => {
+  it('captures marketplace search and listing structure from the target page', () => {
+    const observed = inferObservedBusinessContext({
+      url: 'https://market.example',
+      markdown: '# Available providers',
+      html: `<form role="search" action="/search"><input type="search" name="q"></form>
+        <script type="application/ld+json">{"@context":"https://schema.org","@type":"ItemList","name":"Available providers","itemListElement":[{"@type":"ListItem","position":1,"name":"Northside Cleaners"},{"@type":"ListItem","position":2,"name":"Harbour Cleaning"}]}</script>`,
+    })
+
+    expect(observed.observed_marketplace_structure).toEqual({
+      search_url_template: 'https://market.example/search?q={search_term_string}',
+      list_name: 'Available providers',
+      item_names: ['Northside Cleaners', 'Harbour Cleaning'],
+    })
+  })
+
+  it('captures an offer catalog name only from an explicit target-page heading', () => {
+    const observed = inferObservedBusinessContext({
+      url: 'https://rozie.app',
+      markdown: '# Cleaning Services in Malta \u2014 Compare Offers from Verified Cleaners',
+      html: '',
+    })
+
+    expect(observed.observed_marketplace_structure).toEqual({
+      offer_catalog_name: 'Cleaning Services in Malta \u2014 Compare Offers from Verified Cleaners',
+    })
+  })
+
   it('does not infer storage or Canada from weak Rozie-style context', () => {
     const observed = inferObservedBusinessContext({
       url: 'https://rozie.app',

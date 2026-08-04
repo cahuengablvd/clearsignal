@@ -266,8 +266,13 @@ describe('golden-report regression test', () => {
   it('keeps the Rozie marketplace and dual-ICP context without foreign vertical drift', () => {
     const report = clientSafeFixture('rozie', 'strict')
     const text = clientText(report)
+    const jsonLd = JSON.parse(
+      (report.ready_materials?.json_ld || '').replace(/<\/?script[^>]*>/g, '').trim()
+    )
+    const schemaTypes = jsonLd['@graph'].map((node: { '@type': string }) => node['@type'])
 
     expect(report.meta.business_context?.business_model).toBe('two_sided_marketplace')
+    expect(schemaTypes).toEqual(expect.arrayContaining(['Organization', 'OfferCatalog', 'FAQPage']))
     expect(report.meta.icp_description).toMatch(/Secondary ICP:/)
     expect(text).not.toMatch(/\bCanada\b/i)
     expect(text).not.toMatch(/\bstorage (?:company|service|facility|unit)\b/i)

@@ -95,6 +95,110 @@ export function canClaimServiceAvailability(ctx: BusinessContext, kind: 'piano' 
   return hasVerifiedFact(ctx, patterns[kind])
 }
 
+function htmlAttribute(tag: string, name: string): string | undefined {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = tag.match(new RegExp(`\\b${escaped}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'))
+  return (match?.[1] ?? match?.[2] ?? match?.[3])?.trim() || undefined
+}
+
+function observedSearchUrlTemplate(pageUrl: string, html: string): string | undefined {
+  for (const match of html.matchAll(/<form\b([^>]*)>([\s\S]*?)<\/form>/gi)) {
+    const openingTag = `<form${match[1]}>`
+    const body = match[2]
+    const method = (htmlAttribute(openingTag, 'method') || 'get').toLowerCase()
+    if (method !== 'get') continue
+
+    const inputs = Array.from(body.matchAll(/<input\b[^>]*>/gi), (item) => item[0])
+    const searchInput = inputs.find((input) => {
+      const type = (htmlAttribute(input, 'type') || '').toLowerCase()
+      const name = htmlAttribute(input, 'name') || ''
+      return type === 'search' || /^(?:q|query|search|keyword)$/i.test(name)
+    })
+    const isSearchForm = /\brole\s*=\s*(?:"search"|'search'|search)\b/i.test(openingTag) || Boolean(searchInput)
+    if (!isSearchForm || !searchInput) continue
+
+    const parameter = htmlAttribute(searchInput, 'name')
+    if (!parameter) continue
+    try {
+      const base = new URL(pageUrl)
+      const target = new URL(htmlAttribute(openingTag, 'action') || base.pathname, base)
+      if (!/^https?:$/.test(target.protocol) || target.origin !== base.origin) continue
+      target.searchParams.set(parameter, '{search_term_string}')
+      return target.toString().replace(/%7Bsearch_term_string%7D/gi, '{search_term_string}')
+    } catch {
+      continue
+    }
+  }
+  return undefined
+}
+
+function cleanObservedLabel(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const clean = value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  return clean && clean.length <= 160 ? clean : undefined
+}
+
+function marketplaceListFromJsonLd(html: string): { list_name?: string; item_names?: string[] } | undefined {
+  const candidates: Record<string, unknown>[] = []
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(visit)
+      return
+    }
+    if (!value || typeof value !== 'object') return
+    const record = value as Record<string, unknown>
+    const types = Array.isArray(record['@type']) ? record['@type'] : [record['@type']]
+    if (types.some((type) => type === 'ItemList' || type === 'OfferCatalog')) candidates.push(record)
+    Object.values(record).forEach(visit)
+  }
+
+  for (const match of html.matchAll(/<script\b[^>]*type\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json'|application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      visit(JSON.parse(match[1].trim()))
+    } catch {
+      continue
+    }
+  }
+
+  for (const candidate of candidates) {
+    const elements = Array.isArray(candidate.itemListElement) ? candidate.itemListElement : []
+    const itemNames = elements
+      .map((element) => {
+        if (!element || typeof element !== 'object') return undefined
+        const record = element as Record<string, unknown>
+        const item = record.item && typeof record.item === 'object'
+          ? record.item as Record<string, unknown>
+          : undefined
+        const offered = record.itemOffered && typeof record.itemOffered === 'object'
+          ? record.itemOffered as Record<string, unknown>
+          : undefined
+        return cleanObservedLabel(item?.name ?? offered?.name ?? record.name)
+      })
+      .filter((name): name is string => Boolean(name))
+      .slice(0, 20)
+    const listName = cleanObservedLabel(candidate.name)
+    if (listName || itemNames.length) {
+      return {
+        ...(listName ? { list_name: listName } : {}),
+        ...(itemNames.length ? { item_names: Array.from(new Set(itemNames)) } : {}),
+      }
+    }
+  }
+  return undefined
+}
+
+function observedOfferCatalogName(markdown: string, html: string): string | undefined {
+  const markdownHeadings = markdown
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s{0,3}#{1,6}\s+/, '').trim())
+  const htmlHeadings = Array.from(html.matchAll(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/gi), (match) =>
+    cleanObservedLabel(match[1]) || ''
+  )
+  return [...markdownHeadings, ...htmlHeadings]
+    .map(cleanObservedLabel)
+    .find((heading) => Boolean(heading && /\b(?:compare|browse|view)\b.{0,100}\b(?:offers?|listings?|providers?)\b/i.test(heading)))
+}
+
 export function inferObservedBusinessContext(args: {
   url: string
   markdown: string
@@ -126,6 +230,16 @@ export function inferObservedBusinessContext(args: {
   const isMoving = /\b(moving company|movers?|relocation|residential moving|commercial moving)\b/i.test(text)
   const quoteCta = /\b(get|request|book)\s+(?:a\s+)?(?:free\s+)?quote\b|\bquote request\b|\bget quote\b/i.test(text)
   const bookingCta = /\bbook(?:ing)?\b/i.test(text)
+  const observedList = marketplaceListFromJsonLd(args.html || '')
+  const searchUrlTemplate = observedSearchUrlTemplate(args.url, args.html || '')
+  const offerCatalogName = observedOfferCatalogName(args.markdown, args.html || '')
+  const observedMarketplaceStructure = searchUrlTemplate || observedList || offerCatalogName
+    ? {
+        ...(searchUrlTemplate ? { search_url_template: searchUrlTemplate } : {}),
+        ...observedList,
+        ...(offerCatalogName && !observedList?.item_names?.length ? { offer_catalog_name: offerCatalogName } : {}),
+      }
+    : undefined
 
   return {
     inferred_business_type: isMoving ? 'Moving service' : undefined,
@@ -133,5 +247,6 @@ export function inferObservedBusinessContext(args: {
     observed_service_category: isMoving ? 'Moving services' : undefined,
     observed_location: locations.length ? locations : undefined,
     observed_services: services.length ? services : undefined,
+    observed_marketplace_structure: observedMarketplaceStructure,
   }
 }

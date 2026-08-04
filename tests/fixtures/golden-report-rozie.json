@@ -845,7 +845,10 @@
     ],
     "alternative_brand_forms": [],
     "observed_business_context": {
-      "observed_primary_cta": "Booking/contact request"
+      "observed_primary_cta": "Booking/contact request",
+      "observed_marketplace_structure": {
+        "offer_catalog_name": "Cleaning Services in Malta \u2014 Compare Offers from Verified Cleaners"
+      }
     }
   },
   "action": {

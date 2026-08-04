@@ -357,7 +357,8 @@ function observedContextHasAnyValue(observed: NonNullable<ClearSignalReport['met
     observed.observed_primary_cta ||
     observed.observed_service_category ||
     observed.observed_location?.length ||
-    observed.observed_services?.length
+    observed.observed_services?.length ||
+    observed.observed_marketplace_structure
   )
 }
 

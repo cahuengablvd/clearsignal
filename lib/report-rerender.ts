@@ -74,8 +74,18 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
     { businessContext }
   )
   const validation = validateReport(safeReport)
-  if (validation.errors.length) {
-    const message = `Report validation blocked re-render: ${validation.errors.slice(0, 5).join('; ')}`
+  // Legacy reports can predate the current schema recommendation set. Keep the
+  // mismatch visible to the reviewer, but do not mutate client copy or strand
+  // an otherwise reviewable re-render. Generation still uses validateReport's
+  // errors directly and therefore remains blocking.
+  const schemaMismatchWarnings = validation.errors.filter((item) =>
+    /^schema_deliverable_mismatch\b/.test(item)
+  )
+  const blockingErrors = validation.errors.filter((item) =>
+    !/^schema_deliverable_mismatch\b/.test(item)
+  )
+  if (blockingErrors.length) {
+    const message = `Report validation blocked re-render: ${blockingErrors.slice(0, 5).join('; ')}`
     await supabaseAdmin
       .from('audits')
       .update({
@@ -89,7 +99,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
 
   const finalReport: ClearSignalReport = {
     ...validation.report,
-    validation_warnings: [...validation.errors, ...validation.warnings].slice(0, 50),
+    validation_warnings: [...schemaMismatchWarnings, ...validation.warnings].slice(0, 50),
   }
 
   await archiveCurrentReportVersion({

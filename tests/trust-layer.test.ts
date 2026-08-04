@@ -8,7 +8,20 @@ import {
   sanitizeGeneratedProse,
   sanitizeGeneratedReportValue,
 } from '../lib/sanitize'
-import { ActionBlockSchema, BusinessContextSchema, icpTextSchema, competitorUrlSchema, FindingSchema, GeoResultSchema, ReadyMaterialsLlmSchema } from '../lib/schemas'
+import {
+  ACTION_FIX_CATEGORIES,
+  ACTION_FIX_EFFORTS,
+  ACTION_FIX_IMPACTS,
+  ACTION_OUTREACH_CHANNELS,
+  ActionBlockSchema,
+  BusinessContextSchema,
+  icpTextSchema,
+  competitorUrlSchema,
+  FindingSchema,
+  GeoResultSchema,
+  READY_MATERIALS_LIMITS,
+  ReadyMaterialsLlmSchema,
+} from '../lib/schemas'
 import { computeTechnicalFindings } from '../lib/findings'
 import { assembleMaterials, buildJsonLd } from '../lib/materials'
 import { priorityForFix } from '../lib/prioritization'
@@ -3145,6 +3158,32 @@ describe('pre-beta polish regressions', () => {
 })
 
 describe('LLM call contract guards', () => {
+  it('derives every prompt enum and material count from the schema contract', () => {
+    expect(ACTION_FIX_IMPACTS).toEqual(['high', 'medium', 'low'])
+    expect(ACTION_FIX_EFFORTS).toEqual(['easy', 'medium', 'hard'])
+    expect(ACTION_FIX_CATEGORIES).toEqual(['copy', 'structure', 'proof', 'cta', 'ai_search'])
+    expect(ACTION_OUTREACH_CHANNELS).toEqual(['linkedin', 'email', 'twitter'])
+    expect(READY_MATERIALS_LIMITS).toEqual({ faq: { min: 4, max: 6 }, cta: { min: 3, max: 5 } })
+
+    const actionPrompt = actionUserPrompt('{}', '{}', 'icp', 'Brand')
+    for (const values of [
+      ACTION_FIX_IMPACTS,
+      ACTION_FIX_EFFORTS,
+      ACTION_FIX_CATEGORIES,
+      ACTION_OUTREACH_CHANNELS,
+    ]) {
+      expect(actionPrompt).toContain(values.map((value) => `"${value}"`).join('|'))
+    }
+
+    const materialsPrompt = materialsUserPrompt('Brand', 'https://example.com', 'icp', '{}', '{}')
+    expect(materialsPrompt).toContain(
+      `Provide ${READY_MATERIALS_LIMITS.faq.min}-${READY_MATERIALS_LIMITS.faq.max} FAQ items`
+    )
+    expect(materialsPrompt).toContain(
+      `${READY_MATERIALS_LIMITS.cta.min}-${READY_MATERIALS_LIMITS.cta.max} CTA variants`
+    )
+  })
+
   it('repair prompt restates the full original request (schema survives the retry)', async () => {
     const { buildRepairPrompt } = await import('../lib/anthropic')
     const user = 'Return a JSON object with this exact structure: {"category": "copy"|"cta"}'

@@ -1,8 +1,19 @@
 import { businessContextPrompt } from './business-context'
 import { untrustedBlock } from './sanitize'
 import { temporalPrompt } from './temporal-claims'
-import type { BusinessContext } from './schemas'
+import {
+  ACTION_FIX_CATEGORIES,
+  ACTION_FIX_EFFORTS,
+  ACTION_FIX_IMPACTS,
+  ACTION_OUTREACH_CHANNELS,
+  READY_MATERIALS_LIMITS,
+  type BusinessContext,
+} from './schemas'
 import { DEFAULT_PAID_QUERY_INTENT_PLAN } from './geo/query-taxonomy'
+
+function promptEnum(values: readonly string[]): string {
+  return values.map((value) => `"${value}"`).join('|')
+}
 
 // --- Model IDs ---
 export const MODEL_SCORE = 'claude-haiku-4-5-20251001'
@@ -281,7 +292,7 @@ Produce ready-to-ship materials tailored to this brand and ICP. Return ONLY a JS
   "faq": [{ "question": "<a real buyer question>", "answer": "<concise, quotable 1-3 sentence answer>" }],
   "cta_variants": ["<outcome-oriented CTA button copy>", "..."]
 }
-Provide 4-6 FAQ items (the questions buyers actually ask, good for AI-answer citation) and 3-5 CTA variants. No placeholders.`
+Provide ${READY_MATERIALS_LIMITS.faq.min}-${READY_MATERIALS_LIMITS.faq.max} FAQ items (the questions buyers actually ask, good for AI-answer citation) and ${READY_MATERIALS_LIMITS.cta.min}-${READY_MATERIALS_LIMITS.cta.max} CTA variants. No placeholders.`
 }
 
 // --- Implementation briefs (#19) ---
@@ -455,10 +466,10 @@ ${temporalPrompt(referenceIso)}
 Return a JSON object with this exact structure:
 {
   "executive_summary": "<string, 3-4 sentences>",
-  "top_fixes": [{ "id": <number>, "title": "<string>", "description": "<string>", "impact": "high"|"medium"|"low", "effort": "easy"|"medium"|"hard", "category": "copy"|"structure"|"proof"|"cta"|"ai_search" }],
+  "top_fixes": [{ "id": <number>, "title": "<string>", "description": "<string>", "impact": ${promptEnum(ACTION_FIX_IMPACTS)}, "effort": ${promptEnum(ACTION_FIX_EFFORTS)}, "category": ${promptEnum(ACTION_FIX_CATEGORIES)} }],
   "ship_first": ["<string>"],
   "ignore_for_now": ["<string>"],
-  "outreach_messages": [{ "channel": "linkedin"|"email"|"twitter", "message": "<string>", "note": "<string>" }]
+  "outreach_messages": [{ "channel": ${promptEnum(ACTION_OUTREACH_CHANNELS)}, "message": "<string>", "note": "<string>" }]
 }
 
 Provide 5-10 fixes, only as many as the evidence supports. Each fix must cite a concrete page finding, competitor comparison, or GEO evidence item. Provide 3-5 ship_first items, 2-3 ignore_for_now items, and EXACTLY 3 outreach messages - one "linkedin", one "email", one "twitter" (adapt tone and content to the business context, but always produce all three channels).`

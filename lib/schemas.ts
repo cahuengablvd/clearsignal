@@ -195,12 +195,17 @@ export type Finding = z.infer<typeof FindingSchema>
 
 export const FaqItemSchema = z.object({ question: z.string(), answer: z.string() })
 
+export const READY_MATERIALS_LIMITS = {
+  faq: { min: 4, max: 6 },
+  cta: { min: 3, max: 5 },
+} as const
+
 /** What the LLM produces (meta + FAQ + CTAs). JSON-LD is built deterministically. */
 export const ReadyMaterialsLlmSchema = z.object({
   meta_title: z.string(),
   meta_description: z.string(),
-  faq: z.array(FaqItemSchema).min(4).max(6),
-  cta_variants: z.array(z.string()).min(3).max(5),
+  faq: z.array(FaqItemSchema).min(READY_MATERIALS_LIMITS.faq.min).max(READY_MATERIALS_LIMITS.faq.max),
+  cta_variants: z.array(z.string()).min(READY_MATERIALS_LIMITS.cta.min).max(READY_MATERIALS_LIMITS.cta.max),
 })
 export type ReadyMaterialsLlm = z.infer<typeof ReadyMaterialsLlmSchema>
 
@@ -438,11 +443,14 @@ export type GeoResult = z.infer<typeof GeoResultSchema>
 // --- Severity & Impact Enums ---
 
 const severitySchema = z.enum(['critical', 'medium', 'low'])
-const impactSchema = z.enum(['high', 'medium', 'low'])
-const effortSchema = z.enum(['easy', 'medium', 'hard'])
-const categorySchema = z.enum(['copy', 'structure', 'proof', 'cta', 'ai_search'])
-const channelSchema = z.enum(['linkedin', 'email', 'twitter'])
-const requiredOutreachChannels = ['linkedin', 'email', 'twitter'] as const
+export const ACTION_FIX_IMPACTS = ['high', 'medium', 'low'] as const
+export const ACTION_FIX_EFFORTS = ['easy', 'medium', 'hard'] as const
+export const ACTION_FIX_CATEGORIES = ['copy', 'structure', 'proof', 'cta', 'ai_search'] as const
+export const ACTION_OUTREACH_CHANNELS = ['linkedin', 'email', 'twitter'] as const
+const impactSchema = z.enum(ACTION_FIX_IMPACTS)
+const effortSchema = z.enum(ACTION_FIX_EFFORTS)
+const categorySchema = z.enum(ACTION_FIX_CATEGORIES)
+const channelSchema = z.enum(ACTION_OUTREACH_CHANNELS)
 const tierSchema = z.enum(['automated', 'reviewed', 'sprint'])
 const confidenceLevelSchema = z.enum(['high', 'medium', 'low'])
 const controlSchema = z.enum(['high', 'medium', 'low'])
@@ -590,14 +598,14 @@ const actionSchema = z.object({
   outreach_messages: z.array(OutreachMessageSchema).superRefine((messages, ctx) => {
     const channels = messages.map((m) => m.channel)
     const unique = new Set(channels)
-    if (messages.length !== requiredOutreachChannels.length || unique.size !== requiredOutreachChannels.length) {
+    if (messages.length !== ACTION_OUTREACH_CHANNELS.length || unique.size !== ACTION_OUTREACH_CHANNELS.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'outreach_messages must contain exactly one linkedin, one email, and one twitter message',
       })
       return
     }
-    for (const channel of requiredOutreachChannels) {
+    for (const channel of ACTION_OUTREACH_CHANNELS) {
       if (!unique.has(channel)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

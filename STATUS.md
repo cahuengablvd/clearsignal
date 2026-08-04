@@ -11,7 +11,7 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-08-04, after Trigger deploy from commit `a57e960`.
+**Last updated:** 2026-08-04, after the blocked Batch 3 production-key benchmark.
 
 ## Deploys
 
@@ -24,6 +24,18 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
     Trigger deploy or it simply is not live.
   - Deploy with the CLI version pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`).
     `@latest` aborts on a version mismatch — see `DEPLOY.md`.
+
+## Batch 3 benchmark blocker
+
+- Batch 3 is local only at commits `4c8edae`, `308660d`, and `a1211ea`; it has not been pushed or
+  deployed. Trigger production remains `20260804.2` from `a57e960`.
+- Benchmark audit `918af345-ea44-4821-b157-3f03ed520b8e` reached the action stage in 294.0 seconds,
+  but both action responses hit the old 4096-token ceiling and the second JSON was truncated. The
+  local code now requests exactly five concise fixes and gives the action response a 6144-token cap.
+- A fresh from-scratch retry (`28cbfe6e-9870-41a0-81be-73c104de5929`) stopped after 117.0 seconds
+  because the Anthropic production account returned `credit balance is too low`. No complete
+  `awaiting_review` timing exists yet. Top up Anthropic, run a new full audit from scratch, and do not
+  push/deploy Batch 3 unless it completes below the approximately seven-minute gate.
 
 ## Rozie verification (beta quality blocker)
 

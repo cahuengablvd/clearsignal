@@ -51,11 +51,13 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
 
 ## In flight
 
-- **Two-week sales test** (owner-led): the validation kit lives in `validation/` — plan,
-  outreach messages, agency interview script, tracking sheet. Segment order: SEO/digital
-  agencies first, then service businesses. Go/no-go criteria are in `validation/PLAN.md`.
-  No product changes during the test; objections land in `tracking.csv`, defects in
-  `DEFECTS_BACKLOG.md`.
+- **Pre-launch fix sprint** — `TASKS_PRELAUNCH.md` is the finish line: 12 items in 4 batches,
+  plus a definition of done. Owner decided on 2026-08-03 not to start selling until the site and
+  engine are right. The termination rule matters more than the list: defects found *after* the
+  list was agreed go to `DEFECTS_BACKLOG.md`, not into this sprint.
+- **Two-week sales test** — queued behind the sprint. Kit is ready in `validation/` (plan,
+  outreach, agency interview script, tracking sheet); agencies first. Go/no-go criteria in
+  `validation/PLAN.md`.
 
 ## Shipped
 

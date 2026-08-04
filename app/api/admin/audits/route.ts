@@ -4,6 +4,7 @@ import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { trySignToken } from '@/lib/tokens'
 // Shared with the admin screen so the order and the band headers cannot drift.
 import { statusPriority } from '@/lib/audit-bands'
+import { buildAdminEngineCoverage } from '@/lib/admin-engine-coverage'
 
 function lastActivityAt(audit: {
   created_at: string
@@ -164,6 +165,7 @@ export async function GET(req: NextRequest) {
       ? report.validation_warnings.length
       : 0
     const has_report = Boolean(a.report)
+    const engine_coverage_summary = buildAdminEngineCoverage(a.report)
     const { report: _report, quality: _quality, ...audit } = a
     const last_activity_at = lastActivityAt(a)
     if (['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(a.audit_status)) {
@@ -174,6 +176,7 @@ export async function GET(req: NextRequest) {
         last_activity_at,
         validation_repair_count,
         quality_summary: qualitySummary(a.quality),
+        engine_coverage_summary,
         ai_cost_summary: costByAudit.get(a.id) ?? null,
         report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}`,
       }
@@ -184,6 +187,7 @@ export async function GET(req: NextRequest) {
       last_activity_at,
       validation_repair_count,
       quality_summary: qualitySummary(a.quality),
+      engine_coverage_summary,
       ai_cost_summary: costByAudit.get(a.id) ?? null,
       report_url: null as string | null,
     }

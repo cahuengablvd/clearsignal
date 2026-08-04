@@ -200,6 +200,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const raw = settled
     .filter((s) => s.res.ok)
     .map((s) => ({ engine: s.engine, query: s.query, answer: s.res.answer, citations: s.res.citations }))
+  const enginesTested = [...new Set(raw.map((result) => result.engine))]
 
   if (raw.length === 0) {
     return emptyResult(brand, brandDomain, queries.length, engines, testCounts)
@@ -332,7 +333,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     mention_rate,
     citation_rate,
     mentionedCombinations: brandMentions,
-    engines,
+    engines: enginesTested,
     cited_domains_ranked,
     competitor_visibility,
   })
@@ -404,7 +405,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     brand,
     brand_domain: brandDomain,
     queries_tested: queries.length,
-    engines_tested: [...new Set(raw.map((r) => r.engine))],
+    engines_tested: enginesTested,
     test_counts: testCounts,
     ai_visibility_score,
     mention_rate,
@@ -535,7 +536,7 @@ function emptyResult(
     brand,
     brand_domain: brandDomain,
     queries_tested: queriesTested,
-    engines_tested: engines,
+    engines_tested: [],
     test_counts: testCounts,
     ai_visibility_score: 0,
     mention_rate: 0,

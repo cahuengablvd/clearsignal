@@ -28,6 +28,9 @@ export interface EngineResponse {
 }
 
 const ENGINE_TIMEOUT_MS = 45_000
+// A production-key Sonnet 4.6 call with web_search max_uses: 2 took 59.928s
+// on 2026-08-04. Keep 1.5x headroom without threatening the 7-minute audit gate.
+const CLAUDE_WEB_SEARCH_TIMEOUT_MS = 90_000
 const FAST_ENGINE_TIMEOUT_MS = 20_000
 
 async function withTimeout<T>(run: (signal: AbortSignal) => Promise<T>, ms: number, label: string): Promise<T> {
@@ -310,7 +313,11 @@ export async function queryEngine(
   opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string; meta?: AnthropicRequestMeta } = {}
 ): Promise<EngineResponse> {
   try {
-    const timeout = opts.webSearch === false ? FAST_ENGINE_TIMEOUT_MS : ENGINE_TIMEOUT_MS
+    const timeout = opts.webSearch === false
+      ? FAST_ENGINE_TIMEOUT_MS
+      : engine === 'claude'
+        ? CLAUDE_WEB_SEARCH_TIMEOUT_MS
+        : ENGINE_TIMEOUT_MS
     return await withTimeout(
       (signal) => engine === 'claude'
         ? queryClaude(question, {

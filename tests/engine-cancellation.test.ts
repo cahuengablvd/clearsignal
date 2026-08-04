@@ -47,8 +47,9 @@ describe('engine request cancellation', () => {
     vi.useRealTimers()
   })
 
-  it('aborts a never-settling Claude request and never records usage after timeout', async () => {
+  it('gives Claude web search 90 seconds, then aborts without recording late usage', async () => {
     const onUsage = vi.fn()
+    const settled = vi.fn()
     const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
     mocks.anthropicCreate.mockImplementation((_body, options) => pendingUntilAbort(options?.signal))
 
@@ -56,11 +57,17 @@ describe('engine request cancellation', () => {
       onUsage,
       meta: { auditId: 'audit-timeout', stage: 'geo_engine:claude' },
     })
+    void resultPromise.then(settled)
+    await vi.advanceTimersByTimeAsync(45_000)
+
+    expect(mocks.signals).toHaveLength(1)
+    expect(mocks.signals[0].aborted).toBe(false)
+    expect(settled).not.toHaveBeenCalled()
+
     await vi.advanceTimersByTimeAsync(45_000)
     const result = await resultPromise
 
     expect(result.ok).toBe(false)
-    expect(mocks.signals).toHaveLength(1)
     expect(mocks.signals[0].aborted).toBe(true)
     expect(clearTimeoutSpy).toHaveBeenCalled()
     expect(onUsage).not.toHaveBeenCalled()

@@ -36,6 +36,15 @@ type Audit = {
     duplicate_stage_warning: boolean
     triggers: string[]
   } | null
+  engine_coverage_summary?: {
+    configured_engines: string[]
+    engines_with_evidence: string[]
+    missing_engines: string[]
+    expected_combinations: number
+    successful_combinations: number
+    failed_or_skipped_combinations: number
+    complete: boolean
+  } | null
   quality_summary?: {
     stage: string | null
     shadow_mode: boolean
@@ -568,6 +577,11 @@ export default function AdminPage() {
     return Number(value || 0).toLocaleString()
   }
 
+  function formatEngineName(engine: string): string {
+    if (engine === 'openai') return 'ChatGPT'
+    return engine.charAt(0).toUpperCase() + engine.slice(1)
+  }
+
   function formatDate(value?: string | null): string | null {
     if (!value) return null
     const d = new Date(value)
@@ -966,6 +980,41 @@ export default function AdminPage() {
                           ? audit.ai_cost_summary.stages_executed.join(', ')
                           : 'no stage records'}
                       </div>
+                    </div>
+                  )}
+
+                  {audit.engine_coverage_summary && (
+                    <div className={`mb-3 rounded border p-3 text-xs ${
+                      audit.engine_coverage_summary.complete
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                        : 'border-amber-300 bg-amber-50 text-amber-950'
+                    }`}>
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">
+                          {audit.engine_coverage_summary.complete
+                            ? 'Engine coverage complete'
+                            : 'Engine coverage gap before approval'}
+                        </span>
+                        <Badge variant="outline" className="bg-white">
+                          {audit.engine_coverage_summary.successful_combinations}/
+                          {audit.engine_coverage_summary.expected_combinations} combinations succeeded
+                        </Badge>
+                        {audit.engine_coverage_summary.failed_or_skipped_combinations > 0 && (
+                          <Badge variant="outline" className="bg-white text-amber-900">
+                            {audit.engine_coverage_summary.failed_or_skipped_combinations} failed or skipped
+                          </Badge>
+                        )}
+                      </div>
+                      <div>
+                        Evidence: {audit.engine_coverage_summary.engines_with_evidence.length
+                          ? audit.engine_coverage_summary.engines_with_evidence.map(formatEngineName).join(', ')
+                          : 'none'}
+                      </div>
+                      {audit.engine_coverage_summary.missing_engines.length > 0 && (
+                        <div className="mt-1 font-semibold">
+                          No evidence: {audit.engine_coverage_summary.missing_engines.map(formatEngineName).join(', ')}
+                        </div>
+                      )}
                     </div>
                   )}
 

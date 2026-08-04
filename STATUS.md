@@ -11,31 +11,31 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-08-04, after the blocked Batch 3 production-key benchmark.
+**Last updated:** 2026-08-04, after the successful Batch 3/3.5 benchmark and production deploy.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260804.2`**, deployed from `C:\csdeploy` at commit `a57e960`,
-  5 tasks detected. This release ships Batch 2 of `TASKS_PRELAUNCH.md`: first-party source-gap
-  truth, observation-led cited-source prompts, and client-facing recommendation-stage labels.
-  - Previous production version was `20260804.1` at commit `e6555e6`. Anything touching
+- **Trigger.dev** - version **`20260804.3`**, deployed from `C:\csdeploy` at commit `a5c688a`,
+  5 tasks detected. This release ships Batches 3 and 3.5 of `TASKS_PRELAUNCH.md`, including
+  buyer-intent GEO queries, evidence-grounded action plans, and real cancellation of timed-out
+  engine requests.
+  - Previous production version was `20260804.2` at commit `a57e960`. Anything touching
     `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts needs a
     Trigger deploy or it simply is not live.
   - Deploy with the CLI version pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`).
     `@latest` aborts on a version mismatch — see `DEPLOY.md`.
 
-## Batch 3 benchmark blocker
+## Batch 3 benchmark
 
-- Batch 3 is local only at commits `4c8edae`, `308660d`, and `a1211ea`; it has not been pushed or
-  deployed. Trigger production remains `20260804.2` from `a57e960`.
-- Benchmark audit `918af345-ea44-4821-b157-3f03ed520b8e` reached the action stage in 294.0 seconds,
-  but both action responses hit the old 4096-token ceiling and the second JSON was truncated. The
-  local code now requests exactly five concise fixes and gives the action response a 6144-token cap.
-- A fresh from-scratch retry (`28cbfe6e-9870-41a0-81be-73c104de5929`) stopped after 117.0 seconds
-  because the Anthropic production account returned `credit balance is too low`. No complete
-  `awaiting_review` timing exists yet. Top up Anthropic, run a new full audit from scratch, and do not
-  push/deploy Batch 3 unless it completes below the approximately seven-minute gate.
+- Fresh from-scratch audit `51ff451a-f8c7-498f-bd62-9a10814fec38` for `attio.com` used
+  `reuseGeoEvidence: false` and reached `awaiting_review` in **278.025 seconds (4:38.025)**.
+- Admin Anthropic cost was **`$0.362783`**, exactly matching the sum of 16 persisted Anthropic call
+  rows. The complete internal breakdown was `$0.389788` including OpenAI (`$0.025239`) and
+  Perplexity (`$0.001766`); configured Firecrawl cost is currently `$0`.
+- All six Claude GEO calls timed out at 45.013-45.021 seconds and were aborted. A control query
+  5:29 after abort still showed 6 failed / 0 succeeded rows, 0 input tokens, 0 output tokens, and
+  `$0` cost for those calls. No late usage appeared, closing R10 by production-key observation.
 
 ## Rozie verification (beta quality blocker)
 
@@ -73,11 +73,10 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
 
 ## Shipped
 
-- `TASKS_PRELAUNCH.md` Batches 1–2 only — commits `e6555e6` and `a57e960`, Trigger version
-  `20260804.2`. Public engine claims now share the execution contract; unmeasured GEO causes and
-  arbitrary evidence links are removed. Source independence is context rather than a first-party
-  defect, positioning explains the evidence chain, and stored recommendation-stage enums remain
-  unchanged behind client-facing labels. Batches 3–4 remain untouched.
+- `TASKS_PRELAUNCH.md` Batches 1-3 plus R10 - through commit `a5c688a`, Trigger version
+  `20260804.3`. Public engine claims share the execution contract; buyer-intent GEO queries and
+  compact evidence now ground action plans; timed-out engine requests are actually aborted.
+  Batch 4 remains untouched.
 
 - `TASKS_DELIVERY_POLISH.md` — commit `b3f3cf5`. Both transactional emails share a branded
   table-based shell (site palette, text wordmark, dark mode, plain-text alternative, bare
@@ -95,6 +94,10 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
 **One audit costs `$1.89` in API spend** (run `9r5hcc01`, admin cost badge, build `6bf1b68`).
 Against the €149 founding price that is ~1.2% of the ticket — the unit economics hold even if
 generation gets several times more expensive. First real benchmark on this build.
+
+The 2026-08-04 Batch 3/3.5 benchmark recorded `$0.362783` in the Anthropic admin counter and
+`$0.389788` in the complete internal provider breakdown. Timed-out Claude GEO calls contributed
+zero recorded usage after real aborts.
 
 Codex spent ~32M input tokens over 257 requests in one session on 2026-07-24, largely because it
 ran from a folder containing only `.git`. Rules live in `AGENTS.md`; check any day's spend with

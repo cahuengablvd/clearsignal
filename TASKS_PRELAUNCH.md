@@ -56,6 +56,23 @@ Highest regression risk in this file. Each item ships with the failing test firs
 10. **R7 remainder** — contract tests over every enum the prompts promise, so a prompt edit that
     contradicts the schema fails CI instead of production.
 
+## Batch 3.5 — cancel abandoned engine calls (inserted 2026-08-04, blocks the Batch 3 benchmark)
+
+The Batch 3 benchmark uncovered `R10`: a logical timeout abandons the wait but not the request, so
+Anthropic keeps searching and billing invisibly. This must land before Batch 3 can be benchmarked
+again, because the benchmark itself is what the leak makes unaffordable.
+
+- **Do not top up Anthropic to re-run the benchmark until this is fixed.** The next run would leak
+  the same way.
+- Thread an `AbortController` through the engine adapters and `lib/anthropic.ts`; abort on timeout;
+  `clearTimeout` in a `finally`.
+- Prove cancellation by observation: no usage logged for the aborted call after the abort. An absent
+  error is not proof.
+- While in this file, reconsider the blast radius: six parallel engine queries with `max_uses: 2`
+  each is the multiplier that turns one stuck call into a meaningful cost. Consider a per-audit web
+  search budget, but do not reduce engine coverage — the three-engine claim is now contractually
+  bound to the public copy (`lib/engine-scope.ts`).
+
 ## Batch 4 — known report defects
 
 11. **R9** schema gate blocks legacy re-renders into a dead end (warn, don't block, on the

@@ -97,6 +97,32 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
   operator-checklist line. New generations already enforce 3 unique channels via schema.
 - Do not add an LLM top-up call for legacy reports; not worth the cost before launch.
 
+## R10 — Engine timeout abandons the request but not the spend (DO NOW: burns money silently)
+
+- Seen: 2026-08-04, Batch 3 benchmark. `withTimeout` (`lib/geo/engines.ts:33`) is a bare
+  `Promise.race` against a `setTimeout` rejection. It stops the pipeline WAITING for the call; it
+  does not cancel it. The Anthropic web-search request keeps running server-side and keeps billing
+  after the pipeline has already recorded the engine as failed.
+- Measured: two calls in audit `28cbfe6e-9870-41a0-81be-73c104de5929` completed after their logical
+  timeout at 123,904 and 217,837 input tokens (~$0.42 and ~$0.72). Web search inflates context, so an
+  abandoned call costs MORE than a normal one — a full clean audit is ~$1.89 total. Two benchmark
+  attempts burned ~$3.03 and exhausted the production key mid-run.
+- Why it is worse than an overspend: the call is logged as timed out, so the cost is invisible.
+  Nothing in the admin cost badge attributes it. Six engine queries run in parallel per paid audit
+  with `max_uses: 2` each, so the worst case is a silent multiple of the expected unit cost — the
+  number the €149 price is justified against.
+- Second defect in the same function: the `setTimeout` handle is never cleared when the promise wins,
+  leaving a pending timer for the full window on every successful call.
+- Fix: thread an `AbortController` through `callClaude`/`callClaudeJSON` and the engine adapters,
+  abort it in the timeout branch, and `clearTimeout` in a `finally`. The Anthropic and OpenAI SDKs
+  both accept a per-request `signal`. Cancellation must be verified by observation (no usage recorded
+  after the abort), not by the absence of an error.
+- Related gap: with `USE_ANTHROPIC_ADMIN_BALANCE=false` the guard in `lib/anthropic-balance.ts:153`
+  falls back to a ClearSignal-side monthly budget estimate, which cannot see the real prepaid
+  balance — so it did not and could not prevent the mid-run exhaustion.
+- Acceptance: a unit test where the underlying call never settles asserts the abort signal fired and
+  the timer was cleared; a real audit run shows no Anthropic usage attributed after a logical timeout.
+
 ## R9 — Schema gate blocks legacy re-renders into a dead end (wrong failure mode)
 
 - Seen: 2026-07-24, monokelriga re-render on `6ad9d73`. Five `schema_deliverable_mismatch`

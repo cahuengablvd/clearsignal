@@ -97,6 +97,36 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
   operator-checklist line. New generations already enforce 3 unique channels via schema.
 - Do not add an LLM top-up call for legacy reports; not worth the cost before launch.
 
+## R11 — Claude timed out on 6 of 6 queries; the summary still names it (DO NOW: false claim, paid side)
+
+- Seen: 2026-08-04, benchmark audit `51ff451a-f8c7-498f-bd62-9a10814fec38` (attio.com, fresh, no
+  GEO reuse). All six Claude GEO calls aborted at 45.013-45.021s. `succeeded: 0, failed: 6`. The
+  audit still reached `awaiting_review` on OpenAI + Perplexity evidence alone.
+- **The false claim:** `buildGeoSummary` is passed `engines` — the REQUESTED list from
+  `lib/geo/index.ts:173` (`opts.engines ?? availableEngines()`) — not the list that returned
+  anything. The customer-facing sentence therefore reads "across ChatGPT, Claude and Perplexity"
+  when Claude contributed zero rows. The same object already computes the honest value:
+  `engines_tested` at line 407 is derived from `raw`, which is filtered to `res.ok` at line 201. Two
+  different answers in one result; the wrong one is the one a paying customer reads.
+- This is the P0.1 defect class (public claim vs measured fact) on the paid side, where it costs
+  EUR 149 of credibility instead of a free scan.
+- **Underlying cause:** a 45s timeout is too tight for Claude with `web_search max_uses: 2`, six
+  queries in parallel. Likely chronic rather than new: before R10 the same timeout fired and the
+  result was discarded just the same — the difference is that the abandoned request used to keep
+  billing. That is consistent with the cost drop from ~$1.89 to $0.36 on a comparable run: much of
+  the old unit cost may have been Claude work that was paid for and never used.
+- Fix direction, in order:
+  1. `buildGeoSummary` must name only engines that produced evidence. Pass `engines_tested`.
+  2. Raise the per-engine timeout for the web-search path specifically, and/or cap concurrency, so
+     Claude has a realistic chance to answer. Measure before choosing a number.
+  3. Surface engine coverage in admin review: an audit where an engine returned nothing must be
+     visible before a human approves delivery, not discoverable only in logs.
+- Do NOT resolve this by removing Claude from the engine list. The three-engine claim is bound to
+  the public copy via `lib/engine-scope.ts`; dropping coverage to match a broken timeout would make
+  the product smaller to hide a bug.
+- Acceptance: a run where one engine returns nothing produces a summary that does not name it, and
+  the admin queue shows the coverage gap before approval.
+
 ## R10 — Engine timeout abandons the request but not the spend (DO NOW: burns money silently)
 
 - Seen: 2026-08-04, Batch 3 benchmark. `withTimeout` (`lib/geo/engines.ts:33`) is a bare

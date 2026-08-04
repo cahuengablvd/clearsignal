@@ -24,11 +24,12 @@ export async function callClaudeJSON<T>(opts: {
   purpose?: string
   onUsage?: (event: CostEvent) => void
   meta?: AnthropicRequestMeta
+  signal?: AbortSignal
 }): Promise<T> {
-  const { model, system, user, validate, maxTokens = 4096, purpose = 'anthropic_json', onUsage, meta } = opts
+  const { model, system, user, validate, maxTokens = 4096, purpose = 'anthropic_json', onUsage, meta, signal } = opts
 
   // First attempt
-  let rawText = await callClaude(model, system, user, maxTokens, purpose, onUsage, meta)
+  let rawText = await callClaude(model, system, user, maxTokens, purpose, onUsage, meta, signal)
   let parsed = tryParseAndValidate(rawText, validate)
   if (parsed.success) return parsed.data
 
@@ -41,7 +42,8 @@ export async function callClaudeJSON<T>(opts: {
     maxTokens,
     `${purpose}:repair`,
     onUsage,
-    meta ? { ...meta, stage: `${meta.stage}:repair` } : undefined
+    meta ? { ...meta, stage: `${meta.stage}:repair` } : undefined,
+    signal
   )
   parsed = tryParseAndValidate(rawText, validate)
   if (parsed.success) return parsed.data
@@ -78,17 +80,21 @@ async function callClaude(
   maxTokens: number,
   purpose: string,
   onUsage?: (event: CostEvent) => void,
-  meta?: AnthropicRequestMeta
+  meta?: AnthropicRequestMeta,
+  signal?: AbortSignal
 ): Promise<string> {
   const startedAt = new Date().toISOString()
   let response: Anthropic.Messages.Message
   try {
-    response = await getAnthropic().messages.create({
-      model,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: 'user', content: user }],
-    })
+    response = await getAnthropic().messages.create(
+      {
+        model,
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: 'user', content: user }],
+      },
+      signal ? { signal } : undefined
+    )
   } catch (err) {
     await logAnthropicCall({
       meta,

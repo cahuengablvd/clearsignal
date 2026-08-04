@@ -30,13 +30,22 @@ export interface EngineResponse {
 const ENGINE_TIMEOUT_MS = 45_000
 const FAST_ENGINE_TIMEOUT_MS = 20_000
 
-function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    p,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-    ),
-  ])
+async function withTimeout<T>(run: (signal: AbortSignal) => Promise<T>, ms: number, label: string): Promise<T> {
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(`${label} timed out after ${ms}ms`)
+      reject(error)
+      controller.abort(error)
+    }, ms)
+  })
+
+  try {
+    return await Promise.race([run(controller.signal), timeout])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
 }
 
 function uniqueUrls(urls: (string | undefined | null)[]): string[] {
@@ -64,20 +73,23 @@ function getAnthropic() {
 
 async function queryClaude(
   question: string,
-  opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string; meta?: AnthropicRequestMeta } = {}
+  opts: { webSearch?: boolean; signal?: AbortSignal; onUsage?: (event: CostEvent) => void; purpose?: string; meta?: AnthropicRequestMeta } = {}
 ): Promise<EngineResponse> {
   const callStartedAt = new Date().toISOString()
   try {
     if (opts.webSearch === false) {
       const model = 'claude-haiku-4-5-20251001'
       const purpose = opts.purpose ?? 'geo:claude'
-      const res: any = await getAnthropic().messages.create({
-        model,
-        max_tokens: 700,
-        system:
-          'Answer as a buyer research assistant. Recommend relevant products/vendors when appropriate. Be concise.',
-        messages: [{ role: 'user', content: question }],
-      } as any)
+      const res: any = await getAnthropic().messages.create(
+        {
+          model,
+          max_tokens: 700,
+          system:
+            'Answer as a buyer research assistant. Recommend relevant products/vendors when appropriate. Be concise.',
+          messages: [{ role: 'user', content: question }],
+        } as any,
+        opts.signal ? { signal: opts.signal } : undefined
+      )
       const usage = anthropicUsageEvent({ model, purpose, usage: res.usage })
       opts.onUsage?.(usage)
       await logAnthropicCall({
@@ -104,12 +116,15 @@ async function queryClaude(
     // tool runs on Anthropic's infra and returns citations inline.
     const model = 'claude-sonnet-4-6'
     const purpose = opts.purpose ?? 'geo:claude_web'
-    const res: any = await getAnthropic().messages.create({
-      model,
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: question }],
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 } as any],
-    } as any)
+    const res: any = await getAnthropic().messages.create(
+      {
+        model,
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: question }],
+        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 2 } as any],
+      } as any,
+      opts.signal ? { signal: opts.signal } : undefined
+    )
     const usage = anthropicUsageEvent({ model, purpose, usage: res.usage })
     opts.onUsage?.(usage)
     await logAnthropicCall({
@@ -169,7 +184,7 @@ async function queryClaude(
 
 async function queryPerplexity(
   question: string,
-  opts: { onUsage?: (event: CostEvent) => void; purpose?: string } = {}
+  opts: { signal?: AbortSignal; onUsage?: (event: CostEvent) => void; purpose?: string } = {}
 ): Promise<EngineResponse> {
   const key = process.env.PERPLEXITY_API_KEY
   if (!key) {
@@ -179,6 +194,7 @@ async function queryPerplexity(
     const resp = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      signal: opts.signal,
       body: JSON.stringify({
         model: 'sonar',
         messages: [{ role: 'user', content: question }],
@@ -213,7 +229,7 @@ async function queryPerplexity(
 
 async function queryOpenAI(
   question: string,
-  opts: { onUsage?: (event: CostEvent) => void; purpose?: string } = {}
+  opts: { signal?: AbortSignal; onUsage?: (event: CostEvent) => void; purpose?: string } = {}
 ): Promise<EngineResponse> {
   const key = process.env.OPENAI_API_KEY
   if (!key) {
@@ -223,6 +239,7 @@ async function queryOpenAI(
     const resp = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      signal: opts.signal,
       body: JSON.stringify({
         model: 'gpt-4o',
         tools: [{ type: 'web_search_preview' }],
@@ -270,7 +287,7 @@ async function queryOpenAI(
 
 const ADAPTERS: Record<
   EngineId,
-  (q: string, opts?: { onUsage?: (event: CostEvent) => void; purpose?: string }) => Promise<EngineResponse>
+  (q: string, opts?: { signal?: AbortSignal; onUsage?: (event: CostEvent) => void; purpose?: string }) => Promise<EngineResponse>
 > = {
   claude: queryClaude,
   perplexity: queryPerplexity,
@@ -294,11 +311,19 @@ export async function queryEngine(
 ): Promise<EngineResponse> {
   try {
     const timeout = opts.webSearch === false ? FAST_ENGINE_TIMEOUT_MS : ENGINE_TIMEOUT_MS
-    const run =
-      engine === 'claude'
-        ? queryClaude(question, { webSearch: opts.webSearch, onUsage: opts.onUsage, purpose: opts.purpose, meta: opts.meta })
-        : ADAPTERS[engine](question, { onUsage: opts.onUsage, purpose: opts.purpose })
-    return await withTimeout(run, timeout, `${engine} query`)
+    return await withTimeout(
+      (signal) => engine === 'claude'
+        ? queryClaude(question, {
+            webSearch: opts.webSearch,
+            signal,
+            onUsage: opts.onUsage,
+            purpose: opts.purpose,
+            meta: opts.meta,
+          })
+        : ADAPTERS[engine](question, { signal, onUsage: opts.onUsage, purpose: opts.purpose }),
+      timeout,
+      `${engine} query`
+    )
   } catch (err) {
     return {
       engine,

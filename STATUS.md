@@ -104,13 +104,22 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
 
 ## Cost
 
-**One audit costs `$1.89` in API spend** (run `9r5hcc01`, admin cost badge, build `6bf1b68`).
-Against the €149 founding price that is ~1.2% of the ticket — the unit economics hold even if
-generation gets several times more expensive. First real benchmark on this build.
+**A complete audit costs `$1.06` in API spend** — `$1.056009` Anthropic, `$1.081492` across all
+providers (control run `dad3447c-bfe6-43f8-9956-2a7120a6fd01`, 2026-08-04, 18/18 engine-query
+combinations). This is the first measurement taken on a run where every engine actually returned
+evidence, so it supersedes the earlier figures. Against €149 that is ~0.7% of the ticket.
 
-The 2026-08-04 Batch 3/3.5 benchmark recorded `$0.362783` in the Anthropic admin counter and
-`$0.389788` in the complete internal provider breakdown. Timed-out Claude GEO calls contributed
-zero recorded usage after real aborts.
+The two earlier numbers were both measured on incomplete audits and should not be quoted:
+
+- `$1.89` (run `9r5hcc01`, 2026-07-24) predates the R10/R11 fixes. The 45-second timeout was below
+  Claude's normal completion time (measured: 59.9s isolated), so Claude calls were abandoned while
+  the requests kept billing. Much of that figure was work that never reached the report.
+- `$0.362783` (run `51ff451a`, 2026-08-04) was taken after R10 stopped the billing but before R11
+  raised the timeout — all six Claude calls aborted, so a third of the engine work simply did not
+  happen. Cheap because it was broken.
+
+Net: the product now produces a *complete* audit for less than it used to spend on an incomplete
+one.
 
 Codex spent ~32M input tokens over 257 requests in one session on 2026-07-24, largely because it
 ran from a folder containing only `.git`. Rules live in `AGENTS.md`; check any day's spend with

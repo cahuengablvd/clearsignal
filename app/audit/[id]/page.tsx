@@ -473,6 +473,9 @@ export default async function AuditPage({
                 <p className="text-xs text-muted-foreground mt-3">
                   Engines tested: {report.geo.engines_tested.join(', ')}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Visibility is specific to this tested query set; different buyer questions can produce different results.
+                </p>
                 {report.geo.test_counts && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Queries configured: {report.geo.test_counts.configured_queries}. Engines configured:{' '}

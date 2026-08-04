@@ -1,5 +1,14 @@
 import type { GeoEvidence, GeoQueryAnalysis, GeoQueryIntent } from '../schemas'
 
+export const DEFAULT_PAID_QUERY_INTENT_PLAN = [
+  'category/discovery',
+  'problem/need',
+  'comparison or alternatives',
+  'ICP/use case',
+  'trust or pricing, whichever fits the business',
+  'local if geography is material; otherwise a second decision/use-case question',
+] as const
+
 const INTENT_ORDER: GeoQueryIntent[] = [
   'category_discovery',
   'comparison',

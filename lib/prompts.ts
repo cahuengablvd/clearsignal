@@ -2,6 +2,7 @@ import { businessContextPrompt } from './business-context'
 import { untrustedBlock } from './sanitize'
 import { temporalPrompt } from './temporal-claims'
 import type { BusinessContext } from './schemas'
+import { DEFAULT_PAID_QUERY_INTENT_PLAN } from './geo/query-taxonomy'
 
 // --- Model IDs ---
 export const MODEL_SCORE = 'claude-haiku-4-5-20251001'
@@ -59,15 +60,19 @@ export function geoQueriesUserPrompt(
   icp: string,
   count: number
 ): string {
+  const queryPlan = count === DEFAULT_PAID_QUERY_INTENT_PLAN.length
+    ? `Use this exact six-question intent plan:\n${DEFAULT_PAID_QUERY_INTENT_PLAN
+        .map((intent, index) => `${index + 1}. ${intent}`)
+        .join('\n')}`
+    : `Mix:\n- "best X for Y" comparison queries\n- problem-first queries ("how do I ...")\n- alternatives / vs queries`
+
   return `Brand: ${brand}
 Product category / what it does:
 ${category ? untrustedBlock('PAGE_SNIPPET', category, 1200) : 'Unknown - infer from the brand'}
 Ideal customer: ${icp || 'Not provided'}
 
-Generate exactly ${count} natural-language queries a buyer would ask an AI assistant when researching this category. Mix:
-- "best X for Y" comparison queries
-- problem-first queries ("how do I ...")
-- alternatives / vs queries
+Generate exactly ${count} natural-language queries a buyer would ask an AI assistant when researching this category.
+${queryPlan}
 
 Do NOT mention the brand name in the queries - we want to see if the brand surfaces on its own.
 

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { buildGeoSummary } from '../lib/geo'
 import { checkTechnicalEligibility, eligibilityInternals } from '../lib/geo/eligibility'
 import { buildQueryAnalysis, classifyQueryIntent } from '../lib/geo/query-taxonomy'
@@ -10,6 +12,7 @@ import {
   RECOMMENDATION_STAGE_LABELS,
 } from '../lib/geo/recommendation-stages'
 import { GeoResultSchema, type ActionBlock, type GeoEvidence } from '../lib/schemas'
+import { geoQueriesUserPrompt } from '../lib/prompts'
 
 function fetcherFor(args: { targetStatus?: number; robotsStatus?: number; robots?: string }) {
   return (async (input: URL | RequestInfo) => {
@@ -60,6 +63,22 @@ describe('technical AI eligibility', () => {
 })
 
 describe('query intent taxonomy', () => {
+  it('requests the six paid questions in the intended buyer-decision mix', () => {
+    const prompt = geoQueriesUserPrompt('Example', 'Accounting software', 'Small firms', 6)
+
+    expect(prompt).toContain('1. category/discovery')
+    expect(prompt).toContain('2. problem/need')
+    expect(prompt).toContain('3. comparison or alternatives')
+    expect(prompt).toContain('4. ICP/use case')
+    expect(prompt).toContain('5. trust or pricing')
+    expect(prompt).toContain('6. local if geography is material')
+
+    const reportPage = readFileSync(join(process.cwd(), 'app/audit/[id]/page.tsx'), 'utf8')
+    expect(reportPage).toContain(
+      'Visibility is specific to this tested query set; different buyer questions can produce different results.'
+    )
+  })
+
   it.each([
     ['best moving company near me', 'local'],
     ['Acme vs Example for enterprise teams', 'comparison'],

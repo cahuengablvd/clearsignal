@@ -11,17 +11,17 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-07-24, after commit `764e008`.
+**Last updated:** 2026-08-04, after Trigger deploy from commit `e6555e6`.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260724.3`**, deployed from `C:\csdeploy` at commit `764e008`,
-  5 tasks detected. This release adds the durable `run-free-score` task and the funnel URL
-  normalization/mobile-resume batch from `TASKS_FUNNEL_INPUT.md`.
-  - Before this it sat on `4aa690f` (Jul 4), **41 commits behind** — generation ran July code
-    while the site ran July 24 code. Anything touching `lib/audit-*`, `lib/report-*`,
-    `lib/quality/*`, `trigger/*` or prompts needs a Trigger deploy or it simply is not live.
+- **Trigger.dev** — version **`20260804.1`**, deployed from `C:\csdeploy` at commit `e6555e6`,
+  5 tasks detected. This release ships Batch 1 of `TASKS_PRELAUNCH.md`: the shared free/full
+  engine contract, measured-only GEO summaries, and synthesis fallback for generic AI fixes.
+  - Previous production version was `20260724.3` at commit `764e008`; that deployment closed a
+    41-commit worker/site drift. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`,
+    `trigger/*` or prompts needs a Trigger deploy or it simply is not live.
   - Deploy with the CLI version pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`).
     `@latest` aborts on a version mismatch — see `DEPLOY.md`.
 
@@ -60,6 +60,11 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
   `validation/PLAN.md`.
 
 ## Shipped
+
+- `TASKS_PRELAUNCH.md` Batch 1 only — commit `e6555e6`, Trigger version `20260804.1`. The free
+  score now says and runs one sampled engine (Claude), while the full audit contract remains
+  ChatGPT, Claude and Perplexity. Unmeasured GEO causes and arbitrary GEO evidence links were
+  removed; the public engine claim is protected by a code-to-copy contract test.
 
 - `TASKS_DELIVERY_POLISH.md` — commit `b3f3cf5`. Both transactional emails share a branded
   table-based shell (site palette, text wordmark, dark mode, plain-text alternative, bare

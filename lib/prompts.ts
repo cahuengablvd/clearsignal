@@ -8,6 +8,7 @@ import {
   ACTION_OUTREACH_CHANNELS,
   READY_MATERIALS_LIMITS,
   type BusinessContext,
+  type GeoActionEvidenceCatalog,
 } from './schemas'
 import { DEFAULT_PAID_QUERY_INTENT_PLAN } from './geo/query-taxonomy'
 
@@ -426,7 +427,7 @@ If no competitor data is available, return an empty competitor_analysis array an
 export const ACTION_SYSTEM = `You are a B2B SaaS growth advisor writing an action plan.
 Based on the audit findings, generate:
 1. an executive summary (3 to 4 sentences)
-2. top 10 fixes prioritized by impact and effort
+2. 5 prioritized fixes ordered by impact and effort
 3. three outreach messages rewritten to reflect the positioning improvements
 Be direct.
 Write fixes as specific actions, not vague advice.
@@ -442,6 +443,8 @@ Outreach messages must not invent examples like reduced sales cycle, improved ac
 Outreach messages must not invent scarcity. Do not write "one slot open", "two slots open", "limited availability", or similar unless the operator explicitly provided it.
 For recommendations that depend on third parties (roundups, backlinks, review sites, Reddit, YouTube, competitor-owned pages), state that control is low and include an owned-channel alternative.
 Do not recommend Wikipedia or Wikidata as a normal SEO task. Only mention them as low-control options requiring independent notability. Do not recommend AggregateRating unless verified review-source data exists; prefer Organization, Service, FAQPage, and case-study markup.
+For every ai_search fix, separate Observed (a measured catalog fact), Inferred (a possible, explicitly non-causal interpretation), and Recommended (a controlled next action plus a lower-control alternative when applicable). Keep Observed, Inferred, and Recommended to one concise sentence each.
+An ai_search fix may select only evidence_ids present in the compact GEO evidence catalog. Do not infer from or request raw answer text.
 Return ONLY valid JSON matching the ClearSignalReport.action schema.`
 
 export function actionUserPrompt(
@@ -450,7 +453,8 @@ export function actionUserPrompt(
   icp: string,
   brand?: string,
   context?: BusinessContext,
-  referenceIso = new Date().toISOString()
+  referenceIso = new Date().toISOString(),
+  geoCatalog?: GeoActionEvidenceCatalog | null
 ): string {
   return `Clarity analysis:
 ${clarityOutput}
@@ -463,14 +467,17 @@ ${icp || 'Not provided'}
 ${brandGuidance(brand)}
 ${businessGuidance(context)}
 ${temporalPrompt(referenceIso)}
+Compact GEO evidence catalog (aggregates and observed source characteristics only; no raw answers):
+${geoCatalog ? JSON.stringify(geoCatalog) : '(not available)'}
+
 Return a JSON object with this exact structure:
 {
   "executive_summary": "<string, 3-4 sentences>",
-  "top_fixes": [{ "id": <number>, "title": "<string>", "description": "<string>", "impact": ${promptEnum(ACTION_FIX_IMPACTS)}, "effort": ${promptEnum(ACTION_FIX_EFFORTS)}, "category": ${promptEnum(ACTION_FIX_CATEGORIES)} }],
+  "top_fixes": [{ "id": <number>, "title": "<string>", "description": "<one brief summary sentence; do not repeat the claim-level fields>", "impact": ${promptEnum(ACTION_FIX_IMPACTS)}, "effort": ${promptEnum(ACTION_FIX_EFFORTS)}, "category": ${promptEnum(ACTION_FIX_CATEGORIES)}, "observed": "<required for ai_search; one measured sentence, otherwise omit>", "inferred": "<required for ai_search; one explicitly non-causal sentence, otherwise omit>", "recommended": "<required for ai_search; one controlled-action sentence with a lower-control alternative when applicable, otherwise omit>", "evidence_ids": ["<catalog ID relevant to this fix>"] }],
   "ship_first": ["<string>"],
   "ignore_for_now": ["<string>"],
   "outreach_messages": [{ "channel": ${promptEnum(ACTION_OUTREACH_CHANNELS)}, "message": "<string>", "note": "<string>" }]
 }
 
-Provide 5-10 fixes, only as many as the evidence supports. Each fix must cite a concrete page finding, competitor comparison, or GEO evidence item. Provide 3-5 ship_first items, 2-3 ignore_for_now items, and EXACTLY 3 outreach messages - one "linkedin", one "email", one "twitter" (adapt tone and content to the business context, but always produce all three channels).`
+Provide exactly 5 concise fixes, each supported by a concrete page finding, competitor comparison, or GEO evidence item. For ai_search fixes, copy only relevant evidence_ids from the compact catalog and keep Observed / Inferred / Recommended distinct and to one concise sentence each. Provide 3-5 ship_first items, 2-3 ignore_for_now items, and EXACTLY 3 outreach messages - one "linkedin", one "email", one "twitter" (adapt tone and content to the business context, but always produce all three channels).`
 }

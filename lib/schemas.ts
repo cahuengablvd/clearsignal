@@ -335,6 +335,37 @@ export const GeoQueryAnalysisSchema = z.object({
 })
 export type GeoQueryAnalysis = z.infer<typeof GeoQueryAnalysisSchema>
 
+export const GeoActionEvidenceCatalogSchema = z.object({
+  query_intent_coverage: z.array(z.object({
+    evidence_id: z.string(),
+    intent: GeoQueryIntentSchema,
+    query_count: z.number().int().nonnegative(),
+    successful_combinations: z.number().int().nonnegative(),
+    mentioned_combinations: z.number().int().nonnegative(),
+    cited_combinations: z.number().int().nonnegative(),
+    mention_rate: z.number().min(0).max(100),
+    citation_rate: z.number().min(0).max(100),
+  })),
+  top_competitors: z.array(z.object({
+    evidence_id: z.string(),
+    name: z.string(),
+    mention_count: z.number().int().nonnegative(),
+    mention_rate: z.number().min(0).max(100),
+  })),
+  cited_domains: z.array(z.object({
+    evidence_id: z.string(),
+    domain: z.string(),
+    citation_count: z.number().int().nonnegative(),
+  })),
+  source_gaps: z.array(z.object({
+    evidence_id: z.string(),
+    cited_source: z.string(),
+    observed_characteristics: z.array(z.string()),
+    target_missing_signals: z.array(z.string()),
+  })),
+})
+export type GeoActionEvidenceCatalog = z.infer<typeof GeoActionEvidenceCatalogSchema>
+
 export const EligibilityStatusSchema = z.enum(['eligible', 'blocked', 'warning', 'unknown'])
 export const TechnicalEligibilitySchema = z.object({
   overall_status: z.enum(['eligible', 'limited', 'blocked', 'unknown']),
@@ -567,15 +598,18 @@ const OutreachMessageSchema = z.object({
   note: z.string(),
 })
 
-const actionSchema = z.object({
-  executive_summary: z.string(),
-  top_fixes: z.array(z.object({
+const actionFixSchema = z.object({
     id: z.number(),
     title: z.string(),
     description: z.string(),
     impact: impactSchema,
     effort: effortSchema,
     category: categorySchema,
+    // Required for fresh AI-visibility fixes by ActionGenerationBlockSchema;
+    // optional here so historical stored reports remain readable.
+    observed: z.string().optional(),
+    inferred: z.string().optional(),
+    recommended: z.string().optional(),
     // Added after generation by deterministic evidence mapping, when possible.
     confidence: z.number().min(0).max(100).optional(),
     confidence_level: confidenceLevelSchema.optional(),
@@ -592,7 +626,11 @@ const actionSchema = z.object({
     recommendation_stage: RecommendationStageSchema.optional(),
     depends_on_access: z.boolean().optional(),
     blocking_reason: z.string().optional(),
-  })).min(5).max(10),
+})
+
+const actionSchema = z.object({
+  executive_summary: z.string(),
+  top_fixes: z.array(actionFixSchema).min(5).max(10),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),
   outreach_messages: z.array(OutreachMessageSchema).superRefine((messages, ctx) => {
@@ -648,6 +686,27 @@ export type ClearSignalReport = z.infer<typeof ClearSignalReportSchema>
 export const ClarityBlockSchema = claritySchema
 export const GapBlockSchema = gapSchema
 export const ActionBlockSchema = actionSchema
+export const ActionGenerationBlockSchema = actionSchema.superRefine((action, ctx) => {
+  action.top_fixes.forEach((fix, index) => {
+    if (fix.category !== 'ai_search') return
+    for (const field of ['observed', 'inferred', 'recommended'] as const) {
+      if (!fix[field]?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['top_fixes', index, field],
+          message: `AI-visibility fixes require a non-empty ${field} statement`,
+        })
+      }
+    }
+    if (fix.inferred && !/\b(?:may|might|could|possible|does not (?:prove|show|establish)|not causal|non-causal)\b/i.test(fix.inferred)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['top_fixes', index, 'inferred'],
+        message: 'AI-visibility inference must be explicitly non-causal',
+      })
+    }
+  })
+})
 
 export type ClarityBlock = z.infer<typeof ClarityBlockSchema>
 export type GapBlock = z.infer<typeof GapBlockSchema>

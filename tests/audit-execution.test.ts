@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const mocks = vi.hoisted(() => {
   const chain: { error: unknown; eq: ReturnType<typeof vi.fn> } = {
@@ -99,5 +101,18 @@ describe('audit stage execution guard', () => {
       status: 'completed',
       result: { ok: true },
     }))
+  })
+})
+
+describe('full audit critical path', () => {
+  it('awaits GEO after clarity/gap and before starting the action stage', () => {
+    const source = readFileSync(join(process.cwd(), 'lib', 'audit-runner.ts'), 'utf8')
+    const gapStage = source.indexOf("'audit_gap'")
+    const geoAwait = source.indexOf('const geo = await geoPromise')
+    const actionStage = source.indexOf("'audit_action'")
+
+    expect(gapStage).toBeGreaterThan(-1)
+    expect(geoAwait).toBeGreaterThan(gapStage)
+    expect(actionStage).toBeGreaterThan(geoAwait)
   })
 })

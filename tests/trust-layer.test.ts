@@ -1396,7 +1396,7 @@ describe('pre-PDF contradiction validator', () => {
     expect(r.warnings.some((w) => w.startsWith('commercial_claim:'))).toBe(true)
   })
 
-  it('removes meta_description from an AI fix and realigns the basis', () => {
+  it('drops AI evidence ids that are not present in a compact GEO catalog', () => {
     const r = validateReport(
       baseReport({
         action: {
@@ -1417,8 +1417,8 @@ describe('pre-PDF contradiction validator', () => {
       })
     )
     const fix = r.report.action.top_fixes[0]
-    expect(fix.evidence_ids).toEqual(['GEO-QUERY-001'])
-    expect(fix.evidence_basis).toBe('Based on: GEO-QUERY-001')
+    expect(fix.evidence_ids).toEqual([])
+    expect(fix.evidence_basis).toBe('Based on audit synthesis; no single direct evidence item.')
   })
 
   it('realigns a mismatched basis to its linked ids', () => {
@@ -3205,7 +3205,7 @@ describe('LLM call contract guards', () => {
     for (const value of ['high', 'medium', 'low', 'easy', 'hard', 'copy', 'structure', 'proof', 'cta', 'ai_search']) {
       expect(prompt).toContain(value)
     }
-    expect(prompt).toMatch(/Provide 5-10 fixes/i)
+    expect(prompt).toMatch(/Provide exactly 5 concise fixes/i)
 
     const fix = {
       id: 1,

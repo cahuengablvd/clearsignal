@@ -42,10 +42,8 @@
       "implementer": "Developer",
       "confidence": 88,
       "confidence_basis": "No application/ld+json script present in the rendered HTML",
-      "evidence_ids": [
-        "OBS-SCHEMA-001"
-      ],
-      "evidence_basis": "Based on: OBS-SCHEMA-001"
+      "evidence_ids": [],
+      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
     },
     {
       "id": 4,
@@ -55,10 +53,8 @@
       "implementer": "Developer",
       "confidence": 88,
       "confidence_basis": "No application/ld+json script present in the rendered HTML",
-      "evidence_ids": [
-        "OBS-SCHEMA-001"
-      ],
-      "evidence_basis": "Based on: OBS-SCHEMA-001"
+      "evidence_ids": [],
+      "evidence_basis": "Based on audit synthesis; no single direct evidence item."
     },
     {
       "id": 5,

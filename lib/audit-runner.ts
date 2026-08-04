@@ -11,6 +11,7 @@ import {
   ClarityBlockSchema,
   GapBlockSchema,
   ActionBlockSchema,
+  ActionGenerationBlockSchema,
   type ClarityBlock,
   type GapBlock,
   type ActionBlock,
@@ -39,6 +40,7 @@ import { deliverAuditEmail } from './email-delivery'
 import { buildGeoSummary, runGeoScan } from './geo'
 import { buildVariants, citationsInclude, textMentions, firstMentionIndex } from './geo/detect'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
+import { buildGeoActionEvidenceCatalog } from './geo/action-evidence'
 import { checkTechnicalEligibility } from './geo/eligibility'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import { notify } from './notify'
@@ -579,6 +581,12 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       (stored) => GapBlockSchema.parse(stored)
     )
 
+    // GEO started before clarity and has overlapped with clarity + gap. Await it
+    // here so the action model receives measured aggregates, never raw answers.
+    const geo = await geoPromise
+    if (geo) geo.query_analysis = buildQueryAnalysis(geo.evidence)
+    const geoActionCatalog = geo ? buildGeoActionEvidenceCatalog(geo) : null
+
     // 6. Step 4: Action block
     const action = await runAuditStage(
       exec,
@@ -592,10 +600,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
           icp,
           brand,
           businessContext,
-          processingStartedAt
+          processingStartedAt,
+          geoActionCatalog
         ),
-        validate: (data) => ActionBlockSchema.parse(data),
-        maxTokens: 4096,
+        validate: (data) => ActionGenerationBlockSchema.parse(data),
+        maxTokens: 6144,
         purpose: 'audit:action',
         onUsage: (event) => cost.add(event),
         meta: {
@@ -610,10 +619,8 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       (stored) => ActionBlockSchema.parse(stored)
     )
 
-    const geo = await geoPromise
     const technicalEligibility = await eligibilityPromise
     if (geo) {
-      geo.query_analysis = buildQueryAnalysis(geo.evidence)
       if (technicalEligibility) {
         geo.technical_eligibility = technicalEligibility
       }

@@ -18,6 +18,7 @@ import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from './trust/decisions'
 import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import { buildGeoSummary } from './geo'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
+import { buildGeoActionEvidenceCatalog, filterGeoActionEvidenceIds } from './geo/action-evidence'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import { splitSentences } from './trust/sentences'
 import {
@@ -659,9 +660,19 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
+    const geoActionCatalog = walked.geo ? buildGeoActionEvidenceCatalog(walked.geo) : null
     walked.action.top_fixes = walked.action.top_fixes.map((fix) => {
       let ids = Array.isArray(fix.evidence_ids) ? [...fix.evidence_ids] : []
       let mutatedIds = false
+
+      if (fix.category === 'ai_search') {
+        const relevantIds = geoActionCatalog ? filterGeoActionEvidenceIds(fix, geoActionCatalog) : []
+        if (JSON.stringify(relevantIds) !== JSON.stringify(ids)) {
+          ids = relevantIds
+          mutatedIds = true
+          warn(`evidence: removed invalid or irrelevant GEO catalog ids from an AI-visibility fix (#${fix.id})`)
+        }
+      }
 
       // AI/entity fixes must never be grounded in meta_description.
       if (fix.category === 'ai_search' && ids.includes('OBS-META-001')) {

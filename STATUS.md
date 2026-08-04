@@ -11,16 +11,15 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-08-04, after the successful Batch 3/3.5 benchmark and production deploy.
+**Last updated:** 2026-08-04, after the R11 control audit and production deploy.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** - version **`20260804.3`**, deployed from `C:\csdeploy` at commit `a5c688a`,
-  5 tasks detected. This release ships Batches 3 and 3.5 of `TASKS_PRELAUNCH.md`, including
-  buyer-intent GEO queries, evidence-grounded action plans, and real cancellation of timed-out
-  engine requests.
-  - Previous production version was `20260804.2` at commit `a57e960`. Anything touching
+- **Trigger.dev** - version **`20260804.4`**, deployed from `C:\csdeploy` at commit `5dadd1e`,
+  5 tasks detected. This release ships R11: honest engine names in GEO summaries, a measured
+  90-second Claude web-search timeout, and engine-coverage warnings in admin review.
+  - Previous production version was `20260804.3` at commit `a5c688a`. Anything touching
     `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts needs a
     Trigger deploy or it simply is not live.
   - Deploy with the CLI version pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`).
@@ -36,6 +35,20 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 - All six Claude GEO calls timed out at 45.013-45.021 seconds and were aborted. A control query
   5:29 after abort still showed 6 failed / 0 succeeded rows, 0 input tokens, 0 output tokens, and
   `$0` cost for those calls. No late usage appeared, closing R10 by production-key observation.
+
+## R11 timing
+
+- One isolated Claude Sonnet 4.6 call using the production key and the paid GEO settings
+  (`web_search max_uses: 2`, `max_tokens: 1500`) completed in **59.928 seconds** with two web
+  searches and 34,385 input / 2,098 output tokens. This proved the old 45-second timeout was below
+  normal completion time and set the data basis for the new 90-second limit.
+- Fresh control audit `dad3447c-bfe6-43f8-9956-2a7120a6fd01` for `cal.com` used
+  `reuseGeoEvidence: false` and reached `awaiting_review` in **256.163 seconds (4:16.163)**.
+  All six parallel Claude calls succeeded in **40.072, 50.477, 54.756, 54.862, 59.800, and
+  63.604 seconds**. Coverage was 18/18 combinations across all three engines.
+- Admin Anthropic cost was `$1.056009`; the complete internal provider breakdown was `$1.081492`.
+  The local admin showed `Engine coverage complete` for the control audit and, for the earlier
+  11/18 `attio.com` audit, `Engine coverage gap before approval` plus `No evidence: Claude`.
 
 ## Rozie verification (beta quality blocker)
 

@@ -97,14 +97,14 @@ const sampleJsonLd = buildJsonLd('Example SaaS', 'https://example-saas.com', [
 const sourceGaps = [
   {
     cited_source: 'g2.com',
-    why: 'A review aggregator with category landing pages, star ratings, and side-by-side comparisons - exactly the structured, citable content answer engines quote.',
-    has: ['Comparison / alternatives page', 'Review / proof signals', 'Clear category language', 'Third-party authority'],
+    why: 'An independently published review aggregator with category landing pages, star ratings, and side-by-side comparisons.',
+    has: ['Comparison / alternatives page', 'Review / proof signals', 'Clear category language', 'Independent/editorial source'],
     missing: ['Review / proof signals', 'Clear category language'],
-    fix: 'Claim and complete a G2/Capterra profile and seed it with named-customer reviews.',
+    fix: 'First validate whether G2/Capterra reaches relevant buyers; if it does, complete the profile and invite verified customers to review.',
   },
   {
     cited_source: 'competitor-a.com',
-    why: 'Has a dedicated "alternatives" page and FAQ sections that directly answer buyer questions in quotable language.',
+    why: 'A first-party alternatives page with FAQ sections that directly answer buyer questions.',
     has: ['Comparison / alternatives page', 'FAQ / Q&A structure', 'Specific ICP language', 'Pricing / use-case content'],
     missing: ['Comparison / alternatives page', 'FAQ / Q&A structure'],
     fix: 'Publish a "[You] vs alternatives" page plus an FAQ block answering the exact tested queries.',
@@ -304,10 +304,10 @@ export default function SampleReportPage() {
         <section className="mt-8">
           <div className="flex items-center gap-2 mb-1">
             <FileSearch className="h-5 w-5" />
-            <h2 className="text-xl font-bold">Why these sources get cited (and you don&apos;t)</h2>
+            <h2 className="text-xl font-bold">Observed characteristics of cited sources</h2>
           </div>
           <p className="mb-4 text-sm text-[#756257]">
-            We scrape the pages AI actually cites and compare their citation signals to your site.
+            These pages appeared as citations in the sample answers. The comparison shows observed page characteristics; it does not prove why an engine cited them.
           </p>
           <div className="grid gap-3">
             {sourceGaps.map((s) => (
@@ -319,7 +319,7 @@ export default function SampleReportPage() {
                   </div>
                   <p className="mb-3 text-sm text-[#756257]">{s.why}</p>
                   <div className="mb-3">
-                    <div className="text-xs font-medium mb-1">This source has:</div>
+                    <div className="text-xs font-medium mb-1">Observed on this cited source:</div>
                     <div className="flex flex-wrap gap-1.5">
                       {s.has.map((sig) => (
                         <span key={sig} className="rounded-full border border-[#E5D7C5] bg-[#FBF6EE] px-2 py-0.5 text-xs text-[#6E5A50]">
@@ -329,7 +329,7 @@ export default function SampleReportPage() {
                     </div>
                   </div>
                   <div className="mb-3">
-                    <div className="mb-1 text-xs font-medium text-[#94402D]">You&apos;re missing:</div>
+                    <div className="mb-1 text-xs font-medium text-[#94402D]">Comparable signals not found on your page:</div>
                     <div className="flex flex-wrap gap-1.5">
                       {s.missing.map((sig) => (
                         <span key={sig} className="rounded-full border border-[#E6BEB1] bg-[#FFF3EE] px-2 py-0.5 text-xs text-[#94402D]">

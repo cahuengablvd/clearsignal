@@ -5,6 +5,20 @@ import type {
   TechnicalEligibility,
 } from '../schemas'
 
+export const RECOMMENDATION_STAGE_LABELS: Record<RecommendationStage, string> = {
+  ACCESS: 'Technical access',
+  RETRIEVAL: 'First-party clarity/content',
+  CITATION: 'Cited-source opportunity',
+  ENTITY: 'Business facts/entity',
+  AUTHORITY: 'Proof/third-party evidence',
+  PROMINENCE: 'Messaging/comparison presence',
+  MEASUREMENT: 'Re-test the same query set',
+}
+
+export function recommendationStageLabel(stage: RecommendationStage): string {
+  return RECOMMENDATION_STAGE_LABELS[stage]
+}
+
 function normalizedText(value: { title?: string; description?: string } | string): string {
   return typeof value === 'string'
     ? value.toLowerCase()

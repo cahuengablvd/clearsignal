@@ -28,8 +28,8 @@ const AUDIENCES = [
   },
   {
     name: 'Agencies',
-    copy: 'Answer the question clients are already asking: "What does AI say about us?" ClearSignal turns AI visibility gaps into competitor evidence, source issues and implementation work you can run for client websites.',
-    mobileCopy: 'See how AI describes your clients, which competitors appear instead, and where your agency can create the most valuable improvements.',
+    copy: 'A diagnostic your clients can act on. ClearSignal diagnoses the AI visibility and evidence problem; your agency owns the implementation. Show clients where their brand appears in tested AI answers, which competitors appear instead, and which website or cited-source gaps to prioritize next.',
+    mobileCopy: 'ClearSignal diagnoses the AI visibility and evidence problem; your agency owns the implementation and prioritizes what to improve next.',
     cta: 'Get your free AI visibility score',
   },
   {
@@ -114,7 +114,7 @@ const FAQS = [
   },
   {
     q: 'Is this just an SEO audit?',
-    a: 'No. SEO audits inspect search-engine signals. ClearSignal tests how AI answer engines describe and recommend your business, then connects those gaps to your website content, proof, structure and messaging.',
+    a: 'SEO helps pages become discoverable in search. ClearSignal examines a different, complementary question: when buyers ask AI systems for recommendations, comparisons or solutions, which brands appear in the tested answers, which sources are cited, and what observable evidence gaps should be investigated first?',
   },
   {
     q: 'Is this fully automated?',
@@ -134,7 +134,7 @@ const FAQS = [
   },
   {
     q: 'Can agencies use ClearSignal for client audits?',
-    a: 'Yes. Agencies can use ClearSignal to identify AI visibility gaps, source and citation issues, and implementation work for client websites. White-label and multi-client workflows are being tested during the founding phase.',
+    a: 'Yes. ClearSignal diagnoses the AI visibility and evidence problem by showing which brands and cited sources appear in tested answers. Your agency owns the implementation and decides which website or source gaps to prioritize for the client.',
   },
 ]
 
@@ -714,7 +714,7 @@ export default function LandingPage() {
               When buyers ask AI who to choose, does it recommend you, or your <span style={{ color: COPPER }}>competitor</span>?
             </h1>
             <p className="mx-auto mt-5 hidden max-w-md text-[15px] leading-relaxed text-[#6E5A50] sm:block lg:mx-0">
-              ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.
+              ClearSignal tests real buyer questions across ChatGPT, Claude and Perplexity, shows which brands appear in the tested answers, and compares the cited sources and website evidence surrounding those results. Every full report is reviewed by a person before delivery.
             </p>
             <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row sm:flex-wrap sm:gap-3 lg:mt-7 lg:justify-start">
               <Link href="/score" className="inline-flex w-full max-w-[290px] items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[13.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:w-auto sm:max-w-none sm:px-6 sm:text-sm" style={{ backgroundColor: ESPRESSO }}>

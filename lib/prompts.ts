@@ -160,9 +160,9 @@ Based ONLY on the above, return a JSON object:
 
 // Cited-source analysis: extract the SAME structured signals from each
 // frequently-cited source and from the target, so gaps can be computed
-// deterministically. The model only fills booleans + explains why/how.
-export const GEO_SOURCES_SYSTEM = `You analyze why some web pages get cited by AI answer engines.
-For each page you are given, detect a fixed set of citation-friendly signals (true/false), then explain why the cited source is quotable and how the target site could match it.
+// deterministically. The model only fills booleans and describes observed characteristics.
+export const GEO_SOURCES_SYSTEM = `You compare observed characteristics of pages cited by AI answer engines.
+For each page you are given, detect a fixed set of citation-friendly signals (true/false), then describe observed characteristics that may be relevant to quotability and suggest only comparable first-party improvements for the target site.
 Judge signals only from the provided page text.
 For third-party platforms and directories (Thumbtack, Yelp, Reddit, Facebook groups, roundups, marketplaces), use validate-first language: recommend checking whether that source actually drives relevant local/category demand before investing. Do not present a profile as mandatory top-priority work unless it was directly prominent in the tested cited sources.
 ${UNTRUSTED_GUARD}
@@ -190,7 +190,7 @@ export const GEO_SIGNAL_LABELS: Record<string, string> = {
   review_or_proof_signals: 'Review / proof signals',
   specific_icp_language: 'Specific ICP language',
   pricing_or_use_cases: 'Pricing / use-case content',
-  third_party_authority: 'Third-party authority',
+  third_party_authority: 'Independent/editorial source',
 }
 
 export function geoSourcesUserPrompt(
@@ -231,8 +231,8 @@ Return ONLY a JSON object:
     {
       "url": "<cited source url>",
       "signals": { ${GEO_SIGNAL_KEYS.map((k) => `"${k}": <bool>`).join(', ')} },
-      "why_cited": "<1-2 sentences: why an AI engine finds this source quotable for buyer questions>",
-      "recommended_fix": "<1 specific action for ${brand} to match this source>"
+      "why_cited": "<1-2 sentences: observed characteristics that may make this source quotable; do not claim they caused the citation>",
+      "recommended_fix": "<1 specific, comparable first-party action for ${brand}; use validate-first language for third-party platforms>"
     }
   ]
 }

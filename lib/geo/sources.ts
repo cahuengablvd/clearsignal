@@ -117,11 +117,12 @@ export async function analyzeCitedSources(
 
     const targetSignals = llm.target_signals
 
-    // Deterministic gap: signals the source HAS that the target LACKS.
+    // Deterministic gap: comparable first-party signals the source HAS that the target LACKS.
+    // Source independence is context, not something a brand's own page can or should reproduce.
     return llm.sources.map((s): GeoSourceGap => {
-      const missing = GEO_SIGNAL_KEYS.filter((k) => s.signals[k] && !targetSignals[k]).map(
-        (k) => GEO_SIGNAL_LABELS[k]
-      )
+      const missing = GEO_SIGNAL_KEYS
+        .filter((k) => k !== 'third_party_authority' && s.signals[k] && !targetSignals[k])
+        .map((k) => GEO_SIGNAL_LABELS[k])
       return {
         cited_source: registrableDomain(s.url) || s.url,
         signals_found: labels(s.signals),

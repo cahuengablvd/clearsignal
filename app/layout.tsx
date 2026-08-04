@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   metadataBase: new URL('https://getclearsignal.io'),
   title: `ClearSignal - ${AUDIT_PRODUCT_LABEL}`,
-  description: 'ClearSignal tests the buyer questions that matter across ChatGPT, Claude and Perplexity, shows who appears instead of you, and delivers an expert-reviewed plan to improve your visibility.',
+  description: 'ClearSignal tests real buyer questions across ChatGPT, Claude and Perplexity, shows which brands appear in the tested answers, and compares cited sources with website evidence. Every full report is reviewed by a person.',
 }
 
 export default function RootLayout({

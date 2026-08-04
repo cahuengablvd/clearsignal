@@ -12,6 +12,7 @@ import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
 import { footerText } from '@/lib/pdf-footer'
 import { queryIntentLabel } from '@/lib/geo/query-taxonomy'
+import { recommendationStageLabel } from '@/lib/geo/recommendation-stages'
 import { buildClientReport, validateClientReportProjection } from '@/lib/client-report'
 import { AUDIT_PROCESS_LABEL, AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
 import { Download, ArrowLeft } from 'lucide-react'
@@ -585,7 +586,7 @@ export default async function AuditPage({
                       depends_on_access: false,
                     }))).map((item, i) => (
                       <div key={`${item.stage}-${i}`} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <Badge variant="outline" className="shrink-0 bg-white">{item.stage}</Badge>
+                        <Badge variant="outline" className="shrink-0 bg-white">{recommendationStageLabel(item.stage)}</Badge>
                         <div>
                           <p>{item.action}</p>
                           {item.depends_on_access && (
@@ -601,9 +602,9 @@ export default async function AuditPage({
 
             {report.geo.source_gap_analysis && report.geo.source_gap_analysis.length > 0 && (
               <>
-                <h3 className="text-lg font-semibold mb-1">Why these sources get cited (and you don&apos;t)</h3>
+                <h3 className="text-lg font-semibold mb-1">Observed characteristics of cited sources</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  We scraped the pages AI actually cites and compared their citation signals to your site.
+                  These pages appeared as citations in the tested answers. The comparison shows observed page characteristics; it does not prove why an engine cited them.
                 </p>
                 <div className="grid gap-3 mb-8">
                   {report.geo.source_gap_analysis.map((s, i) => (
@@ -616,7 +617,7 @@ export default async function AuditPage({
                         <p className="text-sm text-muted-foreground mb-3">{s.why_this_source_gets_cited}</p>
                         {s.signals_found.length > 0 && (
                           <div className="mb-3">
-                            <div className="text-xs font-medium mb-1">This source has:</div>
+                            <div className="text-xs font-medium mb-1">Observed on this cited source:</div>
                             <div className="flex flex-wrap gap-1.5">
                               {s.signals_found.map((sig, j) => (
                                 <span key={j} className="text-xs border rounded-full px-2 py-0.5 bg-muted text-muted-foreground">
@@ -628,7 +629,7 @@ export default async function AuditPage({
                         )}
                         {s.target_missing_signals.length > 0 && (
                           <div className="mb-3">
-                            <div className="text-xs font-medium text-red-700 mb-1">You&apos;re missing:</div>
+                            <div className="text-xs font-medium text-red-700 mb-1">Comparable signals not found on your page:</div>
                             <div className="flex flex-wrap gap-1.5">
                               {s.target_missing_signals.map((sig, j) => (
                                 <span key={j} className="text-xs border border-red-200 rounded-full px-2 py-0.5 bg-red-50 text-red-700">
@@ -899,7 +900,7 @@ export default async function AuditPage({
                       <ImpactBadge impact={fix.impact} />
                       <EffortBadge effort={fix.effort} />
                       <Badge variant="outline">{fix.category}</Badge>
-                      {fix.recommendation_stage && <Badge variant="outline">{fix.recommendation_stage}</Badge>}
+                      {fix.recommendation_stage && <Badge variant="outline">{recommendationStageLabel(fix.recommendation_stage)}</Badge>}
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground ml-8">{fix.description}</p>

@@ -5,7 +5,9 @@ import { buildQueryAnalysis, classifyQueryIntent } from '../lib/geo/query-taxono
 import {
   attachActionRecommendationStages,
   buildStagedGeoRecommendations,
+  recommendationStageLabel,
   recommendationStageFor,
+  RECOMMENDATION_STAGE_LABELS,
 } from '../lib/geo/recommendation-stages'
 import { GeoResultSchema, type ActionBlock, type GeoEvidence } from '../lib/schemas'
 
@@ -94,6 +96,20 @@ describe('query intent taxonomy', () => {
 })
 
 describe('stage-aware recommendations', () => {
+  it('translates stored recommendation stages only at the display boundary', () => {
+    expect(RECOMMENDATION_STAGE_LABELS).toEqual({
+      ACCESS: 'Technical access',
+      RETRIEVAL: 'First-party clarity/content',
+      CITATION: 'Cited-source opportunity',
+      ENTITY: 'Business facts/entity',
+      AUTHORITY: 'Proof/third-party evidence',
+      PROMINENCE: 'Messaging/comparison presence',
+      MEASUREMENT: 'Re-test the same query set',
+    })
+    expect(recommendationStageLabel('ACCESS')).toBe('Technical access')
+    expect(recommendationStageFor('Fix robots.txt crawler access')).toBe('ACCESS')
+  })
+
   it('classifies common actions by the mechanism they address', () => {
     expect(recommendationStageFor('Allow OAI-SearchBot in robots.txt')).toBe('ACCESS')
     expect(recommendationStageFor('Add Organization JSON-LD')).toBe('ENTITY')

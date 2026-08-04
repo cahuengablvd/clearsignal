@@ -187,7 +187,6 @@ describe('golden-report regression test', () => {
     expect(report.geo?.summary).toBe(
       buildGeoSummary({
         brand: report.geo!.brand,
-        brandDomain: report.geo!.brand_domain,
         test_counts: report.geo!.test_counts!,
         mention_rate: report.geo!.mention_rate,
         citation_rate: report.geo!.citation_rate,

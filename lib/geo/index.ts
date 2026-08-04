@@ -65,7 +65,6 @@ export function formatEngineList(engines: string[]): string {
 
 export function buildGeoSummary(input: {
   brand: string
-  brandDomain?: string
   test_counts: GeoTestCounts
   mention_rate: number
   citation_rate: number
@@ -83,11 +82,8 @@ export function buildGeoSummary(input: {
   const reuseDisclosure = input.evidenceReused
     ? ' AI visibility evidence was reused from the previous completed scan.'
     : ''
-  const domainClause = input.brandDomain
-    ? ` Likely contributing factors include limited owned-page answer density, limited citations of ${input.brandDomain}, and stronger third-party source visibility for competitors in the tested responses.`
-    : ''
 
-  return `${input.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations${engineText}. The measured AI visibility score was ${input.ai_visibility_score}/100; mention rate was ${input.mention_rate}% and citation rate was ${input.citation_rate}%.${reuseDisclosure}${domainClause}`
+  return `${input.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations${engineText}. The measured AI visibility score was ${input.ai_visibility_score}/100; mention rate was ${input.mention_rate}% and citation rate was ${input.citation_rate}%.${reuseDisclosure}`
 }
 
 function listValidator<T extends string>(key: string) {
@@ -518,7 +514,6 @@ function deterministicNarrative({
     recommendations,
     summary: buildGeoSummary({
       brand,
-      brandDomain,
       test_counts,
       mention_rate,
       citation_rate,

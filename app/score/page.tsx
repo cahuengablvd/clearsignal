@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { PublicPageHeader } from '@/components/public-page-header'
 import { BarChart3, FileCheck2, Loader2, SearchCheck } from 'lucide-react'
 import { normalizeWebsiteUrl } from '@/lib/normalize-url'
+import { SCORE_ENGINE_SCOPE_COPY } from '@/lib/engine-scope'
 
 export default function ScorePage() {
   const router = useRouter()
@@ -86,7 +87,7 @@ export default function ScorePage() {
               Get your free AI visibility score
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-[#6E5A50] sm:text-lg">
-              See whether ChatGPT, Claude and Perplexity understand and recommend your business.
+              {SCORE_ENGINE_SCOPE_COPY}
             </p>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">

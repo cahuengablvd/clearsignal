@@ -13,8 +13,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { anthropicUsageEvent, type CostEvent } from '../cost-tracker'
 import { logAnthropicCall, type AnthropicRequestMeta } from '../ai-observability'
+import { FULL_AUDIT_ENGINES } from '../engine-scope'
 
-export type EngineId = 'claude' | 'perplexity' | 'openai'
+export type EngineId = (typeof FULL_AUDIT_ENGINES)[number]
 
 export interface EngineResponse {
   engine: EngineId
@@ -278,10 +279,11 @@ const ADAPTERS: Record<
 
 /** Which engines have credentials configured right now. Claude is always on. */
 export function availableEngines(): EngineId[] {
-  const engines: EngineId[] = ['claude']
-  if (process.env.PERPLEXITY_API_KEY) engines.push('perplexity')
-  if (process.env.OPENAI_API_KEY) engines.push('openai')
-  return engines
+  return FULL_AUDIT_ENGINES.filter((engine) => {
+    if (engine === 'claude') return true
+    if (engine === 'perplexity') return Boolean(process.env.PERPLEXITY_API_KEY)
+    return Boolean(process.env.OPENAI_API_KEY)
+  })
 }
 
 /** Run one question against one engine (with a hard timeout). */

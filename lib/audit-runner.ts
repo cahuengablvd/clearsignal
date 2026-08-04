@@ -241,7 +241,6 @@ export function rebuildReusedGeoNarrative(
     ...geo,
     summary: buildGeoSummary({
       brand: geo.brand,
-      brandDomain: geo.brand_domain,
       test_counts:
         geo.test_counts ?? {
           configured_queries: geo.queries_tested,

@@ -1246,7 +1246,7 @@ describe('evidence-id linking', () => {
     expect(out.top_fixes[0].evidence_ids).toEqual(['OBS-SCHEMA-001'])
   })
 
-  it('grounds an AI-visibility fix in GEO evidence, never meta_description', () => {
+  it('uses the synthesis fallback for an AI-visibility fix until evidence is selected semantically', () => {
     const geo = {
       queries_tested: 6,
       evidence: [{ evidence_id: 'GEO-QUERY-001' }, { evidence_id: 'GEO-QUERY-002' }],
@@ -1260,10 +1260,10 @@ describe('evidence-id linking', () => {
       findings,
       geo
     )
-    const ids = out.top_fixes[0].evidence_ids ?? []
-    expect(ids).not.toContain('OBS-META-001')
-    expect(ids.every((id) => id.startsWith('GEO-'))).toBe(true)
-    expect(ids.length).toBeGreaterThan(0)
+    expect(out.top_fixes[0].evidence_ids).toEqual([])
+    expect(out.top_fixes[0].evidence_basis).toBe(
+      'Based on audit synthesis; no single direct evidence item.'
+    )
   })
 
   it('gives an unrelated fix a synthesis fallback, not a fake evidence id', () => {

@@ -1331,7 +1331,6 @@ function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void)
   const reused = /reused|previous completed scan/i.test(geo.summary || '')
   const expected = buildGeoSummary({
     brand: geo.brand,
-    brandDomain: geo.brand_domain,
     test_counts: geo.test_counts,
     mention_rate: geo.mention_rate,
     citation_rate: geo.citation_rate,

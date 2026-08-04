@@ -189,8 +189,7 @@ function adjustExternalFix(fix: ActionBlock['top_fixes'][number]): ActionBlock['
  */
 function evidenceForFix(
   fix: ActionBlock['top_fixes'][number],
-  findings: Finding[],
-  geo: GeoResult | null
+  findings: Finding[]
 ): { evidence_ids: string[]; evidence_basis: string } {
   const text = textOf(fix)
 
@@ -209,18 +208,6 @@ function evidenceForFix(
   else if (/\b(proof|testimonial|review|logo|case stud|g2|capterra|clutch|designrush)\b/.test(text))
     ids = idFor('social_proof')
   else if (fix.category === 'ai_search') {
-    // AI visibility is grounded in the GEO scan, never a random technical finding.
-    const geoIds = (geo?.evidence ?? [])
-      .slice(0, 3)
-      .map((e, i) => e.evidence_id || `GEO-QUERY-${String(i + 1).padStart(3, '0')}`)
-    if (geoIds.length > 0) {
-      return {
-        evidence_ids: geoIds,
-        evidence_basis: `Based on: ${geoIds.join(', ')} (AI visibility across ${
-          geo?.queries_tested ?? geoIds.length
-        } tested queries)`,
-      }
-    }
     return { evidence_ids: [], evidence_basis: NO_DIRECT_EVIDENCE }
   } else if (fix.category === 'copy' && /\b(headline|h1|tagline|hero title)\b/.test(text)) ids = idFor('h1_present')
   else if (fix.category === 'copy') ids = []
@@ -240,7 +227,7 @@ export function attachActionConfidence(
       const fix = adjustExternalFix(rawFix)
       const confidence = confidenceForFix(fix, findings, geo)
       const control = controlForFix(fix)
-      const evidence = evidenceForFix(fix, findings, geo)
+      const evidence = evidenceForFix(fix, findings)
       return {
         ...fix,
         ...confidence,

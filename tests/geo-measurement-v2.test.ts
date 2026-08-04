@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { buildGeoSummary } from '../lib/geo'
 import { checkTechnicalEligibility, eligibilityInternals } from '../lib/geo/eligibility'
 import { buildQueryAnalysis, classifyQueryIntent } from '../lib/geo/query-taxonomy'
 import {
@@ -135,5 +136,31 @@ describe('measurement v2 backward compatibility', () => {
       score_breakdown: { mention_rate: 0, citation_rate: 0, position_score: 0, share_of_voice: 0, weights: { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 } },
       evidence: [], competitor_visibility: [], cited_domains_ranked: [], missing_signals: [], recommendations: [], summary: '',
     }).success).toBe(true)
+  })
+})
+
+describe('measurement summary truth contract', () => {
+  it('does not add unmeasured causes to the deterministic GEO summary', () => {
+    const summary = buildGeoSummary({
+      brand: 'Example',
+      test_counts: {
+        configured_queries: 2,
+        configured_engines: 3,
+        expected_combinations: 6,
+        successful_combinations: 6,
+        failed_combinations: 0,
+        skipped_combinations: 0,
+      },
+      mention_rate: 50,
+      citation_rate: 16.7,
+      ai_visibility_score: 34,
+      mentionedCombinations: 3,
+      engines: ['openai', 'claude', 'perplexity'],
+    })
+
+    expect(summary).toContain('Example was named in 3 of 6 successfully tested engine-query combinations')
+    expect(summary).not.toMatch(
+      /likely contributing factors|owned-page answer density|stronger third-party source visibility/i
+    )
   })
 })

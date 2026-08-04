@@ -2,6 +2,7 @@ import { callClaudeJSON } from './anthropic'
 import { scrapeUrl } from './firecrawl'
 import { runGeoScan } from './geo'
 import { normalizeMarkdown } from './normalize-markdown'
+import { FREE_SCORE_ENGINES } from './engine-scope'
 import { MODEL_SCORE, SCORE_SYSTEM, scoreUserPrompt } from './prompts'
 import {
   ClearSignalScoreSchema,
@@ -76,7 +77,7 @@ export async function runFreeScore(scoreId: string, input: FreeScoreInput): Prom
           icp: input.icp_description,
           competitors: input.competitor_1 ? [input.competitor_1] : [],
           queryCount: 4,
-          engines: ['claude'],
+          engines: [...FREE_SCORE_ENGINES],
           discoverCompetitors: true,
           narrative: false,
           webSearch: false,

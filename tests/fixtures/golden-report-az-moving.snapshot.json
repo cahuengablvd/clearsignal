@@ -30,7 +30,7 @@
       "successful_combinations": 15
     },
     "evidence_count": 15,
-    "summary": "Az-moving was named in 0 of 15 successfully tested engine-query combinations across Perplexity, OpenAI and Claude. The measured AI visibility score was 0/100; mention rate was 0% and citation rate was 0%. Likely contributing factors include limited owned-page answer density, limited citations of az-moving.com, and stronger third-party source visibility for competitors in the tested responses."
+    "summary": "Az-moving was named in 0 of 15 successfully tested engine-query combinations across Perplexity, OpenAI and Claude. The measured AI visibility score was 0/100; mention rate was 0% and citation rate was 0%."
   },
   "executive_summary": "Az-moving was reviewed against the crawled page, selected competitors, and tested AI responses. The highest-priority opportunities are: Add LocalBusiness and Service schema markup to the homepage; Add an FAQ section to the homepage addressing common mover-selection questions.",
   "top_fixes": [

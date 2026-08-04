@@ -11,15 +11,15 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-08-04, after the R11 control audit and production deploy.
+**Last updated:** 2026-08-04, after the Batch 4 production deploy.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** - version **`20260804.4`**, deployed from `C:\csdeploy` at commit `5dadd1e`,
-  5 tasks detected. This release ships R11: honest engine names in GEO summaries, a measured
-  90-second Claude web-search timeout, and engine-coverage warnings in admin review.
-  - Previous production version was `20260804.3` at commit `a5c688a`. Anything touching
+- **Trigger.dev** - version **`20260804.5`**, deployed from `C:\csdeploy` at commit `4c40bc2`,
+  5 tasks detected. This release ships Batch 4: legacy schema-deliverable mismatches remain
+  visible but reviewable on re-render, while marketplace JSON-LD uses observed page structure.
+  - Previous production version was `20260804.4` at commit `5dadd1e`. Anything touching
     `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts needs a
     Trigger deploy or it simply is not live.
   - Deploy with the CLI version pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`).
@@ -76,20 +76,20 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
 
 ## In flight
 
-- **Pre-launch fix sprint** — `TASKS_PRELAUNCH.md` is the finish line: 12 items in 4 batches,
-  plus a definition of done. Owner decided on 2026-08-03 not to start selling until the site and
-  engine are right. The termination rule matters more than the list: defects found *after* the
-  list was agreed go to `DEFECTS_BACKLOG.md`, not into this sprint.
+- **Pre-launch verification** - all 12 code items in `TASKS_PRELAUNCH.md` are shipped. Its
+  definition of done still requires two fresh paid-path audits in different verticals, one full
+  owner read-through, the owner's Stripe control purchase/refund, and legal review.
 - **Two-week sales test** — queued behind the sprint. Kit is ready in `validation/` (plan,
   outreach, agency interview script, tracking sheet); agencies first. Go/no-go criteria in
   `validation/PLAN.md`.
 
 ## Shipped
 
-- `TASKS_PRELAUNCH.md` Batches 1-3 plus R10 - through commit `a5c688a`, Trigger version
-  `20260804.3`. Public engine claims share the execution contract; buyer-intent GEO queries and
-  compact evidence now ground action plans; timed-out engine requests are actually aborted.
-  Batch 4 remains untouched.
+- `TASKS_PRELAUNCH.md` Batches 1-4 plus R10/R11 - through commit `4c40bc2`, Trigger version
+  `20260804.5`. Public engine claims share the execution contract; buyer-intent GEO queries and
+  compact evidence now ground action plans; timed-out engine requests are actually aborted;
+  engine coverage is review-visible; legacy re-renders remain reviewable; marketplace JSON-LD
+  stays grounded in observed page structure.
 
 - `TASKS_DELIVERY_POLISH.md` — commit `b3f3cf5`. Both transactional emails share a branded
   table-based shell (site palette, text wordmark, dark mode, plain-text alternative, bare

@@ -226,3 +226,30 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
   wording.
 - Acceptance: a fixture with empty ICP and thin scraped content does not produce confident
   wrong-vertical queries; it either surfaces the gap to the operator or refuses to proceed.
+
+## R13 — target_markets_languages is collected, stored, displayed, and never used
+
+- Seen: 2026-08-05, manual-audit preview for `jusukosmetologs.lv` (a Riga cosmetology clinic).
+  The operator entered `Markets/languages: Latvia, Riga - Latvian and Russian`. All six generated
+  queries came back in English.
+- Root cause: `geoQueriesUserPrompt` (`lib/prompts.ts:81`) is built from brand, page snippet, ICP
+  and count only. `target_markets_languages` is never passed to it. The field is defined
+  (`lib/schemas.ts:58`), collected on both the paid checkout (`app/checkout/page.tsx:223`) and the
+  admin form, persisted, and rendered on the confirmation screen — a complete round trip that ends
+  nowhere.
+- What actually drives language today: the scraped page snippet. `salidzini.lv` produced Latvian
+  queries because its page content is Latvian and the model mirrored it. That is incidental, not
+  designed, and it fails for any bilingual market where the site is in one language and buyers
+  search in two — which is the normal case in Riga.
+- Why it matters commercially: measuring a Riga clinic against English queries measures a race it
+  never entered. The report would honestly say "not named in any tested answer" while the tested
+  answers belong to a different market. Locality survived only because the operator happened to
+  write "in Riga and Latvia" inside the free-text ICP.
+- Fix: pass markets/languages into the query-generation prompt, and make the language part
+  structured rather than free text so the instruction can be deterministic ("write N queries in
+  Latvian and N in Russian") instead of hoping a sentence is interpreted. Country/market can stay
+  free text; language is a closed set and belongs in a multi-select.
+- Related UX (owner request, 2026-08-05): typing this field on a phone is painful. Structured input
+  fixes both the reliability and the typing.
+- Acceptance: a fixture specifying two languages produces queries in both; removing the field from
+  the input changes the generated queries, proving it is wired.

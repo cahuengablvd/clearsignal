@@ -334,3 +334,21 @@ unimplementable deliverable undercuts it. Two sentences of placement guidance fi
 Related wording: the section is titled **"Draft copy for operator review"** and reads "Review these
 meta tags, FAQ, JSON-LD and CTA options before publishing." `operator` is our internal word for the
 reviewer — the paying customer does not know it means them. Retitle for the reader.
+
+## R18 — Proof recommendations do not ask for verifiable proof (quality)
+
+- Seen: 2026-08-05, audit `5d53a488`. The report correctly observes "no patient reviews or
+  testimonials appear on the page" and recommends adding "patient social proof". It does not say the
+  proof must be independently checkable.
+- Why it matters mechanically, not just persuasively: an unlinked testimonial paragraph is a
+  first-party claim an engine cannot corroborate. A link to a Google Business, Facebook or
+  industry-directory profile is a checkable third-party source an engine can cite. The two have very
+  different value for AI visibility, and the current wording treats them as the same action.
+- The same principle the trust layer applies to our own report — prefer what can be verified —
+  applied to the client's site. It is also the cheap, in-scope half of the deferred `Brand Evidence
+  Footprint` idea: we are not crawling third parties, only recommending that proof point at them.
+- Fix: in proof-related recommendations and implementation briefs, prefer proof that links to an
+  independently verifiable source, and say why. Never instruct the client to manufacture reviews or
+  proof - `TASKS_AI_POSITIONING_AND_EVIDENCE.md` already rejects that, and it must stay rejected.
+- Acceptance: a proof fix on a fixture with no reviews asks for a linked, checkable source rather
+  than testimonial text alone.

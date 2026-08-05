@@ -313,3 +313,24 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
   cheaper and language-proof.
 - Acceptance: a Latvian and a Russian query set produce a spread across intents, not a single
   `other` bucket.
+
+## R17 — PDF orphaned headings and JSON-LD with nowhere to put it
+
+Both seen 2026-08-05 in audit `5d53a488` (`jusukosmetologs.lv`), reviewed as a customer would.
+
+**Orphaned headings.** "AI Visibility (GEO / AEO)" sits alone at the foot of page 2; its content
+starts on page 3. The print block in `app/globals.css:52` sets only `@page { size: A4 }`,
+`min-height: 0` and ligature suppression — there are no break rules at all. Add
+`break-after: avoid` to headings and `break-inside: avoid` to cards/tables so a heading cannot be
+separated from what it introduces. Cheap, and it is the first thing a reader notices.
+
+**JSON-LD has no placement instruction.** The deliverable ships a JSON-LD block with a Copy button.
+The report mentions validating with Google's Rich Results Test, but nowhere says *where the code
+goes* — inside `<head>`, as `<script type="application/ld+json">`, one block per page, and who does
+it (developer, or a WordPress/Wix SEO field). A clinic owner receives a block of JSON and cannot act.
+The audit's whole value proposition is "a prioritized plan you can implement", so an
+unimplementable deliverable undercuts it. Two sentences of placement guidance fix it.
+
+Related wording: the section is titled **"Draft copy for operator review"** and reads "Review these
+meta tags, FAQ, JSON-LD and CTA options before publishing." `operator` is our internal word for the
+reviewer — the paying customer does not know it means them. Retitle for the reader.

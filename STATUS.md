@@ -11,7 +11,7 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-08-04, after the Batch 4 production deploy.
+**Last updated:** 2026-08-05, after the corporate mailbox delivery verification.
 
 ## Deploys
 
@@ -68,18 +68,19 @@ placeholder CTA fragments, future-date claims or foreign-vertical wording.
 One confirmation still open: that run `9r5hcc01` executed on Trigger version `20260724.1`
 (visible only in the Trigger dashboard).
 
+## Corporate mailbox
+
+**Verified on 2026-08-05.** Namecheap Private Email is active for `getclearsignal.io` with
+`hello@getclearsignal.io` as the mailbox and `reports@`, `support@`, and `dmarc@` as aliases.
+Public DNS resolves both Private Email MX records and the root SPF record; Resend remains isolated
+on the `send` subdomain. A live Gmail test addressed to `reports@getclearsignal.io` arrived in the
+`hello@getclearsignal.io` inbox. Customer replies can now be received.
+
 ## Blocked on the owner, not on code
 
 1. **Live Stripe control purchase + refund** with a real card. Waiting on funds. Nobody else can
    do this. Tests the live webhook, generation and delivery end to end.
 2. Legal review of `/terms`, `/privacy`, `/refund` and VAT treatment.
-3. **A mailbox that can RECEIVE on `getclearsignal.io`.** Resend is configured for sending only;
-   the domain has no inbox. The report email goes out from `reports@` with no `replyTo`
-   (`lib/resend.ts:181`), and the order confirmation sets `replyTo: hello@getclearsignal.io` while
-   the body invites the customer to reply. A paying customer who answers with a question about the
-   report currently reaches nobody, and the owner never learns it happened. Needs MX records plus a
-   mailbox provider — `hello@` for correspondence and at least a forward on `reports@`. Not a code
-   change; do not fix by removing the invitation to reply.
 
 ## In flight
 

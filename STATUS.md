@@ -76,6 +76,11 @@ Public DNS resolves both Private Email MX records and the root SPF record; Resen
 on the `send` subdomain. A live Gmail test addressed to `reports@getclearsignal.io` arrived in the
 `hello@getclearsignal.io` inbox. Customer replies can now be received.
 
+**Renewal: the Namecheap trial ends 2026-08-23 with auto-renew on.** If that charge fails the
+mailbox lapses and customer replies start disappearing again, silently and in exactly the way this
+verification just closed. Nothing in the app would detect it. Confirm the renewal went through
+after 2026-08-23.
+
 ## Blocked on the owner, not on code
 
 1. **Live Stripe control purchase + refund** with a real card. Waiting on funds. Nobody else can

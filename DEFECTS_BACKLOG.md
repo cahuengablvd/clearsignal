@@ -270,3 +270,46 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
 - Fix: delete the upsert and the migration block, or apply the migration and add an error check.
   Deleting is preferred: a table nobody reads is not worth a migration.
 - Do not "fix" by adding the table. Add the error check pattern instead, wherever a write matters.
+
+## R15 — A bot-challenge page is audited as if it were the website (DO NOW: customer-visible)
+
+- Seen: 2026-08-05, audit `7590982c` for `salidzini.lv`. The report's own executive summary opens:
+  "The Salidzini homepage currently serves a Cloudflare browser-verification interstitial as its
+  crawlable face, meaning no value proposition, category content, or trust signals are observable at
+  the first point" — `Cloudflare` appears 17 times, `interstitial` 13.
+- The scrape "succeeded": HTTP 200 with markdown. The markdown was a bot check. Every on-page
+  finding, clarity score, ready-material and website recommendation in that report describes a
+  challenge screen, not the business.
+- The GEO half is unaffected and remains valid — 56/100, named in 12 of 18 combinations — because it
+  measures what engines answer, not what we scraped. So the report is half real and half about
+  nothing, with no visible seam between them.
+- This also explains the earlier `R12` symptom on the same site: with only a Cloudflare page in
+  context, the query generator invented a finance vertical from the domain name.
+- Scope: Cloudflare bot protection fronts a large share of real commercial sites. Any such customer
+  would pay EUR 149 for an audit of an interstitial.
+- The trust layer worked - the report says plainly what it saw. The failure is that generation
+  continued and produced a full deliverable anyway.
+- Fix: detect challenge/JS-required pages after scraping (Cloudflare/Akamai/PerimeterX markers, a
+  body under a plausible length, "enable JavaScript"/"verify you are human" phrasing) and stop
+  before the paid stages, surfacing it to the operator as a blocking intake problem. Do not silently
+  degrade, and do not "try harder" with a second scrape - the answer is to tell a human.
+- Acceptance: a fixture whose scraped markdown is a Cloudflare interstitial does not reach a
+  finished report; the operator sees why.
+
+## R16 — Query-intent taxonomy is English-only, so non-English markets get "Other"
+
+- Seen: 2026-08-05. `salidzini.lv` (6 Latvian queries) reports `Other: 6 queries` — every intent
+  bucket empty. `jusukosmetologs.lv` reports `Comparison: 1, Other: 5`.
+- Root cause: `classifyQueryIntent` (`lib/geo/query-taxonomy.ts`) matches English regexes only —
+  `best|top|recommend`, `vs|versus|compare`, `price|pricing|cost`, `near me|local`. Latvian and
+  Russian queries fall through to `other` at line 49.
+- Effect: the "Visibility by buyer intent" section — a full report section — degenerates into one
+  undifferentiated bucket for exactly the markets ClearSignal sells into first (Latvia, Baltics).
+  It is not wrong, it is empty, which is worse in a paid deliverable because it looks like analysis.
+- Note this is now load-bearing: `P1.2` asks the generator to cover specific intents, and the
+  coverage check that verifies it runs through this same English-only classifier.
+- Fix: extend the vocabulary per supported language, or classify from the query-plan slot the
+  generator was asked to fill rather than re-deriving it from the text after the fact. The second is
+  cheaper and language-proof.
+- Acceptance: a Latvian and a Russian query set produce a spread across intents, not a single
+  `other` bucket.

@@ -1022,7 +1022,7 @@ export default async function AuditPage({
         {/* Ready-to-ship materials */}
         {report.ready_materials && (
           <>
-            <h2 className="text-2xl font-bold mb-1 mt-10">Draft copy for operator review</h2>
+            <h2 className="text-2xl font-bold mb-1 mt-10">Draft copy for your review</h2>
             <p className="text-sm text-muted-foreground mb-4">
               Review these meta tags, FAQ, JSON-LD and CTA options before publishing.
             </p>
@@ -1090,6 +1090,15 @@ export default async function AuditPage({
                     <h3 className="font-semibold text-sm">Schema.org JSON-LD</h3>
                     <CopyButton text={report.ready_materials.json_ld} />
                   </div>
+                  <p className="mb-1 text-xs text-muted-foreground">
+                    Ask your developer, or use the structured-data/SEO field in WordPress or Wix, to add this <code>&lt;script type="application/ld+json"&gt;</code> block inside the page&apos;s <code>&lt;head&gt;</code>. Use one block per page.
+                  </p>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    After publishing, verify the page with the{' '}
+                    <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener noreferrer" className="underline">
+                      Google Rich Results Test
+                    </a>.
+                  </p>
                   <pre className="pdf-code text-xs bg-muted rounded p-3 overflow-x-auto whitespace-pre-wrap">
                     {report.ready_materials.json_ld}
                   </pre>

@@ -118,9 +118,11 @@ evidence, so it supersedes the earlier figures. Against €149 that is ~0.7% of 
 
 The two earlier numbers were both measured on incomplete audits and should not be quoted:
 
-- `$1.89` (run `9r5hcc01`, 2026-07-24) predates the R10/R11 fixes. The 45-second timeout was below
-  Claude's normal completion time (measured: 59.9s isolated), so Claude calls were abandoned while
-  the requests kept billing. Much of that figure was work that never reached the report.
+- `$1.89` (run `9r5hcc01`, 2026-07-24) predates the R10/R11 fixes. The R11 coverage panel, applied
+  retroactively, shows that run finished **13/18 combinations with 5 failed or skipped** — evidence
+  from all three engines, so Claude was timing out intermittently rather than always. The abandoned
+  calls were billed but never reached the report; how much of the $1.89 they account for is not
+  separable after the fact.
 - `$0.362783` (run `51ff451a`, 2026-08-04) was taken after R10 stopped the billing but before R11
   raised the timeout — all six Claude calls aborted, so a third of the engine work simply did not
   happen. Cheap because it was broken.

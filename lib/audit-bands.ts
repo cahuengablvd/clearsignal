@@ -6,9 +6,17 @@
  * headers derive from this one structure - so a band can never appear twice, and
  * a status can never sort into a band it isn't listed in.
  */
-export type AuditBand = 'attention' | 'finished' | 'inactive'
+export type AuditBand = 'running' | 'attention' | 'finished' | 'inactive'
 
 const BANDS: ReadonlyArray<{ band: AuditBand; label: string; statuses: readonly string[] }> = [
+  {
+    band: 'running',
+    label: 'Running now',
+    // Nothing to DO with these, but they are what the operator just started and
+    // is waiting on, so they lead. They also clear themselves within minutes,
+    // unlike the stuck states below, which can sit for weeks.
+    statuses: ['processing', 'queued'],
+  },
   {
     band: 'attention',
     label: 'Needs attention',
@@ -21,10 +29,6 @@ const BANDS: ReadonlyArray<{ band: AuditBand; label: string; statuses: readonly 
       'awaiting_review',
       'failed-validation',
       'failed',
-      // In flight: visible so the operator knows work is running, but there is
-      // nothing to do about them, so they sit below everything actionable.
-      'processing',
-      'queued',
     ],
   },
   { band: 'finished', label: 'Finished', statuses: ['done', 'delivered'] },

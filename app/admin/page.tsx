@@ -257,6 +257,24 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
   const [audits, setAudits] = useState<Audit[]>([])
+  // Finding one audit in a long list is the daily pain, not archiving. A filter
+  // over what is already loaded solves it without a migration or a second screen.
+  const [query, setQuery] = useState('')
+  const [showFinished, setShowFinished] = useState(false)
+  // Finished work is hidden by default: it is the bulk of the list and there is
+  // nothing left to do with it. Typing a filter searches everything regardless,
+  // so a delivered audit is always findable by name.
+  const needle = query.trim().toLowerCase()
+  const visibleAudits = audits.filter((audit) => {
+    if (needle) {
+      return (
+        audit.url?.toLowerCase().includes(needle) ||
+        audit.email?.toLowerCase().includes(needle) ||
+        audit.audit_status?.toLowerCase().includes(needle)
+      )
+    }
+    return showFinished || bandFor(audit.audit_status) !== 'finished'
+  })
   const [loading, setLoading] = useState(false)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
   const [rerenderingId, setRerenderingId] = useState<string | null>(null)
@@ -867,21 +885,49 @@ export default function AdminPage() {
           </div>
         )}
 
+        {!loading && audits.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter by site or email"
+              className="h-9 max-w-xs"
+            />
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showFinished}
+                onChange={(e) => setShowFinished(e.target.checked)}
+              />
+              Show finished ({audits.filter((a) => bandFor(a.audit_status) === 'finished').length})
+            </label>
+            {visibleAudits.length !== audits.length && (
+              <span className="text-xs text-muted-foreground">
+                {visibleAudits.length} of {audits.length} shown
+              </span>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-20">
             <Loader2 className="h-6 w-6 animate-spin mx-auto" />
           </div>
         ) : audits.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">No audits yet.</div>
+        ) : visibleAudits.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            Nothing matches that filter.
+          </div>
         ) : (
           <div className="space-y-4">
-            {audits.map((audit, index) => (
+            {visibleAudits.map((audit, index) => (
               <Fragment key={audit.id}>
-              {(index === 0 || bandFor(audits[index - 1].audit_status) !== bandFor(audit.audit_status)) && (
+              {(index === 0 || bandFor(visibleAudits[index - 1].audit_status) !== bandFor(audit.audit_status)) && (
                 <div className="flex items-baseline gap-2 pt-4 first:pt-0">
                   <h2 className="text-sm font-semibold">{BAND_LABEL[bandFor(audit.audit_status)]}</h2>
                   <span className="text-xs text-muted-foreground">
-                    {audits.filter((item) => bandFor(item.audit_status) === bandFor(audit.audit_status)).length}
+                    {visibleAudits.filter((item) => bandFor(item.audit_status) === bandFor(audit.audit_status)).length}
                   </span>
                 </div>
               )}

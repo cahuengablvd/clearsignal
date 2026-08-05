@@ -62,6 +62,22 @@ Then STOP TALKING. The silence after the offer is where the truth comes out.
 - **No** → "Genuinely useful. What would need to be true for an agency like yours to buy
   this?" Verbatim, thank them, done.
 
+## When someone reads an actual report — ask it this way
+
+Do NOT ask "can you find problems with it?" That invites proofreading and gets you typos.
+
+Ask for the impression instead, in this order, and write the answers verbatim:
+
+1. What did you understand from it, in your own words?
+2. What was unclear or confusing?
+3. What, if anything, made you want to act?
+4. What put you off, or made you trust it less?
+5. What would you do first?
+
+Question 5 is the one that matters: if the reader cannot name a first action, the prioritization
+failed regardless of how good the analysis was. Question 4 catches credibility damage you will
+never hear about unprompted.
+
 ## Service-business variant (shorter, 15 min)
 
 Same structure, swap sections 2-3:

@@ -5,6 +5,7 @@ import { BusinessContextSchema, competitorUrlSchema, icpTextSchema } from '@/lib
 import { generateBuyerQueries } from '@/lib/geo'
 import { scrapeUrl } from '@/lib/firecrawl'
 import { normalizeMarkdown } from '@/lib/normalize-markdown'
+import { assessScrapeQuality } from '@/lib/scrape-quality'
 
 export const maxDuration = 60
 
@@ -55,7 +56,23 @@ export async function POST(req: NextRequest) {
   // Best-effort homepage snippet for better query relevance (don't fail if down).
   let category = ''
   const raw = await scrapeUrl(input.url).catch(() => null)
-  if (raw) category = normalizeMarkdown(raw).slice(0, 600)
+  if (raw) {
+    category = normalizeMarkdown(raw)
+    const scrapeQuality = assessScrapeQuality(category)
+    if (scrapeQuality.kind !== 'substantive') {
+      return NextResponse.json(
+        { error: scrapeQuality.message, scraped: false },
+        { status: 422 }
+      )
+    }
+    category = category.slice(0, 600)
+  }
+  if (!raw && !input.icp_description.trim()) {
+    return NextResponse.json(
+      { error: 'We could not read the homepage. Add a business description before generating queries.', scraped: false },
+      { status: 422 }
+    )
+  }
 
   try {
     const queries = await generateBuyerQueries({

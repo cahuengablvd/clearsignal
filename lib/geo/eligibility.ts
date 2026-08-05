@@ -1,4 +1,5 @@
 import type { TechnicalEligibility } from '../schemas'
+import { assessScrapeQuality } from '../scrape-quality'
 
 type Fetcher = typeof fetch
 
@@ -112,6 +113,27 @@ export async function checkTechnicalEligibility(input: {
   fetcher?: Fetcher
 }): Promise<TechnicalEligibility> {
   const checkedAt = new Date().toISOString()
+  const scrapeQuality = assessScrapeQuality(input.markdown)
+  if (scrapeQuality.kind === 'challenge') {
+    const detail = 'Our crawler received a browser-verification challenge at this URL; answer-engine crawlers may receive the same. This observation does not confirm whether any answer-engine crawler is blocked.'
+    return {
+      overall_status: 'unknown',
+      checked_at: checkedAt,
+      checks: [{
+        id: 'ELIG-CHALLENGE-001',
+        label: 'Browser-verification challenge observed',
+        status: 'unknown',
+        detail,
+        evidence: `${scrapeQuality.readableCharacters} text characters observed`,
+      }],
+      crawler_access: CRAWLERS.map(({ engine, crawler }) => ({
+        engine,
+        crawler,
+        status: 'unknown',
+        detail,
+      })),
+    }
+  }
   const fetcher = input.fetcher || fetch
   const target = new URL(input.url)
   const targetResponse = await safeFetch(fetcher, target.toString(), {

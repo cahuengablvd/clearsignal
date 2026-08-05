@@ -33,6 +33,12 @@ export async function GET(
     data.scores && typeof data.scores === 'object' && !Array.isArray(data.scores)
       ? (data.scores as Record<string, unknown>)._processing_started_at
       : null
+  const businessDescriptionDraft =
+    data.status === 'done' &&
+    data.scores && typeof data.scores === 'object' && !Array.isArray(data.scores) &&
+    typeof (data.scores as Record<string, unknown>).business_description_draft === 'string'
+      ? (data.scores as Record<string, unknown>).business_description_draft
+      : ''
   const stale =
     data.status === 'processing' &&
     typeof processingStartedAt === 'string' &&
@@ -41,6 +47,7 @@ export async function GET(
   return NextResponse.json({
     ...data,
     scores: undefined,
+    business_description_draft: businessDescriptionDraft,
     status: stale ? 'failed' : data.status,
     top_insight: stale
       ? 'The check took too long to finish. Please start a new check.'

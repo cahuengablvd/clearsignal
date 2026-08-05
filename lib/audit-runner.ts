@@ -1,6 +1,7 @@
 import { supabaseAdmin } from './supabase'
 import { scrapeUrl, scrapePage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
+import { requireUsableScrape } from './scrape-quality'
 import { resolveBrandEntity } from './brand'
 import { inferObservedBusinessContext, normalizeBusinessContext } from './business-context'
 import { validateReport } from './report-validator'
@@ -437,6 +438,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       throw new Error(`Failed to scrape target URL: ${audit.url}`)
     }
     const targetMarkdown = normalizeMarkdown(targetPage.markdown)
+    requireUsableScrape(targetMarkdown)
 
     // 3a. Deterministic structural findings from the rendered HTML.
     const technicalFindings = computeTechnicalFindings({

@@ -32,6 +32,7 @@ export const SCHEMA_DELIVERABLE_BOUNDARY = `When recommending Schema.org types, 
 export const SCORE_SYSTEM = `You are a B2B SaaS conversion expert.
 Analyze this homepage and score each dimension from 1 to 10.
 Be direct and critical.
+Also write one sentence describing who the business serves and what it sells, using only the homepage content.
 ${UNTRUSTED_GUARD}
 ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
@@ -53,8 +54,9 @@ Score these dimensions and return JSON with these exact keys:
 - "ai_search" (integer 1-10): how well-structured the content is for AI search citation
 
 Also return "top_insight": one sentence, the single most important issue.
+Also return "business_description_draft": one sentence describing who the business serves and what it sells.
 
-Return ONLY a JSON object with keys: icp, headline, cta, trust, ai_search, top_insight`
+Return ONLY a JSON object with keys: icp, headline, cta, trust, ai_search, top_insight, business_description_draft`
 }
 
 // --- GEO / AEO ---

@@ -10,6 +10,12 @@ export const ClearSignalScoreSchema = z.object({
   trust: z.number().min(1).max(10),
   ai_search: z.number().min(1).max(10),
   top_insight: z.string(),
+  business_description_draft: z
+    .string()
+    .trim()
+    .min(1)
+    .max(500)
+    .refine((value) => !/[.!?]\s+[A-Z]/.test(value), 'Business description draft must be one sentence'),
 })
 
 export type ClearSignalScore = z.infer<typeof ClearSignalScoreSchema>
@@ -149,6 +155,14 @@ export const CheckoutIntakeSchema = z.object({
   }).optional().default({}),
   score_id: z.string().optional().default(''),
   score_token: z.string().optional().default(''),
+}).superRefine((input, ctx) => {
+  if (!input.icp_description.trim() && !input.score_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['icp_description'],
+      message: 'Describe the business before starting the audit',
+    })
+  }
 })
 
 export type CheckoutIntake = z.infer<typeof CheckoutIntakeSchema>

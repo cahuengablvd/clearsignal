@@ -55,6 +55,26 @@ describe('technical AI eligibility', () => {
     expect(result.checks.find((item) => item.id === 'ELIG-INDEX-001')?.status).toBe('blocked')
   })
 
+  it('reports an observed browser challenge without claiming an answer-engine crawler was blocked', async () => {
+    const challenge = '<html><body>Just a moment... Checking your browser. Ray ID: abc123</body></html>'
+    const result = await checkTechnicalEligibility({
+      url: 'https://example.com/',
+      renderedHtml: challenge,
+      markdown: 'Just a moment... Checking your browser. Ray ID: abc123',
+      fetcher: fetcherFor({ robotsStatus: 404 }),
+    })
+
+    expect(result.overall_status).toBe('unknown')
+    expect(result.checks.find((item) => item.id === 'ELIG-CHALLENGE-001')).toMatchObject({
+      status: 'unknown',
+    })
+    expect(result.crawler_access.every((item) => item.status === 'unknown')).toBe(true)
+    const wording = JSON.stringify(result)
+    expect(wording).toContain('Our crawler received a browser-verification challenge')
+    expect(wording).toContain('may receive the same')
+    expect(wording).not.toMatch(/Cloudflare blocked|blocks? (?:GPTBot|OAI-SearchBot|PerplexityBot)/i)
+  })
+
   it('uses the longest matching robots rule and lets Allow win a tie', () => {
     const robots = 'User-agent: *\nDisallow: /private\nAllow: /private/public'
     expect(eligibilityInternals.crawlerAllowed(robots, 'OAI-SearchBot', '/private/file').allowed).toBe(false)

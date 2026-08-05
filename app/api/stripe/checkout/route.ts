@@ -42,6 +42,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid score access token' }, { status: 403 })
     }
 
+    let icpDescription = input.icp_description.trim()
+    if (!icpDescription && input.score_id) {
+      const { data: score } = await supabaseAdmin
+        .from('scores')
+        .select('status, scores')
+        .eq('id', input.score_id)
+        .single()
+      const persistedScores = score?.scores && typeof score.scores === 'object' && !Array.isArray(score.scores)
+        ? score.scores as Record<string, unknown>
+        : null
+      const scoreDraft = persistedScores?.business_description_draft
+      if (score?.status !== 'done' || typeof scoreDraft !== 'string' || !scoreDraft.trim()) {
+        return NextResponse.json(
+          { error: 'Describe the business before starting the audit' },
+          { status: 400 }
+        )
+      }
+      icpDescription = scoreDraft.trim()
+    }
+
     // Rate limit checkout-session creation by email + IP to deter abuse/spam.
     const hour = 60 * 60 * 1000
     const rl = await enforceRateLimits([
@@ -65,7 +85,7 @@ export async function POST(req: NextRequest) {
         competitor_1: input.competitor_1 || null,
         competitor_2: input.competitor_2 || null,
         competitor_3: input.competitor_3 || null,
-        icp_description: input.icp_description || null,
+        icp_description: icpDescription,
         score_id: input.score_id || null,
         stripe_session: null,
         payment_status: 'pending',

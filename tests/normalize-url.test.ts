@@ -39,6 +39,7 @@ describe('website schemas', () => {
       competitor_1: 'competitor.com',
       competitor_2: '',
       competitor_3: '',
+      icp_description: 'Small businesses buying inventory planning software.',
     })
 
     expect(result.url).toBe('https://example.com/')

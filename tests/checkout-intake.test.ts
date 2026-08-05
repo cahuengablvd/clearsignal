@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   retrievePrice: vi.fn(),
   enforceRateLimits: vi.fn(),
   verifyToken: vi.fn(),
+  selectScore: vi.fn(),
 }))
 
 vi.mock('@/lib/stripe', () => ({
@@ -29,13 +30,16 @@ vi.mock('@/lib/tokens', () => ({ verifyToken: mocks.verifyToken }))
 
 vi.mock('@/lib/supabase', () => ({
   supabaseAdmin: {
-    from: () => ({
+    from: (table: string) => ({
       insert: mocks.insert.mockImplementation((value) => ({
         select: () => ({ single: () => mocks.insertSingle(value) }),
       })),
       update: mocks.update.mockImplementation((value) => ({
         eq: (column: string, id: string) => mocks.updateEq(value, column, id),
       })),
+      select: () => ({
+        eq: () => ({ single: () => table === 'scores' ? mocks.selectScore() : Promise.resolve({ data: null, error: null }) }),
+      }),
     }),
   },
 }))
@@ -63,6 +67,13 @@ describe('paid checkout intake', () => {
     mocks.insertSingle.mockResolvedValue({ data: { id: 'audit-pending-1' }, error: null })
     mocks.createSession.mockResolvedValue({ id: 'cs_test_1', url: 'https://checkout.stripe.test/session' })
     mocks.updateEq.mockResolvedValue({ error: null })
+    mocks.selectScore.mockResolvedValue({
+      data: {
+        status: 'done',
+        scores: { business_description_draft: 'Acme serves retailers with inventory planning software.' },
+      },
+      error: null,
+    })
   })
 
   it('accepts and persists a 1500-character ICP while keeping Stripe metadata free of intake text', async () => {
@@ -114,6 +125,35 @@ describe('paid checkout intake', () => {
     expect(payload.error).toMatch(/2000 characters or fewer/i)
     expect(mocks.insert).not.toHaveBeenCalled()
     expect(mocks.createSession).not.toHaveBeenCalled()
+  })
+
+  it('rejects an empty business description when no score draft is available', async () => {
+    const { POST } = await import('../app/api/stripe/checkout/route')
+    const response = await POST(request({
+      email: 'buyer@example.com',
+      url: 'https://example.com',
+      icp_description: '',
+    }))
+
+    expect(response.status).toBe(400)
+    expect(mocks.insert).not.toHaveBeenCalled()
+    expect(mocks.createSession).not.toHaveBeenCalled()
+  })
+
+  it('uses a verified completed score draft when the submitted description is empty', async () => {
+    const { POST } = await import('../app/api/stripe/checkout/route')
+    const response = await POST(request({
+      email: 'buyer@example.com',
+      url: 'https://example.com',
+      icp_description: '',
+      score_id: 'score-1',
+      score_token: 'valid',
+    }))
+
+    expect(response.status).toBe(200)
+    expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({
+      icp_description: 'Acme serves retailers with inventory planning software.',
+    }))
   })
 
   it('rejects an invalid score token before persisting the order', async () => {

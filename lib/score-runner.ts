@@ -10,6 +10,7 @@ import {
   type GeoResult,
 } from './schemas'
 import { supabaseAdmin } from './supabase'
+import { requireUsableScrape, UnusableScrapeError } from './scrape-quality'
 
 const GEO_BUDGET_MS = 35_000
 
@@ -53,6 +54,7 @@ export async function runFreeScore(scoreId: string, input: FreeScoreInput): Prom
     }
 
     const markdown = normalizeMarkdown(rawMarkdown)
+    requireUsableScrape(markdown)
     const brand = brandFromUrl(input.url)
     const [scores, geo] = await Promise.all([
       callClaudeJSON<ClearSignalScore>({
@@ -107,7 +109,9 @@ export async function runFreeScore(scoreId: string, input: FreeScoreInput): Prom
       .from('scores')
       .update({
         status: 'failed',
-        top_insight: 'We could not finish the check. Please try again.',
+        top_insight: err instanceof UnusableScrapeError
+          ? err.message
+          : 'We could not finish the check. Please try again.',
       })
       .eq('id', scoreId)
   }

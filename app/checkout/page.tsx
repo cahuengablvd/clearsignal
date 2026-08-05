@@ -53,6 +53,7 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [draft, setDraft] = useState<CheckoutDraft>(EMPTY_DRAFT)
+  const [siteRead, setSiteRead] = useState(false)
 
   useEffect(() => {
     try {
@@ -68,11 +69,16 @@ function CheckoutContent() {
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (!data) return
+        const scoreDraft = data.status === 'done' && typeof data.business_description_draft === 'string'
+          ? data.business_description_draft
+          : ''
+        setSiteRead(!!scoreDraft)
         setDraft((current) => ({
           ...current,
           email: current.email || data.email || '',
           url: current.url || data.url || '',
           competitor_1: current.competitor_1 || data.competitor_1 || '',
+          icp_description: scoreDraft || current.icp_description,
         }))
       })
       .catch(() => {})
@@ -204,8 +210,13 @@ function CheckoutContent() {
                 })}
               </div>
 
-              <Field label="Describe your ideal customer (optional)" id="icp_description">
-                <Textarea id="icp_description" rows={3} maxLength={2000} value={draft.icp_description} onChange={(e) => updateDraft('icp_description', e.target.value)} placeholder="Who buys from you, and what are they trying to achieve?" className={fieldClass} />
+              <Field label={`Describe your business${siteRead ? '' : ' *'}`} id="icp_description">
+                <Textarea id="icp_description" rows={3} maxLength={2000} required={!siteRead} value={draft.icp_description} onChange={(e) => updateDraft('icp_description', e.target.value)} placeholder="Who do you serve, and what do you sell?" className={fieldClass} />
+                <p className="mt-2 text-xs leading-5 text-[#8D7B6B]">
+                  {siteRead
+                    ? 'We read your site and drafted this description. Please edit it if needed.'
+                    : 'We have not read your site yet, so please describe the business before continuing.'}
+                </p>
               </Field>
 
               <div className="border-t border-[#E9DDCE] pt-6">

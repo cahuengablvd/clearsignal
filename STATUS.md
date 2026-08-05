@@ -73,6 +73,13 @@ One confirmation still open: that run `9r5hcc01` executed on Trigger version `20
 1. **Live Stripe control purchase + refund** with a real card. Waiting on funds. Nobody else can
    do this. Tests the live webhook, generation and delivery end to end.
 2. Legal review of `/terms`, `/privacy`, `/refund` and VAT treatment.
+3. **A mailbox that can RECEIVE on `getclearsignal.io`.** Resend is configured for sending only;
+   the domain has no inbox. The report email goes out from `reports@` with no `replyTo`
+   (`lib/resend.ts:181`), and the order confirmation sets `replyTo: hello@getclearsignal.io` while
+   the body invites the customer to reply. A paying customer who answers with a question about the
+   report currently reaches nobody, and the owner never learns it happened. Needs MX records plus a
+   mailbox provider — `hello@` for correspondence and at least a forward on `reports@`. Not a code
+   change; do not fix by removing the invitation to reply.
 
 ## In flight
 

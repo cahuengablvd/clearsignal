@@ -195,3 +195,34 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
   page shows no listing structure, keep the generic pair and say nothing.
 - Acceptance: rozie fixture yields at least one marketplace-specific type in the deliverable, and
   every recommended type still passes the schema-deliverable gate unchanged.
+
+## R12 — Empty ICP lets the query generator invent the wrong vertical (blocks first sale)
+
+- Seen: 2026-08-05, manual-audit preview for `salidzini.lv` (a Latvian consumer price-comparison
+  site). With `ICP: none`, `Conversion goal: unknown` and no competitors, all six generated buyer
+  questions were about **financial products, banking and lending** — "What are the best tools for
+  comparing financial products and services?", "What's the difference between various banking and
+  lending options available to me?". The audit would have measured visibility in a vertical the
+  business does not operate in, and every downstream finding would inherit that framing.
+- The preview DOES scrape and pass 600 chars of page markdown (`app/api/admin/audits/preview`,
+  `lib/audit-runner.ts:503`), so thin or failed scraping plus an empty ICP leaves the model guessing
+  from the domain name — "salidzini" (Latvian for "compare") plus `business_model: marketplace`
+  apparently resolved to comparison-of-finance.
+- Why it reaches customers: `icp_description` is `.optional()` (`lib/schemas.ts:103`) and the paid
+  checkout labels it "Describe your ideal customer (optional)". A buyer who skips it gets
+  auto-generated queries with no operator confirmation step on the paid path — the manual-audit
+  confirmation screen that caught this does not exist between payment and generation.
+- Current mitigation is the human review gate: the operator sees the finished report and can
+  regenerate. That costs ~$1.06 and a delivery delay per occurrence, and depends on the reviewer
+  noticing the vertical is wrong.
+- Fix directions, in preference order:
+  1. Surface scrape success on the confirmation screen — the preview already returns `scraped`, but
+     the operator cannot currently tell whether queries were informed by the page or invented.
+  2. Make the paid path refuse to auto-generate from nothing: when ICP is empty AND the scrape is
+     thin, hold the audit for operator query confirmation rather than guessing.
+  3. Reconsider "optional" on the checkout ICP field, or replace it with a required one-line
+     "what do you sell, to whom" that is hard to skip and cheap to answer.
+- Do NOT fix by making the query prompt "try harder" — the failure is missing input, not weak
+  wording.
+- Acceptance: a fixture with empty ICP and thin scraped content does not produce confident
+  wrong-vertical queries; it either surfaces the gap to the operator or refuses to proceed.

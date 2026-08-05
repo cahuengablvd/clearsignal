@@ -11,15 +11,15 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-08-05, after the corporate mailbox delivery verification.
+**Last updated:** 2026-08-05, after the input-quality P0 deploy.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** - version **`20260804.5`**, deployed from `C:\csdeploy` at commit `4c40bc2`,
-  5 tasks detected. This release ships Batch 4: legacy schema-deliverable mismatches remain
-  visible but reviewable on re-render, while marketplace JSON-LD uses observed page structure.
-  - Previous production version was `20260804.4` at commit `5dadd1e`. Anything touching
+- **Trigger.dev** - version **`20260805.1`**, deployed from `C:\csdeploy` at commit `d649b58`,
+  5 tasks detected. This release ships `TASKS_INPUT_QUALITY.md` P0: challenge/thin-page guards,
+  observational eligibility wording, and the score-derived editable intake draft.
+  - Previous production version was `20260804.5` at commit `4c40bc2`. Anything touching
     `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts needs a
     Trigger deploy or it simply is not live.
   - Deploy with the CLI version pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`).
@@ -97,6 +97,11 @@ after 2026-08-23.
   `validation/PLAN.md`.
 
 ## Shipped
+
+- `TASKS_INPUT_QUALITY.md` P0 - commit `d649b58`, Trigger version `20260805.1`. Short challenge
+  pages stop before AI stages while substantive pages that mention a WAF remain valid; crawler
+  eligibility stays observational; completed free scores prefill an editable business description,
+  while cold checkout and unread admin previews cannot proceed without supplied business context.
 
 - `TASKS_PRELAUNCH.md` Batches 1-4 plus R10/R11 - through commit `4c40bc2`, Trigger version
   `20260804.5`. Public engine claims share the execution contract; buyer-intent GEO queries and

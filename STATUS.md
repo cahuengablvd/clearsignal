@@ -11,7 +11,7 @@ that predated the entire paid funnel. Ten accurate lines beat a hundred confiden
 
 ---
 
-**Last updated:** 2026-08-05, after the input-quality P0 deploy.
+**Last updated:** 2026-08-05, after `R17`. The code sprint is closed; what remains is the owner's.
 
 ## Deploys
 
@@ -87,16 +87,45 @@ after 2026-08-23.
    do this. Tests the live webhook, generation and delivery end to end.
 2. Legal review of `/terms`, `/privacy`, `/refund` and VAT treatment.
 
-## In flight
+## The code sprint is closed (2026-08-05)
 
-- **Pre-launch verification** - all 12 code items in `TASKS_PRELAUNCH.md` are shipped. Its
-  definition of done still requires two fresh paid-path audits in different verticals, one full
-  owner read-through, the owner's Stripe control purchase/refund, and legal review.
-- **Two-week sales test** — queued behind the sprint. Kit is ready in `validation/` (plan,
-  outreach, agency interview script, tracking sheet); agencies first. Go/no-go criteria in
+Nothing in the backlog is worth doing before the first paying customer. `R13`, `R14`, `R16` and
+`R18` stay open deliberately — real customers should set their priority, not a guess. If an agency
+asks why the buyer-intent section is empty during the sales test, that is the signal to fix `R16`
+first.
+
+Verification outcome, both audits fresh with `reuseGeoEvidence: false`:
+
+- `jusukosmetologs.lv` (Riga cosmetology clinic, audit `5d53a488`) — 18/18 coverage, mechanically
+  clean, genuinely useful: cited 7x (second in its niche behind `eraesthetic.lv` at 8x) yet named in
+  only 4 of 18 answers, while ERA ESTHETIC is recommended in 33%. **Read by AI, not recommended by
+  it** — the distinction the product exists to surface. This report is the one to show people.
+- `salidzini.lv` (audit `7590982c`) — produced the `R15` finding rather than a usable report: the
+  audit ran against a Cloudflare browser-verification page. Do not use it as a sample.
+
+`R15` is closed by production observation, not by test: re-generating `salidzini.lv` on
+`20260805.1` stopped after **9 seconds** with "we received a browser-verification page", before any
+AI stage. The same audit would previously have spent ~$1.06 describing a challenge screen. The
+earlier report was not destroyed — the failure path does not clear the `report` column.
+
+## In flight — owner only, no code
+
+- **Two-week sales test.** Kit ready in `validation/` (plan, outreach, agency interview script with
+  the report-feedback questions, tracking sheet). Agencies first. Go/no-go criteria in
   `validation/PLAN.md`.
+- First real reader: the clinic owner is a personal contact of the owner's and is receiving the
+  `jusukosmetologs.lv` report as a gift. His verbatim reaction is the first genuine validation datum
+  — capture it in `validation/tracking.csv`, especially whether he asks who could implement the
+  fixes. Repeated implementation questions from service businesses would confirm the agency-first
+  strategy on evidence instead of assumption.
 
 ## Shipped
+
+- `R17` — commit `90d09dd`. Print CSS keeps headings with their content and cards/tables intact
+  across page breaks; the JSON-LD deliverable now says where the code goes (`<head>`, as
+  `<script type="application/ld+json">`, validated with Google's Rich Results Test); the
+  ready-materials heading no longer calls the customer an "operator". Styles and report template
+  only — no Trigger deploy needed.
 
 - `TASKS_INPUT_QUALITY.md` P0 - commit `d649b58`, Trigger version `20260805.1`. Short challenge
   pages stop before AI stages while substantive pages that mention a WAF remain valid; crawler

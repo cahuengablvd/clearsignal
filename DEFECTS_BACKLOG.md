@@ -253,3 +253,20 @@ the exception: it is unmet F9 acceptance (a wrong headline metric), so it ships 
   fixes both the reliability and the typing.
 - Acceptance: a fixture specifying two languages produces queries in both; removing the field from
   the input changes the generated queries, proving it is wired.
+
+## R14 — Dead write to a table that does not exist (low severity, instructive)
+
+- Seen: 2026-08-05, while deleting test rows: `delete from audit_insights` returned
+  `42P01: relation "audit_insights" does not exist`. The table is declared in
+  `supabase/migrations/001_initial.sql:32` but was never applied to the production database.
+- `lib/audit-runner.ts:849` upserts into it on every successful generation with no error check.
+  The Supabase client returns `{ error }` instead of throwing, so the write has been a silent no-op
+  for the life of the project. Nothing reads the table — no reader exists anywhere in `app/`,
+  `lib/`, `trigger/` or `scripts/`.
+- Impact: none functionally. Recorded because the *pattern* is the risk, not this instance: the
+  same unchecked-write shape elsewhere would hide a real persistence failure. `lib/resend.ts:178`
+  carries an explicit comment about this exact Supabase/Resend behaviour, so the class is already
+  known here — it just slipped in this one call.
+- Fix: delete the upsert and the migration block, or apply the migration and add an error check.
+  Deleting is preferred: a table nobody reads is not worth a migration.
+- Do not "fix" by adding the table. Add the error check pattern instead, wherever a write matters.

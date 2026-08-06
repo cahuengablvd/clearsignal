@@ -162,34 +162,73 @@ Baltics first — a local founder gets replies a cold Londoner never will. Widen
 
 ## The message
 
-Subject: `Is anyone asking you about ChatGPT yet?`
+Subject: `Are clients asking about AI visibility yet?`
 
 > Hi {First name},
 >
-> I'm Alexander, based in Riga. I'm building something and I'd like a sanity check from people who
-> actually sell this stuff for a living.
+> I'm Alexander, based in Riga. I'm building an AI visibility audit and wanted a sanity check from
+> people who work with SEO clients every day.
 >
-> It checks what ChatGPT, Claude and Perplexity say when someone asks a buying question in a
-> client's niche — who gets named, who gets cited, who doesn't come up at all.
+> It checks what ChatGPT, Claude and Perplexity say when buyers ask questions in a client's niche —
+> who gets recommended, who gets cited, and who doesn't appear at all.
 >
-> I ran it on a Riga clinic last week. Turned out their own site is the most-cited source in the
-> whole category, ahead of every competitor. But when someone asks "where should I go", the engines
-> name a competitor three times more often than the clinic. So the AI reads them and recommends
-> someone else. They had no idea.
+> I ran it on a Riga clinic last week. Their own site was the most-cited source in the category,
+> ahead of every competitor — but when people asked where they should actually go, the engines named
+> a competitor about 3x more often. They had no idea.
 >
-> That gap doesn't show up in a rank tracker, because it isn't a ranking.
+> So AI knew the clinic well enough to use it as a source, and still sent the buyer somewhere else.
+> A rank tracker wouldn't show that, because it isn't a ranking.
 >
-> The output is a PDF you could hand straight to a client: every question, every answer, who came up
-> instead, and a fix list with the schema and copy already written. You'd do the implementation.
+> The report walks through every question tested and what each engine answered, who came up instead,
+> and what to fix first. Your team would do the implementation.
 >
-> €149 for one client's site, two days, and I read every report before it goes out.
+> Founding price is €149 per site, two business days, and I read every report before it goes out.
 >
 > Sample: getclearsignal.io/sample
 >
-> Mostly I want to know whether this is something you'd ever sell, or whether I'm solving a problem
-> nobody's asking about yet. "No" is a useful answer.
+> Mainly I'm trying to understand one thing: is this something you could see yourself offering to
+> SEO clients, or is the market just not asking for it yet?
+>
+> Even a "no" would genuinely help.
 >
 > Alexander
+
+**The ask is deliberately not "buy this".** Message one tests a bigger hypothesis: *could an agency
+see itself reselling this?* That question gets an answer even from agencies that would never buy,
+and a cold email exists to start a conversation, not to close one. The harder questions — what they
+charge today, what evidence makes a client approve budget — belong on the call, where the interview
+script above asks about past behaviour rather than opinions.
+
+If several agencies say yes, the second message is simply:
+
+> Great. If you have a client in mind, I'll run the first one and we can see whether the output
+> actually fits your workflow.
+
+**Do not mention reseller discounts, white-label, commissions or a partner programme.** None of it
+exists, and promising it to learn about demand corrupts the very signal you are collecting.
+
+Why it reads as a person and not a brochure:
+
+- **Contractions everywhere.** "I'm", "wouldn't", "isn't". Their absence is the single biggest
+  reason a draft feels machine-written.
+- **No colon-introduced feature lists.** An earlier draft had three colons and two comma-separated
+  spec lists; that is landing-page grammar and agency owners write it for a living.
+- **A finding, not a product.** Every agency inbox contains "I built a tool". A specific, checkable,
+  slightly surprising fact does not.
+- **"They had no idea."** A human observation about a real person. No template says that.
+- **Genuine uncertainty at the close**, which is true, costs the reader nothing to answer, and is
+  the opposite of a confident pitch.
+- **Peer framing** — "people who work with SEO clients every day" puts them above you, not in a
+  funnel. Avoid vaguer phrasings like "people who sell this stuff": they sell SEO, not AI
+  visibility, and the imprecision shows.
+
+**Never promise ready-to-paste materials in the email.** `ready_materials` is
+`.optional().nullable()` in `lib/schemas.ts:693` — present in every recent report, but not
+structurally guaranteed. Promising it in a sales email is exactly the overclaim the report itself is
+built to avoid.
+
+Signature is the first name only. "Founder & CEO, ClearSignal" sounds bigger than a one-person
+company and undercuts the peer framing.
 
 Why this reads as a person and not a brochure:
 

@@ -104,3 +104,83 @@ itself sells the €149 audit.)
 **Silence after a warm reply:** one nudge after 3 days, then log `closed_no_reply`. Never
 argue with a "no" — ask one question instead: "Totally fine — what would have made this a
 yes?" and write the answer down verbatim. Those quotes are the product's roadmap.
+
+---
+
+# Apollo run — 40 agencies, one message, no personalization
+
+Owner decision (2026-08-05): skip per-message personalization, send one honest broadcast. This
+section is the config and the copy for that.
+
+## Sending: personal mailbox, not the product domain
+
+**Never send cold outreach from `getclearsignal.io`.** That domain delivers paid reports. Burning
+its reputation means a customer who paid €149 finds their report in spam, silently.
+
+At this volume no infrastructure is warranted: send from the founder's own everyday mailbox,
+**5-10 per working day**, as ordinary one-to-one email. An established personal address out-delivers
+any freshly warmed cold domain, and it reads as a person — which is the whole point.
+
+Do not use Apollo's built-in sequencer for this run. Apollo is the *finder*; the sending stays
+manual. A sequencer adds tracking pixels and bulk headers that filters read as marketing, and it
+removes the one advantage a small run has.
+
+## Apollo filters
+
+Saved search, then **Export → CSV**:
+
+- **Job titles:** Founder, Owner, Co-Founder, Head of SEO, SEO Director, Strategy Director
+- **Industry:** Marketing & Advertising
+- **Employees:** 2-50
+- **Location:** Latvia, Lithuania, Estonia, Finland, Sweden, Denmark, Poland
+- **Keywords:** SEO, digital agency, search marketing
+- **Email status:** Verified only
+
+Baltics first — a local founder gets replies a cold Londoner never will. Widen only after the first
+40 are sent.
+
+## The message
+
+Subject: `AI visibility audits as an agency deliverable`
+
+> Hi {First name},
+>
+> I build ClearSignal — an audit that tests how ChatGPT, Claude and Perplexity answer real buyer
+> questions about a business: which brands get recommended, which sources get cited, and what is on
+> the pages that beat them.
+>
+> I am writing to a small number of SEO agencies because the report is built to be resold. It is an
+> agency-ready PDF: evidence per query, competitor share of voice, and a prioritised fix list your
+> team implements.
+>
+> Sample: getclearsignal.io/sample
+> A pilot on one of your clients is €149, reviewed by a person, two business days.
+>
+> If AI visibility is not coming up with your clients yet, a straight "no" is genuinely useful to me
+> — I am still working out which agencies this fits.
+>
+> Alexander
+> Riga
+
+Why this works without personalization: it is specific about the product, honest that it is a
+broadcast, and it invites a "no". Fake familiarity ("loved your recent post") is what gets ignored;
+a short, plain, useful message does not need it.
+
+## Follow-up (once, day 4)
+
+> Hi {First name} — floating this back up in case it got buried. If it is not relevant, no reply
+> needed and I will not chase again. Sample if useful: getclearsignal.io/sample
+
+One follow-up only, then `closed_no_reply`. Never a third.
+
+## Legal note
+
+Cold B2B email inside the EU is a grey area under GDPR. Keep this run small, business addresses
+only, honest sender identity, and remove anyone who asks — immediately and without argument. If the
+run scales past a few hundred, it needs a real legal answer, not this paragraph.
+
+## Expected numbers
+
+40 sent → 8-12 replies is a good outcome for a plain broadcast, and most of those will be "no".
+The "no"s carry the finding: log the reason verbatim in `tracking.csv`. Three real conversations out
+of 40 is enough to learn whether the offer lands.

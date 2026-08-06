@@ -373,3 +373,16 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   not on fuzzy similarity.
 - Acceptance: a fixture with an operator URL plus a spaced brand form of the same company yields one
   row with the combined mention rate.
+
+### R19 addendum — extraction also emits non-names
+
+- Seen: 2026-08-03, rozie audit `a04586b1`. "Who AI recommends instead" lists **`Com` at 15%**,
+  ranked equal-first with StayCare Group and Tidy Malta. `Com` is not a company; it is almost
+  certainly a fragment of the cited domain `com.mt`.
+- Same subsystem as R19 but a different failure: R19 splits one real company across two rows, this
+  emits a row that is not a company at all. Both land in the most-read table of the report.
+- Fix alongside R19: reject candidates that are bare TLD fragments, single generic tokens, or
+  shorter than a plausible brand, and drop any candidate that is a substring of a domain already in
+  `cited_domains_ranked`. Prefer dropping a real competitor over printing a fake one — a missing row
+  is invisible, a nonsense row is the first thing a reader sees.
+- Acceptance: a fixture whose answers mention `com.mt` never yields a competitor named `Com`.

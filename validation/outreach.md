@@ -83,6 +83,27 @@ itself sells the €149 audit.)
 > layer; most tools that touch it are €29-99/mo monitoring dashboards that tell you a
 > number but not what to do. This is the audit + fix plan, once, with a human review.
 
+**"Why pay for this when ChatGPT does it free?"** — expect this one; log it verbatim every time.
+> Fair, and I have the comparison in hand: a business owner ran his own site through ChatGPT and
+> sent me the result. It was good — it caught page-level problems my report missed, and I am fixing
+> that. But look at what it cannot do. Its headline score has no method behind it; ask again and you
+> get a different number. It never queried an engine about the business, names no competitor, and
+> reports no share of voice. It is a website review presented as an AI audit.
+>
+> What I run is six buyer questions across three engines — eighteen answers, counted. "Named in 4 of
+> 18; this competitor in 6; your site cited 7 times as a source." All eighteen answers are in the
+> report.
+>
+> For an agency the difference is billability: you cannot invoice a client for advice they could
+> generate in a chat window in two minutes. You can invoice for implementation justified by a number
+> that survives "how do you know that?"
+
+**"We could build this ourselves."**
+> Probably — the hard part is not the idea. It is the trust layer: never inventing a number, never
+> promising a ranking, keeping every claim tied to an observed answer. That took most of the build
+> and it is what makes the report safe to put in front of your client. If you do build it, I would
+> genuinely like to hear how it goes.
+
 **"Can we white-label it?"**
 > On the roadmap once pilot demand is proven. Today you get an agency-ready PDF you can
 > walk your client through — the pilot exists exactly to find out if your clients care.

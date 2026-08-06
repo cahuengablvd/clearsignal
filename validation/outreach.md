@@ -141,30 +141,51 @@ Baltics first — a local founder gets replies a cold Londoner never will. Widen
 
 ## The message
 
-Subject: `AI visibility audits as an agency deliverable`
+Subject: `AI visibility audit as a client deliverable`
 
 > Hi {First name},
 >
-> I build ClearSignal — an audit that tests how ChatGPT, Claude and Perplexity answer real buyer
-> questions about a business: which brands get recommended, which sources get cited, and what is on
-> the pages that beat them.
+> Alexander here, from Riga. I built ClearSignal — it tests what ChatGPT, Claude and Perplexity
+> actually answer when someone asks a buying question in your client's category: which brands get
+> named, which sources get cited, and what is on the pages that outrank them there.
 >
-> I am writing to a small number of SEO agencies because the report is built to be resold. It is an
-> agency-ready PDF: evidence per query, competitor share of voice, and a prioritised fix list your
-> team implements.
+> A real example of what it finds. For a Riga clinic: the engines cite that clinic's own site more
+> than any competitor's — second-most-cited source in the category — yet name a competitor in a
+> third of answers and the clinic in four out of eighteen. Read by AI, not recommended by it. No
+> rank tracker shows that gap, because it is not a ranking.
+>
+> The output is built to hand over: evidence per query, competitor share of voice, a comparison
+> against the pages that do get cited, and a prioritised fix list with ready-to-paste schema, meta
+> and FAQ copy in the client's own language. Your team implements it. The report is the reason the
+> client approves the work.
 >
 > Sample: getclearsignal.io/sample
-> A pilot on one of your clients is €149, reviewed by a person, two business days.
+> A pilot on one of your clients is €149, reviewed by a person before it is sent, two business days.
 >
-> If AI visibility is not coming up with your clients yet, a straight "no" is genuinely useful to me
-> — I am still working out which agencies this fits.
+> I am writing to a short list of Baltic agencies to learn whether this fits how you actually sell.
+> If it does not, a one-line "no" helps me more than silence.
 >
-> Alexander
+> Alexander Kalinko
 > Riga
 
-Why this works without personalization: it is specific about the product, honest that it is a
-broadcast, and it invites a "no". Fake familiarity ("loved your recent post") is what gets ignored;
-a short, plain, useful message does not need it.
+Why this works without personalization:
+
+- **It leads with a finding, not a product.** Every agency inbox has "I built a tool" in it. A
+  specific, checkable, slightly surprising fact does not read like those.
+- **The example demonstrates the product** rather than describing it — cited-but-not-recommended is
+  the exact distinction no monitoring dashboard surfaces, so the example IS the differentiation.
+- **It is local.** A Riga founder writing to Baltic agencies is not a cold email from nowhere; say
+  it in the first line and the signature.
+- **The price is in message one.** An agency that balks at €149 was never a customer, and naming it
+  early signals this is not a book-a-demo funnel.
+- **It invites a no.** Counterintuitively this raises reply rates, and a "no" with a reason is the
+  finding this whole run exists to collect.
+
+Anonymise the clinic. "A Riga clinic" carries no identifying detail; do not name the business.
+
+Language: send in English. Every Baltic agency principal works in it, and it avoids choosing between
+Latvian, Lithuanian and Estonian. If you are comfortable writing Latvian, use it for `.lv` agencies
+only — same text, and log whether it changes the reply rate.
 
 ## Follow-up (once, day 4)
 

@@ -352,3 +352,24 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   proof - `TASKS_AI_POSITIONING_AND_EVIDENCE.md` already rejects that, and it must stay rejected.
 - Acceptance: a proof fix on a fixture with no reviews asks for a linked, checkable source rather
   than testimonial text alone.
+
+## R19 — One competitor counted twice under two name forms (credibility, customer-visible)
+
+- Seen: 2026-08-05, audit `5d53a488`. "Who AI recommends instead" lists `ERA ESTHETIC 33%` and
+  `Eraesthetic 11%` as separate rows. Same company: the operator supplied `https://eraesthetic.lv/`
+  (pretty-named `Eraesthetic`) and discovery extracted the spaced brand form `ERA ESTHETIC` from the
+  answers.
+- Root cause: the dedupe in `lib/geo/index.ts:228` compares `sld(name)` and an exact lowercase name
+  match. `sld()` resolves the operator's URL to `eraesthetic`, while the discovered plain-text name
+  lowercases to `era esthetic` — different string, no match, second entry created.
+- Two harms, both visible to the customer: the leader's true share is understated (33% + 11% ≈ 44%)
+  and the competitor list looks padded with a duplicate, which is the first thing a reader notices
+  and the last thing a paid report should show.
+- Fix: normalize both sides before comparing — case-fold and strip non-alphanumerics (so
+  `era esthetic`, `ERA-ESTHETIC` and `eraesthetic` collapse), then merge mention counts rather than
+  listing separately. Keep the display form that appeared most often in the answers.
+- Watch the false merge: two genuinely different brands whose names collapse to the same token must
+  not be merged. Prefer merging only when one form is a whitespace/punctuation variant of the other,
+  not on fuzzy similarity.
+- Acceptance: a fixture with an operator URL plus a spaced brand form of the same company yields one
+  row with the combined mention rate.

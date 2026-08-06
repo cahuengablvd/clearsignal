@@ -164,3 +164,24 @@ unless you are investigating a regression in one of them.
      intact.
 - Do not fix before the first replies come in: if prospects reach a conversation without mentioning
   the sample, it is not the bottleneck and the effort belongs elsewhere. Let the outreach decide.
+
+## R22 — Single-page crawl misses cross-page inconsistency (found by competitive comparison)
+
+- Seen: 2026-08-06. The clinic owner ran his own site through ChatGPT with browsing and sent back the
+  result. That document found real problems ClearSignal did not: the address differs between pages,
+  prices are stale, the Russian version is outdated, the blog is empty, and there are no dedicated
+  pages for named procedures (HIFU, Morpheus8, Lumecca IPL) that buyers search for.
+- Cause: ClearSignal scrapes one page. `scrapeUrl(input.url)` fetches the homepage and every on-page
+  finding derives from that single document. A model with browsing walked several pages and compared
+  them.
+- Cross-page consistency is squarely in scope for AI visibility, not a nice-to-have: contradictory
+  NAP, prices and service descriptions are exactly the entity-confusion signals the report already
+  talks about — it just cannot observe them today.
+- Fix direction (not scheduled): fetch a small, bounded set of pages — homepage plus links found in
+  the main navigation, capped at perhaps five — and add a consistency check across them for name,
+  address, phone, prices and service names. Bounded, because unbounded crawling multiplies Firecrawl
+  cost per audit and the current unit cost of $1.06 is a selling point.
+- Weigh against `R15`: the same crawl budget also gives a second signal for detecting a site whose
+  real content sits behind a challenge page.
+- Do not treat this as "ChatGPT is better". It found page-level problems and measured nothing; the
+  distinction is in `validation/segment-findings.md`.

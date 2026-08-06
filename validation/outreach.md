@@ -162,45 +162,53 @@ Baltics first — a local founder gets replies a cold Londoner never will. Widen
 
 ## The message
 
-Subject: `AI visibility audit as a client deliverable`
+Subject: `Is anyone asking you about ChatGPT yet?`
 
 > Hi {First name},
 >
-> Alexander here, from Riga. I built ClearSignal — it tests what ChatGPT, Claude and Perplexity
-> actually answer when someone asks a buying question in your client's category: which brands get
-> named, which sources get cited, and what is on the pages that outrank them there.
+> I'm Alexander, based in Riga. I'm building something and I'd like a sanity check from people who
+> actually sell this stuff for a living.
 >
-> A real example of what it finds. For a Riga clinic: the engines cite that clinic's own site more
-> than any competitor's — second-most-cited source in the category — yet name a competitor in a
-> third of answers and the clinic in four out of eighteen. Read by AI, not recommended by it. No
-> rank tracker shows that gap, because it is not a ranking.
+> It checks what ChatGPT, Claude and Perplexity say when someone asks a buying question in a
+> client's niche — who gets named, who gets cited, who doesn't come up at all.
 >
-> The output is built to hand over: evidence per query, competitor share of voice, a comparison
-> against the pages that do get cited, and a prioritised fix list with ready-to-paste schema, meta
-> and FAQ copy in the client's own language. Your team implements it. The report is the reason the
-> client approves the work.
+> I ran it on a Riga clinic last week. Turned out their own site is the most-cited source in the
+> whole category, ahead of every competitor. But when someone asks "where should I go", the engines
+> name a competitor three times more often than the clinic. So the AI reads them and recommends
+> someone else. They had no idea.
+>
+> That gap doesn't show up in a rank tracker, because it isn't a ranking.
+>
+> The output is a PDF you could hand straight to a client: every question, every answer, who came up
+> instead, and a fix list with the schema and copy already written. You'd do the implementation.
+>
+> €149 for one client's site, two days, and I read every report before it goes out.
 >
 > Sample: getclearsignal.io/sample
-> A pilot on one of your clients is €149, reviewed by a person before it is sent, two business days.
 >
-> I am writing to a short list of Baltic agencies to learn whether this fits how you actually sell.
-> If it does not, a one-line "no" helps me more than silence.
+> Mostly I want to know whether this is something you'd ever sell, or whether I'm solving a problem
+> nobody's asking about yet. "No" is a useful answer.
 >
-> Alexander Kalinko
-> Riga
+> Alexander
 
-Why this works without personalization:
+Why this reads as a person and not a brochure:
 
-- **It leads with a finding, not a product.** Every agency inbox has "I built a tool" in it. A
-  specific, checkable, slightly surprising fact does not read like those.
-- **The example demonstrates the product** rather than describing it — cited-but-not-recommended is
-  the exact distinction no monitoring dashboard surfaces, so the example IS the differentiation.
-- **It is local.** A Riga founder writing to Baltic agencies is not a cold email from nowhere; say
-  it in the first line and the signature.
-- **The price is in message one.** An agency that balks at €149 was never a customer, and naming it
-  early signals this is not a book-a-demo funnel.
-- **It invites a no.** Counterintuitively this raises reply rates, and a "no" with a reason is the
-  finding this whole run exists to collect.
+- **Contractions everywhere.** "I'm", "doesn't", "you'd", "nobody's". Their absence is the single
+  biggest reason a draft feels machine-written.
+- **One idea per sentence, no colons introducing lists.** The earlier draft had three colons and two
+  comma-separated feature lists; that is landing-page grammar, and agency owners recognise it.
+- **A finding, not a product.** Every agency inbox contains "I built a tool". A specific, checkable,
+  slightly surprising fact does not.
+- **"They had no idea."** A human observation about a real person. Nothing in a template says that.
+- **Genuine uncertainty at the end.** "Or whether I'm solving a problem nobody's asking about yet"
+  is true, invites honesty, and is the opposite of a confident pitch. It raises reply rates because
+  answering costs the reader nothing.
+- **Peer framing.** "A sanity check from people who actually sell this stuff" puts them above you,
+  not in a funnel.
+- **Price in message one**, so an agency that balks at €149 self-selects out immediately.
+
+Signature is the first name only. "Founder & CEO, ClearSignal" sounds bigger than a one-person
+company and undercuts the peer framing.
 
 Anonymise the clinic. "A Riga clinic" carries no identifying detail; do not name the business.
 
@@ -210,8 +218,8 @@ only — same text, and log whether it changes the reply rate.
 
 ## Follow-up (once, day 4)
 
-> Hi {First name} — floating this back up in case it got buried. If it is not relevant, no reply
-> needed and I will not chase again. Sample if useful: getclearsignal.io/sample
+> Hi {First name} — bumping this once in case it got buried. If it's not your thing, no reply
+> needed and I won't chase. Sample if you're curious: getclearsignal.io/sample
 
 One follow-up only, then `closed_no_reply`. Never a third.
 

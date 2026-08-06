@@ -15,6 +15,7 @@ import { queryIntentLabel } from '@/lib/geo/query-taxonomy'
 import { recommendationStageLabel } from '@/lib/geo/recommendation-stages'
 import { buildClientReport, validateClientReportProjection } from '@/lib/client-report'
 import { AUDIT_PROCESS_LABEL, AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
+import { ReviewerNote } from '@/components/reviewer-note'
 import { Download, ArrowLeft } from 'lucide-react'
 
 // Never cache this route. A report link is often opened while the audit is
@@ -259,6 +260,8 @@ export default async function AuditPage({
             {report.meta.icp_description && ` | ICP: ${report.meta.icp_description}`}
           </p>
         </div>
+
+        <ReviewerNote note={audit.reviewer_note as string | null} />
 
         {/* Executive Summary */}
         <Card className="mb-8 border-primary/20 bg-primary/5">

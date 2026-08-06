@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
 
   const { data: audits, error } = await supabaseAdmin
     .from('audits')
-    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, api_cost_usd, api_cost_breakdown, last_generated_at, last_rerendered_at, last_delivered_at, report, quality')
+    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, reviewer_note, api_cost_usd, api_cost_breakdown, last_generated_at, last_rerendered_at, last_delivered_at, report, quality')
     .order('created_at', { ascending: false })
     // Fetch a wider window before in-memory priority sorting so regenerated
     // older audits can still float to the top during review batches.

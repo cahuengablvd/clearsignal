@@ -20,6 +20,7 @@ type Audit = {
   audit_status: string
   tier: string
   admin_notes: string | null
+  reviewer_note: string | null
   report_url?: string | null
   has_report?: boolean
   validation_repair_count?: number
@@ -499,6 +500,14 @@ export default function AdminPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ audit_id: auditId, notes }),
+    })
+  }
+
+  async function saveReviewerNote(auditId: string, reviewerNote: string) {
+    await fetch('/api/admin/reviewer-note', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audit_id: auditId, reviewer_note: reviewerNote }),
     })
   }
 
@@ -1227,6 +1236,20 @@ export default function AdminPage() {
                       className="text-xs"
                       onBlur={(e) => saveNotes(audit.id, e.target.value)}
                     />
+                  </div>
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor={`reviewer-note-${audit.id}`}>
+                      Reviewer note (printed at the top of the client report)
+                    </label>
+                    <Textarea
+                      id={`reviewer-note-${audit.id}`}
+                      placeholder=""
+                      defaultValue={audit.reviewer_note || ''}
+                      rows={4}
+                      className="text-xs"
+                      onBlur={(e) => saveReviewerNote(audit.id, e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Guide: 300{'\u2013'}600 characters (about 3{'\u2013'}4 sentences). No hard limit.</p>
                   </div>
                 </CardContent>
               </Card>

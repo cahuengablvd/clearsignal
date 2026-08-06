@@ -1,2 +1,93 @@
 date_added,segment,name,role,company,company_size,channel,contact_link,first_message_date,followup1_date,followup2_date,reply_date,status,call_date,strongest_pain,current_tools_spend,ai_visibility_asked_by_clients,objections_verbatim,quote_verbatim,offer_made,purchase_outcome,paid_date,audit_url,second_audit_interest,notes
-2026-07-25,agency,Example Name,Owner,Example SEO Ltd,12,linkedin,https://linkedin.com/in/example,2026-07-25,,,,sent,,,,,,,,not_yet,,,,replace this row
+2026-08-05,agency,Elvis Meisters,Co-Founder,Uprankd - Your Elite SEO Partner,,email,elvis@uprankd.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://uprankd.com
+2026-08-05,agency,Martins Tanne,Co-Founder & CEO,SERPA Media Group,,email,martins@serpamediagroup.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://serpamediagroup.com
+2026-08-05,agency,Konstantin Sadekov,Chief Executive Officer,Ethical SEO Agency,,email,konstantin@ethicalseo.io,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://ethicalseo.io
+2026-08-05,agency,Kati Lahtmets,Head of SEO Strategy,Batlinks.io,,email,kati@batlinks.io,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://batlinks.io
+2026-08-05,agency,Rita Pjaslane,SEO & Site Manager,ENTEZ,,email,rita.pjaslane@entez.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://entez.com
+2026-08-05,agency,Anton Marchenko,SEO Lead,BrightBid,,email,anton.marchenko@bidbrain.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://brightbid.com
+2026-08-05,agency,Diana Briket,SEO-менеджер,REDHEAD DIGITAL AGENCY,,email,diana.b@redheaddigital.agency,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://redheaddigital.agency
+2026-08-05,agency,Aivaras Bacevicius,SEO Innovation Manager,Acceleron Media,,email,aivaras.bacevicius@acceleronmedia.com,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://acceleronmedia.com
+2026-08-05,agency,Kristina Surovec,SEO Project Manager,"GOOD ONE, UAB",,email,kristina.surovec@goodone.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://goodone.lt
+2026-08-05,agency,Ingrida Motiejunaite,Co-Owner & Head of Email Marketing,A Cool Agency,,email,ingrida@coolagency.io,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://acoolagency.com
+2026-08-05,agency,Andris Mihelsons,Owner,Magnet Media,,email,andrism@magnet.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://magnetmedia.ee
+2026-08-05,agency,Vitalijs Maculevics,"Co-Owner, Head of Digital",AJENCY,,email,vitalijs@ajency.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://ajency.lv
+2026-08-05,agency,Vaida Puodziukiene,Tactical Project Owner,GG Group Media,,email,vaida@gggroup.media,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://gggroup.media
+2026-08-05,agency,Natalie Kazakova,Owner,Intensa,,email,natalie.kazakova@intensa-tech.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://intensa.ru
+2026-08-05,agency,Ieva Petrikyte-Vilmane,"Co-Owner, Director",ST Impress,,email,ieva@st-impress.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://impress.lt
+2026-08-05,agency,Indre Vaiciuliene,"Project Manager, Freelance Copywriter, Owner",Integrity PR,,email,indre@integrity.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://integrity.lt
+2026-08-05,agency,Niklavs Miculis,Owner,Mediascape,,email,niklavs@mediascape.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://mediascape.com
+2026-08-05,agency,Janis Aboltins,Owner,BSMS,,email,janis@bsms.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://bsms.lv
+2026-08-05,agency,Valdis Rozenbergs,"Co-owner, Chairman of the Board",CASO,,email,vrozenbergs@caso.pe,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://caso.pe
+2026-08-05,agency,Edgars Stanga,Company Owner,Cartel,,email,edgars@cartel.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://cartel-collective.com
+2026-08-05,agency,Anna Tae,Co-Founder and Social Media Strategist,Wolf Agency - Web Design & Social Media Marketing Agency,,email,anna@wolfagency.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://wolfagency.ee
+2026-08-05,agency,Igoris Voicenica,Founder and CEO,Reline Global,,email,iv@relineglobal.com,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://relineglobal.com
+2026-08-05,agency,Marcis Grinis,COO & Co-Founder,Roibox,,email,marcis.grinis@roibox.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://roibox.com
+2026-08-05,agency,Aurimas Gircys,CEO and Founder,APG MEDIA,,email,aurimas@apgmedia.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://apgmedia.lt
+2026-08-05,agency,Ieva Vaitiekunaite,Co-founder & COO,Raffish Agency,,email,ieva@raffishagency.com,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://raffishagency.com
+2026-08-05,agency,Jevgenia Pogadajeva,Founder & CEO,Snoika,,email,jevgenia@snoika.com,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://snoika.com
+2026-08-05,agency,Jatin Modi,Founder & Chief Executive Officer,RENAISSANCE (formerly FrogIdeas),,email,jatinmodi@renaissancegroup.io,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://renaissancegroup.io
+2026-08-05,agency,Raido Kereme,Founder,Heads Up,,email,raido@headsup.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://headsup.ee
+2026-08-05,agency,Andrius Sejonas,CEO & Founder,Market Rats,,email,andrius@marketrats.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://marketrats.lt
+2026-08-05,agency,Mike Dorfman,"Founder, CEO",ROCKETSCIENCE,,email,mike@rocketscience.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://rocketscience.global
+2026-08-05,agency,Gintare Macenyte-Kaupe,Co-Founder & Co-Writer,rushmore,,email,gintare@rushmore.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://rushmore.lt
+2026-08-05,agency,Heily Aavik,CEO and Founder,Agentuur La Ecwador,,email,heily@laecwador.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://laecwador.ee
+2026-08-05,agency,Karina Kavaleuskaya,COO & Co-Founder,aboveA,,email,karina@abovea.tech,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://abovea.tech
+2026-08-05,agency,Justinas Balciunas,Founder & COO,Media Partner,,email,justinas@mediapartner.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://mediapartner.lt
+2026-08-05,agency,Einar Tiimla,Founder & MD,häk agency,,email,einar@hak.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://hak.ee
+2026-08-05,agency,Filips Rajevskis,"Cofounder, Public Affairs Director",PR agency Mediju tilts,,email,filips.rajevskis@medijutilts.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://medijutilts.lv
+2026-08-05,agency,Magnus Luzkov,Founder & CEO,Optimist Creative,,email,magnus@optimist.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://optimistcreative.agency
+2026-08-05,agency,Zane Feifa,Communication Manager and Co-Founder,VUCA,,email,zane.feifa@vuca.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://vuca.lv
+2026-08-05,agency,Leonid Nezgoda,Founder and CEO,Gepard Media,,email,leo@gepardmedia.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://gepardmedia.ee
+2026-08-05,agency,Vytautas Petrasiunas,️ Founder & Partner,Paperplanes Agency,,email,vytautas@paperplanes.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://paperplanes.lt
+2026-08-05,agency,Eduardas Manylovas,"Founder, CEO",Verslo Idėjų Partneriai,,email,eduardas.manylovas@vipartneriai.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://vipartneriai.lt
+2026-08-05,agency,Pavels Mordvicevs,Founder,Camel Digital,,email,pavels@cameldigital.co,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://cameldigital.co
+2026-08-05,agency,Dovydas Reinikevicius,CEO & Founder,BeeMarketing,,email,dovydas@beemarketing.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://beemarketing.lt
+2026-08-05,agency,Janis Skrastins,Chief Executive Officer,mixd.,,email,janis.skrastins@mixd.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://mixd.lv
+2026-08-05,agency,Andrius Senkus,CEO,evolvery,,email,andrius@evolvery.io,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://evolvery.com
+2026-08-05,agency,Liveta Alekna,Chief Executive Officer,Marvelous Lithuania,,email,liveta.stonkute@mrvls.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://mrvls.lt
+2026-08-05,agency,Nauris Skride,"Chief Executive Officer, Business Developer",Adaptive Media SIA,,email,nauris@adaptivemedia.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://adaptivemedia.lv
+2026-08-05,agency,Zane Patmalniece,Chief Executive Officer,Infinitum Agency,,email,zane@infinitum.agency,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://infinitum.agency
+2026-08-05,agency,Brendan Blackburn,Chief Executive Officer,KeyCommerce,,email,brendan@keycommerce.com,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://keycommerce.com
+2026-08-05,agency,Kasparas Januitis,Chief Executive Officer,MBD. Lithuania,,email,kasparas@mbd.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://mbd.lt
+2026-08-05,agency,Dylan Hey,CEO,Hey Digital - Leading SaaS Performance Marketing & Creative Agency,,email,dylan@goheydigital.com,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://heydigital.co
+2026-08-05,agency,Olga Kimalana,Chief Executive Officer,Conversion95,,email,olga@scandiweb.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://conversion95.com
+2026-08-05,agency,Emile Charrier,CEO,Digifox,,email,emile@digifox-media.com,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://digifox-media.com
+2026-08-05,agency,Kotryna Gudmane,CEO I Partner,TRUTH.,,email,kotryna@truth.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://truth.lt
+2026-08-05,agency,Anton Izjumov,Chief Executive Officer,Upsell | Estonian direct sales agency |,,email,anton@upsell.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://upsell.ee
+2026-08-05,agency,Uosis Sturys,CEO,Convo,,email,uosis@sekmingi.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://convo.lt
+2026-08-05,agency,Mantvydas Leknickas,Chief Executive Officer,Whatabout,,email,m@whatabout.agency,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://whatabout.agency
+2026-08-05,agency,Egidijus Bielinis,CEO,"Enternet, UAB",,email,egidijus@enternet.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://enternet.lt
+2026-08-05,agency,Mantas Kubilius,CEO,Choco Agency,,email,mantas@choco.agency,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://choco.academy
+2026-08-05,agency,Lauris Spillers,CEO,ALPHA,,email,lauris.spillers@alphabaltic.com,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://alphabaltic.com
+2026-08-05,agency,Velta Mestere,Chief Executive Officer,WhatDigital,,email,velta.mestere@realweb.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://whatdigital.eu
+2026-08-05,agency,Elina Dicmane,CEO,Inspired Latvia,,email,elina.dicmane@inspired.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://inspired.lv
+2026-08-05,agency,Miroslav Abramovic,Chief Executive Officer,BRN agency,,email,miroslav@bereklamosnegerai.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://brnagency.lt
+2026-08-05,agency,Kaspars Ozolins,CEO,Helio media,,email,kaspars.ozolins@tet.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://1188.lv
+2026-08-05,agency,Kadri Konstantinov,CEO,MediaBroker,,email,kadri.konstantinov@mediabroker.ee,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://mediabroker.ee
+2026-08-05,agency,Laura Bertasiute,CEO / Senior Account Manager,We Are Marketing,,email,laura@wearemarketing.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://wearemarketing.lt
+2026-08-05,agency,Olev Tehver,Chief Executive Officer,Fontakt,,email,olev.tehver@fontakt.com,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://fontakt.com
+2026-08-05,agency,Emanuelis Kamarauskas,CEO,PANAMA AGENCY,,email,emanuelis@agencypanama.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://agencypanama.lt
+2026-08-05,agency,Arturs Mednis,CEO,New Black Latvia,,email,arturs@newblack.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://newblack.lv
+2026-08-05,agency,Darius Rozevic,"Partner, CEO",Neat Digital,,email,darius@itsneat.digital,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://itsneat.digital
+2026-08-05,agency,Miks Brauns,CEO,Omarketing.lv,,email,miks.brauns@omarketing.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://omarketing.lv
+2026-08-05,agency,Alex Drew,Chief Executive Officer,Odys Global,,email,alex@odys.global,,,,,not_sent,,,,,,,,not_yet,,,,Estonia; https://odys.global
+2026-08-05,agency,Aurimas Lileikas,Managing Director,NEW!,,email,aurimas@newisnew.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://newisnew.lt
+2026-08-05,agency,Toma Daduraite,Managing Director,SKALE360,,email,toma@skale360.com,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://skale360.lt
+2026-08-05,agency,Uldis Vitins,Managing Director,Digital Matter,,email,uldis.vitins@digitalmatter.ai,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://digitalmatter.ai
+2026-08-05,agency,Adomas Pladis,MD,INDIANA.LT,,email,adomas.pladis@indiana.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://indiana.lt
+2026-08-05,agency,Karolis Bakutis,Managing Director and Partner,Jump! Creative brand experience agency,,email,karolis@jumpagency.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://jumpagency.lt
+2026-08-05,agency,Laurynas Jurcevicius,Managing Director,TOTEM agency,,email,laurynas@totem.lt,,,,,not_sent,,,,,,,,not_yet,,,,Lithuania; https://totem.lt
+2026-08-05,agency,Gunars Oslejs,Managing Partner & Account Director,BASELINE.LV,,email,gunars.oslejs@baseline.lv,,,,,not_sent,,,,,,,,not_yet,,,,Latvia; https://baseline.lv
+2026-08-05,agency,Kristaps Silins,"CEO, Partner",McCann Riga,,email,kristaps.silins@mccann.lv,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Latvia; https://mccann.lv
+2026-08-05,agency,Sarunas Mikelevicius,CEO,Havas Group Lithuania,,email,s.mikelevicius@havasgroup.lt,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Lithuania; https://havasgroup.lt
+2026-08-05,agency,Helen Roonet,Chief Executive Officer & Partner,IMAGINE \TBWA,,email,helen.roonet@imagine.ee,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Estonia; https://imagine.ee
+2026-08-05,agency,Rein Iida,CEO,Taevas Ogilvy,,email,rein.iida@taevas.ee,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Estonia; https://taevas.ee
+2026-08-05,agency,Arijus Kirdeikis,Managing Director,Reprise Media,,email,arijus.kirdeikis@reprise.lt,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Lithuania; https://reprise.lt
+2026-08-05,agency,Arunas Kemezys,Chief Executive Officer,Open Initiative Lithuania,,email,arunas@openagency.lt,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Lithuania; https://openagency.lt
+2026-08-05,agency,Linas Paskevicius,CEO,Ogilvy Vilnius,,email,linas@ogilvy.lt,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Lithuania; https://ogilvy.lt
+2026-08-05,agency,Andis Laveikis,Chief Executive Officer,Initiative Latvia,,email,andis.laveikis@initiative.lv,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Latvia; https://initiative.lv
+2026-08-05,agency,Ieva Bernotaityte,Managing Director,Not Perfect Vilnius,,email,ieva.bernotaityte@notperfect.com,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Lithuania; https://notperfect.com
+2026-08-05,agency,Rolandas Ragaliauskas,MD,Media House Lithuania,,email,rolandas@media-house.com,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Lithuania; https://media-house.com
+2026-08-05,agency,Andrius Barakunas,CEO,Havas Media Lithuania,,email,a.barakunas@havasmedia.lt,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Lithuania; https://havasmedia.lt
+2026-08-05,agency,Domas Uselis,Managing Director,Media House Latvia,,email,domas.uselis@media-house.lv,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Latvia; https://media-house.lv
+2026-08-05,agency,Kristine Kalnina-Usele,"CEO, Guilty Ogilvy | ASAP Promo",Guilty Ogilvy,,email,kristine.kalnina@guilty.lv,,,,,not_sent,,,,,,,,not_yet,,,,LOW PRIORITY network agency; Latvia; https://guilty.lv

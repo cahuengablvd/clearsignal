@@ -146,3 +146,21 @@ unless you are investigating a regression in one of them.
   an outcome and delegate the work — consistent with the agency-first strategy in `CLAUDE.md`.
 - Acceptance: a report carrying an operator note renders it above the executive summary, attributed
   to a person; a report without one renders unchanged.
+
+## R21 — /sample is built from fictional data and reads as a mockup (sales asset)
+
+- Seen: 2026-08-05, while finalising agency outreach. `app/sample/page.tsx` is hardcoded with
+  `Competitor A`, `Competitor B`, `Example SaaS` and invented percentages.
+- It is the single most-linked asset in the sales process — every outreach email points at it — and
+  it is the first thing a prospect sees. An SEO agency principal, who produces client reports for a
+  living, will read placeholder competitor names as a wireframe rather than a product.
+- Real reports are dramatically more convincing precisely because the specifics are checkable: named
+  Baltic competitors, actual cited domains with counts, ready-to-paste copy in the client's language.
+  A prospect can open ChatGPT and verify the finding themselves.
+- Options, cheapest first:
+  1. Send a real (permission-cleared, optionally anonymised) PDF on reply, keeping `/sample` as the
+     low-friction first-touch link. No code. This is the workaround for the two-week test.
+  2. Rebuild `/sample` from a real audit with the business anonymised but the structure and numbers
+     intact.
+- Do not fix before the first replies come in: if prospects reach a conversation without mentioning
+  the sample, it is not the bottleneck and the effort belongs elsewhere. Let the outreach decide.

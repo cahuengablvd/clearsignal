@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
 import { PublicPageHeader } from '@/components/public-page-header'
+import { ReviewerNote } from '@/components/reviewer-note'
 import { buildJsonLd } from '@/lib/materials'
 import { priorityForFix } from '@/lib/prioritization'
 import { AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
@@ -240,6 +241,8 @@ export default function SampleReportPage() {
             </CardContent>
           </Card>
         </section>
+
+        <ReviewerNote note={'I review every report myself before it is delivered. For this sample, the evidence points to a clear gap between Example SaaS being cited and being recommended for buyer-intent questions. I would start with the comparison page and proof signals before expanding the FAQ. The remaining recommendations are ordered to make the first implementation pass practical.'} />
 
         <Card className="mt-8 border-[#E5D7C5] bg-[#FFFDF9] shadow-sm">
           <CardContent className="p-5">
@@ -527,7 +530,7 @@ export default function SampleReportPage() {
         <section className="mt-8">
           <div className="flex items-center gap-2 mb-1">
             <FileSearch className="h-5 w-5" />
-            <h2 className="text-xl font-bold">Draft copy for operator review</h2>
+            <h2 className="text-xl font-bold">Draft copy for your review</h2>
           </div>
           <p className="mb-4 text-sm text-[#756257]">
             Review these meta tags, FAQ, JSON-LD and CTA options before publishing.
@@ -563,6 +566,15 @@ export default function SampleReportPage() {
                   <h3 className="font-semibold text-sm">Schema.org JSON-LD</h3>
                   <CopyButton text={sampleJsonLd} />
                 </div>
+                <p className="mb-1 text-xs text-[#756257]">
+                  Ask your developer, or use the structured-data/SEO field in WordPress or Wix, to add this <code>&lt;script type="application/ld+json"&gt;</code> block inside the page&apos;s <code>&lt;head&gt;</code>. Use one block per page.
+                </p>
+                <p className="mb-3 text-xs text-[#756257]">
+                  After publishing, verify the page with the{' '}
+                  <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener noreferrer" className="underline">
+                    Google Rich Results Test
+                  </a>.
+                </p>
                 <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-[#F7EFE4] p-3 text-xs text-[#5F4D42]">{sampleJsonLd}</pre>
               </CardContent>
             </Card>

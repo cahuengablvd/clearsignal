@@ -162,32 +162,38 @@ Baltics first — a local founder gets replies a cold Londoner never will. Widen
 
 ## The message
 
-**Frozen 2026-08-06. Do not edit before 20-25 sends have gone out.** Four rewrites got it here; the
+**Frozen 2026-08-06. Do not edit before 20-25 sends have gone out.** Five rewrites got it here; the
 next improvement comes from replies, not from another pass. Rewording after two or three silences
 destroys the only comparison the run can produce.
+
+Two things the last pass nearly lost, worth protecting in any future edit:
+
+- **Name the product in the first line.** A draft that never says "ClearSignal" while linking to
+  `getclearsignal.io` reads as careless, and the reader has no word to search for, forward, or
+  reply about later.
+- **Keep the clinic finding.** A proposal to cut it for length would have left "I built an AI
+  visibility audit for SEO teams" — a feature description any competitor could write, and exactly
+  the mail an agency owner deletes on line two. Short and generic loses to specific. The case is
+  compressed to one sentence here; that is the floor, not a starting point for further cuts.
 
 Subject: `Are clients asking about AI visibility yet?`
 
 > Hi {First name},
 >
-> I'm Alexander, based in Riga. I'm building an AI visibility audit and wanted a sanity check from
-> people who work with SEO clients every day.
+> I'm Alexander, based in Riga. I'm building ClearSignal, an AI visibility audit, and wanted a
+> sanity check from people who work with SEO clients every day.
 >
 > It checks what ChatGPT, Claude and Perplexity say when buyers ask questions in a client's niche —
 > who gets recommended, who gets cited, and who doesn't appear at all.
 >
-> I ran it on a Riga clinic last week. Their own site was the most-cited source in the category,
-> ahead of every competitor — but when people asked where they should actually go, the engines named
-> a competitor about 3x more often. They had no idea.
+> I ran it on a Riga clinic last week: AI cited their site more than any competitor's, then
+> recommended a competitor 3x more often. They had no idea. A rank tracker wouldn't show that,
+> because it isn't a ranking.
 >
-> So AI knew the clinic well enough to use it as a source, and still sent the buyer somewhere else.
-> A rank tracker wouldn't show that, because it isn't a ranking.
+> The report shows every question tested and what each engine said, plus what to fix first. Your
+> team would do the implementation.
 >
-> The report walks through every question tested and what each engine answered, who came up instead,
-> and what to fix first. Your team would do the implementation.
->
-> It's €149 per site, delivered within two business days, and I review every report myself before
-> it goes out.
+> It's €149 per site, delivered within two business days, and I review every report myself.
 >
 > Sample: getclearsignal.io/sample
 >

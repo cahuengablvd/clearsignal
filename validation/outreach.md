@@ -182,7 +182,7 @@ Subject: `Are clients asking about AI visibility yet?`
 > The report walks through every question tested and what each engine answered, who came up instead,
 > and what to fix first. Your team would do the implementation.
 >
-> Founding price is €149 per site, two business days, and I read every report before it goes out.
+> It's €149 a site, two business days, and I read every report myself before it goes out.
 >
 > Sample: getclearsignal.io/sample
 >
@@ -227,24 +227,15 @@ Why it reads as a person and not a brochure:
 structurally guaranteed. Promising it in a sales email is exactly the overclaim the report itself is
 built to avoid.
 
-Signature is the first name only. "Founder & CEO, ClearSignal" sounds bigger than a one-person
-company and undercuts the peer framing.
+**Run one subject line at a time, not two in parallel.** At 25 sends a split test puts ~12 in each
+arm; at a 20% reply rate that is two replies versus three, which is noise. You would fragment a tiny
+sample and learn nothing. Send one subject to the whole batch; if it draws no replies at all, swap it
+wholesale for the next batch. A reserve subject worth trying:
+`A quick question about AI visibility for SEO clients`.
 
-Why this reads as a person and not a brochure:
-
-- **Contractions everywhere.** "I'm", "doesn't", "you'd", "nobody's". Their absence is the single
-  biggest reason a draft feels machine-written.
-- **One idea per sentence, no colons introducing lists.** The earlier draft had three colons and two
-  comma-separated feature lists; that is landing-page grammar, and agency owners recognise it.
-- **A finding, not a product.** Every agency inbox contains "I built a tool". A specific, checkable,
-  slightly surprising fact does not.
-- **"They had no idea."** A human observation about a real person. Nothing in a template says that.
-- **Genuine uncertainty at the end.** "Or whether I'm solving a problem nobody's asking about yet"
-  is true, invites honesty, and is the opposite of a confident pitch. It raises reply rates because
-  answering costs the reader nothing.
-- **Peer framing.** "A sanity check from people who actually sell this stuff" puts them above you,
-  not in a funnel.
-- **Price in message one**, so an agency that balks at €149 self-selects out immediately.
+At this volume the subject is not the lever anyway. Twenty-five sends producing five conversations
+means it worked; producing zero means the problem is the offer or the segment, and rewording a
+headline will not find it.
 
 Signature is the first name only. "Founder & CEO, ClearSignal" sounds bigger than a one-person
 company and undercuts the peer framing.

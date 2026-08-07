@@ -1,180 +1,123 @@
 # STATUS — external state
 
-Everything in this repo is described by the repo itself: `CLAUDE.md` for what the product is,
-`AGENTS.md` for how to work, `TASKS_*.md` for current specs, `DEFECTS_BACKLOG.md` for known
-defects, `git log` for history. This file holds only what git cannot know — the state of
-systems outside the repository.
+Only what git cannot know: the state of systems outside the repository. Everything else is in the
+repo itself (`CLAUDE.md` = what the product is, `AGENTS.md` = how to work, `DEFECTS_BACKLOG.md` =
+open defects, `git log` = history).
 
-**Update it at the end of a working session.** A handoff document that duplicates the repo goes
-stale and misleads; on 2026-07-24 a session was planned for an hour against a 2026-07-02 summary
-that predated the entire paid funnel. Ten accurate lines beat a hundred confident ones.
+**Keep this file under ~120 lines.** It is read at the start of every session, so every line here
+is paid for on every step of that session. Detail belongs in `docs/archive/`, not here. Update it
+at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-05, after `R17`. The code sprint is closed; what remains is the owner's.
+**Last updated:** 2026-08-06. The code sprint is closed; what remains is the owner's.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** - version **`20260805.1`**, deployed from `C:\csdeploy` at commit `d649b58`,
-  5 tasks detected. This release ships `TASKS_INPUT_QUALITY.md` P0: challenge/thin-page guards,
-  observational eligibility wording, and the score-derived editable intake draft.
-  - Previous production version was `20260804.5` at commit `4c40bc2`. Anything touching
-    `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts needs a
-    Trigger deploy or it simply is not live.
-  - Deploy with the CLI version pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`).
-    `@latest` aborts on a version mismatch — see `DEPLOY.md`.
-
-## Batch 3 benchmark
-
-- Fresh from-scratch audit `51ff451a-f8c7-498f-bd62-9a10814fec38` for `attio.com` used
-  `reuseGeoEvidence: false` and reached `awaiting_review` in **278.025 seconds (4:38.025)**.
-- Admin Anthropic cost was **`$0.362783`**, exactly matching the sum of 16 persisted Anthropic call
-  rows. The complete internal breakdown was `$0.389788` including OpenAI (`$0.025239`) and
-  Perplexity (`$0.001766`); configured Firecrawl cost is currently `$0`.
-- All six Claude GEO calls timed out at 45.013-45.021 seconds and were aborted. A control query
-  5:29 after abort still showed 6 failed / 0 succeeded rows, 0 input tokens, 0 output tokens, and
-  `$0` cost for those calls. No late usage appeared, closing R10 by production-key observation.
-
-## R11 timing
-
-- One isolated Claude Sonnet 4.6 call using the production key and the paid GEO settings
-  (`web_search max_uses: 2`, `max_tokens: 1500`) completed in **59.928 seconds** with two web
-  searches and 34,385 input / 2,098 output tokens. This proved the old 45-second timeout was below
-  normal completion time and set the data basis for the new 90-second limit.
-- Fresh control audit `dad3447c-bfe6-43f8-9956-2a7120a6fd01` for `cal.com` used
-  `reuseGeoEvidence: false` and reached `awaiting_review` in **256.163 seconds (4:16.163)**.
-  All six parallel Claude calls succeeded in **40.072, 50.477, 54.756, 54.862, 59.800, and
-  63.604 seconds**. Coverage was 18/18 combinations across all three engines.
-- Admin Anthropic cost was `$1.056009`; the complete internal provider breakdown was `$1.081492`.
-  The local admin showed `Engine coverage complete` for the control audit and, for the earlier
-  11/18 `attio.com` audit, `Engine coverage gap before approval` plus `No evidence: Claude`.
-
-## Rozie verification (beta quality blocker)
-
-**Closed on 2026-07-24.** All P0/P1/P2 verified on a paid regeneration (run `9r5hcc01`,
-`Build: 6bf1b68`, generated `2026-07-24T14:34:35Z`): temporal claims, operator-outreach
-exclusion, schema deliverable gate, honest label, admin polling, ligatures, no blank trailing
-page. Detail in `TASKS_ROZIE_VERIFICATION.md`.
-
-The audit reached a finished report rather than `failed-validation`, so the blocking schema gate
-does not false-positive in the deployed worker — that was the main untested risk.
-
-The delivery half is proven too: the report email arrived in a real inbox (not spam) from
-`reports@getclearsignal.io`, the token link opened, the PDF downloaded, and the downloaded file
-passed a mechanical client-safety scan — no ligatures, operator outreach, template sentences,
-placeholder CTA fragments, future-date claims or foreign-vertical wording.
-
-One confirmation still open: that run `9r5hcc01` executed on Trigger version `20260724.1`
-(visible only in the Trigger dashboard).
-
-## Corporate mailbox
-
-**Verified on 2026-08-05.** Namecheap Private Email is active for `getclearsignal.io` with
-`hello@getclearsignal.io` as the mailbox and `reports@`, `support@`, and `dmarc@` as aliases.
-Public DNS resolves both Private Email MX records and the root SPF record; Resend remains isolated
-on the `send` subdomain. A live Gmail test addressed to `reports@getclearsignal.io` arrived in the
-`hello@getclearsignal.io` inbox. Customer replies can now be received.
-
-**Renewal: the Namecheap trial ends 2026-08-23 with auto-renew on.** If that charge fails the
-mailbox lapses and customer replies start disappearing again, silently and in exactly the way this
-verification just closed. Nothing in the app would detect it. Confirm the renewal went through
-after 2026-08-23.
+- **Trigger.dev** — version **`20260805.1`**, deployed from `C:\csdeploy` at commit `d649b58`,
+  5 tasks. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
+  `trigger/*` or prompts needs a Trigger deploy or it is not live.
+- Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
+  on a version mismatch. See `DEPLOY.md`.
 
 ## Blocked on the owner, not on code
 
-1. **Live Stripe control purchase + refund** with a real card. Waiting on funds. Nobody else can
-   do this. Tests the live webhook, generation and delivery end to end.
+1. **Live Stripe control purchase + refund** with a real card. Waiting on funds. Tests the live
+   webhook, generation and delivery end to end. Nobody else can do this.
 2. Legal review of `/terms`, `/privacy`, `/refund` and VAT treatment.
 
-## The code sprint is closed (2026-08-05)
+## Dated obligations
 
-Nothing in the backlog is worth doing before the first paying customer. `R13`, `R14`, `R16` and
-`R18` stay open deliberately — real customers should set their priority, not a guess. If an agency
-asks why the buyer-intent section is empty during the sales test, that is the signal to fix `R16`
-first.
+- **Namecheap Private Email trial ends 2026-08-23, auto-renew on.** If that charge fails the
+  mailbox lapses and customer replies vanish silently — nothing in the app would detect it.
+  Confirm the renewal went through after 2026-08-23.
+- **Codex weekly limit resets 2026-08-10.** Exhausted on 2026-08-04 (see Cost below).
 
-Verification outcome, both audits fresh with `reuseGeoEvidence: false`:
+## Sales test — running
 
-- `jusukosmetologs.lv` (Riga cosmetology clinic, audit `5d53a488`) — 18/18 coverage, mechanically
-  clean, genuinely useful: cited 7x (second in its niche behind `eraesthetic.lv` at 8x) yet named in
-  only 4 of 18 answers, while ERA ESTHETIC is recommended in 33%. **Read by AI, not recommended by
-  it** — the distinction the product exists to surface. This report is the one to show people.
-- `salidzini.lv` (audit `7590982c`) — produced the `R15` finding rather than a usable report: the
-  audit ran against a Cloudflare browser-verification page. Do not use it as a sample.
+**First 20 emails sent 2026-08-06.** Baltic SEO agencies, top of `validation/tracking.csv`, from the
+owner's personal mailbox. Copy is frozen in `validation/outreach.md` until 20-25 have gone out; the
+message asks whether an agency could see itself reselling the audit, not whether they will buy.
 
-`R15` is closed by production observation, not by test: re-generating `salidzini.lv` on
-`20260805.1` stopped after **9 seconds** with "we received a browser-verification page", before any
-AI stage. The same audit would previously have spent ~$1.06 describing a challenge screen. The
-earlier report was not destroyed — the failure path does not clear the `report` column.
+What to expect: most replies that come at all arrive within 48 hours, and two quiet days mean
+nothing. One follow-up on day 4, then `closed_no_reply`. Do not judge the copy or the segment before
+the batch is complete and 4-5 days have passed.
+
+The objection to watch for is "why pay when ChatGPT does this free" — the clinic owner raised it and
+a handler is written. Three or more agencies raising it means a positioning problem no feature fixes.
 
 ## In flight — owner only, no code
 
-- **Two-week sales test.** Kit ready in `validation/` (plan, outreach, agency interview script with
-  the report-feedback questions, tracking sheet). Agencies first. Go/no-go criteria in
-  `validation/PLAN.md`.
-- First real reader: the clinic owner is a personal contact of the owner's and is receiving the
-  `jusukosmetologs.lv` report as a gift. His verbatim reaction is the first genuine validation datum
-  — capture it in `validation/tracking.csv`, especially whether he asks who could implement the
-  fixes. Repeated implementation questions from service businesses would confirm the agency-first
-  strategy on evidence instead of assumption.
+- **Two-week sales test.** Kit ready in `validation/` (plan, outreach, agency interview script,
+  tracking sheet). Agencies first. Go/no-go criteria in `validation/PLAN.md`.
+- First real reader: a clinic owner, personal contact, receiving the `jusukosmetologs.lv` report
+  as a gift. Capture his verbatim reaction in `validation/tracking.csv` — especially whether he
+  asks *who could implement the fixes*. Repeated implementation questions from service businesses
+  would confirm the agency-first strategy on evidence instead of assumption.
 
-## Shipped
+## Verification standing
 
-- `R17` — commit `90d09dd`. Print CSS keeps headings with their content and cards/tables intact
-  across page breaks; the JSON-LD deliverable now says where the code goes (`<head>`, as
-  `<script type="application/ld+json">`, validated with Google's Rich Results Test); the
-  ready-materials heading no longer calls the customer an "operator". Styles and report template
-  only — no Trigger deploy needed.
+- `jusukosmetologs.lv` (audit `5d53a488`) — 18/18 engine coverage, mechanically clean.
+  **This is the report to show people:** cited 7x (second in its niche) yet named in only 4 of 18
+  answers, while the leader is recommended in 33%. Read by AI, not recommended by it — the exact
+  distinction the product exists to surface.
+- `salidzini.lv` (audit `7590982c`) — ran against a Cloudflare challenge page. **Not a sample.**
+- Rozie verification closed 2026-07-24; report delivery proven end to end (real inbox, not spam,
+  token link, PDF, mechanical client-safety scan). One loose end: that run `9r5hcc01` executed on
+  Trigger `20260724.1` is visible only in the Trigger dashboard.
 
-- `TASKS_INPUT_QUALITY.md` P0 - commit `d649b58`, Trigger version `20260805.1`. Short challenge
-  pages stop before AI stages while substantive pages that mention a WAF remain valid; crawler
-  eligibility stays observational; completed free scores prefill an editable business description,
-  while cold checkout and unread admin previews cannot proceed without supplied business context.
+Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
 
-- `TASKS_PRELAUNCH.md` Batches 1-4 plus R10/R11 - through commit `4c40bc2`, Trigger version
-  `20260804.5`. Public engine claims share the execution contract; buyer-intent GEO queries and
-  compact evidence now ground action plans; timed-out engine requests are actually aborted;
-  engine coverage is review-visible; legacy re-renders remain reviewable; marketplace JSON-LD
-  stays grounded in observed page structure.
+## Open defects
 
-- `TASKS_DELIVERY_POLISH.md` — commit `b3f3cf5`. Both transactional emails share a branded
-  table-based shell (site palette, text wordmark, dark mode, plain-text alternative, bare
-  domain in subjects); the admin queue shows "Needs attention" / "Finished" band headers over
-  the unchanged priority sort. Frontend-only, no Trigger deploy needed. Owner still to eyeball
-  the email in Gmail + a dark-mode client after the Vercel deploy.
-
-- `TASKS_FUNNEL_INPUT.md` — Vercel commit `764e008`, Trigger version `20260724.3`. Production
-  smoke accepted bare `rozie.app`, survived closing and reopening the result URL, was honestly
-  `processing` at 40 seconds and reached `done` at roughly 70. The mobile "Load failed" class is
-  closed: the browser no longer holds a connection open for the length of the scan.
+`R13`, `R14`, `R16`, `R18`, `R19` stay open deliberately — real customers should set their
+priority, not a guess. If an agency asks why the buyer-intent section is empty during the sales
+test, that is the signal to fix `R16` first. Closed defects are in
+`docs/archive/DEFECTS_CLOSED.md`.
 
 ## Cost
 
-**A complete audit costs `$1.06` in API spend** — `$1.056009` Anthropic, `$1.081492` across all
-providers (control run `dad3447c-bfe6-43f8-9956-2a7120a6fd01`, 2026-08-04, 18/18 engine-query
-combinations). This is the first measurement taken on a run where every engine actually returned
-evidence, so it supersedes the earlier figures. Against €149 that is ~0.7% of the ticket.
+**A complete audit costs `$1.06` in API spend** (control run `dad3447c`, 2026-08-04, 18/18
+combinations, first measurement where every engine returned evidence). Against €149 that is ~0.7%
+of the ticket. Earlier figures of `$1.89` and `$0.36` were measured on incomplete audits — do not
+quote them.
 
-The two earlier numbers were both measured on incomplete audits and should not be quoted:
+**Agent spend is the real cost problem, and it dwarfs API spend.** Measured from local Codex
+transcripts against the published rate card (`gpt-5.6-sol` = 125 / 12.5 / 750 credits per 1M
+input / cached / output; 500 credits = $20, so 1 credit = $0.04):
 
-- `$1.89` (run `9r5hcc01`, 2026-07-24) predates the R10/R11 fixes. The R11 coverage panel, applied
-  retroactively, shows that run finished **13/18 combinations with 5 failed or skipped** — evidence
-  from all three engines, so Claude was timing out intermittently rather than always. The abandoned
-  calls were billed but never reached the report; how much of the $1.89 they account for is not
-  separable after the fact.
-- `$0.362783` (run `51ff451a`, 2026-08-04) was taken after R10 stopped the billing but before R11
-  raised the timeout — all six Claude calls aborted, so a third of the engine work simply did not
-  happen. Cheap because it was broken.
+| Date | Requests | Tokens | Avg context | Cost | |
+|---|---:|---:|---:|---:|---|
+| 2026-08-04 | 521 | 64.9M | 124.5k | **$49.55** | development |
+| 2026-08-05 | 278 | 25.0M | 90.0k | $19.54 | development |
+| 2026-08-06 | 61 | 3.7M | 60.9k | $4.91 | diagnosing this spend, not development |
+| **Total** | **860** | **93.6M** | | **$74.00** | |
 
-Net: the product now produces a *complete* audit for less than it used to spend on an incomplete
-one.
+For scale: `$74` of agent time against a `$1.06` audit is **70 complete audits** spent on three
+days of development. Earlier, on 2026-07-24, one session spent 32M input tokens from a folder
+containing only `.git`.
 
-Codex spent ~32M input tokens over 257 requests in one session on 2026-07-24, largely because it
-ran from a folder containing only `.git`. Rules live in `AGENTS.md`; check any day's spend with
-`npm run codex-usage`.
+Two things drove the 08-04 figure, in order:
 
-## Adjacent, not this repo
+1. **Six unrelated tasks fed into one thread**, with four context compactions. Average context
+   reached 124.5k tokens against a 258k window — every step resent half a full window.
+2. **`gpt-5.6-sol` at `high` reasoning as the default model.** Across all projects 08-04 to
+   08-06, Sol accounted for `$117.69` of `$122.48`; Terra did 135 requests for `$4.78`. Terra
+   is ~2x cheaper per token, Luna ~5x.
 
-ClearSignal Radar lives in its own private repository and runs in GitHub Actions. First live
-digest expected Monday 2026-07-27 via Telegram — passive check, no work needed here.
+Note that context is the multiplier: a file read once on step 100 of an 860-step session is
+resent on all 760 remaining steps. Trimming the repo's markdown from 290 KB to 38 KB on
+2026-08-06 was aimed at exactly this.
+
+Check any day with `npm run codex-usage`, with two caveats found on 2026-08-06:
+
+- Codex archives finished sessions into `~/.codex/archived_sessions`. A script reading only
+  `~/.codex/sessions` silently undercounts — that omission hid the entire `$74` above.
+- Sessions are attributed by `cwd`, which is where the session *started*, not what it was about.
+  On 2026-08-06, 236 requests recorded against `C:\Codex\BLVD` were actually Upwork profile work,
+  because those files sat in that folder until they were moved out. Read the thread name, not
+  just the path.
+
+**ChatGPT Work spend is not measurable locally at all** — it writes no transcripts to `~/.codex`.
+Any figure produced from local logs is a floor for total agent spend, not the total.

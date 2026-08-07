@@ -175,6 +175,10 @@ Two things the last pass nearly lost, worth protecting in any future edit:
   visibility audit for SEO teams" — a feature description any competitor could write, and exactly
   the mail an agency owner deletes on line two. Short and generic loses to specific. The case is
   compressed to one sentence here; that is the floor, not a starting point for further cuts.
+- **No time marker on the case.** An earlier draft said "last week" when the audit had run the day
+  before, and a batch sent over five days makes "yesterday" false for most recipients anyway. A
+  product that refuses to overstate in its report cannot carry an invented detail in the email that
+  sells it. The finding does not need a date.
 
 Subject: `Are clients asking about AI visibility yet?`
 
@@ -186,9 +190,9 @@ Subject: `Are clients asking about AI visibility yet?`
 > It checks what ChatGPT, Claude and Perplexity say when buyers ask questions in a client's niche —
 > who gets recommended, who gets cited, and who doesn't appear at all.
 >
-> I ran it on a Riga clinic last week: AI cited their site more than any competitor's, then
-> recommended a competitor 3x more often. They had no idea. A rank tracker wouldn't show that,
-> because it isn't a ranking.
+> I ran it on a Riga clinic: AI cited their site more than any competitor's, then recommended a
+> competitor 3x more often. They had no idea. A rank tracker wouldn't show that, because it isn't
+> a ranking.
 >
 > The report shows every question tested and what each engine said, plus what to fix first. Your
 > team would do the implementation.

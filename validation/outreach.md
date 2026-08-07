@@ -162,6 +162,10 @@ Baltics first — a local founder gets replies a cold Londoner never will. Widen
 
 ## The message
 
+**Frozen 2026-08-06. Do not edit before 20-25 sends have gone out.** Four rewrites got it here; the
+next improvement comes from replies, not from another pass. Rewording after two or three silences
+destroys the only comparison the run can produce.
+
 Subject: `Are clients asking about AI visibility yet?`
 
 > Hi {First name},
@@ -182,12 +186,13 @@ Subject: `Are clients asking about AI visibility yet?`
 > The report walks through every question tested and what each engine answered, who came up instead,
 > and what to fix first. Your team would do the implementation.
 >
-> It's €149 a site, two business days, and I read every report myself before it goes out.
+> It's €149 per site, delivered within two business days, and I review every report myself before
+> it goes out.
 >
 > Sample: getclearsignal.io/sample
 >
-> Mainly I'm trying to understand one thing: is this something you could see yourself offering to
-> SEO clients, or is the market just not asking for it yet?
+> I'm trying to understand one thing: is this something you could see yourself offering to SEO
+> clients, or is the market just not asking for it yet?
 >
 > Even a "no" would genuinely help.
 >

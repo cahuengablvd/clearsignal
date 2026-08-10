@@ -15,8 +15,8 @@ at the end of a working session.
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260810.1`**, deployed from `C:\csdeploy` at commit `0cc3c17`,
-  5 tasks. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
+- **Trigger.dev** — version **`20260810.2`**, deployed from `C:\csdeploy` at commit `dd32105`,
+  5 tasks. Carries the R25 head-signal fix; pending verification by regenerating audit `28ca503b`. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
   `trigger/*` or prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
   on a version mismatch. See `DEPLOY.md`.

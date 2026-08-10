@@ -57,7 +57,11 @@ export async function GET(
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        // `inline`, not `attachment`. An attachment download leaves the tab blank
+        // and titled "Untitled" while the file lands silently in a folder - which
+        // reads as a broken link, to the operator and to a paying customer alike.
+        // The browser's PDF viewer shows the report and offers its own save button.
+        'Content-Disposition': `inline; filename="${filename}"`,
       },
     })
   } catch (err) {

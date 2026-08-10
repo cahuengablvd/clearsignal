@@ -138,7 +138,7 @@ export function buildReportEmailHtml(url: string, reportLink: string, pdfLink: s
     ].join(''),
     cta: { href: reportLink, label: 'View your report' },
     after: paragraph(
-      `Prefer a file? <a href="${escapeHtml(pdfLink)}" style="color: ${BRAND.accent};">Download the PDF</a>.`,
+      `Prefer a file? <a href="${escapeHtml(pdfLink)}" style="color: ${BRAND.accent};">Open the PDF</a>.`,
       14
     ),
   })
@@ -154,7 +154,7 @@ export function buildReportEmailText(url: string, reportLink: string, pdfLink: s
     'prioritized changes identified in the audit.',
     '',
     `View your report: ${reportLink}`,
-    `Download the PDF: ${pdfLink}`,
+    `Open the PDF: ${pdfLink}`,
     '',
     'ClearSignal - expert-reviewed AI Visibility Audits.',
     'Every report is checked by a person before it is sent.',

@@ -10,12 +10,12 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-06. The code sprint is closed; what remains is the owner's.
+**Last updated:** 2026-08-10. The code sprint is closed; what remains is the owner's.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260805.1`**, deployed from `C:\csdeploy` at commit `d649b58`,
+- **Trigger.dev** — version **`20260810.1`**, deployed from `C:\csdeploy` at commit `0cc3c17`,
   5 tasks. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
   `trigger/*` or prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts

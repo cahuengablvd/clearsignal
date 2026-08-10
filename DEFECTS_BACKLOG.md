@@ -228,3 +228,25 @@ unless you are investigating a regression in one of them.
 - Do not fix by lowering the confidence number. The claim is the problem, not the score.
 - Spec: `TASKS_HEAD_SIGNALS.md`.
 
+## R26 — Firecrawl serves cached pages, so an audit can measure a stale copy of the site (DO NOW)
+
+- Seen: 2026-08-10. `getclearsignal.io` gained a canonical URL and `Organization` + `FAQPage`
+  JSON-LD, both confirmed live with `curl`. Audit `28ca503b` was regenerated twice afterwards
+  (`16:18Z`, `17:16Z`) and both runs reported `Structured data verified absent` and no canonical.
+- Decisive evidence: both runs report **`8773 text characters observed`** — identical to the
+  character an hour apart. Two independent scrapes of a live page do not agree that closely; the
+  document was served from a store predating the deploy.
+- The meta description found in the same runs does not contradict this: it was always on the page,
+  so it only proves the `R25` head fix works.
+- Root cause: `lib/firecrawl.ts` passes no cache controls. `@mendable/firecrawl-js@^4.16.0` exposes
+  `maxAge`, `minAge`, `storeInCache` on scrape params and returns `cacheState` / `cachedAt`. We
+  neither opt out of the cache nor record when it was used.
+- Commercial harm: a paid audit is sold as point-in-time evidence about a site on a date. A client
+  who implements our recommendations and re-orders would be told nothing changed, with our own
+  report as proof — a refund conversation we would lose. It also breaks internal verification: we
+  cannot confirm a landing change through our own product.
+- Fix: pass an explicit freshness bound (prefer `maxAge: 0`), capture `cacheState`/`cachedAt`, and
+  disclose a cached capture in the report's `Data limitations` block with its timestamp.
+- Do not fix with a cache-busting query string — that audits a different URL than the canonical one.
+- Spec: `TASKS_CRAWL_FRESHNESS.md`.
+

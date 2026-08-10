@@ -4,6 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Refund Policy — ClearSignal',
   description: 'When ClearSignal refunds an AI visibility audit.',
+  alternates: { canonical: '/refund' },
 }
 
 const UPDATED = '16 July 2026'

@@ -5,6 +5,7 @@ import { DELIVERY_PROMISE } from '@/lib/delivery-promise'
 export const metadata: Metadata = {
   title: 'Terms of Service — ClearSignal',
   description: 'The terms that apply to ClearSignal AI visibility audits.',
+  alternates: { canonical: '/terms' },
 }
 
 const UPDATED = '16 July 2026'

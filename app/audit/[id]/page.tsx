@@ -17,12 +17,16 @@ import { buildClientReport, validateClientReportProjection } from '@/lib/client-
 import { AUDIT_PROCESS_LABEL, AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
 import { ReviewerNote } from '@/components/reviewer-note'
 import { Download, ArrowLeft } from 'lucide-react'
+import type { Metadata } from 'next'
 
 // Never cache this route. A report link is often opened while the audit is
 // still running; without this, Vercel can cache the in-progress response (or a
 // 404) and serve it even after the report is ready.
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const metadata: Metadata = {
+  alternates: { canonical: null },
+}
 
 function clientSafeAnswerExcerpt(text: string): string {
   return text

@@ -4,6 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Privacy Policy — ClearSignal',
   description: 'How ClearSignal collects, uses and protects personal data.',
+  alternates: { canonical: '/privacy' },
 }
 
 const UPDATED = '16 July 2026'

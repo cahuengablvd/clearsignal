@@ -1,0 +1,1 @@
+export const SITE_DESCRIPTION = 'ClearSignal tests real buyer questions across ChatGPT, Claude and Perplexity, shows which brands appear in the tested answers, and compares cited sources with website evidence. Every full report is reviewed by a person.'

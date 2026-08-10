@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,10 @@ import {
   Sparkles,
   Target,
 } from 'lucide-react'
+
+export const metadata: Metadata = {
+  alternates: { canonical: null },
+}
 
 const dimensions = ['icp', 'headline', 'cta', 'trust', 'ai_search'] as const
 

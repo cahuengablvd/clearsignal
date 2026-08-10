@@ -185,3 +185,22 @@ unless you are investigating a regression in one of them.
   real content sits behind a challenge page.
 - Do not treat this as "ChatGPT is better". It found page-level problems and measured nothing; the
   distinction is in `validation/segment-findings.md`.
+
+## R23 — A failed admin query renders as "No audits yet" (DO NOW: looks like data loss)
+
+- Seen: 2026-08-07. The admin list showed **"No audits yet"** with every audit missing, minutes after
+  the owner started a new one. Nothing was lost: `R20` added `reviewer_note` to the select in
+  `app/api/admin/audits/route.ts`, migration `012_audit_reviewer_note.sql` had not been applied to
+  production, Postgres rejected the unknown column, and the route returned 500.
+- `refreshAudits` in `app/admin/page.tsx` does `if (!res.ok) return []`. A 500 therefore leaves
+  `audits` at its initial empty array and the page renders the empty state. **A broken query is
+  indistinguishable from an empty database**, which is the single most alarming thing the operator
+  can be shown, and it points at exactly the wrong cause.
+- Two fixes, both small:
+  1. Surface the failure. Keep the previous list if there is one, and show "Could not load audits"
+     with the status code instead of the empty state. Never let an error render as absence.
+  2. Migrations are applied by hand in this project — `audit_insights` from migration 001 was never
+     applied either (`R14`). Any change that adds a column to a query must apply the migration in
+     the same step, and the deploy checklist in `DEPLOY.md` should say so.
+- Immediate unblock: `alter table audits add column if not exists reviewer_note text;`
+- Acceptance: with the API returning 500, the admin shows an error, not "No audits yet".

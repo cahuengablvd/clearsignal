@@ -45,6 +45,8 @@ describe('audit crawl freshness', () => {
     expect(hit).toContain(
       'Crawl-derived findings were served from a cached Firecrawl capture dated 2026-08-10T17:16:00.000Z; they reflect that captured snapshot rather than a fresh fetch.'
     )
-    expect(miss).not.toContain(expect.stringMatching(/cached Firecrawl capture/i))
+    // toContain compares array members by strict equality and silently ignores
+    // asymmetric matchers, so assert over the joined text instead.
+    expect(miss.join('\n')).not.toMatch(/cached Firecrawl capture/i)
   })
 })

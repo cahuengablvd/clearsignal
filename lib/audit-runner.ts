@@ -1,5 +1,5 @@
 import { supabaseAdmin } from './supabase'
-import { scrapeUrl, scrapePage } from './firecrawl'
+import { scrapeUrl, scrapePage, type ScrapedPage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
 import { requireUsableScrape } from './scrape-quality'
 import { resolveBrandEntity } from './brand'
@@ -62,7 +62,11 @@ export type RunFullAuditOptions = {
   endpoint?: string
 }
 
-function buildDataLimitations(geo: GeoResult | null, reusedGeoEvidence = false): string[] {
+export function buildDataLimitations(
+  geo: GeoResult | null,
+  reusedGeoEvidence = false,
+  targetPage?: Pick<ScrapedPage, 'cacheState' | 'cachedAt'>
+): string[] {
   const limits = [
     'This audit does not use GA4, CRM, ad platform, heatmap, or sales-cycle data, so conversion and revenue impact are framed as hypotheses.',
     'Crawler output may miss visual-only content, gated content, personalized pages, or assets blocked by the target site.',
@@ -78,6 +82,12 @@ function buildDataLimitations(geo: GeoResult | null, reusedGeoEvidence = false):
     }
   } else {
     limits.unshift('Live AI visibility evidence was unavailable for this run.')
+  }
+  if (targetPage?.cacheState === 'hit') {
+    const captureTime = targetPage.cachedAt || 'an unspecified time'
+    limits.unshift(
+      `Crawl-derived findings were served from a cached Firecrawl capture dated ${captureTime}; they reflect that captured snapshot rather than a fresh fetch.`
+    )
   }
   return limits
 }
@@ -743,7 +753,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       clarity,
       gap,
       action: actionWithStages,
-      data_limitations: buildDataLimitations(geo, Boolean(reusedGeo)),
+      data_limitations: buildDataLimitations(geo, Boolean(reusedGeo), targetPage),
       geo,
       technical_findings: technicalFindings,
       technical_eligibility: technicalEligibility,

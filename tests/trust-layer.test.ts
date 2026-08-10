@@ -493,10 +493,8 @@ describe('ready-to-ship JSON-LD (deterministic)', () => {
       }) as any
     )
 
-    expect(r.errors).toEqual(expect.arrayContaining([
-      'schema_mismatch at ready_materials.json_ld: MovingCompany is not allowed for art_gallery',
-      'foreign_category_copy: moving-service wording appeared in art_gallery materials',
-    ]))
+    expect(r.errors).toContain('foreign_category_copy: moving-service wording appeared in art_gallery materials')
+    expect(r.errors).not.toContain('schema_mismatch at ready_materials.json_ld: MovingCompany is not allowed for art_gallery')
   })
 
   it('does not treat ordinary brief verbs as schema type mentions', () => {
@@ -3057,6 +3055,19 @@ describe('stored validation_warnings never re-trigger the artifact detector', ()
 })
 
 describe('pre-beta polish regressions', () => {
+  it('does not infer moving context from the real ClearSignal landing-page example', () => {
+    const observed = inferObservedBusinessContext({
+      url: 'https://getclearsignal.io',
+      markdown: 'best movers in Toronto? Here are the movers I would recommend. For a reliable move in Toronto I would start with Your Business. Best movers in Toronto 2026. Moving cost guide. Get My Moving Quote',
+      html: '',
+    })
+
+    expect(observed.inferred_business_type).toBeUndefined()
+    expect(observed.observed_service_category).toBeUndefined()
+    expect(observed.observed_location).toBeUndefined()
+    expect(observed.observed_services).toBeUndefined()
+  })
+
   it('captures marketplace search and listing structure from the target page', () => {
     const observed = inferObservedBusinessContext({
       url: 'https://market.example',

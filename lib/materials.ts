@@ -29,14 +29,32 @@ function normalizedLabel(value?: string): string {
   return (value || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
 }
 
+function operatorMaterialCategory(value?: string): MaterialCategory | undefined {
+  const normalized = normalizedLabel(value)
+  if (!normalized || normalized === 'unknown') return undefined
+  const categories: Record<string, MaterialCategory> = {
+    gallery: 'art_gallery',
+    art_gallery: 'art_gallery',
+    marketplace: 'marketplace',
+    two_sided_marketplace: 'marketplace',
+    moving_service: 'moving_service',
+    moving_services: 'moving_service',
+    video_production: 'video_production',
+    video_production_service: 'video_production',
+    tailoring_atelier: 'tailoring_atelier',
+    tailoring_service: 'tailoring_atelier',
+    bespoke_tailoring: 'tailoring_atelier',
+  }
+  if (normalized === 'service_business') return undefined
+  return categories[normalized] || 'default'
+}
+
 export function materialCategoryForContext(
   businessContext?: BusinessContext,
   observed?: ObservedBusinessContext
 ): MaterialCategory {
-  if (businessContext?.business_model === 'gallery') return 'art_gallery'
-  if (['marketplace', 'two_sided_marketplace'].includes(businessContext?.business_model || '')) {
-    return 'marketplace'
-  }
+  const operatorCategory = operatorMaterialCategory(businessContext?.business_model)
+  if (operatorCategory) return operatorCategory
 
   const contextText = [
     businessContext?.verified_facts,
@@ -253,7 +271,7 @@ function neutralMetaDescription(
   if (category === 'moving_service') {
     return `${name} provides moving services${locationPhrase}. ${action} to discuss timing, service coverage, and move details.`
   }
-  return `${name} - ${action.toLowerCase()} to discuss options, availability, and next steps.`
+  return `${name} - ${action.toLowerCase()} to discuss options, availability, and next steps. The business category was not established in this audit.`
 }
 
 function safeFaqAnswer(
@@ -301,6 +319,18 @@ function publishableSafeMaterials(
 
   if (needsNeutralMoving) return movingFallbackMaterials(brand, url, llm, opts?.observedBusinessContext)
 
+  const category = materialCategoryForContext(ctx, opts?.observedBusinessContext)
+  const hasObservedCategory = Boolean(
+    opts?.observedBusinessContext?.inferred_business_type ||
+    opts?.observedBusinessContext?.observed_service_category
+  )
+  const hasUnestablishedCategory =
+    operatorMaterialCategory(ctx?.business_model) === 'default' ||
+    (Boolean(ctx) && !ctx?.verified_facts?.trim() && !hasObservedCategory && category === 'default')
+  if (!moving && hasUnestablishedCategory) {
+    return neutralGenericMaterials(brand, url, llm, ctx, opts?.observedBusinessContext)
+  }
+
   const cleanedMetaDescription = stripUnsupportedPublishableClaims(llm.meta_description)
   const safeMetaDescription =
     cleanedMetaDescription && !containsPublishablePlaceholder(cleanedMetaDescription)
@@ -341,7 +371,7 @@ export function buildJsonLd(
 ): string {
   const name = orgName(brand, url)
   const category = materialCategoryForContext(businessContext, observed)
-  const moving = isMovingBusiness({ observedBusinessContext: observed })
+  const moving = isMovingBusiness({ businessContext, observedBusinessContext: observed })
   const marketplace = category === 'marketplace'
   const areas = moving ? areaServedFromFacts(facts, faq, observed) : []
   const graph: Record<string, unknown>[] = [

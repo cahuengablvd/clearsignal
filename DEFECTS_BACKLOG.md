@@ -204,3 +204,42 @@ unless you are investigating a regression in one of them.
      the same step, and the deploy checklist in `DEPLOY.md` should say so.
 - Immediate unblock: `alter table audits add column if not exists reviewer_note text;`
 - Acceptance: with the API returning 500, the admin shows an error, not "No audits yet".
+
+## R24 — Observation stage is a hardcoded Toronto-moving-company detector (LAUNCH BLOCKER)
+
+- Seen: 2026-08-10, self-audit of `getclearsignal.io` (audit `28ca503b`). The report states
+  **"Business type: Moving service, Service category: Moving services, Observed locations: Toronto"**
+  for a SaaS audit product. Delivered JSON-LD is `MovingCompany` + `Service` ("Getclearsignal moving
+  services"). Ready copy: *"Getclearsignal provides residential and commercial moving services in
+  Toronto"*, FAQ *"How do I request a moving quote from Getclearsignal?"*, CTAs *"Get My Moving
+  Quote"*.
+- **Root cause is two failures meeting.**
+  1. `inferObservedBusinessContext` (`lib/business-context.ts:202`) is not a general observer — it is
+     a moving-company detector. Its location vocabulary is the fixed list
+     `['Toronto', 'GTA', 'Ontario', 'Quebec', 'Canada']`; its service vocabulary is
+     `Residential moving`, `Commercial moving`, `Condo moving`. It was written for the `az-moving`
+     fixture, a Toronto mover, and never generalized. It can only ever see one business.
+  2. The ClearSignal landing page illustrates the product with a mock AI answer about **movers in
+     Toronto**. The observer read that marketing example as the audited business's own identity.
+- **Operator-supplied `business_model` cannot save you.** `materialCategoryForContext`
+  (`lib/materials.ts:32`) short-circuits only on `gallery` and `marketplace`; every other value falls
+  through to a keyword match over text that includes `observed.inferred_business_type`. Set
+  `saas_software` and the inferred "Moving service" still wins. The most reliable signal available —
+  a human who confirmed what the business is — is discarded in favour of a regex over prose.
+- **Scope: any site that mentions moving, relocation, or a Canadian city in any context.** A blog
+  post, a case study, an agency listing the industries it serves ("we work with movers, clinics and
+  SaaS") — all of it misclassifies the whole audit. The failure is silent and the deliverable is
+  confidently wrong.
+- This is `F1` from `TASKS_RELEASE_CUT.md` returning. That fix narrowed which text was sniffed but
+  kept the mechanism: a bare keyword over prose deciding a vertical. `R3` is the same family.
+- Fix, in order:
+  1. **Operator-confirmed `business_model` wins outright** whenever it is not `unknown`. It is
+     already collected on checkout and in admin.
+  2. Delete the hardcoded Canadian locations and moving services from
+     `inferObservedBusinessContext`. Observation must be vertical-neutral or it should abstain.
+  3. When neither an operator value nor a confident observation exists, **abstain** — emit the
+     generic `Organization` + `FAQPage` pair and say the category was not established. A missing
+     category is invisible; a wrong one is a refund.
+- Acceptance: a fixture whose page merely *mentions* movers or Toronto in an example does not become
+  a moving company; an operator-set `business_model` overrides any inferred type; with no signal at
+  all the report ships the generic pair rather than guessing.

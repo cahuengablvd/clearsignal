@@ -263,6 +263,7 @@ export default function AdminPage() {
   const [query, setQuery] = useState('')
   const [showFinished, setShowFinished] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [checkingSession, setCheckingSession] = useState(true)
   // Finished work is hidden by default: it is the bulk of the list and there is
   // nothing left to do with it. Typing a filter searches everything regardless,
   // so a delivered audit is always findable by name.
@@ -565,14 +566,30 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    // Check if already authed
-    fetch('/api/admin/audits').then(res => {
-      if (res.ok) {
+    // Resolve the existing session BEFORE deciding what to draw. Rendering the
+    // login form first and swapping it for the list a second later is why the
+    // operator could not tell when a password would be required.
+    fetch('/api/admin/audits')
+      .then((res) => {
+        if (!res.ok) return null
         setAuthed(true)
-        res.json().then(data => setAudits(data.audits))
-      }
-    })
+        return res.json()
+      })
+      .then((data) => {
+        if (data) setAudits(data.audits)
+      })
+      .catch(() => {})
+      .finally(() => setCheckingSession(false))
   }, [])
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <p className="text-sm text-muted-foreground">Checking your session…</p>
+      </div>
+    )
+  }
 
   if (!authed) {
     return (

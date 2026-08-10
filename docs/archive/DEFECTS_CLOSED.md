@@ -315,3 +315,60 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   Observed locations` all report `Not observed`, delivered JSON-LD is the generic
   `Organization` + `FAQPage` pair, and the moving-service CTA copy is gone.
 
+## R26 — Firecrawl serves cached pages, so an audit can measure a stale copy of the site (DO NOW)
+
+- Seen: 2026-08-10. `getclearsignal.io` gained a canonical URL and `Organization` + `FAQPage`
+  JSON-LD, both confirmed live with `curl`. Audit `28ca503b` was regenerated twice afterwards
+  (`16:18Z`, `17:16Z`) and both runs reported `Structured data verified absent` and no canonical.
+- Decisive evidence: both runs report **`8773 text characters observed`** — identical to the
+  character an hour apart. Two independent scrapes of a live page do not agree that closely; the
+  document was served from a store predating the deploy.
+- The meta description found in the same runs does not contradict this: it was always on the page,
+  so it only proves the `R25` head fix works.
+- Root cause: `lib/firecrawl.ts` passes no cache controls. `@mendable/firecrawl-js@^4.16.0` exposes
+  `maxAge`, `minAge`, `storeInCache` on scrape params and returns `cacheState` / `cachedAt`. We
+  neither opt out of the cache nor record when it was used.
+- Commercial harm: a paid audit is sold as point-in-time evidence about a site on a date. A client
+  who implements our recommendations and re-orders would be told nothing changed, with our own
+  report as proof — a refund conversation we would lose. It also breaks internal verification: we
+  cannot confirm a landing change through our own product.
+- Fix: pass an explicit freshness bound (prefer `maxAge: 0`), capture `cacheState`/`cachedAt`, and
+  disclose a cached capture in the report's `Data limitations` block with its timestamp.
+- Do not fix with a cache-busting query string — that audits a different URL than the canonical one.
+- Spec: `TASKS_CRAWL_FRESHNESS.md`.
+
+- **Closed 2026-08-10.** Fixed in `5a8cecb` (explicit `maxAge: 0` on every scrape, cache metadata
+  threaded through, cached captures disclosed in `Data limitations`), test hardened in `ba6af93`,
+  deployed as Trigger `20260810.4`. Verified by regenerating audit `28ca503b` at 18:06Z:
+  `Structured data → present 99%`, `Canonical target → eligible`, `FAQ / Q&A → present 92%`, and
+  `9385 text characters observed` against the cached runs' identical `8773` — a different document,
+  i.e. a fresh fetch. No cache disclosure line appeared, matching `cacheState: 'miss'`.
+
+## R25 — The crawler never captures `<head>`, so head-level signals are reported absent (LAUNCH BLOCKER)
+
+- Seen: 2026-08-10, self-audit `28ca503b`. `OBS-META-001` says **"Meta description verified absent,
+  85%"**. It is present — declared in `app/layout.tsx:11` and served in production (confirmed with
+  `curl`).
+- Root cause: `scrapePage` (`lib/firecrawl.ts:46`) requests Firecrawl's `html` format, which is
+  cleaned main content with `<head>` stripped. The head-level format is `rawHtml`.
+- Affects four checks over the same document: `meta_description` and `structured_data`
+  (`lib/findings.ts:211,229`), plus `ELIG-INDEX-001` and `ELIG-CANONICAL-001`
+  (`lib/geo/eligibility.ts:177,196`).
+- **The noindex check fails open:** a page carrying an explicit `<meta name="robots" content="noindex">`
+  in `<head>` is reported `eligible`. We would tell a customer AI crawlers can reach a page that is
+  deliberately blocked.
+- Trust-layer violation: `verified absent` is an assertive claim and it is false. Recommendation #3
+  "Do now" and the generated meta-description draft are built on it, so a paying customer is told to
+  add what they already have — falsifiable in ten seconds by viewing page source, by the SEO
+  agencies that are the first ICP.
+- Scales with client quality: the better-built the site, the more head-level signals we wrongly deny.
+- Fix: request `rawHtml`; when no `<head>` is captured, report `unknown` with the reason — never
+  `absent`, never `eligible`. Absence of evidence is not evidence of absence, in either direction.
+- Do not fix by lowering the confidence number. The claim is the problem, not the score.
+- Spec: `TASKS_HEAD_SIGNALS.md`.
+
+- **Closed 2026-08-10.** Fixed in `a032c43` (`rawHtml` requested; no captured `<head>` now yields
+  `unknown` instead of `absent`/`eligible`), deployed as Trigger `20260810.2`. Verified by
+  regenerating audit `28ca503b`: `Meta description → detected present 97%`, quoting the live
+  description, where the same page previously reported `verified absent 85%`.
+

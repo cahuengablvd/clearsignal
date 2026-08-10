@@ -3,7 +3,7 @@
 Process: defects found in real audits land here (date, audit/vertical, field path, quoted
 text, proposed fix). Fixed in batches — each fix starts with a failing fixture test.
 
-Closed defects (R1–R12, R15, R17, R24) are in `docs/archive/DEFECTS_CLOSED.md`. Do not read that file
+Closed defects (R1–R12, R15, R17, R24–R26) are in `docs/archive/DEFECTS_CLOSED.md`. Do not read that file
 unless you are investigating a regression in one of them.
 
 ## R13 — target_markets_languages is collected, stored, displayed, and never used
@@ -204,49 +204,3 @@ unless you are investigating a regression in one of them.
      the same step, and the deploy checklist in `DEPLOY.md` should say so.
 - Immediate unblock: `alter table audits add column if not exists reviewer_note text;`
 - Acceptance: with the API returning 500, the admin shows an error, not "No audits yet".
-
-## R25 — The crawler never captures `<head>`, so head-level signals are reported absent (LAUNCH BLOCKER)
-
-- Seen: 2026-08-10, self-audit `28ca503b`. `OBS-META-001` says **"Meta description verified absent,
-  85%"**. It is present — declared in `app/layout.tsx:11` and served in production (confirmed with
-  `curl`).
-- Root cause: `scrapePage` (`lib/firecrawl.ts:46`) requests Firecrawl's `html` format, which is
-  cleaned main content with `<head>` stripped. The head-level format is `rawHtml`.
-- Affects four checks over the same document: `meta_description` and `structured_data`
-  (`lib/findings.ts:211,229`), plus `ELIG-INDEX-001` and `ELIG-CANONICAL-001`
-  (`lib/geo/eligibility.ts:177,196`).
-- **The noindex check fails open:** a page carrying an explicit `<meta name="robots" content="noindex">`
-  in `<head>` is reported `eligible`. We would tell a customer AI crawlers can reach a page that is
-  deliberately blocked.
-- Trust-layer violation: `verified absent` is an assertive claim and it is false. Recommendation #3
-  "Do now" and the generated meta-description draft are built on it, so a paying customer is told to
-  add what they already have — falsifiable in ten seconds by viewing page source, by the SEO
-  agencies that are the first ICP.
-- Scales with client quality: the better-built the site, the more head-level signals we wrongly deny.
-- Fix: request `rawHtml`; when no `<head>` is captured, report `unknown` with the reason — never
-  `absent`, never `eligible`. Absence of evidence is not evidence of absence, in either direction.
-- Do not fix by lowering the confidence number. The claim is the problem, not the score.
-- Spec: `TASKS_HEAD_SIGNALS.md`.
-
-## R26 — Firecrawl serves cached pages, so an audit can measure a stale copy of the site (DO NOW)
-
-- Seen: 2026-08-10. `getclearsignal.io` gained a canonical URL and `Organization` + `FAQPage`
-  JSON-LD, both confirmed live with `curl`. Audit `28ca503b` was regenerated twice afterwards
-  (`16:18Z`, `17:16Z`) and both runs reported `Structured data verified absent` and no canonical.
-- Decisive evidence: both runs report **`8773 text characters observed`** — identical to the
-  character an hour apart. Two independent scrapes of a live page do not agree that closely; the
-  document was served from a store predating the deploy.
-- The meta description found in the same runs does not contradict this: it was always on the page,
-  so it only proves the `R25` head fix works.
-- Root cause: `lib/firecrawl.ts` passes no cache controls. `@mendable/firecrawl-js@^4.16.0` exposes
-  `maxAge`, `minAge`, `storeInCache` on scrape params and returns `cacheState` / `cachedAt`. We
-  neither opt out of the cache nor record when it was used.
-- Commercial harm: a paid audit is sold as point-in-time evidence about a site on a date. A client
-  who implements our recommendations and re-orders would be told nothing changed, with our own
-  report as proof — a refund conversation we would lose. It also breaks internal verification: we
-  cannot confirm a landing change through our own product.
-- Fix: pass an explicit freshness bound (prefer `maxAge: 0`), capture `cacheState`/`cachedAt`, and
-  disclose a cached capture in the report's `Data limitations` block with its timestamp.
-- Do not fix with a cache-busting query string — that audits a different URL than the canonical one.
-- Spec: `TASKS_CRAWL_FRESHNESS.md`.
-

@@ -3,7 +3,7 @@
 Process: defects found in real audits land here (date, audit/vertical, field path, quoted
 text, proposed fix). Fixed in batches — each fix starts with a failing fixture test.
 
-Closed defects (R1–R12, R15, R17) are in `docs/archive/DEFECTS_CLOSED.md`. Do not read that file
+Closed defects (R1–R12, R15, R17, R24) are in `docs/archive/DEFECTS_CLOSED.md`. Do not read that file
 unless you are investigating a regression in one of them.
 
 ## R13 — target_markets_languages is collected, stored, displayed, and never used
@@ -205,41 +205,26 @@ unless you are investigating a regression in one of them.
 - Immediate unblock: `alter table audits add column if not exists reviewer_note text;`
 - Acceptance: with the API returning 500, the admin shows an error, not "No audits yet".
 
-## R24 — Observation stage is a hardcoded Toronto-moving-company detector (LAUNCH BLOCKER)
+## R25 — The crawler never captures `<head>`, so head-level signals are reported absent (LAUNCH BLOCKER)
 
-- Seen: 2026-08-10, self-audit of `getclearsignal.io` (audit `28ca503b`). The report states
-  **"Business type: Moving service, Service category: Moving services, Observed locations: Toronto"**
-  for a SaaS audit product. Delivered JSON-LD is `MovingCompany` + `Service` ("Getclearsignal moving
-  services"). Ready copy: *"Getclearsignal provides residential and commercial moving services in
-  Toronto"*, FAQ *"How do I request a moving quote from Getclearsignal?"*, CTAs *"Get My Moving
-  Quote"*.
-- **Root cause is two failures meeting.**
-  1. `inferObservedBusinessContext` (`lib/business-context.ts:202`) is not a general observer — it is
-     a moving-company detector. Its location vocabulary is the fixed list
-     `['Toronto', 'GTA', 'Ontario', 'Quebec', 'Canada']`; its service vocabulary is
-     `Residential moving`, `Commercial moving`, `Condo moving`. It was written for the `az-moving`
-     fixture, a Toronto mover, and never generalized. It can only ever see one business.
-  2. The ClearSignal landing page illustrates the product with a mock AI answer about **movers in
-     Toronto**. The observer read that marketing example as the audited business's own identity.
-- **Operator-supplied `business_model` cannot save you.** `materialCategoryForContext`
-  (`lib/materials.ts:32`) short-circuits only on `gallery` and `marketplace`; every other value falls
-  through to a keyword match over text that includes `observed.inferred_business_type`. Set
-  `saas_software` and the inferred "Moving service" still wins. The most reliable signal available —
-  a human who confirmed what the business is — is discarded in favour of a regex over prose.
-- **Scope: any site that mentions moving, relocation, or a Canadian city in any context.** A blog
-  post, a case study, an agency listing the industries it serves ("we work with movers, clinics and
-  SaaS") — all of it misclassifies the whole audit. The failure is silent and the deliverable is
-  confidently wrong.
-- This is `F1` from `TASKS_RELEASE_CUT.md` returning. That fix narrowed which text was sniffed but
-  kept the mechanism: a bare keyword over prose deciding a vertical. `R3` is the same family.
-- Fix, in order:
-  1. **Operator-confirmed `business_model` wins outright** whenever it is not `unknown`. It is
-     already collected on checkout and in admin.
-  2. Delete the hardcoded Canadian locations and moving services from
-     `inferObservedBusinessContext`. Observation must be vertical-neutral or it should abstain.
-  3. When neither an operator value nor a confident observation exists, **abstain** — emit the
-     generic `Organization` + `FAQPage` pair and say the category was not established. A missing
-     category is invisible; a wrong one is a refund.
-- Acceptance: a fixture whose page merely *mentions* movers or Toronto in an example does not become
-  a moving company; an operator-set `business_model` overrides any inferred type; with no signal at
-  all the report ships the generic pair rather than guessing.
+- Seen: 2026-08-10, self-audit `28ca503b`. `OBS-META-001` says **"Meta description verified absent,
+  85%"**. It is present — declared in `app/layout.tsx:11` and served in production (confirmed with
+  `curl`).
+- Root cause: `scrapePage` (`lib/firecrawl.ts:46`) requests Firecrawl's `html` format, which is
+  cleaned main content with `<head>` stripped. The head-level format is `rawHtml`.
+- Affects four checks over the same document: `meta_description` and `structured_data`
+  (`lib/findings.ts:211,229`), plus `ELIG-INDEX-001` and `ELIG-CANONICAL-001`
+  (`lib/geo/eligibility.ts:177,196`).
+- **The noindex check fails open:** a page carrying an explicit `<meta name="robots" content="noindex">`
+  in `<head>` is reported `eligible`. We would tell a customer AI crawlers can reach a page that is
+  deliberately blocked.
+- Trust-layer violation: `verified absent` is an assertive claim and it is false. Recommendation #3
+  "Do now" and the generated meta-description draft are built on it, so a paying customer is told to
+  add what they already have — falsifiable in ten seconds by viewing page source, by the SEO
+  agencies that are the first ICP.
+- Scales with client quality: the better-built the site, the more head-level signals we wrongly deny.
+- Fix: request `rawHtml`; when no `<head>` is captured, report `unknown` with the reason — never
+  `absent`, never `eligible`. Absence of evidence is not evidence of absence, in either direction.
+- Do not fix by lowering the confidence number. The claim is the problem, not the score.
+- Spec: `TASKS_HEAD_SIGNALS.md`.
+

@@ -38,14 +38,17 @@ export async function scrapeUrl(
 }
 
 /**
- * Scrape both markdown and rendered HTML. The HTML (browser-rendered by
- * Firecrawl) lets the Trust Layer verify structural signals deterministically.
+ * Scrape markdown plus the raw document HTML. Firecrawl's `html` format is
+ * cleaned main content and intentionally omits <head>; rawHtml is required
+ * for head-level Trust Layer checks such as meta, JSON-LD and canonical tags.
  */
 export async function scrapePage(url: string): Promise<{ markdown: string; html: string } | null> {
   try {
-    const result = await getFirecrawl().v1.scrapeUrl(url, { formats: ['markdown', 'html'] })
+    const result = await getFirecrawl().v1.scrapeUrl(url, { formats: ['markdown', 'rawHtml'] })
     if (result.success && result.markdown) {
-      return { markdown: result.markdown, html: result.html || '' }
+      // Keep the caller-facing field stable. The fallback preserves useful
+      // body-level checks, while consumers treat an absent <head> as unknown.
+      return { markdown: result.markdown, html: result.rawHtml || result.html || '' }
     }
     return null
   } catch (err) {

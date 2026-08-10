@@ -244,11 +244,29 @@ describe('deterministic technical findings', () => {
     expect(cta.evidence?.extracted_text).toBe('Get a quote')
   })
 
-  it('marks verified absence separately from verified presence', () => {
-    const findings = computeTechnicalFindings({ url, html: '<html><body><h1>x</h1></body></html>', markdown: 'x' })
+  it('marks verified absence separately from verified presence when the head was captured', () => {
+    const findings = computeTechnicalFindings({ url, html: '<html><head></head><body><h1>x</h1></body></html>', markdown: 'x' })
     const jsonLd = findings.find((f) => f.id === 'json_ld')!
     expect(jsonLd.classification).toBe('detected')
     expect(jsonLd.status).toBe('absent')
+  })
+
+  it('detects meta description and JSON-LD in the captured document head', () => {
+    const findings = computeTechnicalFindings({
+      url,
+      html: '<html><head><meta name="description" content="x"><script type="application/ld+json">{"@type":"Organization"}</script></head><body></body></html>',
+      markdown: '',
+    })
+    const byId = Object.fromEntries(findings.map((f) => [f.id, f]))
+    expect(byId.meta_description.status).toBe('present')
+    expect(byId.json_ld.status).toBe('present')
+  })
+
+  it('marks head-level findings unknown when the crawl did not capture a head', () => {
+    const findings = computeTechnicalFindings({ url, html: '<html><body><h1>x</h1></body></html>', markdown: 'x' })
+    const headFindings = findings.filter((f) => f.id === 'meta_description' || f.id === 'json_ld')
+    expect(headFindings.every((f) => f.status === 'unknown' && f.classification === 'manual_verification')).toBe(true)
+    expect(JSON.stringify(headFindings)).not.toContain('verified absent')
   })
 
   it('requires real FAQ structure or FAQPage schema before marking FAQ present', () => {

@@ -105,6 +105,7 @@ export function computeTechnicalFindings(input: {
   markdown: string
 }): Finding[] {
   const { url, html, markdown } = input
+  const hasCapturedHead = /<head\b[^>]*>/i.test(html)
   const checkedAt = new Date().toISOString()
   const findings: Finding[] = []
   const ev = (extracted?: string | null, snippet?: string | null) => ({
@@ -212,6 +213,17 @@ export function computeTechnicalFindings(input: {
       detail: types ? `JSON-LD present (@type: ${types}).` : 'JSON-LD structured data present.',
       evidence: ev(types || null, jsonLd[0]),
     })
+  } else if (!hasCapturedHead) {
+    findings.push({
+      id: 'json_ld',
+      label: 'Structured data (schema.org JSON-LD)',
+      classification: 'manual_verification',
+      status: 'unknown',
+      confidence: 40,
+      confidence_basis: 'The crawl did not capture a <head> element, so structured data could not be verified',
+      detail: 'The document head was not captured; verify structured data manually.',
+      evidence: ev(),
+    })
   } else {
     findings.push({
       id: 'json_ld',
@@ -239,6 +251,17 @@ export function computeTechnicalFindings(input: {
       confidence_basis: 'Matched <meta name="description"> with content',
       detail: clip(metaDesc[1], 160),
       evidence: ev(clip(metaDesc[1], 160), metaDesc[0]),
+    })
+  } else if (!hasCapturedHead) {
+    findings.push({
+      id: 'meta_description',
+      label: 'Meta description',
+      classification: 'manual_verification',
+      status: 'unknown',
+      confidence: 40,
+      confidence_basis: 'The crawl did not capture a <head> element, so the meta description could not be verified',
+      detail: 'The document head was not captured; verify the meta description manually.',
+      evidence: ev(),
     })
   } else {
     findings.push({

@@ -55,6 +55,30 @@ describe('technical AI eligibility', () => {
     expect(result.checks.find((item) => item.id === 'ELIG-INDEX-001')?.status).toBe('blocked')
   })
 
+  it('confirms a matching canonical URL from the captured document head', async () => {
+    const result = await checkTechnicalEligibility({
+      url: 'https://example.com/services',
+      renderedHtml: '<html><head><link rel="canonical" href="https://example.com/services"></head><body>' + 'Text '.repeat(60) + '</body></html>',
+      markdown: 'Text '.repeat(60),
+      fetcher: fetcherFor({ robotsStatus: 404 }),
+    })
+
+    expect(result.checks.find((item) => item.id === 'ELIG-CANONICAL-001')?.status).toBe('eligible')
+  })
+
+  it('marks head-level eligibility checks unknown when the crawl did not capture a head', async () => {
+    const result = await checkTechnicalEligibility({
+      url: 'https://example.com/',
+      renderedHtml: '<html><body>' + 'Text '.repeat(60) + '</body></html>',
+      markdown: 'Text '.repeat(60),
+      fetcher: fetcherFor({ robotsStatus: 404 }),
+    })
+
+    const headChecks = result.checks.filter((item) => item.id === 'ELIG-INDEX-001' || item.id === 'ELIG-CANONICAL-001')
+    expect(headChecks.every((item) => item.status === 'unknown')).toBe(true)
+    expect(JSON.stringify(headChecks)).not.toContain('eligible')
+  })
+
   it('reports an observed browser challenge without claiming an answer-engine crawler was blocked', async () => {
     const challenge = '<html><body>Just a moment... Checking your browser. Ray ID: abc123</body></html>'
     const result = await checkTechnicalEligibility({

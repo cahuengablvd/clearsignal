@@ -141,6 +141,7 @@ export async function checkTechnicalEligibility(input: {
   })
 
   const checks: TechnicalEligibility['checks'] = []
+  const hasCapturedHead = /<head\b[^>]*>/i.test(input.renderedHtml)
   if (!targetResponse) {
     checks.push({
       id: 'ELIG-HTTP-001',
@@ -178,34 +179,58 @@ export async function checkTechnicalEligibility(input: {
   const metaNoindex = /<meta\b[^>]*name=["']robots["'][^>]*content=["'][^"']*\bnoindex\b[^"']*["']/i.test(input.renderedHtml) ||
     /<meta\b[^>]*content=["'][^"']*\bnoindex\b[^"']*["'][^>]*name=["']robots["']/i.test(input.renderedHtml)
   const headerNoindex = /\bnoindex\b/i.test(xRobots)
-  checks.push({
-    id: 'ELIG-INDEX-001',
-    label: 'Index directives',
-    status: metaNoindex || headerNoindex ? 'blocked' : 'eligible',
-    detail: metaNoindex || headerNoindex
-      ? 'An explicit noindex directive was detected.'
-      : 'No explicit noindex directive was detected in rendered HTML or the HTTP response.',
-    evidence: metaNoindex ? '<meta name="robots" content="noindex">' : headerNoindex ? `X-Robots-Tag: ${compact(xRobots)}` : undefined,
-  })
+  checks.push(
+    metaNoindex || headerNoindex
+      ? {
+          id: 'ELIG-INDEX-001',
+          label: 'Index directives',
+          status: 'blocked',
+          detail: 'An explicit noindex directive was detected.',
+          evidence: metaNoindex ? '<meta name="robots" content="noindex">' : `X-Robots-Tag: ${compact(xRobots)}`,
+        }
+      : !hasCapturedHead
+        ? {
+            id: 'ELIG-INDEX-001',
+            label: 'Index directives',
+            status: 'unknown',
+            detail: 'The document head was not captured, so meta robots directives could not be verified.',
+          }
+        : {
+            id: 'ELIG-INDEX-001',
+            label: 'Index directives',
+            status: 'eligible',
+            detail: 'No explicit noindex directive was detected in the captured document head or HTTP response.',
+          }
+  )
 
   const canonical = canonicalFromHtml(input.renderedHtml)
   const targetComparable = normalizedComparableUrl(input.url)
   const canonicalComparable = canonical ? normalizedComparableUrl(canonical, input.url) : null
-  checks.push({
-    id: 'ELIG-CANONICAL-001',
-    label: 'Canonical target',
-    status: !canonical
-      ? 'warning'
-      : canonicalComparable === targetComparable
-        ? 'eligible'
-        : 'warning',
-    detail: !canonical
-      ? 'No canonical URL was detected in the rendered HTML.'
-      : canonicalComparable === targetComparable
-        ? 'The canonical URL points to the audited page.'
-        : 'The canonical URL points to a different page; verify that this is intentional.',
-    evidence: canonical || undefined,
-  })
+  checks.push(
+    !hasCapturedHead
+      ? {
+          id: 'ELIG-CANONICAL-001',
+          label: 'Canonical target',
+          status: 'unknown',
+          detail: 'The document head was not captured, so the canonical URL could not be verified.',
+        }
+      : !canonical
+        ? {
+            id: 'ELIG-CANONICAL-001',
+            label: 'Canonical target',
+            status: 'warning',
+            detail: 'No canonical URL was detected in the captured document head.',
+          }
+        : {
+            id: 'ELIG-CANONICAL-001',
+            label: 'Canonical target',
+            status: canonicalComparable === targetComparable ? 'eligible' : 'warning',
+            detail: canonicalComparable === targetComparable
+              ? 'The canonical URL points to the audited page.'
+              : 'The canonical URL points to a different page; verify that this is intentional.',
+            evidence: canonical,
+          }
+  )
 
   const renderedTextLength = Math.max(stripTags(input.renderedHtml).length, input.markdown.trim().length)
   checks.push({
@@ -253,7 +278,9 @@ export async function checkTechnicalEligibility(input: {
 
   const globallyBlocked = checks.some((check) => check.status === 'blocked')
   const crawlerBlocked = crawlerAccess.some((item) => item.status === 'blocked')
-  const criticalUnknown = checks.some((check) => check.id === 'ELIG-HTTP-001' && check.status === 'unknown') ||
+  const criticalUnknown = checks.some((check) =>
+    (check.id === 'ELIG-HTTP-001' || check.id === 'ELIG-INDEX-001' || check.id === 'ELIG-CANONICAL-001') && check.status === 'unknown'
+  ) ||
     crawlerAccess.every((item) => item.status === 'unknown')
   const overallStatus: TechnicalEligibility['overall_status'] = globallyBlocked
     ? 'blocked'

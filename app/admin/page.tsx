@@ -261,7 +261,7 @@ export default function AdminPage() {
   // Finding one audit in a long list is the daily pain, not archiving. A filter
   // over what is already loaded solves it without a migration or a second screen.
   const [query, setQuery] = useState('')
-  const [showFinished, setShowFinished] = useState(false)
+  const [hideFinished, setHideFinished] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   // Finished work is hidden by default: it is the bulk of the list and there is
@@ -276,7 +276,10 @@ export default function AdminPage() {
         audit.audit_status?.toLowerCase().includes(needle)
       )
     }
-    return showFinished || bandFor(audit.audit_status) !== 'finished'
+    // Everything is visible unless the operator asks to hide finished work. The
+    // opposite default made a delivered audit vanish the moment it was sent, and
+    // findable only by typing its name into the filter.
+    return !hideFinished || bandFor(audit.audit_status) !== 'finished'
   })
   const [loading, setLoading] = useState(false)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
@@ -546,14 +549,11 @@ export default function AdminPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        // Sending flips the audit to `delivered`, which the default filter hides.
-        // Without saying so, the row vanishing reads as data loss right after the
-        // one action the operator most wants confirmed.
-        setRegenMsg({
-          ok: true,
-          text: 'Report emailed. It moved to Finished — tick "Show finished" to see it.',
-        })
-        setShowFinished(true)
+        // Sending flips the audit to `delivered`, so it moves to the Finished
+        // band. Say where it went; the row changing place unannounced is what
+        // read as data loss.
+        setRegenMsg({ ok: true, text: 'Report emailed. It moved to the Finished section below.' })
+        setHideFinished(false)
       } else {
         setRegenMsg({ ok: false, text: data.error || `Email delivery failed (${res.status})` })
       }
@@ -961,10 +961,10 @@ export default function AdminPage() {
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input
                 type="checkbox"
-                checked={showFinished}
-                onChange={(e) => setShowFinished(e.target.checked)}
+                checked={hideFinished}
+                onChange={(e) => setHideFinished(e.target.checked)}
               />
-              Show finished ({audits.filter((a) => bandFor(a.audit_status) === 'finished').length})
+              Hide finished ({audits.filter((a) => bandFor(a.audit_status) === 'finished').length})
             </label>
             {visibleAudits.length !== audits.length && (
               <span className="text-xs text-muted-foreground">

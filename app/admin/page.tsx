@@ -545,7 +545,14 @@ export default function AdminPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        setRegenMsg({ ok: true, text: `Report approved and emailed: ${auditId}` })
+        // Sending flips the audit to `delivered`, which the default filter hides.
+        // Without saying so, the row vanishing reads as data loss right after the
+        // one action the operator most wants confirmed.
+        setRegenMsg({
+          ok: true,
+          text: 'Report emailed. It moved to Finished — tick "Show finished" to see it.',
+        })
+        setShowFinished(true)
       } else {
         setRegenMsg({ ok: false, text: data.error || `Email delivery failed (${res.status})` })
       }

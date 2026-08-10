@@ -262,6 +262,7 @@ export default function AdminPage() {
   // over what is already loaded solves it without a migration or a second screen.
   const [query, setQuery] = useState('')
   const [showFinished, setShowFinished] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   // Finished work is hidden by default: it is the bulk of the list and there is
   // nothing left to do with it. Typing a filter searches everything regardless,
   // so a delivered audit is always findable by name.
@@ -318,10 +319,23 @@ export default function AdminPage() {
   }
 
   async function refreshAudits(): Promise<Audit[]> {
-    const res = await fetch('/api/admin/audits', { cache: 'no-store' })
-    if (!res.ok) return []
+    // A failed request must never render as an empty database. On 2026-08-07 a
+    // missing column made this return [], the page said "No audits yet", and it
+    // read as total data loss (R23).
+    let res: Response
+    try {
+      res = await fetch('/api/admin/audits', { cache: 'no-store' })
+    } catch {
+      setLoadError('Could not reach the server. Check your connection and retry.')
+      return []
+    }
+    if (!res.ok) {
+      setLoadError(`Could not load audits (HTTP ${res.status}). Existing audits are unaffected.`)
+      return []
+    }
     const data = await res.json()
     const nextAudits = (data.audits || []) as Audit[]
+    setLoadError(null)
     setAudits(nextAudits)
     return nextAudits
   }
@@ -560,8 +574,22 @@ export default function AdminPage() {
           <CardContent className="p-6">
             <h1 className="text-xl font-bold mb-4">Admin Login</h1>
             <form onSubmit={handleLogin} className="space-y-4">
+              {/* Password managers only offer to save when they can identify the
+                  form. They need a named password field with autoComplete, plus a
+                  username to file the entry under - hidden, since this panel has
+                  a single operator and no username to type. */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value="admin"
+                readOnly
+                hidden
+              />
               <Input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 placeholder="Admin password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -925,6 +953,13 @@ export default function AdminPage() {
         {loading ? (
           <div className="text-center py-20">
             <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+          </div>
+        ) : loadError ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+            <p className="text-sm font-semibold text-red-800">{loadError}</p>
+            <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={loadAudits}>
+              <RefreshCw className="h-4 w-4" /> Retry
+            </Button>
           </div>
         ) : audits.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">No audits yet.</div>

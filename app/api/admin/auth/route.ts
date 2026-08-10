@@ -52,7 +52,10 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24, // 24 hours
+    // 30 days. At 24 hours the single operator was logged out between visits and
+    // read it as the login working intermittently. The cookie is httpOnly,
+    // secure and signed, and this panel has exactly one user.
+    maxAge: 60 * 60 * 24 * 30,
     path: '/',
   })
 

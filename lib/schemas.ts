@@ -551,6 +551,10 @@ const metaSchema = z.object({
   icp_description: z.string(),
   competitors: z.array(z.string()),
   tier: tierSchema,
+  // Deployment identity is captured by the Trigger worker when it generates
+  // the report. It must survive later Vercel re-renders unchanged.
+  engine_version: z.string().optional(),
+  engine_commit: z.string().optional(),
   // Brand entity (optional / backward-compatible with older saved reports).
   canonical_brand: z.string().optional(),
   domain: z.string().optional(),

@@ -10,6 +10,7 @@
 import puppeteer from 'puppeteer-core'
 import { signToken } from './tokens'
 import { footerText, scoreFooterText } from './pdf-footer'
+import { supabaseAdmin } from './supabase'
 
 const fallbackBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
@@ -54,6 +55,16 @@ export async function generateAuditPDF(auditId: string, origin?: string): Promis
   // Prefer the request origin (always correct) over NEXT_PUBLIC_BASE_URL, which
   // is easy to leave unset on Vercel -> would point Chromium at localhost.
   const baseUrl = origin || fallbackBaseUrl
+  const { data: audit } = await supabaseAdmin
+    .from('audits')
+    .select('report')
+    .eq('id', auditId)
+    .single()
+  const meta = (audit?.report as { meta?: { generated_at?: string; engine_version?: string; engine_commit?: string } } | null)?.meta
+  const storedGeneratedAt = meta?.generated_at ? new Date(meta.generated_at) : null
+  const generatedAt = storedGeneratedAt && !Number.isNaN(storedGeneratedAt.getTime())
+    ? storedGeneratedAt
+    : new Date()
   const browser = await getBrowser()
 
   try {
@@ -74,7 +85,7 @@ export async function generateAuditPDF(auditId: string, origin?: string): Promis
       preferCSSPageSize: true,
       displayHeaderFooter: true,
       headerTemplate: '<span></span>',
-      footerTemplate: `<div style="box-sizing:border-box;width:100%;padding:0 40px;font-family:Arial,sans-serif;font-size:7px;color:#777;text-align:center;">${escapeHtml(footerText())}</div>`,
+      footerTemplate: `<div style="box-sizing:border-box;width:100%;padding:0 40px;font-family:Arial,sans-serif;font-size:7px;color:#777;text-align:center;">${escapeHtml(footerText(generatedAt, meta))}</div>`,
       margin: { top: '40px', bottom: '52px', left: '40px', right: '40px' },
     })
 

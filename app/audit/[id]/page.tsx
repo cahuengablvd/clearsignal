@@ -1117,7 +1117,7 @@ export default async function AuditPage({
 
         {!isPdf && (
           <footer className="mt-6 border-t pt-3 text-[10px] leading-relaxed text-muted-foreground">
-            {footerText()}
+            {footerText(new Date(report.meta.generated_at), report.meta)}
           </footer>
         )}
       </div>

@@ -65,7 +65,6 @@ NOTIFY_WEBHOOK_URL
 ACCESS_TOKEN_SECRET
 TRIGGER_SECRET_KEY
 TRIGGER_PROJECT_ID
-TRIGGER_VERSION
 AUTO_DELIVER_AUDITS=false
 QUALITY_CRITIC_ENABLED=false
 AUDIT_AI_COST_ALERT_USD
@@ -82,6 +81,9 @@ ANTHROPIC_USAGE_REPORT_URL
 PERPLEXITY_API_KEY
 OPENAI_API_KEY
 ```
+
+Do not set `TRIGGER_VERSION`: Trigger uses it to lock task runs to a specific deployment version.
+The running task records its own deployment version from the Trigger run context instead.
 
 ## Supabase (Migrations)
 

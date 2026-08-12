@@ -61,6 +61,15 @@ export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
   trigger?: AuditTrigger
   endpoint?: string
+  engineVersion?: string
+  engineCommit?: string
+}
+
+export function buildGenerationMeta(opts: Pick<RunFullAuditOptions, 'engineVersion' | 'engineCommit'>) {
+  return {
+    engine_version: opts.engineVersion,
+    engine_commit: opts.engineCommit,
+  }
 }
 
 export function buildDataLimitations(
@@ -745,10 +754,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         icp_description: icp,
         competitors: competitors.map((c) => c.url),
         tier: (audit.tier as 'automated' | 'reviewed' | 'sprint') || 'automated',
-        engine_version: process.env.TRIGGER_VERSION || undefined,
-        // This is optional because Trigger does not inject a git SHA by
-        // default. Deploy tooling may provide either name.
-        engine_commit: process.env.TRIGGER_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || undefined,
+        ...buildGenerationMeta(opts),
         canonical_brand: brandEntity.canonical_brand,
         domain: brandEntity.domain,
         alternative_brand_forms: brandEntity.alternative_brand_forms,

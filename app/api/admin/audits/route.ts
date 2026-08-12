@@ -6,6 +6,7 @@ import { trySignToken } from '@/lib/tokens'
 import { statusPriority } from '@/lib/audit-bands'
 import { buildAdminEngineCoverage } from '@/lib/admin-engine-coverage'
 import { ADMIN_AUDIT_SELECT } from '@/lib/admin-audit-schema'
+import { latestObservedEngineVersion } from '@/lib/engine-version'
 
 function lastActivityAt(audit: {
   created_at: string
@@ -81,10 +82,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch audits' }, { status: 500 })
   }
 
-  // This must be configured on Vercel to make drift visible in the admin UI.
-  // It is deliberately not inferred from the app commit: the worker deploy is
-  // an independent manual action.
-  const expectedEngineVersion = process.env.TRIGGER_VERSION || null
+  // The worker deploys independently of Vercel, so no env var here can be
+  // trusted as "the current engine" - and TRIGGER_VERSION must never be set
+  // (it pins runs to a version). The newest engine version we have actually
+  // observed generating a report is the honest reference: once a run happens
+  // on a newer worker, every older report is visibly older.
+  const expectedEngineVersion = latestObservedEngineVersion(audits || [])
   const appCommit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || null
 
   const auditIds = (audits || []).map((audit) => audit.id)

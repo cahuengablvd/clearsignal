@@ -15,10 +15,11 @@ at the end of a working session.
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260812.2`**, deployed from `C:\csdeploy` at commit `421c0e8`,
+- **Trigger.dev** — version **`20260812.4`**, deployed from `C:\csdeploy` at commit `abc4acb`,
   5 tasks. Carries the R25/R26 crawl fixes plus the 2026-08-12 hygiene pass and social-proof
   detector fix. Regenerated audit `28ca503b` verified `OBS-PROOF-001` is now `unknown` (45%),
-  not `present`; the report still records engine `20260812.1`, so that metadata is stale. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
+  not `present`. The engine version is now stamped from `ctx.deployment.version`; one
+  regeneration is still needed to see it land in a report. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
   `trigger/*` or prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
   on a version mismatch. See `DEPLOY.md`.

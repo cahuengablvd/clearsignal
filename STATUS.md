@@ -38,13 +38,20 @@ at the end of a working session.
 
 ## Sales test — running
 
-**First 20 emails sent 2026-08-06.** Baltic SEO agencies, top of `validation/tracking.csv`, from the
-owner's personal mailbox. Copy is frozen in `validation/outreach.md` until 20-25 have gone out; the
-message asks whether an agency could see itself reselling the audit, not whether they will buy.
+**23 emails sent 2026-08-07 (a Friday). Zero replies as of 2026-08-10.** Baltic SEO agencies, top of
+`validation/tracking.csv`, from the owner's personal mailbox. The message asks whether an agency
+could see itself reselling the audit, not whether they will buy.
 
-What to expect: most replies that come at all arrive within 48 hours, and two quiet days mean
-nothing. One follow-up on day 4, then `closed_no_reply`. Do not judge the copy or the segment before
-the batch is complete and 4-5 days have passed.
+Read the silence correctly: two of the three elapsed days were the weekend, so one business day has
+passed. Zero at this point carries almost no information. If the true reply rate were the 20% this
+plan assumes, zero across the whole batch would be a 0.6% event — decisive by day 7-10, not now.
+
+What to expect: most replies that come at all arrive within 48 hours. One follow-up on day 4, then
+`closed_no_reply`. Do not judge the copy or the segment before the batch is complete (23 of 40 sent)
+and 4-5 **business** days have passed.
+
+`validation/tracking.csv` still shows `not_sent` with empty `first_message_date` for rows that were
+actually mailed. Until those dates are filled in, the day-4 follow-up schedule cannot be run.
 
 The objection to watch for is "why pay when ChatGPT does this free" — the clinic owner raised it and
 a handler is written. Three or more agencies raising it means a positioning problem no feature fixes.

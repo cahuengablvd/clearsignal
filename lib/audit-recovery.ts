@@ -10,6 +10,7 @@ import { supabaseAdmin } from './supabase'
 import { enqueueAudit } from './audit-queue'
 import { notify } from './notify'
 import { appendAdminNote } from './admin-notes'
+import { requireSupabaseWrite } from './supabase-write'
 
 // An audit stuck in `processing` longer than this is considered stale.
 export const STALE_PROCESSING_MS = 20 * 60 * 1000
@@ -57,7 +58,7 @@ async function markRecoveryStopped(
   reason: string,
   extra: Record<string, unknown> = {}
 ) {
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from('audits')
     .update({
       audit_status: 'failed',
@@ -68,6 +69,7 @@ async function markRecoveryStopped(
       ...extra,
     })
     .eq('id', audit.id)
+  requireSupabaseWrite(error, `audits recovery stop state for audit ${audit.id}`)
 }
 
 export async function recoverStuckAudits(): Promise<RecoverySummary> {
@@ -120,10 +122,11 @@ export async function recoverStuckAudits(): Promise<RecoverySummary> {
 
     try {
       await enqueueAudit(audit.id, { trigger: 'recovery', endpoint: 'audit-recovery' })
-      await supabaseAdmin
+      const { error } = await supabaseAdmin
         .from('audits')
         .update({ recovery_attempts: (audit.recovery_attempts ?? 0) + 1 })
         .eq('id', audit.id)
+      requireSupabaseWrite(error, `audits recovery attempt for audit ${audit.id}`)
       reEnqueued += 1
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

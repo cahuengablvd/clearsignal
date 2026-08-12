@@ -2,6 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { estimateCostUsd, type CostEvent } from './cost-tracker'
 import { appendAdminNote } from './admin-notes'
 import { notify } from './notify'
+import { logSupabaseWriteFailure } from './supabase-write'
 
 export type AnthropicRequestMeta = {
   auditId?: string | null
@@ -182,7 +183,7 @@ export async function logAnthropicCall(args: {
   try {
     const { error } = await supabaseAdmin.from('audit_ai_call_logs').insert(payload)
     if (error) {
-      console.warn('[anthropic-request] failed to persist log:', error.message)
+      logSupabaseWriteFailure(error, `audit_ai_call_logs telemetry for audit ${payload.audit_id ?? 'none'}`)
       return
     }
 
@@ -190,9 +191,6 @@ export async function logAnthropicCall(args: {
       await reconcileAuditAiCost(payload.audit_id)
     }
   } catch (err) {
-    console.warn(
-      '[anthropic-request] failed to persist log:',
-      err instanceof Error ? err.message : String(err)
-    )
+    console.warn(`[db-write] audit_ai_call_logs telemetry for audit ${payload.audit_id ?? 'none'} threw:`, err instanceof Error ? err.message : String(err))
   }
 }

@@ -5,6 +5,7 @@ import { rebuildReusedGeoNarrative } from './audit-runner'
 import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
 import { appendAdminNote } from './admin-notes'
+import { requireSupabaseWrite } from './supabase-write'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import type { BusinessContext, ClearSignalReport } from './schemas'
 
@@ -86,7 +87,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
   )
   if (blockingErrors.length) {
     const message = `Report validation blocked re-render: ${blockingErrors.slice(0, 5).join('; ')}`
-    await supabaseAdmin
+    const { error: validationWriteError } = await supabaseAdmin
       .from('audits')
       .update({
         audit_status: 'failed-validation',
@@ -94,6 +95,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
         last_rerendered_at: new Date().toISOString(),
       })
       .eq('id', auditId)
+    requireSupabaseWrite(validationWriteError, `audits re-render validation failure for audit ${auditId}`)
     throw new Error(message)
   }
 
@@ -122,9 +124,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
     })
     .eq('id', auditId)
 
-  if (updateError) {
-    throw new Error(`Failed to save re-rendered report: ${updateError.message}`)
-  }
+  requireSupabaseWrite(updateError, `audits re-rendered report for audit ${auditId}`)
 
   return { validation_warnings: finalReport.validation_warnings ?? [] }
 }

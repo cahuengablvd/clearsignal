@@ -2,6 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { sendReportEmail } from './resend'
 import { notify } from './notify'
 import { appendAdminNote } from './admin-notes'
+import { requireSupabaseWrite, logSupabaseWriteFailure } from './supabase-write'
 
 export async function deliverAuditEmail(auditId: string): Promise<void> {
   const { data: audit, error } = await supabaseAdmin
@@ -19,13 +20,14 @@ export async function deliverAuditEmail(auditId: string): Promise<void> {
 
   try {
     await sendReportEmail(audit.email, auditId, audit.url)
-    await supabaseAdmin
+    const { error: deliveredWriteError } = await supabaseAdmin
       .from('audits')
       .update({ audit_status: 'delivered', last_delivered_at: new Date().toISOString() })
       .eq('id', auditId)
+    requireSupabaseWrite(deliveredWriteError, `audits delivery state for audit ${auditId}`)
   } catch (emailErr) {
     const errorMessage = emailErr instanceof Error ? emailErr.message : String(emailErr)
-    await supabaseAdmin
+    const { error: failedWriteError } = await supabaseAdmin
       .from('audits')
       .update({
         audit_status: 'delivery_failed',
@@ -35,6 +37,7 @@ export async function deliverAuditEmail(auditId: string): Promise<void> {
         ),
       })
       .eq('id', auditId)
+    logSupabaseWriteFailure(failedWriteError, `audits delivery failure state for audit ${auditId}`)
     await notify('email_delivery_failed', {
       audit_id: auditId,
       email: audit.email,

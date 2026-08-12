@@ -6,6 +6,7 @@ import { enforceRateLimits, clientIp, emailDomain } from '@/lib/rate-limit'
 import { signToken } from '@/lib/tokens'
 import { normalizeWebsiteUrl } from '@/lib/normalize-url'
 import { enqueueFreeScore } from '@/lib/score-queue'
+import { logSupabaseWriteFailure } from '@/lib/supabase-write'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const FREE_SCORE_DAILY_LIMIT = Number(process.env.FREE_SCORE_DAILY_LIMIT ?? 50)
@@ -76,13 +77,14 @@ export async function POST(req: NextRequest) {
       })
     } catch (err) {
       console.error('Free score enqueue failed:', err)
-      await supabaseAdmin
+      const { error: failedWriteError } = await supabaseAdmin
         .from('scores')
         .update({
           status: 'failed',
           top_insight: 'We could not start the check. Please try again.',
         })
         .eq('id', row.id)
+      logSupabaseWriteFailure(failedWriteError, `scores enqueue failure state for score ${row.id}`)
       return NextResponse.json(
         { error: 'We could not start the check. Please try again.' },
         { status: 500 }

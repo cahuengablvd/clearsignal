@@ -9,11 +9,3 @@ create table if not exists report_versions (
 
 create index if not exists report_versions_audit_id_created_at_idx
   on report_versions(audit_id, created_at desc);
-
-delete from audit_insights a
-using audit_insights b
-where a.audit_id = b.audit_id
-  and a.ctid < b.ctid;
-
-create unique index if not exists audit_insights_audit_id_key
-  on audit_insights(audit_id);

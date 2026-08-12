@@ -11,6 +11,7 @@ import {
 } from './schemas'
 import { supabaseAdmin } from './supabase'
 import { requireUsableScrape, UnusableScrapeError } from './scrape-quality'
+import { logSupabaseWriteFailure } from './supabase-write'
 
 const GEO_BUDGET_MS = 35_000
 
@@ -105,7 +106,7 @@ export async function runFreeScore(scoreId: string, input: FreeScoreInput): Prom
     if (error) throw new Error(`Failed to save score: ${error.message}`)
   } catch (err) {
     console.error('[free-score] failed:', scoreId, err)
-    await supabaseAdmin
+    const { error: failedWriteError } = await supabaseAdmin
       .from('scores')
       .update({
         status: 'failed',
@@ -114,5 +115,6 @@ export async function runFreeScore(scoreId: string, input: FreeScoreInput): Prom
           : 'We could not finish the check. Please try again.',
       })
       .eq('id', scoreId)
+    logSupabaseWriteFailure(failedWriteError, `scores failure state for score ${scoreId}`)
   }
 }

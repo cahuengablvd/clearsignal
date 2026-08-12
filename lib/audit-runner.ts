@@ -52,6 +52,7 @@ import type { GeoResult } from './schemas'
 import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
 import { appendAdminNote } from './admin-notes'
+import { requireSupabaseWrite } from './supabase-write'
 import { auditExecutionContext, runAuditStage, type AuditTrigger } from './audit-execution'
 import { qualityCriticEnabled, runQualityCritic } from './quality/critic'
 import { reconcileAuditAiCost } from './ai-observability'
@@ -435,10 +436,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
 
   // 2. Set status to processing
   const processingStartedAt = new Date().toISOString()
-  await supabaseAdmin
+  const { error: processingError } = await supabaseAdmin
     .from('audits')
     .update({ audit_status: 'processing', processing_started_at: processingStartedAt })
     .eq('id', auditId)
+  requireSupabaseWrite(processingError, `audits processing state for audit ${auditId}`)
 
   try {
     // 3. Scrape target (markdown + rendered HTML) + competitors
@@ -743,6 +745,10 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         icp_description: icp,
         competitors: competitors.map((c) => c.url),
         tier: (audit.tier as 'automated' | 'reviewed' | 'sprint') || 'automated',
+        engine_version: process.env.TRIGGER_VERSION || undefined,
+        // This is optional because Trigger does not inject a git SHA by
+        // default. Deploy tooling may provide either name.
+        engine_commit: process.env.TRIGGER_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || undefined,
         canonical_brand: brandEntity.canonical_brand,
         domain: brandEntity.domain,
         alternative_brand_forms: brandEntity.alternative_brand_forms,
@@ -839,7 +845,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     })
     const reconciledCost = await reconcileAuditAiCost(auditId).catch(() => null)
     const adminNotes = await currentAdminNotes(auditId, audit.admin_notes)
-    await supabaseAdmin
+    const { error: saveError } = await supabaseAdmin
       .from('audits')
       .update({
         report: finalReport,
@@ -855,24 +861,9 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         quality,
       })
       .eq('id', auditId)
+    requireSupabaseWrite(saveError, `audits report for audit ${auditId}`)
 
-    // 9. Write audit_insights summary row. Upsert prevents regeneration from
-    // creating duplicate insight rows for the same audit.
-    await supabaseAdmin.from('audit_insights').upsert({
-      audit_id: auditId,
-      icp_clarity: clarity.icp_visibility.score,
-      headline_score: clarity.headline.score,
-      cta_score: clarity.cta.score,
-      trust_score: clarity.trust_proof.score,
-      // Prefer the live AI-visibility measurement; fall back to the heuristic.
-      ai_search_score: geo?.ai_visibility_score ?? gap.ai_search.score,
-      top_issues: actionWithStages.top_fixes.slice(0, 3).map((f) => f.title),
-      competitor_patterns: gap.where_you_lose.slice(0, 5),
-    }, {
-      onConflict: 'audit_id',
-    })
-
-    // 10. Delivery is operator-gated by default. During beta, the admin must
+    // 9. Delivery is operator-gated by default. During beta, the admin must
     // review the PDF and click "Approve & send" before the client gets email.
     if (process.env.AUTO_DELIVER_AUDITS === 'true') {
       await deliverAuditEmail(auditId)
@@ -893,10 +884,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       api_cost_usd: reconciledCost?.totalUsd ?? cost.totalUsd(),
       api_cost_breakdown: cost.breakdown(),
     }
-    await supabaseAdmin
+    const { error: failureWriteError } = await supabaseAdmin
       .from('audits')
       .update(failurePatch)
       .eq('id', auditId)
+    requireSupabaseWrite(failureWriteError, `audits failure state for audit ${auditId}`)
     await notify('audit_generation_failed', {
       audit_id: auditId,
       error: errorMessage,

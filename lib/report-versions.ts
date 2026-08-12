@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase'
+import { requireSupabaseWrite } from './supabase-write'
 
 export type ReportVersionType = 'generated' | 'regenerated' | 'rerendered' | 'approved' | 'manual'
 
@@ -15,7 +16,5 @@ export async function archiveCurrentReportVersion(args: {
     report: args.report,
     audit_status: args.auditStatus ?? null,
   })
-  if (error) {
-    console.warn(`[report-versions] failed to archive report for ${args.auditId}:`, error.message)
-  }
+  requireSupabaseWrite(error, `report_versions archive for audit ${args.auditId}`)
 }

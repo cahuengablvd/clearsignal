@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './supabase'
 import { workerId } from './ai-observability'
+import { logSupabaseWriteFailure } from './supabase-write'
 
 export type AuditTrigger =
   | 'paid_webhook'
@@ -91,7 +92,7 @@ export async function runAuditStage<T>(
 
     return result
   } catch (err) {
-    await supabaseAdmin
+    const { error: failedStageWriteError } = await supabaseAdmin
       .from('audit_stage_executions')
       .update({
         status: 'failed',
@@ -101,6 +102,7 @@ export async function runAuditStage<T>(
       })
       .eq('execution_key', claim.executionKey)
       .eq('claim_token', claim.claimToken)
+    logSupabaseWriteFailure(failedStageWriteError, `audit_stage_executions failure for audit ${ctx.auditId}, stage ${stage}`)
     throw err
   }
 }

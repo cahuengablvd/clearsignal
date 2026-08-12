@@ -41,6 +41,17 @@ function stripTags(fragment: string): string {
     .trim()
 }
 
+/** Visible document content only; excludes head metadata and non-rendered payloads. */
+function bodyContent(html: string): string {
+  const body = firstMatch(/<body\b[^>]*>([\s\S]*?)<\/body>/i, html)
+  if (!body) return ''
+  return body[1]
+    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<template\b[\s\S]*?<\/template>/gi, ' ')
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, ' ')
+}
+
 function ctaLabel(el: string, inner = ''): string {
   return stripTags(inner) || attr(el, 'aria-label') || attr(el, 'title') || attr(el, 'value')
 }
@@ -104,8 +115,10 @@ export function computeTechnicalFindings(input: {
   html: string
   markdown: string
 }): Finding[] {
-  const { url, html, markdown } = input
+  const { url, html } = input
   const hasCapturedHead = /<head\b[^>]*>/i.test(html)
+  const bodyHtml = bodyContent(html)
+  const hasCapturedBody = bodyHtml.trim().length > 0
   const checkedAt = new Date().toISOString()
   const findings: Finding[] = []
   const ev = (extracted?: string | null, snippet?: string | null) => ({
@@ -116,9 +129,9 @@ export function computeTechnicalFindings(input: {
   })
 
   // 1. Primary CTA -------------------------------------------------------------
-  const primaryCtaMatch = findPrimaryCta(html)
-  const contactLinkMatch = firstMatch(/<a\b[^>]*href=["'][^"']+["'][^>]*>\s*(contact us|contact)\s*<\/a>/i, html)
-  const graphicalCtaLike = findGraphicalCtaLike(html)
+  const primaryCtaMatch = findPrimaryCta(bodyHtml)
+  const contactLinkMatch = firstMatch(/<a\b[^>]*href=["'][^"']+["'][^>]*>\s*(contact us|contact)\s*<\/a>/i, bodyHtml)
+  const graphicalCtaLike = findGraphicalCtaLike(bodyHtml)
   if (primaryCtaMatch) {
     findings.push({
       id: 'cta_present',
@@ -166,7 +179,7 @@ export function computeTechnicalFindings(input: {
   }
 
   // 2. H1 headline -------------------------------------------------------------
-  const h1 = firstMatch(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i, html)
+  const h1 = firstMatch(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i, bodyHtml)
   if (h1) {
     const text = clip(h1[1].replace(/<[^>]+>/g, ' '), 160)
     findings.push({
@@ -278,8 +291,8 @@ export function computeTechnicalFindings(input: {
 
   // 5. Social proof (indirect) -------------------------------------------------
   const proofRe = /trusted by|testimonial|case stud(?:y|ies)|customer logos?|rated|reviews?|\bg2\b|capterra/i
-  if (proofRe.test(markdown) || proofRe.test(html)) {
-    const m = firstMatch(proofRe, markdown) || firstMatch(proofRe, html)
+  if (proofRe.test(bodyHtml)) {
+    const m = firstMatch(proofRe, bodyHtml)
     findings.push({
       id: 'social_proof',
       label: 'Social proof signals',
@@ -304,31 +317,38 @@ export function computeTechnicalFindings(input: {
   }
 
   // 6. FAQ / Q&A structure (indirect) -----------------------------------------
-  const faqJsonLd = /"@type"\s*:\s*"FAQPage"|FAQPage/i
+  const faqJsonLd = firstMatch(
+    /<script\b(?=[^>]*\btype=["']application\/ld\+json["'])[^>]*>[\s\S]*?"@type"\s*:\s*"FAQPage"[\s\S]*?<\/script>/i,
+    html
+  )
   const faqQuestionHeading = /<h[1-4][^>]*>[^<]*\?\s*<\/h[1-4]>/i
   const faqKeyword = /frequently asked questions|\bFAQ\b/i
-  if (faqJsonLd.test(html) || faqQuestionHeading.test(html)) {
+  if (faqJsonLd || faqQuestionHeading.test(bodyHtml)) {
     findings.push({
       id: 'faq_structure',
       label: 'FAQ / Q&A structure',
       classification: 'detected',
       status: 'present',
-      confidence: faqJsonLd.test(html) ? 92 : 84,
-      confidence_basis: faqJsonLd.test(html)
+      confidence: faqJsonLd ? 92 : 84,
+      confidence_basis: faqJsonLd
         ? 'Matched FAQPage structured data in the rendered HTML'
         : 'Matched a question-style heading in the rendered HTML',
       detail: 'FAQ/Q&A structure was detected.',
       evidence: ev(),
     })
-  } else if (faqKeyword.test(html) || faqKeyword.test(markdown)) {
+  } else if (faqKeyword.test(bodyHtml) || !hasCapturedBody) {
     findings.push({
       id: 'faq_structure',
       label: 'FAQ / Q&A structure',
       classification: 'manual_verification',
       status: 'unknown',
-      confidence: 55,
-      confidence_basis: 'FAQ-like language was found, but no question-answer structure or FAQPage schema was confirmed',
-      detail: 'Possible FAQ-like language detected - requires verification.',
+      confidence: hasCapturedBody ? 55 : 40,
+      confidence_basis: hasCapturedBody
+        ? 'FAQ-like language was found, but no question-answer structure or FAQPage schema was confirmed'
+        : 'The crawl did not capture a <body> element, so FAQ structure could not be verified',
+      detail: hasCapturedBody
+        ? 'Possible FAQ-like language detected - requires verification.'
+        : 'The document body was not captured; verify FAQ structure manually.',
       evidence: ev(),
     })
   } else {

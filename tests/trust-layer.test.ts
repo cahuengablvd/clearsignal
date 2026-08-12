@@ -269,6 +269,17 @@ describe('deterministic technical findings', () => {
     expect(JSON.stringify(headFindings)).not.toContain('verified absent')
   })
 
+  it('never claims FAQ absence when the crawl captured no body', () => {
+    const findings = computeTechnicalFindings({
+      url,
+      html: '<html><head><meta name="description" content="x"></head></html>',
+      markdown: '',
+    })
+    const faq = findings.find((f) => f.id === 'faq_structure')!
+    expect(faq.status).toBe('unknown')
+    expect(faq.classification).toBe('manual_verification')
+  })
+
   it('requires real FAQ structure or FAQPage schema before marking FAQ present', () => {
     const keywordOnly = computeTechnicalFindings({
       url,
@@ -287,6 +298,34 @@ describe('deterministic technical findings', () => {
     const faq = structured.find((f) => f.id === 'faq_structure')!
     expect(faq.classification).toBe('detected')
     expect(faq.status).toBe('present')
+  })
+
+  it('scopes visible-content findings to the body and FAQPage to JSON-LD', () => {
+    const metadataOnly = computeTechnicalFindings({
+      url,
+      html:
+        '<html><head><meta property="og:description" content="Read our reviews"><script>const schema = "FAQPage"</script></head>' +
+        '<body><h1>Acme</h1><script>const reviews = []</script></body></html>',
+      markdown: 'Acme',
+    })
+    const byId = Object.fromEntries(metadataOnly.map((f) => [f.id, f]))
+    expect(byId.social_proof.status).toBe('unknown')
+    expect(byId.faq_structure.status).toBe('absent')
+
+    const visibleProof = computeTechnicalFindings({
+      url,
+      html: '<html><body><section><h2>Customer testimonials</h2><p>Trusted by teams worldwide.</p></section></body></html>',
+      markdown: '',
+    })
+    expect(visibleProof.find((f) => f.id === 'social_proof')?.status).toBe('present')
+
+    const faqJsonLd = computeTechnicalFindings({
+      url,
+      html:
+        '<html><head><script type="application/ld+json">{"@type":"FAQPage"}</script></head><body><h1>Acme</h1></body></html>',
+      markdown: '',
+    })
+    expect(faqJsonLd.find((f) => f.id === 'faq_structure')?.status).toBe('present')
   })
 
   it('every finding matches the schema and carries evidence.checked_at', () => {

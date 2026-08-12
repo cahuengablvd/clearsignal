@@ -9,6 +9,7 @@
 import { supabaseAdmin } from './supabase'
 import { runGeoScan } from './geo'
 import type { GeoResult, MonitoringAlert, MonitoringDelta } from './schemas'
+import { logSupabaseWriteFailure } from './supabase-write'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 const SCORE_ALERT_THRESHOLD = 5 // points
@@ -157,7 +158,7 @@ export async function runMonitoringForSite(siteId: string): Promise<void> {
     const previousGeo = (prevRun?.geo as GeoResult | null) || null
     const { delta, alerts } = computeDelta(geo, previousGeo)
 
-    await supabaseAdmin.from('monitoring_runs').insert({
+    const { error: runWriteError } = await supabaseAdmin.from('monitoring_runs').insert({
       site_id: siteId,
       run_status: 'done',
       ai_visibility_score: geo.ai_visibility_score,
@@ -171,19 +172,23 @@ export async function runMonitoringForSite(siteId: string): Promise<void> {
       delta_vs_previous: delta,
       alerts,
     })
+    logSupabaseWriteFailure(runWriteError, `monitoring_runs completed run for site ${siteId}`)
 
-    await supabaseAdmin
+    const { error: scheduleWriteError } = await supabaseAdmin
       .from('monitored_sites')
       .update({ last_run_at: new Date().toISOString(), next_run_at: nextRunAt })
       .eq('id', siteId)
+    logSupabaseWriteFailure(scheduleWriteError, `monitored_sites schedule for site ${siteId}`)
   } catch (err) {
     console.error(`[monitoring] run failed for site ${siteId}:`, err)
-    await supabaseAdmin.from('monitoring_runs').insert({ site_id: siteId, run_status: 'failed', alerts: [] })
+    const { error: failedRunWriteError } = await supabaseAdmin.from('monitoring_runs').insert({ site_id: siteId, run_status: 'failed', alerts: [] })
+    logSupabaseWriteFailure(failedRunWriteError, `monitoring_runs failed run for site ${siteId}`)
     // Still reschedule so a single failure doesn't hammer or stall the loop.
-    await supabaseAdmin
+    const { error: failedScheduleWriteError } = await supabaseAdmin
       .from('monitored_sites')
       .update({ last_run_at: new Date().toISOString(), next_run_at: nextRunAt })
       .eq('id', siteId)
+    logSupabaseWriteFailure(failedScheduleWriteError, `monitored_sites failure schedule for site ${siteId}`)
     throw err
   }
 }

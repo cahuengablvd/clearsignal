@@ -15,10 +15,10 @@ at the end of a working session.
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260810.4`**, deployed from `C:\csdeploy` at commit `5a8cecb`,
-  5 tasks. Carries the R25 head-signal and R26 fresh-crawl fixes, both verified on audit
-  `28ca503b` at 18:06Z (structured data, canonical, FAQ and meta description all detected on a
-  fresh crawl). Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
+- **Trigger.dev** — version **`20260812.1`**, deployed from `C:\csdeploy` at commit `30bfabe`,
+  5 tasks. Carries the R25/R26 crawl fixes (verified on audit `28ca503b`, 2026-08-10) plus the
+  2026-08-12 hygiene pass: checked Supabase writes, body-scoped page signals, and the engine
+  version recorded on each generated report. The hygiene pass is **not yet verified on a run**. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
   `trigger/*` or prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
   on a version mismatch. See `DEPLOY.md`.

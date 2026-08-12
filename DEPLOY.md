@@ -85,6 +85,10 @@ OPENAI_API_KEY
 
 ## Supabase (Migrations)
 
+**Any change that adds a column to a query must include and apply its migration before the code ships.**
+The authorized `/api/health` response checks the columns selected by the admin audit query, but it
+is a diagnostic, not a migration runner.
+
 List pending migrations:
 
 ```powershell

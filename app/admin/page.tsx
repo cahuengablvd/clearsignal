@@ -10,6 +10,7 @@ import { Loader2, RefreshCw, ExternalLink, LogIn, X, Plus } from 'lucide-react'
 import { pollAuditStatus } from '@/lib/audit-polling'
 import { normalizeWebsiteUrl } from '@/lib/normalize-url'
 import { BAND_LABEL, bandFor } from '@/lib/audit-bands'
+import { adminSessionState } from '@/lib/admin-session'
 
 type Audit = {
   id: string
@@ -78,6 +79,11 @@ type Audit = {
   last_rerendered_at?: string | null
   last_delivered_at?: string | null
   last_activity_at?: string | null
+  app_commit?: string | null
+  expected_engine_version?: string | null
+  engine_version?: string | null
+  engine_commit?: string | null
+  engine_version_drift?: boolean
 }
 
 const emptyForm = {
@@ -569,17 +575,26 @@ export default function AdminPage() {
     // Resolve the existing session BEFORE deciding what to draw. Rendering the
     // login form first and swapping it for the list a second later is why the
     // operator could not tell when a password would be required.
-    fetch('/api/admin/audits')
-      .then((res) => {
-        if (!res.ok) return null
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/admin/audits', { cache: 'no-store' })
+        const session = adminSessionState(res.status)
+        setAuthed(session.authed)
+        setLoadError(session.loadError)
+        if (!session.authed || session.loadError) return
+
+        // A server failure does not prove the session is invalid. Keep the
+        // operator in the admin surface so the real error remains visible.
+        const data = await res.json()
+        setAudits((data.audits || []) as Audit[])
+      } catch {
         setAuthed(true)
-        return res.json()
-      })
-      .then((data) => {
-        if (data) setAudits(data.audits)
-      })
-      .catch(() => {})
-      .finally(() => setCheckingSession(false))
+        setLoadError('Could not reach the server. Check your connection and retry.')
+      } finally {
+        setCheckingSession(false)
+      }
+    }
+    void checkSession()
   }, [])
 
   if (checkingSession) {
@@ -1027,6 +1042,14 @@ export default function AdminPage() {
                         {formatDate(audit.last_delivered_at) && (
                           <span>Delivered: {formatDate(audit.last_delivered_at)}</span>
                         )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span>App: {audit.app_commit || 'not recorded'}</span>
+                        <span className={audit.engine_version_drift ? 'font-semibold text-amber-700' : undefined}>
+                          Engine: {audit.engine_version || 'not recorded'}
+                          {audit.engine_commit ? ` (${audit.engine_commit.slice(0, 7)})` : ''}
+                          {audit.engine_version_drift ? ` \u2014 expected ${audit.expected_engine_version}` : ''}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">

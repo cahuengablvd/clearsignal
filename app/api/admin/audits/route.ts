@@ -5,6 +5,7 @@ import { trySignToken } from '@/lib/tokens'
 // Shared with the admin screen so the order and the band headers cannot drift.
 import { statusPriority } from '@/lib/audit-bands'
 import { buildAdminEngineCoverage } from '@/lib/admin-engine-coverage'
+import { ADMIN_AUDIT_SELECT } from '@/lib/admin-audit-schema'
 
 function lastActivityAt(audit: {
   created_at: string
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
 
   const { data: audits, error } = await supabaseAdmin
     .from('audits')
-    .select('id, created_at, email, url, payment_status, audit_status, tier, admin_notes, reviewer_note, api_cost_usd, api_cost_breakdown, last_generated_at, last_rerendered_at, last_delivered_at, report, quality')
+    .select(ADMIN_AUDIT_SELECT)
     .order('created_at', { ascending: false })
     // Fetch a wider window before in-memory priority sorting so regenerated
     // older audits can still float to the top during review batches.
@@ -79,6 +80,12 @@ export async function GET(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: 'Failed to fetch audits' }, { status: 500 })
   }
+
+  // This must be configured on Vercel to make drift visible in the admin UI.
+  // It is deliberately not inferred from the app commit: the worker deploy is
+  // an independent manual action.
+  const expectedEngineVersion = process.env.TRIGGER_VERSION || null
+  const appCommit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || null
 
   const auditIds = (audits || []).map((audit) => audit.id)
   const [{ data: aiLogs }, { data: stageExecutions }] = auditIds.length
@@ -165,6 +172,9 @@ export async function GET(req: NextRequest) {
       ? report.validation_warnings.length
       : 0
     const has_report = Boolean(a.report)
+    const generationMeta = (a.report as { meta?: { engine_version?: string; engine_commit?: string } } | null)?.meta
+    const engine_version = generationMeta?.engine_version || null
+    const engine_commit = generationMeta?.engine_commit || null
     const engine_coverage_summary = buildAdminEngineCoverage(a.report)
     const { report: _report, quality: _quality, ...audit } = a
     const last_activity_at = lastActivityAt(a)
@@ -173,6 +183,11 @@ export async function GET(req: NextRequest) {
       return {
         ...audit,
         has_report,
+        app_commit: appCommit,
+        expected_engine_version: expectedEngineVersion,
+        engine_version,
+        engine_commit,
+        engine_version_drift: Boolean(expectedEngineVersion && engine_version && engine_version !== expectedEngineVersion),
         last_activity_at,
         validation_repair_count,
         quality_summary: qualitySummary(a.quality),
@@ -184,6 +199,11 @@ export async function GET(req: NextRequest) {
     return {
       ...audit,
       has_report,
+      app_commit: appCommit,
+      expected_engine_version: expectedEngineVersion,
+      engine_version,
+      engine_commit,
+      engine_version_drift: Boolean(expectedEngineVersion && engine_version && engine_version !== expectedEngineVersion),
       last_activity_at,
       validation_repair_count,
       quality_summary: qualitySummary(a.quality),

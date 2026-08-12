@@ -290,9 +290,13 @@ export function computeTechnicalFindings(input: {
   }
 
   // 5. Social proof (indirect) -------------------------------------------------
-  const proofRe = /trusted by|testimonial|case stud(?:y|ies)|customer logos?|rated|reviews?|\bg2\b|capterra/i
-  if (proofRe.test(bodyHtml)) {
-    const m = firstMatch(proofRe, bodyHtml)
+  // Only visible text can support this finding. Generic proof words and first-party
+  // review language are not enough to establish a third-party endorsement.
+  const visibleBodyText = stripTags(bodyHtml)
+  const proofRe =
+    /\b(?:g2|capterra|trustpilot|clutch)\b|\brated\s+\d|\b\d(?:\.\d)?\s*(?:\/|out of)\s*5\b|\bstar rating\b|\btrusted by\b\s+[A-Z0-9][A-Za-z0-9&.'-]*(?:\s*(?:,|and)\s*[A-Z0-9][A-Za-z0-9&.'-]*)*|["\u201c][^"\u201d]{8,}["\u201d]\s*(?:\u2014|--|-)\s*[A-Z][A-Za-z.'-]+\s+[A-Z][A-Za-z.'-]+/i
+  if (proofRe.test(visibleBodyText)) {
+    const m = firstMatch(proofRe, visibleBodyText)
     findings.push({
       id: 'social_proof',
       label: 'Social proof signals',
@@ -322,7 +326,7 @@ export function computeTechnicalFindings(input: {
     html
   )
   const faqQuestionHeading = /<h[1-4][^>]*>[^<]*\?\s*<\/h[1-4]>/i
-  const faqKeyword = /frequently asked questions|\bFAQ\b/i
+  const faqKeyword = /\bfrequently asked questions\b|\bFAQ\b/i
   if (faqJsonLd || faqQuestionHeading.test(bodyHtml)) {
     findings.push({
       id: 'faq_structure',

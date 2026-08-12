@@ -314,7 +314,7 @@ describe('deterministic technical findings', () => {
 
     const visibleProof = computeTechnicalFindings({
       url,
-      html: '<html><body><section><h2>Customer testimonials</h2><p>Trusted by teams worldwide.</p></section></body></html>',
+      html: '<html><body><section><p>"ClearSignal saved us hours" - Jane Doe, Head of SEO at Acme</p></section></body></html>',
       markdown: '',
     })
     expect(visibleProof.find((f) => f.id === 'social_proof')?.status).toBe('present')
@@ -326,6 +326,40 @@ describe('deterministic technical findings', () => {
       markdown: '',
     })
     expect(faqJsonLd.find((f) => f.id === 'faq_structure')?.status).toBe('present')
+  })
+
+  it('does not infer social proof from first-party review language or markup attributes', () => {
+    const findings = computeTechnicalFindings({
+      url,
+      html: '<html><body><p>Expert-reviewed audit</p><div id="audit-preview"></div></body></html>',
+      markdown: '',
+    })
+    expect(findings.find((f) => f.id === 'social_proof')?.status).toBe('unknown')
+  })
+
+  it('does not infer social proof from ordinary words containing old proof keywords', () => {
+    const findings = computeTechnicalFindings({
+      url,
+      html: '<html><body><p>The report is generated, integrated, and curated for your team.</p></body></html>',
+      markdown: '',
+    })
+    expect(findings.find((f) => f.id === 'social_proof')?.status).toBe('unknown')
+  })
+
+  it('detects named testimonials and review platforms as social proof', () => {
+    const namedTestimonial = computeTechnicalFindings({
+      url,
+      html: '<html><body><p>"ClearSignal saved us hours" - Jane Doe, Head of SEO at Acme</p></body></html>',
+      markdown: '',
+    })
+    const reviewPlatform = computeTechnicalFindings({
+      url,
+      html: '<html><body><p>Read our customer feedback on Trustpilot.</p></body></html>',
+      markdown: '',
+    })
+
+    expect(namedTestimonial.find((f) => f.id === 'social_proof')?.status).toBe('present')
+    expect(reviewPlatform.find((f) => f.id === 'social_proof')?.status).toBe('present')
   })
 
   it('every finding matches the schema and carries evidence.checked_at', () => {

@@ -10,17 +10,17 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-14. R27 is deployed; verification of the affected prospect audit remains.
+**Last updated:** 2026-08-14. R28/R29 competitor and cited-source hygiene is deployed; production-report verification remains.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260814.2`**, deployed from `C:\csdeploy` at commit `f9686ba`,
-  5 tasks. Carries R27: a usable implementation brief without acceptance criteria now saves and
-  exports with a validation warning; deterministic report-validation failures are not retried.
-  Re-run `vertexspain.com` to verify the original failure completes and produces a PDF. Anything
-  touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts
-  needs a Trigger deploy or it is not live.
+- **Trigger.dev** — version **`20260814.5`**, deployed from `C:\csdeploy` at commit `126be3c`,
+  5 tasks. Carries R28/R29: discovered answer-engine names cannot appear as competitors, and cited
+  domains use public-suffix-aware normalization. Re-run `9ba2d5ec` (`snoika.com`) and `28ca503b`
+  (ClearSignal) to confirm no engine is shown as a competitor and no cited source is a bare suffix.
+  Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
+  prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
   on a version mismatch. See `DEPLOY.md`.
 

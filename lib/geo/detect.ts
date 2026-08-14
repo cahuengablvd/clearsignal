@@ -7,22 +7,21 @@
  * downstream. Everything here is reproducible from the saved evidence.
  */
 
-/** Registrable-ish domain: strip protocol, path, www, and any subdomain. */
+import { getDomain } from 'tldts'
+
+/** Registrable domain according to the public suffix list, or an empty string. */
 export function registrableDomain(input: string): string {
-  let host = input.trim().toLowerCase()
+  const value = input.trim().toLowerCase()
+  if (!value) return ''
+  if (!value.includes('.')) return value
+
   try {
-    if (host.includes('://')) host = new URL(host).hostname
-    else if (host.includes('/')) host = new URL('https://' + host).hostname
+    const host = value.includes('://') ? new URL(value).hostname : new URL(`https://${value}`).hostname
+    // getDomain returns null for a bare public suffix (for example, co.uk).
+    return getDomain(host, { allowPrivateDomains: true }) || ''
   } catch {
-    // fall through with raw string
+    return ''
   }
-  host = host.replace(/^www\./, '')
-  const parts = host.split('.')
-  if (parts.length > 2) {
-    // Keep last two labels (good enough for .com/.io/.ai; misses some ccTLDs).
-    return parts.slice(-2).join('.')
-  }
-  return host
 }
 
 /** Second-level label, e.g. "acme" from "acme.com" or a bare name. */

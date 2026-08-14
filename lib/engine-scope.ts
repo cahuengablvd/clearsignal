@@ -9,6 +9,28 @@ const PUBLIC_ENGINE_NAMES: Record<EngineId, string> = {
   perplexity: 'Perplexity',
 }
 
+// Answer engines are measurement instruments, never inferred competitors.
+// Keep their public product and vendor names beside the engine registry so the
+// GEO pipeline does not grow an unrelated hardcoded exclusion list.
+const ANSWER_ENGINE_COMPETITOR_NAMES = [
+  'OpenAI',
+  'ChatGPT',
+  'Anthropic',
+  'Claude',
+  'Perplexity',
+  'Google',
+  'Gemini',
+  'Google AI Overviews',
+  'AI Mode',
+  'Microsoft',
+  'Copilot',
+] as const
+
+/** Public answer-engine names that must not be inferred as competitors. */
+export function answerEngineCompetitorNames(): readonly string[] {
+  return ANSWER_ENGINE_COMPETITOR_NAMES
+}
+
 const PUBLIC_ENGINE_ORDER: EngineId[] = ['openai', 'claude', 'perplexity']
 
 function formatPublicEngineNames(engines: readonly EngineId[]): string {

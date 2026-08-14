@@ -37,6 +37,7 @@ import { buildQueryAnalysis, classifyQueryIntent } from './query-taxonomy'
 import { scrapeUrl } from '../firecrawl'
 import { normalizeMarkdown } from '../normalize-markdown'
 import { boundSampleClaims } from '../sanitize'
+import { answerEngineCompetitorNames } from '../engine-scope'
 import {
   buildVariants,
   textMentions,
@@ -49,6 +50,10 @@ import {
 
 const SCORE_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
 const ANSWER_EXCERPT_LIMIT = 700
+
+function competitorKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
 
 export function formatEngineList(engines: string[]): string {
   const names = engines.map((e) => {
@@ -211,6 +216,9 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     .filter(Boolean)
     .map((c) => ({ name: prettyName(c), variants: buildVariants({ url: c, name: prettyName(c) }) }))
 
+  // Explicit operator input wins. Only inferred names are filtered.
+  const answerEngineCompetitorKeys = new Set(answerEngineCompetitorNames().map(competitorKey))
+
   if (discoverCompetitors) {
     try {
       const { competitors: discovered } = await callClaudeJSON<{ competitors: string[] }>({
@@ -226,7 +234,9 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       for (const name of discovered) {
         const key = sld(name) || name.toLowerCase()
         if (!key || key === sld(brandDomain)) continue
-        if (competitorList.some((c) => sld(c.name) === key || c.name.toLowerCase() === name.toLowerCase())) continue
+        if (name.includes('.') && !registrableDomain(name)) continue
+        if (answerEngineCompetitorKeys.has(competitorKey(name))) continue
+        if (competitorList.some((c) => sld(c.name) === key || competitorKey(c.name) === competitorKey(name))) continue
         competitorList.push({ name, variants: buildVariants({ name }) })
       }
     } catch (err) {

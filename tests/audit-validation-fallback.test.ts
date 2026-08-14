@@ -10,7 +10,7 @@ describe('audit validation fallback', () => {
       action: { executive_summary: 'Example was reviewed.', top_fixes: [] },
       implementation_briefs: Array.from({ length: 5 }, (_, index) => ({
         fix_title: `Fix ${index + 1}`,
-        steps: ['Apply the verified update.'],
+        steps: ['Apply the verified update.', 'Check the published page against the source evidence.'],
         acceptance_criteria: index === 4 ? [] : ['Done when the verified update is live.'],
       })),
     } as any
@@ -18,7 +18,10 @@ describe('audit validation fallback', () => {
     const validation = finalizeReportValidation(report)
 
     expect(validation.errors).toEqual([])
-    expect(validation.report.implementation_briefs?.[4]?.steps).toEqual(['Apply the verified update.'])
+    expect(validation.report.implementation_briefs?.[4]?.steps).toEqual([
+      'Apply the verified update.',
+      'Check the published page against the source evidence.',
+    ])
     expect(validation.warnings).toContain('implementation_briefs.4.acceptance_criteria: missing; rendered without acceptance criteria')
   })
 })

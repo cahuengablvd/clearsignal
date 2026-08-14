@@ -229,3 +229,39 @@ unless you are investigating a regression in one of them.
 - Never fix by having the model invent criteria, and do not weaken `validateStringArrayFields`.
 - Spec: `TASKS_BRIEF_VALIDATION.md`.
 
+## R28 — The engines we test are listed as "who AI recommends instead" (customer-visible)
+
+- Seen: 2026-08-14, audit `9ba2d5ec` (`snoika.com`). The block reads
+  `ChatGPT 50% · Perplexity 25% · Google AI Overviews 17% · Gemini 17% · Ahrefs 8% · SEMrush 8%` —
+  four of six rows are the answer engines themselves. Same shape in our own audit `28ca503b`.
+- Cause: competitor discovery (`lib/geo/index.ts:216`) extracts brand names from answers that are
+  full of engine names; the dedupe at `:227` excludes only the audited brand and the operator's
+  list. Nothing excludes the engines under test, whose names are in our own config.
+- Reads to a client as "AI recommends ChatGPT instead of you" — not a competitive finding, in the
+  most-read table of the report. Worst in the AI-visibility category, i.e. our own vertical.
+- Fix: exclude engines under test and their vendor product names, built from the existing engine
+  registry, matched case/punctuation-insensitively. Do not exclude general SEO vendors (Ahrefs,
+  Semrush) — for an SEO product they are real competitors. An operator-supplied name always wins.
+- Spec: `TASKS_COMPETITOR_HYGIENE.md`.
+
+## R29 — A public suffix is printed as a cited source
+
+- Seen: 2026-08-14, audit `9ba2d5ec`. "Sources AI cites most" lists **`co.uk` 2x** beside real
+  domains. `co.uk` is a public suffix; the real host was truncated to it, so the row is wrong and
+  the reader cannot open it.
+- Same family as the `R19` addendum (`Com` at 15% from `com.mt`), one block over: that fix covered
+  competitor names, not `cited_domains_ranked` (`lib/geo/index.ts:322`).
+- Fix: a registrable domain is at minimum `label + suffix`; anything reducing to a bare suffix must
+  not become a row. Prefer the full host from the citation URL. If the host cannot be recovered,
+  drop the row — a missing source is invisible, a fake one is the first thing a reader sees.
+- Spec: `TASKS_COMPETITOR_HYGIENE.md`.
+
+## R30 — A third of engine-query combinations failed in one run (observation, unexplained)
+
+- Seen: 2026-08-14, audit `9ba2d5ec`: 12 of 18 combinations successful, 6 failed or skipped. Our own
+  `28ca503b` failed 3 of 18 in the same period.
+- Not yet diagnosed. The report discloses the count honestly, so this is a coverage-quality issue,
+  not a correctness one — but a third of the measurement missing weakens every rate in the report.
+- Next step when picked up: identify from the run logs whether one engine drops out systematically
+  (rate limit, timeout, provider error) or the failures are spread.
+

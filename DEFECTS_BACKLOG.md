@@ -204,3 +204,28 @@ unless you are investigating a regression in one of them.
      the same step, and the deploy checklist in `DEPLOY.md` should say so.
 - Immediate unblock: `alter table audits add column if not exists reviewer_note text;`
 - Acceptance: with the API returning 500, the admin shows an error, not "No audits yet".
+
+## R27 — One empty list in one brief destroys the whole audit (LAUNCH BLOCKER)
+
+- Seen: 2026-08-14, audit of `vertexspain.com`. `Report validation blocked PDF export: empty_field at
+  implementation_briefs.4.acceptance_criteria`, twice (the second is the recovery retry). No PDF, no
+  web report, no partial delivery — after the run had already spent its API budget. The only missing
+  content was the "Done when …" list in the fifth of five briefs.
+- Root cause: three rules in `lib/report-validator.ts` disagree. The repair pass (`:908`) keeps a
+  brief with a title and *either* steps or acceptance criteria; `validateActionUsability` (`:938`)
+  errors only when both are empty; but `:977` errors whenever `acceptance_criteria.length === 0`.
+  The shape one pass deliberately preserves, the next treats as fatal.
+- `degradeValidationErrors` (`lib/audit-runner.ts:390`) cannot repair it: the error path ends in a
+  field name, not an array index, so `removeArrayItemAtPath` misses and `setFallbackAtPath` cannot
+  fill an empty list. Degradation runs, changes nothing, and `:806` throws.
+- The retry is pointless and doubles the cost: `lib/audit-recovery.ts:41` treats every
+  `Report validation blocked` as retryable, but this failure is deterministic.
+- Commercial harm: a customer pays €149, the analysis is complete and usable, and they receive
+  nothing. Withholding a correct report because one appendix lacks a checklist is worse than
+  shipping the brief without it. Fires hardest on thin sites — exactly our buyers.
+- Fix: empty `acceptance_criteria` on an otherwise usable brief is a warning; render the brief
+  without that section; a degraded structural emptiness must save with the note in
+  `validation_warnings` instead of throwing; do not retry an identical validation block.
+- Never fix by having the model invent criteria, and do not weaken `validateStringArrayFields`.
+- Spec: `TASKS_BRIEF_VALIDATION.md`.
+

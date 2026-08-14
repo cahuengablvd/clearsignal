@@ -28,4 +28,12 @@ describe('report print and delivery guidance', () => {
     expect(jsonLdCard).toContain('Google Rich Results Test')
     expect(jsonLdCard).toContain('https://search.google.com/test/rich-results')
   })
+
+  it('renders an implementation brief without an empty acceptance-criteria section in web and print output', () => {
+    const page = source('app/audit/[id]/page.tsx')
+
+    expect(page).toContain('{b.steps.length > 0 && (')
+    expect(page).toContain('{b.acceptance_criteria.length > 0 && (')
+    expect(page).toContain('Acceptance criteria')
+  })
 })

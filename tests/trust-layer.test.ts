@@ -2886,7 +2886,7 @@ describe('sentence-level trust engine', () => {
     ]))
   })
 
-  it('warns on removed empty brief steps and flags briefs left without steps', () => {
+  it('keeps a brief with acceptance criteria after empty steps are removed', () => {
     const r = validateReport(
       ({
         meta: {
@@ -2910,8 +2910,46 @@ describe('sentence-level trust engine', () => {
       }) as any
     )
 
-    expect(r.errors).toContain('empty_field at implementation_briefs.0.steps')
+    expect(r.errors).toEqual([])
     expect(r.warnings).toContain('implementation_briefs.0.steps: dropped empty step')
+  })
+
+  it('keeps a steps-only implementation brief and records the missing checklist as a warning', () => {
+    const r = validateReport(({
+      meta: { url: 'https://example.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated', canonical_brand: 'Example' },
+      clarity: {},
+      gap: { competitor_analysis: [] },
+      action: { executive_summary: 'Example was reviewed.', top_fixes: [] },
+      implementation_briefs: [{
+        fix_title: 'Add source-backed proof',
+        steps: ['Add only proof the business can verify.'],
+        acceptance_criteria: [],
+      }],
+    }) as any)
+
+    expect(r.errors).toEqual([])
+    expect(r.report.implementation_briefs).toHaveLength(1)
+    expect(r.report.implementation_briefs?.[0]?.steps).toEqual(['Add only proof the business can verify.'])
+    expect(r.warnings).toContain('implementation_briefs.0.acceptance_criteria: missing; rendered without acceptance criteria')
+  })
+
+  it('still rejects blank strings inside an implementation brief checklist', () => {
+    const r = validateReport(({
+      meta: { url: 'https://example.com', generated_at: '', icp_description: '', competitors: [], tier: 'automated', canonical_brand: 'Example' },
+      clarity: {},
+      gap: { competitor_analysis: [] },
+      action: { executive_summary: 'Example was reviewed.', top_fixes: [] },
+      implementation_briefs: [{
+        fix_title: 'Add source-backed proof',
+        steps: ['Add only proof the business can verify.'],
+        acceptance_criteria: ['', '  '],
+      }],
+    }) as any)
+
+    expect(r.errors).toEqual(expect.arrayContaining([
+      'empty_field at implementation_briefs.0.acceptance_criteria.0',
+      'empty_field at implementation_briefs.0.acceptance_criteria.1',
+    ]))
   })
 
   it('drops duplicate outreach channels from stored reports', () => {

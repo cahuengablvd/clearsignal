@@ -640,6 +640,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     return out
   }
 
+  validateBlankAcceptanceCriteria(report, errors)
   const walked = mapProse(report, repair) as ClearSignalReport
   rebuildReadyMaterials(walked, warn)
   dropReplacementOnlyBriefSteps(walked, warn)
@@ -866,6 +867,16 @@ function dropEmptyNarrativeArrayItems(report: ClearSignalReport, warn: (m: strin
   }
 }
 
+function validateBlankAcceptanceCriteria(report: ClearSignalReport, errors: string[]): void {
+  report.implementation_briefs?.forEach((brief, briefIndex) => {
+    brief.acceptance_criteria?.forEach((criterion, criterionIndex) => {
+      if (typeof criterion === 'string' && criterion.trim().length === 0) {
+        errors.push(`empty_field at implementation_briefs.${briefIndex}.acceptance_criteria.${criterionIndex}`)
+      }
+    })
+  })
+}
+
 function dropEmptyActionItems(report: ClearSignalReport, warn: (m: string) => void): void {
   if (Array.isArray(report.action?.top_fixes)) {
     report.action.top_fixes = report.action.top_fixes.map((fix) => {
@@ -899,6 +910,12 @@ function dropEmptyActionItems(report: ClearSignalReport, warn: (m: string) => vo
       }
       if (Array.isArray(brief.acceptance_criteria) && acceptanceCriteria.length !== brief.acceptance_criteria.length) {
         warn(`implementation_briefs.${index}.acceptance_criteria: dropped empty acceptance criterion`)
+      }
+      // A brief remains useful when it has actionable steps, even if the model
+      // could not supply a verifiable completion checklist. Keep that absence
+      // visible to the reviewer without fabricating criteria or blocking export.
+      if (steps.length > 0 && acceptanceCriteria.length === 0) {
+        warn(`implementation_briefs.${index}.acceptance_criteria: missing; rendered without acceptance criteria`)
       }
       return {
         ...brief,
@@ -971,12 +988,6 @@ function validateEmptyClientFields(report: ClearSignalReport, errors: string[]):
 
   report.implementation_briefs?.forEach((brief, index) => {
     validateStringField(brief.fix_title, `implementation_briefs.${index}.fix_title`, errors)
-    if (Array.isArray(brief.steps) && brief.steps.length === 0) {
-      errors.push(`empty_field at implementation_briefs.${index}.steps`)
-    }
-    if (Array.isArray(brief.acceptance_criteria) && brief.acceptance_criteria.length === 0) {
-      errors.push(`empty_field at implementation_briefs.${index}.acceptance_criteria`)
-    }
     validateStringArrayFields(brief.steps, `implementation_briefs.${index}.steps`, errors)
     validateStringArrayFields(brief.acceptance_criteria, `implementation_briefs.${index}.acceptance_criteria`, errors)
   })

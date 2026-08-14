@@ -401,6 +401,13 @@ function degradeValidationErrors(report: ClearSignalReport, errors: string[]): C
     if (!pathText || pathText === 'report') continue
     const path = pathText.split('.')
 
+    // The validator has already removed a blank list item before it reports
+    // this path. Do not use the old index against the compacted list and risk
+    // deleting a neighbouring valid instruction.
+    if (/^empty_field at implementation_briefs\.\d+\.(?:steps|acceptance_criteria)\.\d+$/i.test(error)) {
+      continue
+    }
+
     if (/empty action item/i.test(error) || /empty implementation brief|empty fix_title/i.test(error)) {
       removeArrayItemAtPath(root, path)
       continue
@@ -411,6 +418,49 @@ function degradeValidationErrors(report: ClearSignalReport, errors: string[]): C
   }
 
   return degraded
+}
+
+function isResidualStructuralValidationError(error: string): boolean {
+  return /^(?:empty_field at |(?:action\.top_fixes|implementation_briefs)\.\d+: empty (?:action item|implementation brief|fix_title))/i.test(error)
+}
+
+/**
+ * Preserve an otherwise safe report if the deterministic degradation pass cannot
+ * remove a structural empty field. Content-safety and factual validation errors
+ * remain fatal; this narrow fallback exists so a missing optional sub-list does
+ * not discard an entire paid deliverable.
+ */
+export function finalizeReportValidation(report: ClearSignalReport) {
+  let validation = validateReport(report)
+  let degradedForValidation = false
+  if (validation.errors.length) {
+    const degraded = degradeValidationErrors(validation.report, validation.errors)
+    const degradedValidation = validateReport(degraded)
+    degradedForValidation = true
+    validation = {
+      ...degradedValidation,
+      warnings: [
+        ...validation.errors.map((e) => `validation_degraded: ${e}`),
+        ...validation.warnings,
+        ...degradedValidation.warnings,
+      ],
+      errors: degradedValidation.errors,
+    }
+  }
+
+  const residualStructuralErrors = validation.errors.filter(isResidualStructuralValidationError)
+  if (residualStructuralErrors.length) {
+    validation = {
+      ...validation,
+      warnings: [
+        ...validation.warnings,
+        ...residualStructuralErrors.map((e) => `validation_unresolved_structural: ${e}`),
+      ],
+      errors: validation.errors.filter((error) => !isResidualStructuralValidationError(error)),
+    }
+  }
+
+  return { ...validation, degradedForValidation }
 }
 
 async function currentAdminNotes(auditId: string, fallback?: string | null): Promise<string | null | undefined> {
@@ -781,22 +831,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
 
     // 7b. Deterministic contradiction/artifact validation (post-sanitizer,
     // pre-save). Repairs in place; never throws on content problems.
-    let validation = validateReport(safeReport)
-    let degradedForValidation = false
-    if (validation.errors.length) {
-      const degraded = degradeValidationErrors(validation.report, validation.errors)
-      const degradedValidation = validateReport(degraded)
-      degradedForValidation = true
-      validation = {
-        ...degradedValidation,
-        warnings: [
-          ...validation.errors.map((e) => `validation_degraded: ${e}`),
-          ...validation.warnings,
-          ...degradedValidation.warnings,
-        ],
-        errors: degradedValidation.errors,
-      }
-    }
+    const { degradedForValidation, ...validation } = finalizeReportValidation(safeReport)
     if (validation.warnings.length || validation.errors.length) {
       console.warn(`Report validation for ${auditId}:`, {
         warnings: validation.warnings,

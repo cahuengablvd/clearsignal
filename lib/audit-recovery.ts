@@ -38,7 +38,9 @@ export interface RecoverySummary {
 
 export function isDeterministicAuditFailure(notes: string | null | undefined): boolean {
   if (!notes) return false
-  return /zod|schema|invalid enum|invalid literal|expected .* received|Claude output failed validation|Report validation blocked/i.test(notes)
+  // A report-validation block is deterministic for the stored payload. Retrying
+  // generation immediately only repeats the same failure and spends the budget.
+  return /Report validation blocked/i.test(notes) || /zod|schema|invalid enum|invalid literal|expected .* received|Claude output failed validation/i.test(notes)
 }
 
 export function recoveryAttemptsExhausted(attempts: number | null | undefined): boolean {

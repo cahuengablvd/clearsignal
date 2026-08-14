@@ -7,9 +7,10 @@ import {
 } from '../lib/audit-recovery'
 
 describe('audit recovery guard', () => {
-  it('treats schema and zod failures as deterministic non-retry failures', () => {
+  it('treats schema and repeated report-validation failures as deterministic non-retry failures', () => {
     expect(isDeterministicAuditFailure('Claude output failed validation after retry: ZodError: invalid enum value')).toBe(true)
     expect(isDeterministicAuditFailure('Report validation blocked PDF export: replacement_phrase at action.top_fixes.0')).toBe(true)
+    expect(isDeterministicAuditFailure('Report validation blocked PDF export: empty_field at implementation_briefs.4.acceptance_criteria')).toBe(true)
     expect(isDeterministicAuditFailure('Network timeout while calling Trigger.dev')).toBe(false)
   })
 

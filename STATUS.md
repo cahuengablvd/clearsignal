@@ -10,17 +10,17 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-12. The code sprint is closed; what remains is the owner's.
+**Last updated:** 2026-08-14. R27 is deployed; verification of the affected prospect audit remains.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260812.4`**, deployed from `C:\csdeploy` at commit `abc4acb`,
-  5 tasks. Carries the R25/R26 crawl fixes plus the 2026-08-12 hygiene pass and social-proof
-  detector fix. Regenerated audit `28ca503b` verified `OBS-PROOF-001` is now `unknown` (45%),
-  not `present`. The engine version is now stamped from `ctx.deployment.version`; one
-  regeneration is still needed to see it land in a report. Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`,
-  `trigger/*` or prompts needs a Trigger deploy or it is not live.
+- **Trigger.dev** — version **`20260814.2`**, deployed from `C:\csdeploy` at commit `f9686ba`,
+  5 tasks. Carries R27: a usable implementation brief without acceptance criteria now saves and
+  exports with a validation warning; deterministic report-validation failures are not retried.
+  Re-run `vertexspain.com` to verify the original failure completes and produces a PDF. Anything
+  touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts
+  needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
   on a version mismatch. See `DEPLOY.md`.
 

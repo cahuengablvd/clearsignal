@@ -10,15 +10,15 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-14. R28/R29 competitor and cited-source hygiene is deployed; production-report verification remains.
+**Last updated:** 2026-08-15. Plain-report generation is deployed and verified; R28/R29 production verification remains.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260814.5`**, deployed from `C:\csdeploy` at commit `126be3c`,
-  5 tasks. Carries R28/R29: discovered answer-engine names cannot appear as competitors, and cited
-  domains use public-suffix-aware normalization. Re-run `9ba2d5ec` (`snoika.com`) and `28ca503b`
-  (ClearSignal) to confirm no engine is shown as a competitor and no cited source is a bare suffix.
+- **Trigger.dev** — version **`20260815.3`**, deployed from `C:\csdeploy` at commit `a2dff61`,
+  5 tasks. Carries R28/R29 plus the plain-language report prompts. Re-run `9ba2d5ec` (`snoika.com`)
+  and `28ca503b` (ClearSignal) to confirm no engine is shown as a competitor and no cited source is a
+  bare suffix.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
@@ -68,6 +68,11 @@ a handler is written. Three or more agencies raising it means a positioning prob
 
 ## Verification standing
 
+- `vertexspain.com` (audit `beb637a8`) — regenerated on Trigger `20260815.3`. The executive summary,
+  clarity findings and surviving fix descriptions pass the deterministic plain-language limits;
+  the summary is repeatable from memory. The audit remains `awaiting_review`: sanitizer dropped one
+  empty generated fix (4 remain) and recorded schema-deliverable warnings, separate from the style
+  task and requiring human review before any delivery.
 - `jusukosmetologs.lv` (audit `5d53a488`) — 18/18 engine coverage, mechanically clean.
   **This is the report to show people:** cited 7x (second in its niche) yet named in only 4 of 18
   answers, while the leader is recommended in 33%. Read by AI, not recommended by it — the exact

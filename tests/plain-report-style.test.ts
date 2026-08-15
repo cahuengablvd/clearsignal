@@ -94,7 +94,9 @@ describe('plain report prompt contract', () => {
     expect(prompt).toContain('Do not open with a sentence that only says the brand was reviewed')
     expect(prompt).toContain('exactly 4 sentences')
     expect(prompt).toContain('Each sentence must contain at most 18 words')
+    expect(prompt).toContain('choose "may", "might", or "could", never two')
     expect(prompt).toContain('Do not put evidence IDs in prose')
+    expect(prompt).toContain('Return five complete, publishable fixes')
   })
 })
 

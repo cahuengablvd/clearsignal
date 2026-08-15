@@ -32,7 +32,7 @@ export const PLAIN_LANGUAGE_GUIDANCE = `Write for the business owner in plain la
 - Split long sentences instead of joining ideas with semicolons or em-dash clauses. Omit secondary detail when needed.
 - Name the specific brand, competitor, engine, page element, or buyer situation instead of using an abstraction.
 - Do not use consultant filler: "leverage", "holistic", "robust", "best-in-class", "synergy", "highest-leverage path", or "represents an opportunity to".
-- Use no more than one hedge in a sentence. Keep every observational qualifier required by the evidence boundary.
+- Use no more than one hedge in a sentence. Choose only one of "may", "might", "could", "appears to", "seems to", or "potentially"; never pair two. Keep every observational qualifier required by the evidence boundary.
 - When a measured number is allowed in the field, use it instead of a vague adjective. Never invent or recompute a number.
 - Write to the business owner using "you" where the surrounding copy already does.
 - Cut throat-clearing that only says analysis happened or improvements are available. State the finding or action directly.
@@ -493,7 +493,8 @@ Write the executive summary in exactly 4 sentences. Each sentence must contain a
 4. End with the single first action.
 The first sentence must name the brand, a competitor, an engine, a tested buyer situation, or a measured number. Do not open with a sentence that only says the brand was reviewed.
 Keep every non-ai_search fix description to one sentence of at most 18 words.
-For ai_search fixes, keep each observed, inferred, and recommended sentence to at most 18 words. Do not put evidence IDs in prose.
+For ai_search fixes, keep each observed, inferred, and recommended sentence to at most 18 words. The inferred sentence must use exactly one hedge: choose "may", "might", or "could", never two. Do not put evidence IDs in prose.
+Return five complete, publishable fixes. Never use a bracketed placeholder or leave a fix field empty.
 
 Return a JSON object with this exact structure:
 {

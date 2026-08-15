@@ -1,0 +1,23 @@
+{
+  "name": "golden",
+  "entities": ["Example Dental", "Bright Smile", "City Dental"],
+  "action": {
+    "executive_summary": "Example Dental was named in 4 of 18 tested answers. The brand was absent from urgent-care buyer questions. Bright Smile and City Dental appeared instead. Add a verified emergency-care page first.",
+    "top_fixes": [
+      {
+        "description": "Add one emergency-care page that answers the tested urgent-care questions with verified details."
+      },
+      {
+        "description": "Place the clinic name and phone number in visible text beside the booking action."
+      }
+    ]
+  },
+  "clarity": {
+    "headline": {
+      "finding": "The headline names dental care but does not name the urgent-care service."
+    },
+    "cta": {
+      "finding": "The booking action is visible, but its label does not explain what happens next."
+    }
+  }
+}

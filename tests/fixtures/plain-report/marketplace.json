@@ -1,0 +1,23 @@
+{
+  "name": "marketplace",
+  "entities": ["Northstar Market", "ChatGPT", "Claude", "Harbor Supply"],
+  "action": {
+    "executive_summary": "Northstar Market was cited by Claude for its published buyer guide. The brand was absent from tested supplier-comparison questions. Harbor Supply appeared instead in those answers. Publish a verified supplier-comparison page first.",
+    "top_fixes": [
+      {
+        "description": "Publish a supplier-comparison page using only terms already verified by the business."
+      },
+      {
+        "description": "Add a visible route for suppliers who want to join Northstar Market."
+      }
+    ]
+  },
+  "clarity": {
+    "icp_visibility": {
+      "finding": "Buyers are named near the top, while suppliers receive no early direction."
+    },
+    "trust_proof": {
+      "finding": "The page shows customer quotes without dates or links to their sources."
+    }
+  }
+}

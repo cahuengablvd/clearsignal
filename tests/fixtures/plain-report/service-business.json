@@ -1,0 +1,23 @@
+{
+  "name": "service-business",
+  "entities": ["Riverside Moving", "Perplexity", "Metro Movers"],
+  "action": {
+    "executive_summary": "Riverside Moving names its service area and insurance status. It was absent from tested apartment-moving questions. Metro Movers appeared instead in Perplexity. Add a verified apartment-moving page first.",
+    "top_fixes": [
+      {
+        "description": "Add an apartment-moving page with verified service areas, constraints, and contact details."
+      },
+      {
+        "description": "Write the phone number as a visible tap-to-call link in the page header."
+      }
+    ]
+  },
+  "clarity": {
+    "messaging_fit": {
+      "finding": "The page lists moving services but does not connect them to apartment buyers."
+    },
+    "trust_proof": {
+      "finding": "Insurance is named, but the page gives no visible supporting detail."
+    }
+  }
+}

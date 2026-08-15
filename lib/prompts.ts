@@ -27,6 +27,14 @@ export const NO_FABRICATED_NUMBERS = `Do NOT invent performance numbers or busin
 export const EVIDENCE_BOUNDARY = `Use evidence-bounded language. Forbidden words/phrases: "leaking revenue", "direct revenue leak", "hemorrhaging", "functionally invisible", "completely invisible", "entirely absent from the AI answer layer", "catastrophic", "destroying", "disqualifying", "wasted", "destroys credibility", "conversion killer", "actively destroys", "actively destroying", "actively undermine". Say "may weaken", "was not detected in the crawled content", or "not found in X tested query-engine combinations". Do not make claims about YouTube, Reddit, directories, knowledge bases, Google AI Overviews, AI Mode, Claude, or any other source/engine unless that source/engine appears in the measured evidence you were given.`
 export const CLAIM_LEVELS = `Every substantive statement should fit one of these levels: Observed = directly measured in crawled HTML or engine-query evidence; Inferred = reasoned from comparison/evidence but not directly measured; Recommended = an action to consider. Do not present Inferred or Recommended items as facts.`
 export const SCHEMA_DELIVERABLE_BOUNDARY = `When recommending Schema.org types, distinguish the attached JSON-LD deliverable from client-side follow-up. Organization and FAQPage may be included in the attached JSON-LD. Any other recommended type must be explicitly labelled "Client-side implementation; not included in the attached JSON-LD" unless the supplied audit data says it is already included. Never imply that Review or AggregateRating is included without verified first-party review-source data.`
+export const PLAIN_LANGUAGE_GUIDANCE = `Write for the business owner in plain language.
+- Keep one idea per sentence. Target fewer than 20 words and never stack three subordinate clauses.
+- Name the specific brand, competitor, engine, page element, or buyer situation instead of using an abstraction.
+- Do not use consultant filler: "leverage", "holistic", "robust", "best-in-class", "synergy", "highest-leverage path", or "represents an opportunity to".
+- Use no more than one hedge in a sentence. Keep every observational qualifier required by the evidence boundary.
+- When a measured number is allowed in the field, use it instead of a vague adjective. Never invent or recompute a number.
+- Write to the business owner using "you" where the surrounding copy already does.
+- Cut throat-clearing that only says analysis happened or improvements are available. State the finding or action directly.`
 
 // --- Free Score ---
 export const SCORE_SYSTEM = `You are a B2B SaaS conversion expert.
@@ -128,6 +136,7 @@ Use the phrase "engine-query combinations" when summarizing total AI visibility 
 ${UNTRUSTED_GUARD}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
+${PLAIN_LANGUAGE_GUIDANCE}
 Return ONLY valid JSON matching the schema.`
 
 export function geoAnalysisUserPrompt(
@@ -338,6 +347,7 @@ ${UNTRUSTED_GUARD}
 ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
+${PLAIN_LANGUAGE_GUIDANCE}
 Return ONLY valid JSON matching the ClearSignalReport.clarity schema.`
 
 /** Tell the model the canonical company name so human-facing copy stays consistent. */
@@ -389,6 +399,7 @@ ${UNTRUSTED_GUARD}
 ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
+${PLAIN_LANGUAGE_GUIDANCE}
 Return ONLY valid JSON matching the ClearSignalReport.gap schema.`
 
 export function gapUserPrompt(
@@ -437,6 +448,7 @@ ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
 ${SCHEMA_DELIVERABLE_BOUNDARY}
+${PLAIN_LANGUAGE_GUIDANCE}
 Do not write numeric counts, percentages, or totals about the AI visibility test run; metrics are rendered separately from typed data.
 In outreach messages and the executive summary, never promise a specific lift (no "increase demo requests by 20%", no "$X revenue", no "3x"). Describe the expected direction of improvement qualitatively only.
 Outreach messages must not claim the page is costing money, losing revenue, wasting ad spend, or causing direct losses. Keep outreach diagnostic, specific, and non-alarmist.
@@ -472,9 +484,16 @@ ${temporalPrompt(referenceIso)}
 Compact GEO evidence catalog (aggregates and observed source characteristics only; no raw answers):
 ${geoCatalog ? JSON.stringify(geoCatalog) : '(not available)'}
 
+Write the executive summary in 3 or 4 short sentences, covering these points in this order:
+1. Start with the strongest thing observed to be working and name it concretely. If nothing was observed working, say that plainly.
+2. Say where the brand was absent by naming the tested buyer situations, not just a metric.
+3. Name the competitors that appeared instead. If none appeared, say so without inventing a name.
+4. End with the single first action. Combine adjacent points only when the evidence does not support a separate sentence.
+The first sentence must name the brand, a competitor, an engine, a tested buyer situation, or a measured number. Do not open with a sentence that only says the brand was reviewed.
+
 Return a JSON object with this exact structure:
 {
-  "executive_summary": "<string, 3-4 sentences>",
+  "executive_summary": "<string, 3-4 short sentences in the required order above>",
   "top_fixes": [{ "id": <number>, "title": "<string>", "description": "<one brief summary sentence; do not repeat the claim-level fields>", "impact": ${promptEnum(ACTION_FIX_IMPACTS)}, "effort": ${promptEnum(ACTION_FIX_EFFORTS)}, "category": ${promptEnum(ACTION_FIX_CATEGORIES)}, "observed": "<required for ai_search; one measured sentence, otherwise omit>", "inferred": "<required for ai_search; one explicitly non-causal sentence, otherwise omit>", "recommended": "<required for ai_search; one controlled-action sentence with a lower-control alternative when applicable, otherwise omit>", "evidence_ids": ["<catalog ID relevant to this fix>"] }],
   "ship_first": ["<string>"],
   "ignore_for_now": ["<string>"],

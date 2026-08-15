@@ -312,11 +312,15 @@ function SignalOverlay({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   )
 }
 
-function FloatingCard({ className, children }: { className?: string; children: React.ReactNode }) {
+function FloatingCard({ className, children, depth = 0 }: { className?: string; children: React.ReactNode; depth?: number }) {
   return (
     <div
       className={`absolute z-30 hidden rounded-xl border border-white/70 bg-white/55 px-4 py-2.5 shadow-[0_18px_40px_-20px_rgba(46,33,22,0.45)] lg:block ${className || ''}`}
-      style={{ backdropFilter: 'blur(18px) saturate(1.35)', WebkitBackdropFilter: 'blur(18px) saturate(1.35)' }}
+      style={{
+        backdropFilter: 'blur(18px) saturate(1.35)',
+        WebkitBackdropFilter: 'blur(18px) saturate(1.35)',
+        transform: depth ? `translateZ(${depth}px)` : undefined,
+      }}
     >
       {children}
     </div>
@@ -701,8 +705,31 @@ export default function LandingPage() {
   const [audience, setAudience] = useState(0)
   const [audiencePreview, setAudiencePreview] = useState<number | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [phoneTilt, setPhoneTilt] = useState({ x: 0, y: 0 })
+  const [hasDesktopParallax, setHasDesktopParallax] = useState(false)
   const engineScrollRef = useRef<HTMLDivElement>(null)
   const visibleAudience = audiencePreview ?? audience
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)')
+    const updateParallaxAvailability = () => setHasDesktopParallax(media.matches)
+    updateParallaxAvailability()
+    media.addEventListener('change', updateParallaxAvailability)
+    return () => media.removeEventListener('change', updateParallaxAvailability)
+  }, [])
+
+  const handlePhonePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const horizontal = (event.clientX - bounds.left) / bounds.width - 0.5
+    const vertical = (event.clientY - bounds.top) / bounds.height - 0.5
+    setPhoneTilt({ x: vertical * -7, y: horizontal * 7 })
+  }, [])
+
+  const resetPhoneTilt = useCallback(() => {
+    setPhoneTilt({ x: 0, y: 0 })
+  }, [])
 
   return (
     <div className="min-h-screen bg-[#FBF6EE]" style={{ color: ESPRESSO }}>
@@ -773,25 +800,34 @@ export default function LandingPage() {
               <div className="absolute hidden h-[24rem] w-[25rem] translate-y-[4.7rem] rotate-3 rounded-[3.4rem] border border-white/30 bg-white/[0.08] backdrop-blur-[4px] sm:block" />
             </div>
 
-            <div className="relative z-10 w-[280px] sm:w-[326px]">
-              <FloatingCard className="-left-24 top-14">
+            <div
+              className="relative z-10 w-[280px] sm:w-[326px]"
+              onPointerMove={hasDesktopParallax ? handlePhonePointerMove : undefined}
+              onPointerLeave={hasDesktopParallax ? resetPhoneTilt : undefined}
+              style={hasDesktopParallax ? {
+                transform: `perspective(1100px) rotateX(${phoneTilt.x}deg) rotateY(${phoneTilt.y}deg)`,
+                transformStyle: 'preserve-3d',
+                transition: phoneTilt.x || phoneTilt.y ? 'transform 85ms ease-out' : 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+              } : undefined}
+            >
+              <FloatingCard className="-left-24 top-14" depth={hasDesktopParallax ? 54 : 0}>
                 <div className="text-[10px] uppercase tracking-wider text-[#8D7B6B]">Mention rate</div>
                 <div className="mt-0.5 text-[18px] font-semibold" style={{ color: ESPRESSO }}>21% <span className="text-[11px] font-medium text-[#9B8A78]">of 14 queries</span></div>
               </FloatingCard>
-              <FloatingCard className="-right-20 top-36 flex items-center gap-2">
+              <FloatingCard className="-right-20 top-36 flex items-center gap-2" depth={hasDesktopParallax ? 72 : 0}>
                 <span className="flex h-5 w-5 items-center justify-center rounded-full text-white" style={{ backgroundColor: COPPER }}><Check className="h-3 w-3" strokeWidth={3} /></span>
                 <span className="text-[12.5px] font-medium">Cited by Perplexity</span>
               </FloatingCard>
-              <FloatingCard className="-left-16 bottom-36 flex items-center gap-2">
+              <FloatingCard className="-left-16 bottom-36 flex items-center gap-2" depth={hasDesktopParallax ? 42 : 0}>
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COPPER }} />
                 <span className="text-[12.5px] font-medium">3 priority fixes found</span>
               </FloatingCard>
-              <FloatingCard className="-right-14 bottom-16 flex items-center gap-2">
+              <FloatingCard className="-right-14 bottom-16 flex items-center gap-2" depth={hasDesktopParallax ? 58 : 0}>
                 <Link2 className="h-3.5 w-3.5" style={{ color: COPPER }} />
                 <span className="text-[12.5px] font-medium">Source gap detected</span>
               </FloatingCard>
 
-              <div className="rounded-[3rem] border-[7px] border-[#221913] bg-[#221913] shadow-[0_50px_100px_-35px_rgba(46,33,22,0.5)] sm:rounded-[3.4rem]">
+              <div className="relative rounded-[3rem] border-[7px] border-[#221913] bg-[#221913] shadow-[0_50px_100px_-35px_rgba(46,33,22,0.5)] sm:rounded-[3.4rem]" style={hasDesktopParallax ? { transform: 'translateZ(20px)' } : undefined}>
                 <div className="relative flex h-[560px] flex-col overflow-hidden rounded-[2.55rem] bg-white sm:h-[664px] sm:rounded-[2.95rem]">
                   <div className="absolute left-1/2 top-3 h-[26px] w-[92px] -translate-x-1/2 rounded-full bg-[#221913]" />
                   <div className="flex flex-1 flex-col px-5 pb-5 pt-14">

@@ -29,12 +29,14 @@ export const CLAIM_LEVELS = `Every substantive statement should fit one of these
 export const SCHEMA_DELIVERABLE_BOUNDARY = `When recommending Schema.org types, distinguish the attached JSON-LD deliverable from client-side follow-up. Organization and FAQPage may be included in the attached JSON-LD. Any other recommended type must be explicitly labelled "Client-side implementation; not included in the attached JSON-LD" unless the supplied audit data says it is already included. Never imply that Review or AggregateRating is included without verified first-party review-source data.`
 export const PLAIN_LANGUAGE_GUIDANCE = `Write for the business owner in plain language.
 - Keep one idea per sentence. Target fewer than 20 words and never stack three subordinate clauses.
+- Split long sentences instead of joining ideas with semicolons or em-dash clauses. Omit secondary detail when needed.
 - Name the specific brand, competitor, engine, page element, or buyer situation instead of using an abstraction.
 - Do not use consultant filler: "leverage", "holistic", "robust", "best-in-class", "synergy", "highest-leverage path", or "represents an opportunity to".
 - Use no more than one hedge in a sentence. Keep every observational qualifier required by the evidence boundary.
 - When a measured number is allowed in the field, use it instead of a vague adjective. Never invent or recompute a number.
 - Write to the business owner using "you" where the surrounding copy already does.
-- Cut throat-clearing that only says analysis happened or improvements are available. State the finding or action directly.`
+- Cut throat-clearing that only says analysis happened or improvements are available. State the finding or action directly.
+- Before returning JSON, silently check the prose: its mean sentence length must be under 22 words, no sentence may exceed 35 words, and no sentence may contain more than one hedge. These are output constraints, not suggestions.`
 
 // --- Free Score ---
 export const SCORE_SYSTEM = `You are a B2B SaaS conversion expert.
@@ -180,9 +182,9 @@ ${blocks}
 
 Based ONLY on the above, return a JSON object:
 {
-  "missing_signals": ["<concrete content/structure/entity signal the brand lacks that cited sources have, e.g. 'not listed on G2', 'no comparison page', 'no FAQ schema'>"],
-  "recommendations": ["<specific action to get cited more, ranked by impact>"],
-  "summary": "<2-3 sentences explaining where the brand stands in AI answers and why>"
+  "missing_signals": ["<one concrete signal in at most 18 words>"],
+  "recommendations": ["<one specific action in at most 18 words, ranked by impact>"],
+  "summary": "<2-3 sentences, each at most 18 words, explaining where the brand stands and why>"
 }`
 }
 
@@ -379,11 +381,11 @@ ${temporalPrompt(referenceIso)}
 Return a JSON object with this exact structure:
 {
   "overall_score": <number 1-100>,
-  "icp_visibility": { "score": <1-100>, "finding": "<string>", "severity": "critical"|"medium"|"low" },
-  "headline": { "score": <1-100>, "current_headline": "<string>", "finding": "<string>", "suggested_rewrite": "<string>", "severity": "critical"|"medium"|"low" },
-  "cta": { "score": <1-100>, "finding": "<string>", "suggested_rewrite": "<string>", "severity": "critical"|"medium"|"low" },
-  "trust_proof": { "score": <1-100>, "finding": "<string>", "missing_elements": ["<string>"], "severity": "critical"|"medium"|"low" },
-  "messaging_fit": { "score": <1-100>, "finding": "<string>", "severity": "critical"|"medium"|"low" }
+  "icp_visibility": { "score": <1-100>, "finding": "<2-4 sentences; each at most 18 words>", "severity": "critical"|"medium"|"low" },
+  "headline": { "score": <1-100>, "current_headline": "<string>", "finding": "<2-4 sentences; each at most 18 words>", "suggested_rewrite": "<string>", "severity": "critical"|"medium"|"low" },
+  "cta": { "score": <1-100>, "finding": "<2-4 sentences; each at most 18 words>", "suggested_rewrite": "<string>", "severity": "critical"|"medium"|"low" },
+  "trust_proof": { "score": <1-100>, "finding": "<2-4 sentences; each at most 18 words>", "missing_elements": ["<one concrete item in at most 18 words>"], "severity": "critical"|"medium"|"low" },
+  "messaging_fit": { "score": <1-100>, "finding": "<2-4 sentences; each at most 18 words>", "severity": "critical"|"medium"|"low" }
 }`
 }
 
@@ -427,10 +429,10 @@ ${clarityOutput}
 
 Return a JSON object with this exact structure:
 {
-  "competitor_analysis": [{ "url": "<string>", "headline": "<string>", "strengths": ["<string>"], "weaknesses": ["<string>"], "clarity_score": <number> }],
-  "where_you_lose": ["<string>"],
-  "where_you_win": ["<string>"],
-  "ai_search": { "score": <1-100>, "finding": "<string>", "is_likely_cited": <boolean>, "missing_signals": ["<string>"], "severity": "critical"|"medium"|"low" }
+  "competitor_analysis": [{ "url": "<string>", "headline": "<string>", "strengths": ["<one concrete point in at most 18 words>"], "weaknesses": ["<one concrete point in at most 18 words>"], "clarity_score": <number> }],
+  "where_you_lose": ["<one concrete point in at most 18 words>"],
+  "where_you_win": ["<one concrete point in at most 18 words>"],
+  "ai_search": { "score": <1-100>, "finding": "<2-4 sentences; each at most 18 words>", "is_likely_cited": <boolean>, "missing_signals": ["<one concrete signal in at most 18 words>"], "severity": "critical"|"medium"|"low" }
 }
 
 If no competitor data is available, return an empty competitor_analysis array and focus on where_you_lose, where_you_win, and ai_search based on the target alone.`
@@ -484,17 +486,19 @@ ${temporalPrompt(referenceIso)}
 Compact GEO evidence catalog (aggregates and observed source characteristics only; no raw answers):
 ${geoCatalog ? JSON.stringify(geoCatalog) : '(not available)'}
 
-Write the executive summary in 3 or 4 short sentences, covering these points in this order:
-1. Start with the strongest thing observed to be working and name it concretely. If nothing was observed working, say that plainly.
+Write the executive summary in exactly 4 sentences. Each sentence must contain at most 18 words:
+1. State one strongest observed thing working and name it concretely. If none exists, say that plainly.
 2. Say where the brand was absent by naming the tested buyer situations, not just a metric.
-3. Name the competitors that appeared instead. If none appeared, say so without inventing a name.
-4. End with the single first action. Combine adjacent points only when the evidence does not support a separate sentence.
+3. Name only the competitors that appeared instead. If none appeared, say so without inventing a name.
+4. End with the single first action.
 The first sentence must name the brand, a competitor, an engine, a tested buyer situation, or a measured number. Do not open with a sentence that only says the brand was reviewed.
+Keep every non-ai_search fix description to one sentence of at most 18 words.
+For ai_search fixes, keep each observed, inferred, and recommended sentence to at most 18 words. Do not put evidence IDs in prose.
 
 Return a JSON object with this exact structure:
 {
-  "executive_summary": "<string, 3-4 short sentences in the required order above>",
-  "top_fixes": [{ "id": <number>, "title": "<string>", "description": "<one brief summary sentence; do not repeat the claim-level fields>", "impact": ${promptEnum(ACTION_FIX_IMPACTS)}, "effort": ${promptEnum(ACTION_FIX_EFFORTS)}, "category": ${promptEnum(ACTION_FIX_CATEGORIES)}, "observed": "<required for ai_search; one measured sentence, otherwise omit>", "inferred": "<required for ai_search; one explicitly non-causal sentence, otherwise omit>", "recommended": "<required for ai_search; one controlled-action sentence with a lower-control alternative when applicable, otherwise omit>", "evidence_ids": ["<catalog ID relevant to this fix>"] }],
+  "executive_summary": "<exactly 4 sentences in the required order; at most 18 words each>",
+  "top_fixes": [{ "id": <number>, "title": "<string>", "description": "<one sentence of at most 18 words; do not repeat claim-level fields>", "impact": ${promptEnum(ACTION_FIX_IMPACTS)}, "effort": ${promptEnum(ACTION_FIX_EFFORTS)}, "category": ${promptEnum(ACTION_FIX_CATEGORIES)}, "observed": "<required for ai_search; one measured sentence of at most 18 words, otherwise omit>", "inferred": "<required for ai_search; one explicitly non-causal sentence of at most 18 words, otherwise omit>", "recommended": "<required for ai_search; one controlled-action sentence of at most 18 words, including a lower-control alternative when applicable, otherwise omit>", "evidence_ids": ["<catalog ID relevant to this fix>"] }],
   "ship_first": ["<string>"],
   "ignore_for_now": ["<string>"],
   "outreach_messages": [{ "channel": ${promptEnum(ACTION_OUTREACH_CHANNELS)}, "message": "<string>", "note": "<string>" }]

@@ -82,7 +82,7 @@ describe('plain report prompt contract', () => {
 
   it('requires the executive summary to present evidence in the specified order', () => {
     const prompt = actionUserPrompt('{}', '{}', 'buyers', 'Example Brand')
-    const working = prompt.indexOf('strongest thing observed to be working')
+    const working = prompt.indexOf('strongest observed thing working')
     const absent = prompt.indexOf('where the brand was absent')
     const competitors = prompt.indexOf('competitors that appeared instead')
     const firstAction = prompt.indexOf('single first action')
@@ -92,6 +92,9 @@ describe('plain report prompt contract', () => {
     expect(absent).toBeLessThan(competitors)
     expect(competitors).toBeLessThan(firstAction)
     expect(prompt).toContain('Do not open with a sentence that only says the brand was reviewed')
+    expect(prompt).toContain('exactly 4 sentences')
+    expect(prompt).toContain('Each sentence must contain at most 18 words')
+    expect(prompt).toContain('Do not put evidence IDs in prose')
   })
 })
 

@@ -10,7 +10,7 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-15. Plain-report generation is deployed and verified; R28/R29 production verification remains.
+**Last updated:** 2026-08-18. Plain-report generation is deployed and verified; R28/R29 production verification remains. The landing-page phone now fits within the desktop hero viewport (commit `b2365ad`), verified in production.
 
 ## Deploys
 

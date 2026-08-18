@@ -801,7 +801,7 @@ export default function LandingPage() {
             </div>
 
             <div
-              className="relative z-10 w-[280px] sm:w-[326px]"
+              className="relative z-10 w-[280px]"
               onPointerMove={hasDesktopParallax ? handlePhonePointerMove : undefined}
               onPointerLeave={hasDesktopParallax ? resetPhoneTilt : undefined}
               style={hasDesktopParallax ? {
@@ -827,8 +827,8 @@ export default function LandingPage() {
                 <span className="text-[12.5px] font-medium">Source gap detected</span>
               </FloatingCard>
 
-              <div className="relative rounded-[3rem] border-[7px] border-[#221913] bg-[#221913] shadow-[0_50px_100px_-35px_rgba(46,33,22,0.5)] sm:rounded-[3.4rem]" style={hasDesktopParallax ? { transform: 'translateZ(20px)' } : undefined}>
-                <div className="relative flex h-[560px] flex-col overflow-hidden rounded-[2.55rem] bg-white sm:h-[664px] sm:rounded-[2.95rem]">
+              <div className="relative rounded-[3rem] border-[7px] border-[#221913] bg-[#221913] shadow-[0_50px_100px_-35px_rgba(46,33,22,0.5)]" style={hasDesktopParallax ? { transform: 'translateZ(20px)' } : undefined}>
+                <div className="relative flex h-[560px] flex-col overflow-hidden rounded-[2.55rem] bg-white">
                   <div className="absolute left-1/2 top-3 h-[26px] w-[92px] -translate-x-1/2 rounded-full bg-[#221913]" />
                   <div className="flex flex-1 flex-col px-5 pb-5 pt-14">
                     <div className="text-[11px] font-medium uppercase tracking-widest text-[#B4A69A]">AI assistant</div>

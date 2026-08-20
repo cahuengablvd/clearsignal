@@ -372,3 +372,22 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   regenerating audit `28ca503b`: `Meta description → detected present 97%`, quoting the live
   description, where the same page previously reported `verified absent 85%`.
 
+## R29 — A public suffix is printed as a cited source
+
+- **Closed 2026-08-20.** Fixed before this verification by using Public Suffix List registrable
+  domains. Verified on Trigger `20260820.1` with both `9ba2d5ec` and `28ca503b`: every ranked,
+  evidence, and source-gap domain was registrable; neither report contained a bare public suffix.
+
+## R31 — The schema demands five fixes whether or not the evidence supports five
+
+- **Closed 2026-08-20.** Fixed in `5f356dc`: action generation now accepts 3-10 fixes, asks for up
+  to five evidence-backed fixes, retains the 18-word cap, and rejects blank or whitespace-only
+  descriptions before sanitization. Verified on Trigger `20260820.1`: `9ba2d5ec` saved four fixes
+  and `28ca503b` saved five, all with non-empty descriptions.
+
+## R32 — An audit that failed deterministically once can never be retried
+
+- **Closed 2026-08-20.** Fixed in `5f356dc`: automatic recovery still blocks current deterministic
+  failures, while the admin exposes an explicit override that records timestamp and `admin operator`
+  in `admin_notes`. Both stuck audits were released through the production endpoint and completed
+  in `awaiting_review` on Trigger `20260820.1`.

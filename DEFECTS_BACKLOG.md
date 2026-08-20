@@ -242,18 +242,9 @@ unless you are investigating a regression in one of them.
 - Fix: exclude engines under test and their vendor product names, built from the existing engine
   registry, matched case/punctuation-insensitively. Do not exclude general SEO vendors (Ahrefs,
   Semrush) — for an SEO product they are real competitors. An operator-supplied name always wins.
-- Spec: `TASKS_COMPETITOR_HYGIENE.md`.
-
-## R29 — A public suffix is printed as a cited source
-
-- Seen: 2026-08-14, audit `9ba2d5ec`. "Sources AI cites most" lists **`co.uk` 2x** beside real
-  domains. `co.uk` is a public suffix; the real host was truncated to it, so the row is wrong and
-  the reader cannot open it.
-- Same family as the `R19` addendum (`Com` at 15% from `com.mt`), one block over: that fix covered
-  competitor names, not `cited_domains_ranked` (`lib/geo/index.ts:322`).
-- Fix: a registrable domain is at minimum `label + suffix`; anything reducing to a bare suffix must
-  not become a row. Prefer the full host from the citation URL. If the host cannot be recovered,
-  drop the row — a missing source is invisible, a fake one is the first thing a reader sees.
+- Verification 2026-08-20 on Trigger `20260820.1`: `9ba2d5ec` was clean, but `28ca503b` still
+  listed **Google AI**. The current exclusion covers `Google` and `Google AI Overviews` but not this
+  generic alias, so R28 remains open.
 - Spec: `TASKS_COMPETITOR_HYGIENE.md`.
 
 ## R30 — A third of engine-query combinations failed in one run (observation, unexplained)
@@ -265,31 +256,13 @@ unless you are investigating a regression in one of them.
 - Next step when picked up: identify from the run logs whether one engine drops out systematically
   (rate limit, timeout, provider error) or the failures are spread.
 
-## R31 — The schema demands five fixes whether or not the evidence supports five (LAUNCH BLOCKER)
+## R33 — Recovery may enqueue a manual regeneration a second time (observation, unexplained)
 
-- Seen: 2026-08-18. `9ba2d5ec` (`snoika.com`) failed — two `top_fixes` came back without the
-  required `description`, Zod rejected the payload, the audit is `failed`. `beb637a8`
-  (`vertexspain.com`) survived the same shortage because the model emitted `description: ""`, which
-  passes Zod and is then dropped by the sanitizer (4 fixes shipped).
-- Three requirements cannot all hold on a thin site: `min(5)` fixes (`lib/schemas.ts:657`), a
-  non-optional `description` (`:628`), and the 18-word cap from the plain-language pass
-  (`lib/prompts.ts:508`). The model must invent a fifth fix; with filler banned it returns an empty
-  string or omits the key.
-- The defect is `min(5)`, not the word limit. A fixed number of findings is a demand to invent when
-  evidence runs out — the thing the product refuses to do everywhere else (see
-  `docs/archive/TASKS_VERTICAL_TRUTH.md`: abstain rather than guess).
-- Fix: floor of three, prompt asks for "up to 5, only evidence-backed", and `description` must be
-  `.min(1)` so emptiness fails loudly instead of silently becoming a dropped fix.
-- Spec: `TASKS_FIX_COUNT.md`.
-
-## R32 — An audit that failed deterministically once can never be retried
-
-- Seen: 2026-08-18. `28ca503b` never reached the model: recovery read the previous deterministic
-  failure marker in `admin_notes` and stopped (`lib/audit-recovery.ts:39`).
-- The rule is right — a failure that will repeat should not be retried automatically. But nothing
-  clears the marker once the cause is fixed and deployed, and the admin has no control to say "the
-  cause is fixed, run it again". The audit is stuck permanently.
-- Fix: an explicit operator action that clears the marker and requeues one audit, recorded in
-  `admin_notes`. Automatic recovery keeps refusing; this is a human override, not a loosened rule.
-- Spec: `TASKS_FIX_COUNT.md`.
-
+- Seen during R31/R32 verification on 2026-08-20. Both explicit admin requeues (`9ba2d5ec` and
+  `28ca503b`) reached `awaiting_review`, then returned to `processing` once before settling again.
+  Admin observability records `recovery_attempts: 1` for both.
+- Likely race: `/api/audit` marks a row `queued` before Trigger changes it to `processing`, while
+  recovery considers every queued row immediately. Confirm from the two Trigger run histories
+  before changing recovery semantics.
+- Do not loosen deterministic-failure or stale-processing guards. The likely fix is a queued grace
+  period or an explicit claim/lease that distinguishes a fresh manual enqueue from an abandoned one.

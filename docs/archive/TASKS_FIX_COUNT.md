@@ -81,3 +81,7 @@ regenerated for in the first place, still unverified in production: no answer en
 
 Record the surviving fix count for each in `STATUS.md` — that is the second and third data point for
 the plain-language watch list.
+
+## Shipped
+
+Implemented in `5f356dc`, deployed as Trigger `20260820.1`, and production-verified on 2026-08-20.

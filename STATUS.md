@@ -10,15 +10,13 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-20. Plain-report generation has a confirmed action-output risk; R28/R29 production verification remains blocked. The landing-page phone now fits within the desktop hero viewport (commit `b2365ad`), verified in production.
+**Last updated:** 2026-08-20. R31/R32 are fixed and production-verified; R29 is verified closed. R28 remains open on the `Google AI` alias, and R33 records a manual-requeue/recovery race observed during verification.
 
 ## Deploys
 
 - **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260815.3`**, deployed from `C:\csdeploy` at commit `a2dff61`,
-  5 tasks. Carries R28/R29 plus the plain-language report prompts. Re-run `9ba2d5ec` (`snoika.com`)
-  and `28ca503b` (ClearSignal) to confirm no engine is shown as a competitor and no cited source is a
-  bare suffix.
+- **Trigger.dev** — version **`20260820.1`**, deployed from `C:\csdeploy` at commit `5f356dc`,
+  5 tasks. Carries R31/R32 plus the earlier R28/R29 and plain-language changes.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
@@ -77,16 +75,16 @@ a handler is written. Three or more agencies raising it means a positioning prob
   (2) whether `ai_search` fixes keep their low-control alternative inside 18 words, (3) validation
   warnings. If the fifth fix disappears systematically, either ask for four or widen descriptions to
   ~25 words. The audit stays `awaiting_review`; nothing has been delivered.
-- `snoika.com` (audit `9ba2d5ec`) — R28/R29 verification attempt on 2026-08-20 failed after the
-  model retried: two `top_fixes` lacked the required `description`, so the report could not be
-  parsed. This is the second valid observation that the 18-word action constraint can hollow out
-  fixes; no report was delivered.
-- `getclearsignal.io` (audit `28ca503b`) — the same R28/R29 attempt did not reach the model:
-  recovery stopped on its pre-existing deterministic schema/validation failure. It cannot verify
-  R28/R29 or count as a plain-language observation. No report was delivered.
-- **R28/R29 remain unverified in production.** Neither 2026-08-20 regeneration produced a
-  publishable report, so no evidence yet confirms that engine names are absent from competitors or
-  cited sources avoid bare public suffixes.
+- `snoika.com` (audit `9ba2d5ec`) — regenerated on Trigger `20260820.1`; `awaiting_review`, not
+  delivered. **Four** fully described fixes survived. R28 passes here (`Crunchbase` is the only
+  competitor) and R29 passes: every cited source is a registrable domain.
+- `getclearsignal.io` (audit `28ca503b`) — regenerated on Trigger `20260820.1`; `awaiting_review`,
+  not delivered. **Five** fully described fixes survived and R29 passes. R28 remains open: `Google
+  AI` still appears in "Who AI recommends instead", an alias absent from the exclusion list.
+- **R31/R32 are production-verified.** Both deterministic markers were explicitly overridden,
+  recorded in `admin_notes`, and both reports completed with 4/5 non-empty fixes. During each manual
+  requeue, recovery also recorded one attempt and the audit entered `processing` a second time;
+  tracked separately as R33.
 - `jusukosmetologs.lv` (audit `5d53a488`) — 18/18 engine coverage, mechanically clean.
   **This is the report to show people:** cited 7x (second in its niche) yet named in only 4 of 18
   answers, while the leader is recommended in 33%. Read by AI, not recommended by it — the exact
@@ -100,10 +98,9 @@ Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
 
 ## Open defects
 
-`R13`, `R14`, `R16`, `R18`, `R19` stay open deliberately — real customers should set their
-priority, not a guess. If an agency asks why the buyer-intent section is empty during the sales
-test, that is the signal to fix `R16` first. Closed defects are in
-`docs/archive/DEFECTS_CLOSED.md`.
+`R13`, `R14`, `R16`, `R18`, `R19`, `R28`, `R30`, and `R33` remain open. Real customers should set
+the priority of the older deferred issues; R28 is a customer-visible engine alias and R33 is a cost
+risk observed during this verification. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
 
 ## Cost
 

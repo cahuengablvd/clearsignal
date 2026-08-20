@@ -10,7 +10,7 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-18. Plain-report generation is deployed and verified; R28/R29 production verification remains. The landing-page phone now fits within the desktop hero viewport (commit `b2365ad`), verified in production.
+**Last updated:** 2026-08-20. Plain-report generation has a confirmed action-output risk; R28/R29 production verification remains blocked. The landing-page phone now fits within the desktop hero viewport (commit `b2365ad`), verified in production.
 
 ## Deploys
 
@@ -77,6 +77,16 @@ a handler is written. Three or more agencies raising it means a positioning prob
   (2) whether `ai_search` fixes keep their low-control alternative inside 18 words, (3) validation
   warnings. If the fifth fix disappears systematically, either ask for four or widen descriptions to
   ~25 words. The audit stays `awaiting_review`; nothing has been delivered.
+- `snoika.com` (audit `9ba2d5ec`) — R28/R29 verification attempt on 2026-08-20 failed after the
+  model retried: two `top_fixes` lacked the required `description`, so the report could not be
+  parsed. This is the second valid observation that the 18-word action constraint can hollow out
+  fixes; no report was delivered.
+- `getclearsignal.io` (audit `28ca503b`) — the same R28/R29 attempt did not reach the model:
+  recovery stopped on its pre-existing deterministic schema/validation failure. It cannot verify
+  R28/R29 or count as a plain-language observation. No report was delivered.
+- **R28/R29 remain unverified in production.** Neither 2026-08-20 regeneration produced a
+  publishable report, so no evidence yet confirms that engine names are absent from competitors or
+  cited sources avoid bare public suffixes.
 - `jusukosmetologs.lv` (audit `5d53a488`) — 18/18 engine coverage, mechanically clean.
   **This is the report to show people:** cited 7x (second in its niche) yet named in only 4 of 18
   answers, while the leader is recommended in 33%. Read by AI, not recommended by it — the exact

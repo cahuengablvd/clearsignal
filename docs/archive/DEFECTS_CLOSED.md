@@ -391,3 +391,79 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   failures, while the admin exposes an explicit override that records timestamp and `admin operator`
   in `admin_notes`. Both stuck audits were released through the production endpoint and completed
   in `awaiting_review` on Trigger `20260820.1`.
+
+## R14 — Dead write to a table that does not exist (low severity, instructive)
+
+- Seen: 2026-08-05, while deleting test rows: `delete from audit_insights` returned
+  `42P01: relation "audit_insights" does not exist`. The table is declared in
+  `supabase/migrations/001_initial.sql:32` but was never applied to the production database.
+- `lib/audit-runner.ts:849` upserts into it on every successful generation with no error check.
+  The Supabase client returns `{ error }` instead of throwing, so the write has been a silent no-op
+  for the life of the project. Nothing reads the table — no reader exists anywhere in `app/`,
+  `lib/`, `trigger/` or `scripts/`.
+- Impact: none functionally. Recorded because the *pattern* is the risk, not this instance: the
+  same unchecked-write shape elsewhere would hide a real persistence failure. `lib/resend.ts:178`
+  carries an explicit comment about this exact Supabase/Resend behaviour, so the class is already
+  known here — it just slipped in this one call.
+- Fix: delete the upsert and the migration block, or apply the migration and add an error check.
+  Deleting is preferred: a table nobody reads is not worth a migration.
+- Do not "fix" by adding the table. Add the error check pattern instead, wherever a write matters.
+
+- **Closed 2026-08-12.** The dead `audit_insights` upsert and its migration block were deleted in
+  `ced0f04`; `grep -rn audit_insights` now returns nothing outside `docs/archive/`. The unchecked-write
+  pattern it warned about was swept separately in `30bfabe` (`lib/supabase-write.ts`).
+
+## R23 — A failed admin query renders as "No audits yet" (DO NOW: looks like data loss)
+
+- Seen: 2026-08-07. The admin list showed **"No audits yet"** with every audit missing, minutes after
+  the owner started a new one. Nothing was lost: `R20` added `reviewer_note` to the select in
+  `app/api/admin/audits/route.ts`, migration `012_audit_reviewer_note.sql` had not been applied to
+  production, Postgres rejected the unknown column, and the route returned 500.
+- `refreshAudits` in `app/admin/page.tsx` does `if (!res.ok) return []`. A 500 therefore leaves
+  `audits` at its initial empty array and the page renders the empty state. **A broken query is
+  indistinguishable from an empty database**, which is the single most alarming thing the operator
+  can be shown, and it points at exactly the wrong cause.
+- Two fixes, both small:
+  1. Surface the failure. Keep the previous list if there is one, and show "Could not load audits"
+     with the status code instead of the empty state. Never let an error render as absence.
+  2. Migrations are applied by hand in this project — `audit_insights` from migration 001 was never
+     applied either (`R14`). Any change that adds a column to a query must apply the migration in
+     the same step, and the deploy checklist in `DEPLOY.md` should say so.
+- Immediate unblock: `alter table audits add column if not exists reviewer_note text;`
+- Acceptance: with the API returning 500, the admin shows an error, not "No audits yet".
+
+- **Closed 2026-08-12** in `ced0f04`. A failed admin query renders an error with the status code and
+  a retry, never the empty state; 401 and 500 are distinguished so a broken query no longer shows the
+  login form; `/api/health` checks every column the admin query selects and names missing ones, and is
+  part of the required set. Covered by `tests/admin-session-state.test.ts` and
+  `tests/health-schema-check.test.ts`. The authenticated health response has not been read in
+  production yet — the public one returns `status: ok`.
+
+## R27 — One empty list in one brief destroys the whole audit (LAUNCH BLOCKER)
+
+- Seen: 2026-08-14, audit of `vertexspain.com`. `Report validation blocked PDF export: empty_field at
+  implementation_briefs.4.acceptance_criteria`, twice (the second is the recovery retry). No PDF, no
+  web report, no partial delivery — after the run had already spent its API budget. The only missing
+  content was the "Done when …" list in the fifth of five briefs.
+- Root cause: three rules in `lib/report-validator.ts` disagree. The repair pass (`:908`) keeps a
+  brief with a title and *either* steps or acceptance criteria; `validateActionUsability` (`:938`)
+  errors only when both are empty; but `:977` errors whenever `acceptance_criteria.length === 0`.
+  The shape one pass deliberately preserves, the next treats as fatal.
+- `degradeValidationErrors` (`lib/audit-runner.ts:390`) cannot repair it: the error path ends in a
+  field name, not an array index, so `removeArrayItemAtPath` misses and `setFallbackAtPath` cannot
+  fill an empty list. Degradation runs, changes nothing, and `:806` throws.
+- The retry is pointless and doubles the cost: `lib/audit-recovery.ts:41` treats every
+  `Report validation blocked` as retryable, but this failure is deterministic.
+- Commercial harm: a customer pays €149, the analysis is complete and usable, and they receive
+  nothing. Withholding a correct report because one appendix lacks a checklist is worse than
+  shipping the brief without it. Fires hardest on thin sites — exactly our buyers.
+- Fix: empty `acceptance_criteria` on an otherwise usable brief is a warning; render the brief
+  without that section; a degraded structural emptiness must save with the note in
+  `validation_warnings` instead of throwing; do not retry an identical validation block.
+- Never fix by having the model invent criteria, and do not weaken `validateStringArrayFields`.
+- Spec: `TASKS_BRIEF_VALIDATION.md`.
+
+- **Closed 2026-08-14** in `f9686ba`, deployed as Trigger `20260814.2`, verified by regenerating
+  `beb637a8` (`vertexspain.com`), which completed and exported a 24-page PDF where the previous run
+  failed. Note the fallback branch itself was not exercised by that run: the model returned complete
+  acceptance criteria for all five briefs. It is covered by tests, not yet by a production run.

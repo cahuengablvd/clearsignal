@@ -98,9 +98,10 @@ Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
 
 ## Open defects
 
-`R13`, `R14`, `R16`, `R18`, `R19`, `R28`, `R30`, and `R33` remain open. Real customers should set
-the priority of the older deferred issues; R28 is a customer-visible engine alias and R33 is a cost
-risk observed during this verification. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
+`R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22`, `R28`, `R30` and `R33` remain open. The older ones
+wait for real customers to set their priority. `R28` (an engine alias still shown as a competitor)
+and `R33` (any queued audit can be enqueued twice, including a paid one) are specced in
+`TASKS_ENGINE_ALIAS_AND_REQUEUE.md`. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
 
 ## Cost
 

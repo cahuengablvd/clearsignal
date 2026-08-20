@@ -265,3 +265,31 @@ unless you are investigating a regression in one of them.
 - Next step when picked up: identify from the run logs whether one engine drops out systematically
   (rate limit, timeout, provider error) or the failures are spread.
 
+## R31 — The schema demands five fixes whether or not the evidence supports five (LAUNCH BLOCKER)
+
+- Seen: 2026-08-18. `9ba2d5ec` (`snoika.com`) failed — two `top_fixes` came back without the
+  required `description`, Zod rejected the payload, the audit is `failed`. `beb637a8`
+  (`vertexspain.com`) survived the same shortage because the model emitted `description: ""`, which
+  passes Zod and is then dropped by the sanitizer (4 fixes shipped).
+- Three requirements cannot all hold on a thin site: `min(5)` fixes (`lib/schemas.ts:657`), a
+  non-optional `description` (`:628`), and the 18-word cap from the plain-language pass
+  (`lib/prompts.ts:508`). The model must invent a fifth fix; with filler banned it returns an empty
+  string or omits the key.
+- The defect is `min(5)`, not the word limit. A fixed number of findings is a demand to invent when
+  evidence runs out — the thing the product refuses to do everywhere else (see
+  `docs/archive/TASKS_VERTICAL_TRUTH.md`: abstain rather than guess).
+- Fix: floor of three, prompt asks for "up to 5, only evidence-backed", and `description` must be
+  `.min(1)` so emptiness fails loudly instead of silently becoming a dropped fix.
+- Spec: `TASKS_FIX_COUNT.md`.
+
+## R32 — An audit that failed deterministically once can never be retried
+
+- Seen: 2026-08-18. `28ca503b` never reached the model: recovery read the previous deterministic
+  failure marker in `admin_notes` and stopped (`lib/audit-recovery.ts:39`).
+- The rule is right — a failure that will repeat should not be retried automatically. But nothing
+  clears the marker once the cause is fixed and deployed, and the admin has no control to say "the
+  cause is fixed, run it again". The audit is stuck permanently.
+- Fix: an explicit operator action that clears the marker and requeues one audit, recorded in
+  `admin_notes`. Automatic recovery keeps refusing; this is a human override, not a loosened rule.
+- Spec: `TASKS_FIX_COUNT.md`.
+

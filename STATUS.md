@@ -10,13 +10,13 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-20. R31/R32 are fixed and production-verified; R29 is verified closed. R28 remains open on the `Google AI` alias, and R33 records a manual-requeue/recovery race observed during verification.
+**Last updated:** 2026-08-20. R28 and R33 are fixed and production-verified; the queued-at migration is applied and both current verification reports are awaiting review.
 
 ## Deploys
 
-- **Vercel** — auto-deploys `main`. Live commit is whatever `main` points at.
-- **Trigger.dev** — version **`20260820.1`**, deployed from `C:\csdeploy` at commit `5f356dc`,
-  5 tasks. Carries R31/R32 plus the earlier R28/R29 and plain-language changes.
+- **Vercel** — auto-deploys `main`; production health confirmed the R28/R33 code at `6dcb5ac`.
+- **Trigger.dev** — version **`20260820.3`**, deployed from `C:\csdeploy` at commit `6dcb5ac`,
+  5 tasks. Carries the final R28 reuse-path fix and R33 queued-age guard.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
@@ -66,25 +66,18 @@ a handler is written. Three or more agencies raising it means a positioning prob
 
 ## Verification standing
 
-- `vertexspain.com` (audit `beb637a8`) — regenerated on Trigger `20260815.3`. Prose passes the
-  deterministic plain-language limits (summary: 13.5 words mean, 19 max) and the summary is
-  repeatable from memory. **Open risk of the plain-language pass, not a one-off:** the prompt still
-  asks for 5 fixes, but one came back empty and the sanitizer dropped it, so 4 shipped. Same
-  mechanism as `R27` — a tighter frame hollows out the last, weakest item. Too early to change the
-  18-word limit on one run. Watch across the next 2-3 regenerations: (1) how many fixes survive,
-  (2) whether `ai_search` fixes keep their low-control alternative inside 18 words, (3) validation
-  warnings. If the fifth fix disappears systematically, either ask for four or widen descriptions to
-  ~25 words. The audit stays `awaiting_review`; nothing has been delivered.
-- `snoika.com` (audit `9ba2d5ec`) — regenerated on Trigger `20260820.1`; `awaiting_review`, not
-  delivered. **Four** fully described fixes survived. R28 passes here (`Crunchbase` is the only
-  competitor) and R29 passes: every cited source is a registrable domain.
-- `getclearsignal.io` (audit `28ca503b`) — regenerated on Trigger `20260820.1`; `awaiting_review`,
-  not delivered. **Five** fully described fixes survived and R29 passes. R28 remains open: `Google
-  AI` still appears in "Who AI recommends instead", an alias absent from the exclusion list.
-- **R31/R32 are production-verified.** Both deterministic markers were explicitly overridden,
-  recorded in `admin_notes`, and both reports completed with 4/5 non-empty fixes. During each manual
-  requeue, recovery also recorded one attempt and the audit entered `processing` a second time;
-  tracked separately as R33.
+- `vertexspain.com` (audit `beb637a8`) — regenerated on Trigger `20260815.3`; `awaiting_review`, not
+  delivered. Four fully described fixes survived and prose passes the deterministic plain-language
+  limits (summary: 13.5 words mean, 19 max).
+- `snoika.com` (audit `9ba2d5ec`) — final regeneration on Trigger `20260820.3`; `awaiting_review`,
+  not delivered. **Five** fully described fixes survived; `Crunchbase` is the only competitor.
+- `getclearsignal.io` (audit `28ca503b`) — final regeneration on Trigger `20260820.3`;
+  `awaiting_review`, not delivered. **Five** fully described fixes survived; `Brandwatch` and
+  `Siftly` are the only competitors. `Google AI` is absent from both visibility and evidence.
+- **R28/R33 are production-verified.** Live and reused GEO paths exclude inferred engine aliases,
+  while the concurrent verification requeues completed with `recovery_attempts = 0` and no recovery
+  note. Across the plain-language measurements, 4/4/5/5/5 fixes survived according to the material;
+  the `min(3)` contract works and there is no evidence for widening descriptions beyond 18 words.
 - `jusukosmetologs.lv` (audit `5d53a488`) — 18/18 engine coverage, mechanically clean.
   **This is the report to show people:** cited 7x (second in its niche) yet named in only 4 of 18
   answers, while the leader is recommended in 33%. Read by AI, not recommended by it — the exact
@@ -98,10 +91,8 @@ Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
 
 ## Open defects
 
-`R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22`, `R28`, `R30` and `R33` remain open. The older ones
-wait for real customers to set their priority. `R28` (an engine alias still shown as a competitor)
-and `R33` (any queued audit can be enqueued twice, including a paid one) are specced in
-`TASKS_ENGINE_ALIAS_AND_REQUEUE.md`. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
+`R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22` and `R30` remain open. They wait for real customers
+to set their priority. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
 
 ## Cost
 

@@ -467,3 +467,21 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   `beb637a8` (`vertexspain.com`), which completed and exported a 24-page PDF where the previous run
   failed. Note the fallback branch itself was not exercised by that run: the model returned complete
   acceptance criteria for all five briefs. It is covered by tests, not yet by a production run.
+
+## R28 — Answer-engine aliases are listed as competitors
+
+- **Closed 2026-08-20** in `afa20b5` and `6dcb5ac`, deployed as Trigger `20260820.3`. Inferred
+  competitor names are filtered by vendor/product tokens, while single-token names still require an
+  exact engine-name match and operator-supplied competitors still win. The same filter is applied
+  when saved GEO evidence is reused, which was the residual path found during production
+  verification. Final regenerations of `9ba2d5ec` and `28ca503b` contained only `Crunchbase` and
+  `Brandwatch`/`Siftly` respectively; no answer-engine name remained in visibility or evidence.
+
+## R33 — A fresh queued audit can be enqueued twice by recovery
+
+- **Closed 2026-08-20** in `afa20b5`, deployed as Trigger `20260820.2` and carried by
+  `20260820.3`. Migration `013_audit_queued_at.sql` was applied before the code shipped. Every
+  server-side transition into `queued` records `queued_at`; recovery uses the same 20-minute age as
+  stale processing and safely falls back to `last_generated_at` or `created_at` for older rows.
+  Concurrent production requeues of `9ba2d5ec` and `28ca503b` both completed with
+  `recovery_attempts = 0` and no recovery note or duplicate generation.

@@ -169,24 +169,6 @@ unless you are investigating a regression in one of them.
 - Do not treat this as "ChatGPT is better". It found page-level problems and measured nothing; the
   distinction is in `validation/segment-findings.md`.
 
-## R28 — The engines we test are listed as "who AI recommends instead" (customer-visible)
-
-- Seen: 2026-08-14, audit `9ba2d5ec` (`snoika.com`). The block reads
-  `ChatGPT 50% · Perplexity 25% · Google AI Overviews 17% · Gemini 17% · Ahrefs 8% · SEMrush 8%` —
-  four of six rows are the answer engines themselves. Same shape in our own audit `28ca503b`.
-- Cause: competitor discovery (`lib/geo/index.ts:216`) extracts brand names from answers that are
-  full of engine names; the dedupe at `:227` excludes only the audited brand and the operator's
-  list. Nothing excludes the engines under test, whose names are in our own config.
-- Reads to a client as "AI recommends ChatGPT instead of you" — not a competitive finding, in the
-  most-read table of the report. Worst in the AI-visibility category, i.e. our own vertical.
-- Fix: exclude engines under test and their vendor product names, built from the existing engine
-  registry, matched case/punctuation-insensitively. Do not exclude general SEO vendors (Ahrefs,
-  Semrush) — for an SEO product they are real competitors. An operator-supplied name always wins.
-- Verification 2026-08-20 on Trigger `20260820.1`: `9ba2d5ec` was clean, but `28ca503b` still
-  listed **Google AI**. The current exclusion covers `Google` and `Google AI Overviews` but not this
-  generic alias, so R28 remains open.
-- Spec: `TASKS_COMPETITOR_HYGIENE.md`.
-
 ## R30 — A third of engine-query combinations failed in one run (observation, unexplained)
 
 - Seen: 2026-08-14, audit `9ba2d5ec`: 12 of 18 combinations successful, 6 failed or skipped. Our own
@@ -195,29 +177,3 @@ unless you are investigating a regression in one of them.
   not a correctness one — but a third of the measurement missing weakens every rate in the report.
 - Next step when picked up: identify from the run logs whether one engine drops out systematically
   (rate limit, timeout, provider error) or the failures are spread.
-
-## R33 — Any audit sitting in `queued` can be enqueued twice (cost, affects paid customers)
-
-- Seen: 2026-08-20, during the `R28`/`R29` verification: recovery picked up both manual requeues a
-  second time.
-- Cause is wider than manual requeues. `recoverStuckAudits` (`lib/audit-recovery.ts:82`) selects
-  **every** row with `audit_status = 'queued'` and no age condition, while the stale-`processing`
-  branch beside it correctly filters on `processing_started_at < cutoff`. Any audit queued when the
-  sweeper runs is re-enqueued — including a paid audit queued seconds earlier by the Stripe
-  webhook.
-- Effect: two generations of the same audit — double API spend, duplicate stage executions, and the
-  `duplicate_stage_warning` the admin already surfaces.
-- Fix: a `queued_at` column set wherever an audit enters `queued`, and the same age threshold the
-  `processing` branch uses. Rows with no `queued_at` must age from `created_at` before being
-  eligible, never be immediately recoverable.
-- Spec: `TASKS_ENGINE_ALIAS_AND_REQUEUE.md`.
-
-## R28 addendum — the exclusion misses aliases, not just one name
-
-- Seen: 2026-08-20. `Google AI` survives the engine filter: `competitorKey` normalises
-  `Google AI Overviews` to `googleaioverviews` and `Google` to `google`, so `googleai` matches
-  neither. `ChatGPT Search`, `Google AI Mode` and `Bing Copilot` would all do the same.
-- Adding literals fixes this input and not the next one. Fix by tokens: a name is an answer engine
-  when every token belongs to a small vendor vocabulary; single-token names still require an exact
-  literal match so `AI4Life` is never excluded.
-- Spec: `TASKS_ENGINE_ALIAS_AND_REQUEUE.md`.

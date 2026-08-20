@@ -177,3 +177,31 @@ unless you are investigating a regression in one of them.
   not a correctness one — but a third of the measurement missing weakens every rate in the report.
 - Next step when picked up: identify from the run logs whether one engine drops out systematically
   (rate limit, timeout, provider error) or the failures are spread.
+
+## R34 — The cost guard watches one audit at a time and is blind to volume (DO NOW: money)
+
+- Seen: 2026-08-20. Anthropic API credits ran out during a day of verification regenerations. No
+  alert fired at any point.
+- Cause: `reconcileAuditAiCost` (`lib/ai-observability.ts:84`) alerts when a **single** audit passes
+  `AUDIT_AI_COST_ALERT_USD` (default `$2.50`) or `AUDIT_AI_CALL_ALERT_COUNT` calls. Every run stayed
+  near `$1`, so nothing tripped while 15-20 generations accumulated in one day. `MONTHLY_BUDGET_USD`
+  and `ANTHROPIC_BALANCE_ALERT_THRESHOLD` exist in `lib/anthropic-balance.ts` but depend on the
+  admin balance API, which is off in production (`USE_ANTHROPIC_ADMIN_BALANCE=false`).
+- Two multipliers made the day worse, both now understood:
+  1. `R33` re-enqueued queued audits, so some runs executed twice (fixed 2026-08-20).
+  2. `trigger/audit-task.ts:33` sets `maxAttempts: 2`, so a deterministic failure generates twice.
+     Failures land at the action stage, after the scrape and the whole GEO scan, so a failed audit
+     costs nearly a successful one.
+- Fix, in this order:
+  1. **A daily aggregate spend cap** measured from `audit_ai_call_logs`, which already records every
+     call. Crossing it stops the queue and alerts — it must refuse to start new generations, not
+     merely warn after the fact.
+  2. **Retries count against the same budget.** A second attempt is a second full cost and must be
+     visible in the daily total, not hidden as one logical audit.
+  3. **No retry for known-deterministic errors.** Do not lower `maxAttempts` blindly — transient
+     provider failures are exactly what it is for. Classify first (the classifier already exists:
+     `isDeterministicAuditFailure`, `lib/audit-recovery.ts:40`) and skip the retry only for that
+     class.
+- This is a financial safeguard, not a feature: it must be in place before regular generation
+  resumes.
+

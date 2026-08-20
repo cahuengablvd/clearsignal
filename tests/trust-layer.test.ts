@@ -3433,12 +3433,12 @@ describe('LLM call contract guards', () => {
     }
   })
 
-  it('action prompt and ActionBlockSchema agree on top-fix enum values and counts', () => {
+  it('action prompt and ActionBlockSchema allow three evidence-backed fixes without accepting empty descriptions', () => {
     const prompt = actionUserPrompt('{}', '{}', 'icp', 'Brand')
     for (const value of ['high', 'medium', 'low', 'easy', 'hard', 'copy', 'structure', 'proof', 'cta', 'ai_search']) {
       expect(prompt).toContain(value)
     }
-    expect(prompt).toMatch(/Provide exactly 5 concise fixes/i)
+    expect(prompt).toMatch(/Provide 3-5 concise fixes/i)
 
     const fix = {
       id: 1,
@@ -3450,7 +3450,7 @@ describe('LLM call contract guards', () => {
     }
     const valid = {
       executive_summary: 'Summary.',
-      top_fixes: Array.from({ length: 5 }, (_, i) => ({ ...fix, id: i + 1 })),
+      top_fixes: Array.from({ length: 3 }, (_, i) => ({ ...fix, id: i + 1 })),
       ship_first: [],
       ignore_for_now: [],
       outreach_messages: [
@@ -3460,9 +3460,25 @@ describe('LLM call contract guards', () => {
       ],
     }
     expect(ActionBlockSchema.safeParse(valid).success).toBe(true)
+    expect(prompt).toMatch(/up to 5 fixes/i)
+    expect(prompt).toMatch(/returning three well-evidenced fixes is correct and expected/i)
+    expect(ActionBlockSchema.safeParse({ ...valid, top_fixes: [] }).success).toBe(false)
     expect(ActionBlockSchema.safeParse({ ...valid, top_fixes: [fix] }).success).toBe(false)
     expect(ActionBlockSchema.safeParse({ ...valid, top_fixes: Array.from({ length: 11 }, (_, i) => ({ ...fix, id: i + 1 })) }).success).toBe(false)
     expect(ActionBlockSchema.safeParse({ ...valid, top_fixes: [{ ...fix, category: 'content' }] }).success).toBe(false)
+
+    for (const description of ['', '   ']) {
+      const parsed = ActionBlockSchema.safeParse({
+        ...valid,
+        top_fixes: valid.top_fixes.map((item, index) => index === 0 ? { ...item, description } : item),
+      })
+      expect(parsed.success).toBe(false)
+      if (!parsed.success) {
+        expect(parsed.error.issues).toEqual(expect.arrayContaining([
+          expect.objectContaining({ path: ['top_fixes', 0, 'description'] }),
+        ]))
+      }
+    }
   })
 
   it('materials prompt and ReadyMaterialsLlmSchema agree on FAQ and CTA counts', () => {

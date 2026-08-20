@@ -15,6 +15,7 @@ import { requireSupabaseWrite } from './supabase-write'
 // An audit stuck in `processing` longer than this is considered stale.
 export const STALE_PROCESSING_MS = 20 * 60 * 1000
 export const MAX_RECOVERY_ATTEMPTS = 2
+export const DETERMINISTIC_FAILURE_OVERRIDE_MARKER = 'Deterministic failure override'
 
 type RecoverableAudit = {
   id: string
@@ -38,9 +39,13 @@ export interface RecoverySummary {
 
 export function isDeterministicAuditFailure(notes: string | null | undefined): boolean {
   if (!notes) return false
+  // Keep the original failure in the audit trail. An explicit operator override
+  // releases only failures recorded before it; a later deterministic failure
+  // blocks recovery again.
+  const currentFailureWindow = notes.split(DETERMINISTIC_FAILURE_OVERRIDE_MARKER).at(-1) ?? notes
   // A report-validation block is deterministic for the stored payload. Retrying
   // generation immediately only repeats the same failure and spends the budget.
-  return /Report validation blocked/i.test(notes) || /zod|schema|invalid enum|invalid literal|expected .* received|Claude output failed validation/i.test(notes)
+  return /Report validation blocked/i.test(currentFailureWindow) || /zod|schema|invalid enum|invalid literal|expected .* received|Claude output failed validation/i.test(currentFailureWindow)
 }
 
 export function recoveryAttemptsExhausted(attempts: number | null | undefined): boolean {

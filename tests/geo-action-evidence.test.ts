@@ -154,8 +154,8 @@ describe('compact GEO evidence for the action stage', () => {
     expect(prompt).toContain('"observed"')
     expect(prompt).toContain('"inferred"')
     expect(prompt).toContain('"recommended"')
-    expect(ACTION_SYSTEM).toContain('5 prioritized fixes')
-    expect(prompt).toContain('Provide exactly 5 concise fixes')
+    expect(ACTION_SYSTEM).toContain('3 to 5 prioritized fixes')
+    expect(prompt).toContain('Provide 3-5 concise fixes')
     expect(prompt).toContain('one concise sentence each')
   })
 

@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
   audit: {
     id: 'audit-1',
     audit_status: 'awaiting_review',
-    admin_notes: null,
+    admin_notes: null as string | null,
   },
   selectSingle: vi.fn(),
   auditEq: vi.fn(),
@@ -120,5 +120,42 @@ describe('admin audit regeneration route', () => {
     expect(body).toEqual({ error: 'Failed to clear cached audit stages' })
     expect(mocks.auditUpdate).not.toHaveBeenCalled()
     expect(mocks.enqueueAudit).not.toHaveBeenCalled()
+  })
+
+  it('requires an explicit override before requeueing a deterministic failure', async () => {
+    mocks.audit = {
+      id: 'audit-1',
+      audit_status: 'failed',
+      admin_notes: 'Claude output failed validation after retry: ZodError',
+    }
+    setupSupabase()
+
+    const res = await POST(request({ audit_id: 'audit-1' }) as never)
+
+    expect(res.status).toBe(409)
+    expect(mocks.stageDelete).not.toHaveBeenCalled()
+    expect(mocks.auditUpdate).not.toHaveBeenCalled()
+    expect(mocks.enqueueAudit).not.toHaveBeenCalled()
+  })
+
+  it('explicitly releases and requeues a deterministic failure with an operator audit note', async () => {
+    mocks.audit = {
+      id: 'audit-1',
+      audit_status: 'failed',
+      admin_notes: 'Claude output failed validation after retry: ZodError',
+    }
+    setupSupabase()
+
+    const res = await POST(request({ audit_id: 'audit-1', override_deterministic_failure: true }) as never)
+
+    expect(res.status).toBe(200)
+    expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      audit_status: 'queued',
+      recovery_attempts: 0,
+      admin_notes: expect.stringMatching(/Deterministic failure override.*admin operator/i),
+    }))
+    expect(mocks.enqueueAudit).toHaveBeenCalledWith('audit-1', expect.objectContaining({
+      trigger: 'admin_regenerate',
+    }))
   })
 })

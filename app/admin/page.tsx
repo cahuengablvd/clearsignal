@@ -84,6 +84,7 @@ type Audit = {
   engine_version?: string | null
   engine_commit?: string | null
   engine_version_drift?: boolean
+  deterministic_failure?: boolean
 }
 
 const emptyForm = {
@@ -354,14 +355,17 @@ export default function AdminPage() {
     return pollAuditStatus(auditId, refreshAudits)
   }
 
-  async function regenerateAudit(auditId: string) {
+  async function regenerateAudit(auditId: string, overrideDeterministicFailure = false) {
     setRegeneratingId(auditId)
     setRegenMsg(null)
     try {
       const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audit_id: auditId }),
+        body: JSON.stringify({
+          audit_id: auditId,
+          override_deterministic_failure: overrideDeterministicFailure,
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
@@ -374,9 +378,10 @@ export default function AdminPage() {
                   audit_status: 'queued',
                   last_generated_at: now,
                   last_activity_at: now,
+                  deterministic_failure: false,
                   admin_notes: audit.admin_notes
-                    ? `${audit.admin_notes}\n[${now}] Queued for regeneration.`
-                    : `[${now}] Queued for regeneration.`,
+                    ? `${audit.admin_notes}\n[${now}] ${overrideDeterministicFailure ? 'Deterministic failure override by admin operator. ' : ''}Queued for regeneration.`
+                    : `[${now}] ${overrideDeterministicFailure ? 'Deterministic failure override by admin operator. ' : ''}Queued for regeneration.`,
                 }
               : audit
           )
@@ -1264,12 +1269,14 @@ export default function AdminPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => regenerateAudit(audit.id)}
+                      onClick={() => regenerateAudit(audit.id, Boolean(audit.deterministic_failure))}
                       disabled={regeneratingId === audit.id}
                       className="gap-1"
                     >
                       {regeneratingId === audit.id ? (
                         <><Loader2 className="h-3 w-3 animate-spin" /> Regenerating...</>
+                      ) : audit.deterministic_failure ? (
+                        <><RefreshCw className="h-3 w-3" /> Override failure &amp; re-generate</>
                       ) : (
                         <><RefreshCw className="h-3 w-3" /> Re-generate</>
                       )}

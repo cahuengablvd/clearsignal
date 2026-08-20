@@ -3,6 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { enqueueAudit } from '@/lib/audit-queue'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { appendAdminNote } from '@/lib/admin-notes'
+import {
+  DETERMINISTIC_FAILURE_OVERRIDE_MARKER,
+  isDeterministicAuditFailure,
+} from '@/lib/audit-recovery'
 
 export async function POST(req: NextRequest) {
   // Admin-only: this re-runs a paid audit and spends API credits.
@@ -11,7 +15,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { audit_id, reuse_geo_evidence = true } = await req.json()
+    const {
+      audit_id,
+      reuse_geo_evidence = true,
+      override_deterministic_failure = false,
+    } = await req.json()
 
     if (!audit_id) {
       return NextResponse.json({ error: 'audit_id required' }, { status: 400 })
@@ -32,6 +40,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Audit is already processing' }, { status: 409 })
     }
 
+    const deterministicFailure = isDeterministicAuditFailure(
+      (audit as { admin_notes?: string | null }).admin_notes
+    )
+    if (deterministicFailure && !override_deterministic_failure) {
+      return NextResponse.json(
+        { error: 'This audit has a deterministic failure. Use the explicit admin override to requeue it.' },
+        { status: 409 }
+      )
+    }
+    if (override_deterministic_failure && !deterministicFailure) {
+      return NextResponse.json(
+        { error: 'No active deterministic failure marker to override.' },
+        { status: 409 }
+      )
+    }
+
     const { error: clearStageCacheError } = await supabaseAdmin
       .from('audit_stage_executions')
       .delete()
@@ -45,7 +69,9 @@ export async function POST(req: NextRequest) {
     // Make regeneration visible immediately in the admin UI. Trigger may take a
     // few seconds to start the task and flip the row to `processing`.
     const queuedAt = new Date().toISOString()
-    const queuedNote = `[${queuedAt}] Queued for regeneration. Previous status: ${audit.audit_status}.`
+    const queuedNote = override_deterministic_failure
+      ? `[${queuedAt}] ${DETERMINISTIC_FAILURE_OVERRIDE_MARKER} by admin operator. Queued for regeneration. Previous status: ${audit.audit_status}.`
+      : `[${queuedAt}] Queued for regeneration. Previous status: ${audit.audit_status}.`
     const { error: queueError } = await supabaseAdmin
       .from('audits')
       .update({
@@ -69,7 +95,12 @@ export async function POST(req: NextRequest) {
       endpoint: '/api/audit',
     })
 
-    return NextResponse.json({ success: true, audit_id, reuse_geo_evidence: Boolean(reuse_geo_evidence) })
+    return NextResponse.json({
+      success: true,
+      audit_id,
+      reuse_geo_evidence: Boolean(reuse_geo_evidence),
+      deterministic_failure_overridden: Boolean(override_deterministic_failure),
+    })
   } catch (err) {
     console.error('Manual audit trigger error:', err)
     return NextResponse.json(

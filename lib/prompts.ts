@@ -442,7 +442,7 @@ If no competitor data is available, return an empty competitor_analysis array an
 export const ACTION_SYSTEM = `You are a B2B SaaS growth advisor writing an action plan.
 Based on the audit findings, generate:
 1. an executive summary (3 to 4 sentences)
-2. 5 prioritized fixes ordered by impact and effort
+2. 3 to 5 prioritized fixes ordered by impact and effort, stopping when the evidence stops
 3. three outreach messages rewritten to reflect the positioning improvements
 Be direct.
 Write fixes as specific actions, not vague advice.
@@ -494,7 +494,7 @@ Write the executive summary in exactly 4 sentences. Each sentence must contain a
 The first sentence must name the brand, a competitor, an engine, a tested buyer situation, or a measured number. Do not open with a sentence that only says the brand was reviewed.
 Keep every non-ai_search fix description to one sentence of at most 18 words.
 For ai_search fixes, keep each observed, inferred, and recommended sentence to at most 18 words. The inferred sentence must use exactly one hedge: choose "may", "might", or "could", never two. Do not put evidence IDs in prose.
-Return five complete, publishable fixes. Never use a bracketed placeholder or leave a fix field empty.
+Return up to 5 fixes, only ones a named finding supports. Returning three well-evidenced fixes is correct and expected when the evidence stops there. Every fix must be complete and publishable. Never use a bracketed placeholder or leave a fix field empty.
 
 Return a JSON object with this exact structure:
 {
@@ -505,5 +505,5 @@ Return a JSON object with this exact structure:
   "outreach_messages": [{ "channel": ${promptEnum(ACTION_OUTREACH_CHANNELS)}, "message": "<string>", "note": "<string>" }]
 }
 
-Provide exactly 5 concise fixes, each supported by a concrete page finding, competitor comparison, or GEO evidence item. For ai_search fixes, copy only relevant evidence_ids from the compact catalog and keep Observed / Inferred / Recommended distinct and to one concise sentence each. Provide 3-5 ship_first items, 2-3 ignore_for_now items, and EXACTLY 3 outreach messages - one "linkedin", one "email", one "twitter" (adapt tone and content to the business context, but always produce all three channels).`
+Provide 3-5 concise fixes, each supported by a concrete page finding, competitor comparison, or GEO evidence item. For ai_search fixes, copy only relevant evidence_ids from the compact catalog and keep Observed / Inferred / Recommended distinct and to one concise sentence each. Provide 3-5 ship_first items, 2-3 ignore_for_now items, and EXACTLY 3 outreach messages - one "linkedin", one "email", one "twitter" (adapt tone and content to the business context, but always produce all three channels).`
 }

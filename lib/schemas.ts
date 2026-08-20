@@ -625,7 +625,7 @@ const OutreachMessageSchema = z.object({
 const actionFixSchema = z.object({
     id: z.number(),
     title: z.string(),
-    description: z.string(),
+    description: z.string().trim().min(1),
     impact: impactSchema,
     effort: effortSchema,
     category: categorySchema,
@@ -654,7 +654,7 @@ const actionFixSchema = z.object({
 
 const actionSchema = z.object({
   executive_summary: z.string(),
-  top_fixes: z.array(actionFixSchema).min(5).max(10),
+  top_fixes: z.array(actionFixSchema).min(3).max(10),
   ship_first: z.array(z.string()),
   ignore_for_now: z.array(z.string()),
   outreach_messages: z.array(OutreachMessageSchema).superRefine((messages, ctx) => {

@@ -96,7 +96,8 @@ describe('plain report prompt contract', () => {
     expect(prompt).toContain('Each sentence must contain at most 18 words')
     expect(prompt).toContain('choose "may", "might", or "could", never two')
     expect(prompt).toContain('Do not put evidence IDs in prose')
-    expect(prompt).toContain('Return five complete, publishable fixes')
+    expect(prompt).toContain('Return up to 5 fixes, only ones a named finding supports')
+    expect(prompt).toContain('Every fix must be complete and publishable')
   })
 })
 

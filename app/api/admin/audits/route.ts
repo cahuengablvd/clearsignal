@@ -7,6 +7,7 @@ import { statusPriority } from '@/lib/audit-bands'
 import { buildAdminEngineCoverage } from '@/lib/admin-engine-coverage'
 import { ADMIN_AUDIT_SELECT } from '@/lib/admin-audit-schema'
 import { latestObservedEngineVersion } from '@/lib/engine-version'
+import { isDeterministicAuditFailure } from '@/lib/audit-recovery'
 
 function lastActivityAt(audit: {
   created_at: string
@@ -196,6 +197,7 @@ export async function GET(req: NextRequest) {
         quality_summary: qualitySummary(a.quality),
         engine_coverage_summary,
         ai_cost_summary: costByAudit.get(a.id) ?? null,
+        deterministic_failure: isDeterministicAuditFailure(a.admin_notes),
         report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}`,
       }
     }
@@ -212,6 +214,7 @@ export async function GET(req: NextRequest) {
       quality_summary: qualitySummary(a.quality),
       engine_coverage_summary,
       ai_cost_summary: costByAudit.get(a.id) ?? null,
+      deterministic_failure: isDeterministicAuditFailure(a.admin_notes),
       report_url: null as string | null,
     }
   }).sort((a, b) => {

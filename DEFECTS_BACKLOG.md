@@ -256,13 +256,28 @@ unless you are investigating a regression in one of them.
 - Next step when picked up: identify from the run logs whether one engine drops out systematically
   (rate limit, timeout, provider error) or the failures are spread.
 
-## R33 — Recovery may enqueue a manual regeneration a second time (observation, unexplained)
+## R33 — Any audit sitting in `queued` can be enqueued twice (cost, affects paid customers)
 
-- Seen during R31/R32 verification on 2026-08-20. Both explicit admin requeues (`9ba2d5ec` and
-  `28ca503b`) reached `awaiting_review`, then returned to `processing` once before settling again.
-  Admin observability records `recovery_attempts: 1` for both.
-- Likely race: `/api/audit` marks a row `queued` before Trigger changes it to `processing`, while
-  recovery considers every queued row immediately. Confirm from the two Trigger run histories
-  before changing recovery semantics.
-- Do not loosen deterministic-failure or stale-processing guards. The likely fix is a queued grace
-  period or an explicit claim/lease that distinguishes a fresh manual enqueue from an abandoned one.
+- Seen: 2026-08-20, during the `R28`/`R29` verification: recovery picked up both manual requeues a
+  second time.
+- Cause is wider than manual requeues. `recoverStuckAudits` (`lib/audit-recovery.ts:82`) selects
+  **every** row with `audit_status = 'queued'` and no age condition, while the stale-`processing`
+  branch beside it correctly filters on `processing_started_at < cutoff`. Any audit queued when the
+  sweeper runs is re-enqueued — including a paid audit queued seconds earlier by the Stripe
+  webhook.
+- Effect: two generations of the same audit — double API spend, duplicate stage executions, and the
+  `duplicate_stage_warning` the admin already surfaces.
+- Fix: a `queued_at` column set wherever an audit enters `queued`, and the same age threshold the
+  `processing` branch uses. Rows with no `queued_at` must age from `created_at` before being
+  eligible, never be immediately recoverable.
+- Spec: `TASKS_ENGINE_ALIAS_AND_REQUEUE.md`.
+
+## R28 addendum — the exclusion misses aliases, not just one name
+
+- Seen: 2026-08-20. `Google AI` survives the engine filter: `competitorKey` normalises
+  `Google AI Overviews` to `googleaioverviews` and `Google` to `google`, so `googleai` matches
+  neither. `ChatGPT Search`, `Google AI Mode` and `Bing Copilot` would all do the same.
+- Adding literals fixes this input and not the next one. Fix by tokens: a name is an answer engine
+  when every token belongs to a small vendor vocabulary; single-token names still require an exact
+  literal match so `AI4Life` is never excluded.
+- Spec: `TASKS_ENGINE_ALIAS_AND_REQUEUE.md`.

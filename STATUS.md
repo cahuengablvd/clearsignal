@@ -68,11 +68,15 @@ a handler is written. Three or more agencies raising it means a positioning prob
 
 ## Verification standing
 
-- `vertexspain.com` (audit `beb637a8`) — regenerated on Trigger `20260815.3`. The executive summary,
-  clarity findings and surviving fix descriptions pass the deterministic plain-language limits;
-  the summary is repeatable from memory. The audit remains `awaiting_review`: sanitizer dropped one
-  empty generated fix (4 remain) and recorded schema-deliverable warnings, separate from the style
-  task and requiring human review before any delivery.
+- `vertexspain.com` (audit `beb637a8`) — regenerated on Trigger `20260815.3`. Prose passes the
+  deterministic plain-language limits (summary: 13.5 words mean, 19 max) and the summary is
+  repeatable from memory. **Open risk of the plain-language pass, not a one-off:** the prompt still
+  asks for 5 fixes, but one came back empty and the sanitizer dropped it, so 4 shipped. Same
+  mechanism as `R27` — a tighter frame hollows out the last, weakest item. Too early to change the
+  18-word limit on one run. Watch across the next 2-3 regenerations: (1) how many fixes survive,
+  (2) whether `ai_search` fixes keep their low-control alternative inside 18 words, (3) validation
+  warnings. If the fifth fix disappears systematically, either ask for four or widen descriptions to
+  ~25 words. The audit stays `awaiting_review`; nothing has been delivered.
 - `jusukosmetologs.lv` (audit `5d53a488`) — 18/18 engine coverage, mechanically clean.
   **This is the report to show people:** cited 7x (second in its niche) yet named in only 4 of 18
   answers, while the leader is recommended in 33%. Read by AI, not recommended by it — the exact

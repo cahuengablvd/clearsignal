@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       .from('audits')
       .update({
         audit_status: 'queued',
+        queued_at: queuedAt,
         last_generated_at: queuedAt,
         processing_started_at: null,
         recovery_attempts: 0,

@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Create the audit row (comped: marked paid, no Stripe session).
+  const queuedAt = new Date().toISOString()
   const base = {
     email: input.email,
     url: input.url,
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
     stripe_session: null,
     payment_status: 'paid', // comped: no `comped` value in the current schema
     audit_status: 'queued',
+    queued_at: queuedAt,
     tier: input.tier,
   }
   const queries = input.queries?.length ? input.queries : null

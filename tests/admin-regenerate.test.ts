@@ -99,6 +99,7 @@ describe('admin audit regeneration route', () => {
     expect(mocks.stageEq).toHaveBeenCalledWith('audit_id', 'audit-1')
     expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
       audit_status: 'queued',
+      queued_at: expect.any(String),
       recovery_attempts: 0,
     }))
     expect(mocks.enqueueAudit).toHaveBeenCalledWith('audit-1', expect.objectContaining({
@@ -151,6 +152,7 @@ describe('admin audit regeneration route', () => {
     expect(res.status).toBe(200)
     expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
       audit_status: 'queued',
+      queued_at: expect.any(String),
       recovery_attempts: 0,
       admin_notes: expect.stringMatching(/Deterministic failure override.*admin operator/i),
     }))

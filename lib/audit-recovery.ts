@@ -1,10 +1,11 @@
 /**
  * Shared paid-audit recovery logic.
  *
- * Finds audits that never completed - anything still `queued`, plus anything
- * `processing` older than the stale TTL measured from processing_started_at -
- * and re-enqueues each while respecting a retry budget. Used by both the admin
- * endpoint and the recovery cron so there is a single source of truth.
+ * Finds audits that never completed - anything `queued` beyond the stale TTL,
+ * plus anything `processing` older than the same TTL measured from
+ * processing_started_at - and re-enqueues each while respecting a retry
+ * budget. Used by both the admin endpoint and the recovery cron so there is a
+ * single source of truth.
  */
 import { supabaseAdmin } from './supabase'
 import { enqueueAudit } from './audit-queue'
@@ -14,6 +15,7 @@ import { requireSupabaseWrite } from './supabase-write'
 
 // An audit stuck in `processing` longer than this is considered stale.
 export const STALE_PROCESSING_MS = 20 * 60 * 1000
+export const STALE_QUEUED_MS = STALE_PROCESSING_MS
 export const MAX_RECOVERY_ATTEMPTS = 2
 export const DETERMINISTIC_FAILURE_OVERRIDE_MARKER = 'Deterministic failure override'
 
@@ -21,6 +23,8 @@ type RecoverableAudit = {
   id: string
   audit_status: string
   created_at: string
+  queued_at?: string | null
+  last_generated_at?: string | null
   processing_started_at?: string | null
   recovery_attempts?: number | null
   admin_notes?: string | null
@@ -60,6 +64,18 @@ export function isProcessingStale(
   return new Date(audit.processing_started_at).getTime() < now - STALE_PROCESSING_MS
 }
 
+export function isQueuedStale(
+  audit: Pick<RecoverableAudit, 'queued_at' | 'last_generated_at' | 'created_at'>,
+  now = Date.now()
+): boolean {
+  // Rows created before queued_at was introduced fall back to the most recent
+  // generation timestamp, then creation time. Missing timestamps never make a
+  // row immediately recoverable.
+  const queuedSince = audit.queued_at || audit.last_generated_at || audit.created_at
+  if (!queuedSince) return false
+  return new Date(queuedSince).getTime() < now - STALE_QUEUED_MS
+}
+
 async function markRecoveryStopped(
   audit: RecoverableAudit,
   reason: string,
@@ -85,7 +101,7 @@ export async function recoverStuckAudits(): Promise<RecoverySummary> {
   const [{ data: queued, error: qErr }, { data: staleProcessing, error: pErr }] = await Promise.all([
     supabaseAdmin
       .from('audits')
-      .select('id, audit_status, created_at, processing_started_at, recovery_attempts, admin_notes')
+      .select('id, audit_status, created_at, queued_at, last_generated_at, processing_started_at, recovery_attempts, admin_notes')
       .eq('audit_status', 'queued'),
     supabaseAdmin
       .from('audits')
@@ -98,9 +114,13 @@ export async function recoverStuckAudits(): Promise<RecoverySummary> {
     throw new Error(`Failed to query audits: ${qErr?.message || pErr?.message}`)
   }
 
+  const staleQueued = ((queued || []) as RecoverableAudit[]).filter((audit) =>
+    isQueuedStale(audit)
+  )
+
   // De-dupe by id (shouldn't overlap, but be safe).
   const byId = new Map<string, RecoverableAudit>()
-  for (const audit of [...((queued || []) as RecoverableAudit[]), ...((staleProcessing || []) as RecoverableAudit[])]) {
+  for (const audit of [...staleQueued, ...((staleProcessing || []) as RecoverableAudit[])]) {
     byId.set(audit.id, audit)
   }
   const audits = [...byId.values()]
@@ -129,9 +149,13 @@ export async function recoverStuckAudits(): Promise<RecoverySummary> {
 
     try {
       await enqueueAudit(audit.id, { trigger: 'recovery', endpoint: 'audit-recovery' })
+      const recoveredAt = new Date().toISOString()
       const { error } = await supabaseAdmin
         .from('audits')
-        .update({ recovery_attempts: (audit.recovery_attempts ?? 0) + 1 })
+        .update({
+          recovery_attempts: (audit.recovery_attempts ?? 0) + 1,
+          ...(audit.audit_status === 'queued' ? { queued_at: recoveredAt } : {}),
+        })
         .eq('id', audit.id)
       requireSupabaseWrite(error, `audits recovery attempt for audit ${audit.id}`)
       reEnqueued += 1
@@ -144,7 +168,7 @@ export async function recoverStuckAudits(): Promise<RecoverySummary> {
 
   return {
     found: audits.length,
-    queued: queued?.length ?? 0,
+    queued: staleQueued.length,
     stale_processing: staleProcessing?.length ?? 0,
     re_enqueued: reEnqueued,
     failed: errors.length + exhausted + deterministicSkipped,

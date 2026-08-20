@@ -26,9 +26,43 @@ const ANSWER_ENGINE_COMPETITOR_NAMES = [
   'Copilot',
 ] as const
 
+const ANSWER_ENGINE_COMPETITOR_TOKENS = new Set([
+  'google',
+  'openai',
+  'chatgpt',
+  'anthropic',
+  'claude',
+  'perplexity',
+  'gemini',
+  'copilot',
+  'microsoft',
+  'bing',
+  'ai',
+  'overviews',
+  'mode',
+  'search',
+  'assistant',
+])
+
+function answerEngineNameKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+const ANSWER_ENGINE_COMPETITOR_KEYS = new Set(
+  ANSWER_ENGINE_COMPETITOR_NAMES.map(answerEngineNameKey)
+)
+
 /** Public answer-engine names that must not be inferred as competitors. */
 export function answerEngineCompetitorNames(): readonly string[] {
   return ANSWER_ENGINE_COMPETITOR_NAMES
+}
+
+/** Whether an inferred competitor name consists only of answer-engine vendor/product tokens. */
+export function isAnswerEngineCompetitorName(value: string): boolean {
+  if (ANSWER_ENGINE_COMPETITOR_KEYS.has(answerEngineNameKey(value))) return true
+
+  const tokens = value.toLowerCase().match(/[a-z0-9]+/g) ?? []
+  return tokens.length > 1 && tokens.every((token) => ANSWER_ENGINE_COMPETITOR_TOKENS.has(token))
 }
 
 const PUBLIC_ENGINE_ORDER: EngineId[] = ['openai', 'claude', 'perplexity']

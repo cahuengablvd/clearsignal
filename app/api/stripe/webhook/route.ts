@@ -48,6 +48,7 @@ export async function POST(req: Request) {
   console.log('[webhook] checkout.session.completed -- session:', stripeSessionId)
 
   try {
+    const queuedAt = new Date().toISOString()
     let existing = null
 
     if (meta.audit_id) {
@@ -98,6 +99,7 @@ export async function POST(req: Request) {
           stripe_session: stripeSessionId,
           payment_status: 'paid',
           audit_status: 'queued',
+          queued_at: queuedAt,
           processing_started_at: null,
         })
         .eq('id', existing.id)
@@ -126,6 +128,7 @@ export async function POST(req: Request) {
           stripe_session: stripeSessionId,
           payment_status: 'paid',
           audit_status: 'queued',
+          queued_at: queuedAt,
           tier: meta.tier || 'automated',
         })
         .select('id')
@@ -148,7 +151,12 @@ export async function POST(req: Request) {
             }
             const { error: duplicateUpdateError } = await supabaseAdmin
               .from('audits')
-              .update({ payment_status: 'paid', audit_status: 'queued', processing_started_at: null })
+              .update({
+                payment_status: 'paid',
+                audit_status: 'queued',
+                queued_at: queuedAt,
+                processing_started_at: null,
+              })
               .eq('id', duplicate.id)
 
             if (duplicateUpdateError) {

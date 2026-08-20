@@ -37,7 +37,7 @@ import { buildQueryAnalysis, classifyQueryIntent } from './query-taxonomy'
 import { scrapeUrl } from '../firecrawl'
 import { normalizeMarkdown } from '../normalize-markdown'
 import { boundSampleClaims } from '../sanitize'
-import { answerEngineCompetitorNames } from '../engine-scope'
+import { isAnswerEngineCompetitorName } from '../engine-scope'
 import {
   buildVariants,
   textMentions,
@@ -216,9 +216,6 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     .filter(Boolean)
     .map((c) => ({ name: prettyName(c), variants: buildVariants({ url: c, name: prettyName(c) }) }))
 
-  // Explicit operator input wins. Only inferred names are filtered.
-  const answerEngineCompetitorKeys = new Set(answerEngineCompetitorNames().map(competitorKey))
-
   if (discoverCompetitors) {
     try {
       const { competitors: discovered } = await callClaudeJSON<{ competitors: string[] }>({
@@ -235,7 +232,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         const key = sld(name) || name.toLowerCase()
         if (!key || key === sld(brandDomain)) continue
         if (name.includes('.') && !registrableDomain(name)) continue
-        if (answerEngineCompetitorKeys.has(competitorKey(name))) continue
+        // Explicit operator input wins. Only inferred names are filtered.
+        if (isAnswerEngineCompetitorName(name)) continue
         if (competitorList.some((c) => sld(c.name) === key || competitorKey(c.name) === competitorKey(name))) continue
         competitorList.push({ name, variants: buildVariants({ name }) })
       }

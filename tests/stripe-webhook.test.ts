@@ -86,6 +86,7 @@ describe('Stripe paid-audit webhook', () => {
       stripe_session: 'cs_test_1',
       payment_status: 'paid',
       audit_status: 'queued',
+      queued_at: expect.any(String),
     }))
     expect(mocks.notify).toHaveBeenCalledWith('paid_audit_received', expect.objectContaining({ audit_id: 'audit-1' }))
     expect(mocks.sendOrderConfirmationEmail).toHaveBeenCalledWith('buyer@example.com', 'https://example.com')
@@ -130,7 +131,10 @@ describe('Stripe paid-audit webhook', () => {
     const response = await callWebhook()
 
     expect(response.status).toBe(500)
-    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ audit_status: 'queued' }))
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      audit_status: 'queued',
+      queued_at: expect.any(String),
+    }))
     expect(mocks.notify).toHaveBeenCalledWith('audit_enqueue_failed', expect.any(Object))
     expect(mocks.sendOrderConfirmationEmail).not.toHaveBeenCalled()
   })

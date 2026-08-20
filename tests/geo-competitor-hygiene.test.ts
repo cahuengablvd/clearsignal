@@ -57,6 +57,44 @@ describe('GEO competitor and cited-source hygiene', () => {
     ])
   })
 
+  it('excludes multi-token engine aliases without hiding companies that contain other tokens', async () => {
+    queryEngine.mockResolvedValue({
+      ok: true,
+      answer: 'Ahrefs, Semrush, AI4Life, Perplexity Labs Consulting, and Genuine Rival are relevant options.',
+      citations: [],
+    })
+    callClaudeJSON.mockResolvedValue({
+      competitors: [
+        'Google AI',
+        'Google AI Mode',
+        'ChatGPT Search',
+        'Bing Copilot',
+        'Ahrefs',
+        'Semrush',
+        'AI4Life',
+        'Perplexity Labs Consulting',
+        'Genuine Rival',
+      ],
+    })
+
+    const result = await runGeoScan({
+      brand: 'Target',
+      url: 'https://target.example',
+      providedQueries: ['Which option should I choose?'],
+      engines: ['openai'],
+      analyzeSources: false,
+      narrative: false,
+    })
+
+    expect(result.competitor_visibility.map((competitor) => competitor.name)).toEqual([
+      'Ahrefs',
+      'Semrush',
+      'AI4Life',
+      'Perplexity Labs Consulting',
+      'Genuine Rival',
+    ])
+  })
+
   it('keeps an explicitly supplied answer engine as a competitor', async () => {
     const result = await runGeoScan({
       brand: 'Target',

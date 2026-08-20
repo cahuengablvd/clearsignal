@@ -182,6 +182,36 @@ describe('golden-report regression test', () => {
     expect(reused?.summary).not.toMatch(/0 of 6 tested|Perplexity and OpenAI|core reason/i)
   })
 
+  fixtureIt('removes inferred answer-engine aliases from reused GEO evidence', () => {
+    const report = clientSafeGoldenReport()
+    report.geo!.competitor_visibility.unshift({ name: 'Google AI', mention_rate: 100 })
+    report.geo!.evidence = report.geo!.evidence.map((evidence) => ({
+      ...evidence,
+      answer_excerpt: `Google AI. ${evidence.answer_excerpt}`,
+      competitors_mentioned: [...evidence.competitors_mentioned, 'Google AI'],
+    }))
+
+    const reused = reusableGeoFromAudit({ report })
+
+    expect(reused?.competitor_visibility.map((competitor) => competitor.name)).not.toContain('Google AI')
+    expect(reused?.evidence.flatMap((evidence) => evidence.competitors_mentioned)).not.toContain('Google AI')
+  })
+
+  fixtureIt('keeps an operator-supplied answer engine when GEO evidence is reused', () => {
+    const report = clientSafeGoldenReport()
+    report.geo!.competitor_visibility.unshift({ name: 'Google AI', mention_rate: 100 })
+    report.geo!.evidence = report.geo!.evidence.map((evidence) => ({
+      ...evidence,
+      answer_excerpt: `Google AI. ${evidence.answer_excerpt}`,
+      competitors_mentioned: [...evidence.competitors_mentioned, 'Google AI'],
+    }))
+
+    const reused = reusableGeoFromAudit({ report, competitor_1: 'Google AI' })
+
+    expect(reused?.competitor_visibility.map((competitor) => competitor.name)).toContain('Google AI')
+    expect(reused?.evidence.flatMap((evidence) => evidence.competitors_mentioned)).toContain('Google AI')
+  })
+
   fixtureIt('renders GEO summary from typed metrics only', () => {
     const report = clientSafeGoldenReport()
     expect(report.geo?.summary).toBe(

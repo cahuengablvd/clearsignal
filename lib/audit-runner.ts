@@ -39,7 +39,7 @@ import {
 } from './prompts'
 import { deliverAuditEmail } from './email-delivery'
 import { buildGeoSummary, runGeoScan } from './geo'
-import { buildVariants, citationsInclude, textMentions, firstMentionIndex } from './geo/detect'
+import { buildVariants, citationsInclude, textMentions, firstMentionIndex, sld } from './geo/detect'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
 import { buildGeoActionEvidenceCatalog } from './geo/action-evidence'
 import { checkTechnicalEligibility } from './geo/eligibility'
@@ -56,6 +56,7 @@ import { requireSupabaseWrite } from './supabase-write'
 import { auditExecutionContext, runAuditStage, type AuditTrigger } from './audit-execution'
 import { qualityCriticEnabled, runQualityCritic } from './quality/critic'
 import { reconcileAuditAiCost } from './ai-observability'
+import { isAnswerEngineCompetitorName } from './engine-scope'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
@@ -102,7 +103,12 @@ export function buildDataLimitations(
   return limits
 }
 
-export function reusableGeoFromAudit(audit: { report?: unknown }): GeoResult | null {
+export function reusableGeoFromAudit(audit: {
+  report?: unknown
+  competitor_1?: string | null
+  competitor_2?: string | null
+  competitor_3?: string | null
+}): GeoResult | null {
   const maybeReport = audit.report as { geo?: unknown; meta?: { canonical_brand?: string; alternative_brand_forms?: string[] } } | null | undefined
   if (!maybeReport?.geo) return null
   const parsed = GeoResultSchema.safeParse(maybeReport.geo)
@@ -110,6 +116,8 @@ export function reusableGeoFromAudit(audit: { report?: unknown }): GeoResult | n
   return rebuildReusedGeoNarrative(parsed.data, {
     canonicalBrand: maybeReport.meta?.canonical_brand,
     alternativeBrandForms: maybeReport.meta?.alternative_brand_forms,
+    explicitCompetitors: [audit.competitor_1, audit.competitor_2, audit.competitor_3]
+      .filter((value): value is string => Boolean(value)),
   })
 }
 
@@ -139,7 +147,11 @@ function combinedBrandVariants(args: {
 
 export function recomputeReusedGeoEvidence(
   geo: GeoResult,
-  opts: { canonicalBrand?: string; alternativeBrandForms?: string[] } = {}
+  opts: {
+    canonicalBrand?: string
+    alternativeBrandForms?: string[]
+    explicitCompetitors?: string[]
+  } = {}
 ): GeoResult {
   const brand = opts.canonicalBrand || geo.brand
   const brandVariants = combinedBrandVariants({
@@ -151,8 +163,17 @@ export function recomputeReusedGeoEvidence(
     ...geo.competitor_visibility.map((c) => c.name),
     ...geo.evidence.flatMap((e) => e.competitors_mentioned),
   ].filter(Boolean)
+  const explicitCompetitorKeys = new Set(
+    (opts.explicitCompetitors || []).flatMap((value) => {
+      const domain = sld(value)
+      return [competitorIdentityKey(value), domain ? competitorIdentityKey(domain) : ''].filter(Boolean)
+    })
+  )
   const competitorList = [...new Set(competitorNames)]
     .filter((name) => !textMentions(name, brandVariants.tokens))
+    .filter((name) =>
+      !isAnswerEngineCompetitorName(name) || explicitCompetitorKeys.has(competitorIdentityKey(name))
+    )
     .map((name) => ({ name, variants: buildVariants({ name }) }))
 
   const evidence = geo.evidence.map((e) => {
@@ -235,9 +256,17 @@ export function recomputeReusedGeoEvidence(
   }
 }
 
+function competitorIdentityKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
 export function rebuildReusedGeoNarrative(
   input: GeoResult,
-  opts: { canonicalBrand?: string; alternativeBrandForms?: string[] } = {}
+  opts: {
+    canonicalBrand?: string
+    alternativeBrandForms?: string[]
+    explicitCompetitors?: string[]
+  } = {}
 ): GeoResult {
   const geo = recomputeReusedGeoEvidence(input, opts)
   const total = geo.test_counts?.successful_combinations ?? geo.evidence.length

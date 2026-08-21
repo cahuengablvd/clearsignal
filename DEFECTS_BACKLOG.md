@@ -178,46 +178,6 @@ unless you are investigating a regression in one of them.
 - Next step when picked up: identify from the run logs whether one engine drops out systematically
   (rate limit, timeout, provider error) or the failures are spread.
 
-## R35 — The "first action" differs between summary, action plan and ship-first
-
-- Seen: 2026-08-20, human review of `beb637a8` (`vertexspain.com`) before delivery. Three sections
-  name a different first step.
-- Cause: the plain-language pass requires the executive summary to end with "the single first
-  action", and nothing makes that agree with `action.top_fixes[0]` or `ship_first[0]`.
-  `lib/report-validator.ts:736` touches the summary only when it is empty; `ship_first` is never
-  cross-checked. Before that requirement existed there was nothing to diverge.
-- In a deliverable whose promise is "what to fix first", this is the worst inconsistency available.
-- Fix: `top_fixes[0]` is the source of truth; dependent sections are verified against it and
-  rewritten if they disagree. Never reorder `top_fixes` to match prose.
-- Spec: `TASKS_REPORT_COHERENCE.md`.
-
-## R36 — Ready materials claim the category is unknown while the operator confirmed it
-
-- Seen: 2026-08-20, same review. Operator set `local_business` for a Marbella real-estate brokerage;
-  the ready copy states the business category was not established, directly under a business-context
-  block that states what the business is.
-- Cause: `operatorMaterialCategory` (`lib/materials.ts:32`) maps only `gallery`, `marketplace`,
-  `moving_service`, `video_production`, `tailoring_atelier`. Everything else falls through to
-  `default`, whose copy asserts the category was not established.
-- Mirror image of `R24`: there abstention protected the customer from a confident wrong category;
-  here it overrides a category a human confirmed.
-- Fix: a confirmed `business_model` reaches the generic template in plain words; only a genuinely
-  unknown value may produce "not established". Do not add a template per vertical — that is the
-  hardcoded-vertical trap `R24` closed.
-- Spec: `TASKS_REPORT_COHERENCE.md`.
-
-## R37 — A recommendation contradicts a deterministic finding
-
-- Seen: 2026-08-20, same review. JSON-LD recorded as detected on the page, and elsewhere the report
-  tells the client to add JSON-LD because it is missing.
-- Cause: the validator maps fixes to `OBS-*` evidence and strips irrelevant links
-  (`lib/report-validator.ts:670-692`), but never checks that a fix does not *contradict* the finding
-  it sits beside.
-- Fix: a contradiction between generated prose and a deterministic finding is a validation error on
-  the prose — drop or rewrite the item, never edit the finding. The measurement wins over the
-  sentence. Cover JSON-LD, meta description, H1, FAQ structure and primary CTA.
-- Spec: `TASKS_REPORT_COHERENCE.md`.
-
 ## R38 — A paid audit and a test run share one spend cap and one alert
 
 - Seen: 2026-08-21, reviewing the `R34` implementation. Not yet triggered in production — there are
@@ -238,4 +198,3 @@ unless you are investigating a regression in one of them.
   experiments, not to decline work that is already paid for.
 - Do not fix by removing the cap or by raising the default. The guard is correct; only its blast
   radius is wrong.
-

@@ -10,13 +10,13 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-20. R28 and R33 are fixed and production-verified; the queued-at migration is applied and both current verification reports are awaiting review.
+**Last updated:** 2026-08-21. R35-R37 are fixed and production-verified; Vertex remains awaiting review and was not delivered.
 
 ## Deploys
 
-- **Vercel** — auto-deploys `main`; production health confirmed the R34 code at `8247da2`.
-- **Trigger.dev** — version **`20260821.1`**, deployed from `C:\csdeploy` at commit `8247da2`,
-  5 tasks. Carries the R34 daily spend guard and deterministic task-retry stop.
+- **Vercel** — auto-deploys `main`; production admin reports app commit `d50def9`.
+- **Trigger.dev** — version **`20260821.3`**, deployed from `C:\csdeploy` at commit `d50def9`,
+  5 tasks. Carries the R34 spend guard and the R35-R37 report-coherence checks.
 - **Supabase** — migration `014_daily_ai_spend_guard.sql` applied 2026-08-21 with RLS enabled.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
@@ -67,9 +67,11 @@ a handler is written. Three or more agencies raising it means a positioning prob
 
 ## Verification standing
 
-- `vertexspain.com` (audit `beb637a8`) — regenerated on Trigger `20260815.3`; `awaiting_review`, not
-  delivered. Four fully described fixes survived and prose passes the deterministic plain-language
-  limits (summary: 13.5 words mean, 19 max).
+- `vertexspain.com` (audit `beb637a8`) — regenerated once on Trigger `20260821.2`, then re-rendered
+  on app commit `d50def9`; `awaiting_review`, not delivered. Production review passed R35-R37: the
+  four-sentence summary, first fix and Ship first agree; ready copy names `local business`; detected
+  `RealEstateAgent` JSON-LD has no missing/add-JSON-LD recommendation. Coverage remained **9/18**,
+  the next observation for R30; it was not investigated here.
 - `snoika.com` (audit `9ba2d5ec`) — final regeneration on Trigger `20260820.3`; `awaiting_review`,
   not delivered. **Five** fully described fixes survived; `Crunchbase` is the only competitor.
 - `getclearsignal.io` (audit `28ca503b`) — final regeneration on Trigger `20260820.3`;
@@ -92,7 +94,7 @@ Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
 
 ## Open defects
 
-`R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22` and `R30` remain open. They wait for real customers
+`R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22`, `R30` and `R38` remain open. They wait for real customers
 to set their priority. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
 
 ## Cost

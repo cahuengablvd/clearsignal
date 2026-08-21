@@ -495,3 +495,16 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   Trigger uses `AbortTaskRunError` only for the existing deterministic-failure class; transient
   failures retain `maxAttempts: 2`. Admin and authorized health surfaces report the same aggregate,
   including recovery and platform-retry calls.
+
+## R35-R37 — Report sections contradict each other
+
+- **Closed 2026-08-21** in `b5895be` and `d50def9`, deployed on Vercel and as Trigger
+  **`20260821.3`**. `action.top_fixes[0]` now deterministically owns the summary's fourth sentence
+  and `ship_first[0]`; confirmed generic business models reach ready copy without defeating R24's
+  unknown-category abstention; and generated recommendations cannot contradict present/absent
+  JSON-LD, meta description, H1, FAQ or primary-CTA findings. The same final validator covers stored
+  report re-renders.
+- Production verification regenerated `beb637a8` once on `20260821.2` and re-rendered it on
+  `d50def9`. The summary has four sentences and one first action across all three sections; ready
+  copy says `Vertex is a local business`; `RealEstateAgent` JSON-LD remains the measured finding and
+  no missing/add-JSON-LD recommendation survives. Coverage remained 9/18 (recorded for R30 only).

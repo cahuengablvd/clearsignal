@@ -14,9 +14,10 @@ at the end of a working session.
 
 ## Deploys
 
-- **Vercel** — auto-deploys `main`; production health confirmed the R28/R33 code at `6dcb5ac`.
-- **Trigger.dev** — version **`20260820.3`**, deployed from `C:\csdeploy` at commit `6dcb5ac`,
-  5 tasks. Carries the final R28 reuse-path fix and R33 queued-age guard.
+- **Vercel** — auto-deploys `main`; production health confirmed the R34 code at `8247da2`.
+- **Trigger.dev** — version **`20260821.1`**, deployed from `C:\csdeploy` at commit `8247da2`,
+  5 tasks. Carries the R34 daily spend guard and deterministic task-retry stop.
+- **Supabase** — migration `014_daily_ai_spend_guard.sql` applied 2026-08-21 with RLS enabled.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts

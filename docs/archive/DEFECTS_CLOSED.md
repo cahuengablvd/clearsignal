@@ -485,3 +485,13 @@ reviewer — the paying customer does not know it means them. Retitle for the re
   stale processing and safely falls back to `last_generated_at` or `created_at` for older rows.
   Concurrent production requeues of `9ba2d5ec` and `28ca503b` both completed with
   `recovery_attempts = 0` and no recovery note or duplicate generation.
+
+## R34 — The cost guard watches one audit at a time and is blind to volume
+
+- **Closed 2026-08-21** in `8247da2`, deployed on Vercel and as Trigger **`20260821.1`**.
+  Production migration `014_daily_ai_spend_guard.sql` is applied with RLS enabled. The shared
+  enqueue/task-start guard sums the current UTC day's persisted AI-call cost, blocks at the `$5.00`
+  default cap (or `DAILY_AI_SPEND_CAP_USD`), leaves the audit queued, and claims one alert per day.
+  Trigger uses `AbortTaskRunError` only for the existing deterministic-failure class; transient
+  failures retain `maxAttempts: 2`. Admin and authorized health surfaces report the same aggregate,
+  including recovery and platform-retry calls.

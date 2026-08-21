@@ -75,6 +75,116 @@ function findingStatus(report: ClearSignalReport, id: string): string | undefine
   return findings.find((f) => f.id === id)?.status
 }
 
+type DeterministicSignalRule = {
+  id: string
+  signal: string
+  addSignal?: string
+  presentReplacement: string
+  absentReplacement: string
+}
+
+const DETERMINISTIC_SIGNAL_RULES: DeterministicSignalRule[] = [
+  {
+    id: 'json_ld',
+    signal: '(?:JSON-LD|structured data|schema\\.org(?:\\s+(?:markup|structured data))?|schema\\s+(?:markup|structured data))',
+    addSignal: '(?:JSON-LD|structured data)',
+    presentReplacement: 'Review and extend the existing JSON-LD with supported schema types',
+    absentReplacement: 'Add JSON-LD structured data',
+  },
+  {
+    id: 'meta_description',
+    signal: 'meta description',
+    presentReplacement: 'Review the existing meta description for accuracy and relevance',
+    absentReplacement: 'Add a meta description',
+  },
+  {
+    id: 'h1_present',
+    signal: '(?:H1|headline\\s*\\(H1\\))',
+    presentReplacement: 'Review the existing H1 for clarity and relevance',
+    absentReplacement: 'Add an H1 headline',
+  },
+  {
+    id: 'faq_structure',
+    signal: '(?:FAQ|Q&A|frequently asked questions)(?:\\s+(?:section|structure|markup))?',
+    presentReplacement: 'Review and expand the existing FAQ structure',
+    absentReplacement: 'Add FAQ structure',
+  },
+  {
+    id: 'cta_present',
+    signal: '(?:primary\\s+)?(?:CTA|call[- ]to[- ]action)(?:\\s+(?:button|element))?',
+    presentReplacement: 'Review the existing primary CTA for clarity and relevance',
+    absentReplacement: 'Add a primary CTA',
+  },
+]
+
+function contradictionPatterns(rule: DeterministicSignalRule, status: string): RegExp[] {
+  const signal = rule.signal
+  if (status === 'present') {
+    return [
+      new RegExp(`\\b(?:add|create|implement|install|introduce|publish|set up)\\s+(?:a\\s+|an\\s+|the\\s+|new\\s+|valid\\s+|proper\\s+|basic\\s+|dedicated\\s+)*(?:${rule.addSignal || signal})\\b`, 'i'),
+      new RegExp(`\\b(?:no|missing|absent|lacks?|without)\\b[^.!?]{0,48}\\b${signal}\\b`, 'i'),
+      new RegExp(`\\b${signal}\\b[^.!?]{0,48}\\b(?:is|was)\\s+(?:missing|absent|not present|not found|not detected)\\b`, 'i'),
+    ]
+  }
+  if (status === 'absent') {
+    return [
+      new RegExp(`\\b(?:existing|current)\\s+${signal}\\b`, 'i'),
+      new RegExp(`\\b${signal}\\b[^.!?]{0,40}\\b(?:already\\s+)?(?:exists?|is present|was present|was detected)\\b`, 'i'),
+    ]
+  }
+  return []
+}
+
+function isRecommendationPath(path: string[]): boolean {
+  const joined = path.join('.')
+  return (
+    joined === 'action.executive_summary' ||
+    joined.startsWith('action.top_fixes.') ||
+    joined.startsWith('action.ship_first.') ||
+    joined.startsWith('action.outreach_messages.') ||
+    joined.startsWith('ready_materials.')
+  )
+}
+
+function repairFindingContradiction(
+  report: ClearSignalReport,
+  text: string,
+  path: string[],
+  warn: (m: string) => void
+): string {
+  if (!isRecommendationPath(path)) return text
+  for (const rule of DETERMINISTIC_SIGNAL_RULES) {
+    const status = findingStatus(report, rule.id)
+    if (!status || !contradictionPatterns(rule, status).some((pattern) => pattern.test(text))) continue
+    warn(`finding_contradiction: ${rule.id} ${status} finding overrode ${path.join('.')}`)
+    return status === 'present' ? rule.presentReplacement : rule.absentReplacement
+  }
+  return text
+}
+
+function validateFindingContradictions(report: ClearSignalReport, errors: string[]): void {
+  const scan = (value: unknown, path: string[] = []): void => {
+    if (typeof value === 'string') {
+      if (!isRecommendationPath(path)) return
+      for (const rule of DETERMINISTIC_SIGNAL_RULES) {
+        const status = findingStatus(report, rule.id)
+        if (status && contradictionPatterns(rule, status).some((pattern) => pattern.test(value))) {
+          errors.push(`finding_contradiction at ${path.join('.')}: ${rule.id} is ${status}`)
+        }
+      }
+      return
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => scan(item, [...path, String(index)]))
+      return
+    }
+    if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, item]) => scan(item, [...path, key]))
+    }
+  }
+  scan(report)
+}
+
 // Clipped role labels that may end up in stored data.
 const CLIPPED_ROLE: Record<string, string> = {
   Develope: 'Developer',
@@ -589,6 +699,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     out = cleanupClientPhrasing(out)
     out = repairBrokenSentenceFragments(out, path)
     out = repairWrongDomainMentions(out, domain)
+    out = repairFindingContradiction(report, out, path, warn)
 
     // (1) CTA contradiction.
     if (ctaStatus === 'present') {
@@ -654,11 +765,13 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
   ensureExecutiveSummary(walked, warn)
+  reconcileFirstAction(walked, warn)
   normalizeOutreachChannels(walked, warn)
   warnSlashJoinedReadyMaterials(walked, warn)
   validatePolicyWording(walked, errors, warnings)
   validateReadyMaterialsCategory(walked, errors)
   validateRecommendedSchemaCoverage(walked, errors)
+  validateFindingContradictions(walked, errors)
 
   // --- (4) evidence relevance over action.top_fixes ---
   if (walked.action && Array.isArray(walked.action.top_fixes)) {
@@ -748,6 +861,38 @@ function ensureExecutiveSummary(report: ClearSignalReport, warn: (m: string) => 
 
   report.action.executive_summary = `${brand} was reviewed against the crawled page, selected competitors, and tested AI responses. ${focus}`
   warn('executive_summary: rebuilt empty summary from validated action items')
+}
+
+function canonicalFirstActionSentence(title: string): string {
+  const action = title.trim().replace(/[.!?]+$/, '')
+  const first = /^[A-Z][a-z]/.test(action) ? action[0].toLowerCase() + action.slice(1) : action
+  return `First, ${first}.`
+}
+
+function reconcileFirstAction(report: ClearSignalReport, warn: (m: string) => void): void {
+  const firstFix = report.action?.top_fixes?.[0]
+  const title = String(firstFix?.title || '').trim().replace(/[.!?]+$/, '')
+  if (!title) return
+
+  let changed = false
+  const expectedClosing = canonicalFirstActionSentence(title)
+  const summary = String(report.action.executive_summary || '').trim()
+  const sentences = splitSentences(summary).map((sentence) => sentence.trim()).filter(Boolean)
+  if (sentences[sentences.length - 1] !== expectedClosing) {
+    if (sentences.length >= 4) sentences[sentences.length - 1] = expectedClosing
+    else sentences.push(expectedClosing)
+    report.action.executive_summary = sentences.join(' ')
+    changed = true
+  }
+
+  if (!Array.isArray(report.action.ship_first)) report.action.ship_first = []
+  if (report.action.ship_first[0] !== title) {
+    if (report.action.ship_first.length > 0) report.action.ship_first[0] = title
+    else report.action.ship_first.push(title)
+    changed = true
+  }
+
+  if (changed) warn('action_coherence: reconciled the first action to action.top_fixes.0')
 }
 
 function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => void): void {

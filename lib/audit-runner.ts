@@ -703,7 +703,8 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
           brand,
           businessContext,
           processingStartedAt,
-          geoActionCatalog
+          geoActionCatalog,
+          technicalFindings
         ),
         validate: (data) => ActionGenerationBlockSchema.parse(data),
         maxTokens: 6144,

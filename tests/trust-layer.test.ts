@@ -2235,7 +2235,7 @@ describe('sprint 1 polish: review-schema mangle + absence bounding', () => {
       })
     )
     const text = JSON.stringify(r.report.action)
-    expect(text).toContain('HomeStars score and credential logos')
+    expect(text).toContain('Render the HomeStars score and WSIB/CVOR badges as text')
     expect(text).toContain('Display the actual review count')
     expect(text).not.toMatch(/before publishing this wording|Contact the business to confirm/i)
   })

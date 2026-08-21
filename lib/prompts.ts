@@ -8,6 +8,7 @@ import {
   ACTION_OUTREACH_CHANNELS,
   READY_MATERIALS_LIMITS,
   type BusinessContext,
+  type Finding,
   type GeoActionEvidenceCatalog,
 } from './schemas'
 import { DEFAULT_PAID_QUERY_INTENT_PLAN } from './geo/query-taxonomy'
@@ -276,6 +277,7 @@ ${NO_FABRICATED_NUMBERS}
 ${EVIDENCE_BOUNDARY}
 ${CLAIM_LEVELS}
 Do not invent company positioning such as "the only thing we do", industries served, customer types, proof, awards, or guarantees unless present in the provided inputs.
+When Business model is confirmed, use that category in the copy. Never call a confirmed category unknown or unestablished.
 If a useful outreach example would normally include a client result, write "[Replace with a verified client result]" instead of inventing one.
 Return ONLY valid JSON matching the schema.`
 
@@ -470,7 +472,8 @@ export function actionUserPrompt(
   brand?: string,
   context?: BusinessContext,
   referenceIso = new Date().toISOString(),
-  geoCatalog?: GeoActionEvidenceCatalog | null
+  geoCatalog?: GeoActionEvidenceCatalog | null,
+  technicalFindings?: Finding[] | null
 ): string {
   return `Clarity analysis:
 ${clarityOutput}
@@ -485,16 +488,22 @@ ${businessGuidance(context)}
 ${temporalPrompt(referenceIso)}
 Compact GEO evidence catalog (aggregates and observed source characteristics only; no raw answers):
 ${geoCatalog ? JSON.stringify(geoCatalog) : '(not available)'}
+Deterministic page findings (the measured status wins over generated prose):
+${technicalFindings?.length
+    ? JSON.stringify(technicalFindings.map(({ id, status, detail }) => ({ id, status, detail })))
+    : '(not available)'}
 
 Write the executive summary in exactly 4 sentences. Each sentence must contain at most 18 words:
 1. State one strongest observed thing working and name it concretely. If none exists, say that plainly.
 2. Say where the brand was absent by naming the tested buyer situations, not just a metric.
 3. Name only the competitors that appeared instead. If none appeared, say so without inventing a name.
 4. End with the single first action.
+Treat top_fixes[0] as the source of truth: sentence 4 and ship_first[0] must name its exact title. Never reorder top_fixes to match prose.
 The first sentence must name the brand, a competitor, an engine, a tested buyer situation, or a measured number. Do not open with a sentence that only says the brand was reviewed.
 Keep every non-ai_search fix description to one sentence of at most 18 words.
 For ai_search fixes, keep each observed, inferred, and recommended sentence to at most 18 words. The inferred sentence must use exactly one hedge: choose "may", "might", or "could", never two. Do not put evidence IDs in prose.
 Return up to 5 fixes, only ones a named finding supports. Returning three well-evidenced fixes is correct and expected when the evidence stops there. Every fix must be complete and publishable. Never use a bracketed placeholder or leave a fix field empty.
+Never claim a page signal is missing or present contrary to the deterministic page findings.
 
 Return a JSON object with this exact structure:
 {

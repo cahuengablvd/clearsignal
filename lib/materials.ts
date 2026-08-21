@@ -49,6 +49,32 @@ function operatorMaterialCategory(value?: string): MaterialCategory | undefined 
   return categories[normalized] || 'default'
 }
 
+function confirmedBusinessModelLabel(value?: string): string | undefined {
+  const raw = (value || '').trim()
+  const normalized = normalizedLabel(raw)
+  if (!normalized || normalized === 'unknown') return undefined
+
+  const labels: Record<string, string> = {
+    ecommerce: 'ecommerce business',
+    marketplace: 'marketplace',
+    two_sided_marketplace: 'two-sided marketplace',
+    service_business: 'service business',
+    portfolio: 'portfolio business',
+    gallery: 'art gallery',
+    archive: 'archive',
+    media_content_site: 'media and content site',
+    media_publication: 'media publication',
+    saas_software: 'SaaS software business',
+    agency_studio: 'agency or studio',
+    local_business: 'local business',
+    product_business: 'product business',
+    nonprofit: 'nonprofit organization',
+    other: 'business',
+    not_applicable: 'business',
+  }
+  return labels[normalized] || raw.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ')
+}
+
 export function materialCategoryForContext(
   businessContext?: BusinessContext,
   observed?: ObservedBusinessContext
@@ -270,6 +296,11 @@ function neutralMetaDescription(
   }
   if (category === 'moving_service') {
     return `${name} provides moving services${locationPhrase}. ${action} to discuss timing, service coverage, and move details.`
+  }
+  const confirmedCategory = confirmedBusinessModelLabel(businessContext?.business_model)
+  if (confirmedCategory) {
+    const article = /^[aeiou]/i.test(confirmedCategory) ? 'an' : 'a'
+    return `${name} is ${article} ${confirmedCategory}${locationPhrase}. ${action} to discuss options, availability, and next steps.`
   }
   return `${name} - ${action.toLowerCase()} to discuss options, availability, and next steps. The business category was not established in this audit.`
 }

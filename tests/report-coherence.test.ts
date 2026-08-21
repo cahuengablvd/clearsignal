@@ -66,6 +66,17 @@ describe('report section coherence', () => {
     expect(result.warnings).toContain('action_coherence: reconciled the first action to action.top_fixes.0')
   })
 
+  it('keeps a possessive brand summary at four sentences while replacing its final action', () => {
+    const input = report()
+    input.action.executive_summary = "Vertex's positioning is clear. It was absent from buyer comparisons. No competitor appeared instead. Change the footer first."
+
+    const result = validateReport(input)
+    const summary = result.report.action.executive_summary
+
+    expect(summary.match(/[.!?](?:\s|$)/g)).toHaveLength(4)
+    expect(summary).toBe("Vertex's positioning is clear. It was absent from buyer comparisons. No competitor appeared instead. First, add a verified service page.")
+  })
+
   it('names a confirmed generic operator category without claiming it was unestablished', () => {
     const materials = assembleMaterials(
       'Vertex Spain',

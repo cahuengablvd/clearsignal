@@ -869,6 +869,12 @@ function canonicalFirstActionSentence(title: string): string {
   return `First, ${first}.`
 }
 
+function splitExecutiveSummary(text: string): string[] {
+  const apostrophePlaceholder = '\uE000'
+  const protectedText = text.replace(/([a-z0-9])'(?=[a-z0-9])/gi, `$1${apostrophePlaceholder}`)
+  return splitSentences(protectedText).map((sentence) => sentence.replaceAll(apostrophePlaceholder, "'"))
+}
+
 function reconcileFirstAction(report: ClearSignalReport, warn: (m: string) => void): void {
   const firstFix = report.action?.top_fixes?.[0]
   const title = String(firstFix?.title || '').trim().replace(/[.!?]+$/, '')
@@ -877,11 +883,15 @@ function reconcileFirstAction(report: ClearSignalReport, warn: (m: string) => vo
   let changed = false
   const expectedClosing = canonicalFirstActionSentence(title)
   const summary = String(report.action.executive_summary || '').trim()
-  const sentences = splitSentences(summary).map((sentence) => sentence.trim()).filter(Boolean)
-  if (sentences[sentences.length - 1] !== expectedClosing) {
-    if (sentences.length >= 4) sentences[sentences.length - 1] = expectedClosing
-    else sentences.push(expectedClosing)
-    report.action.executive_summary = sentences.join(' ')
+  let sentences = splitExecutiveSummary(summary).map((sentence) => sentence.trim()).filter(Boolean)
+  if (sentences.length >= 4) {
+    sentences = [...sentences.slice(0, 3), expectedClosing]
+  } else if (sentences[sentences.length - 1] !== expectedClosing) {
+    sentences.push(expectedClosing)
+  }
+  const reconciledSummary = sentences.join(' ')
+  if (reconciledSummary !== summary) {
+    report.action.executive_summary = reconciledSummary
     changed = true
   }
 

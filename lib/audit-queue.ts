@@ -1,6 +1,7 @@
 import { runFullAudit } from './audit-runner'
 import { supabaseAdmin } from './supabase'
 import type { AuditTrigger } from './audit-execution'
+import { enforceDailyAiSpendCap } from './daily-ai-spend'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -18,6 +19,8 @@ export type EnqueueAuditOptions = {
  * webhook. Local development falls back to the old in-process runner.
  */
 export async function enqueueAudit(auditId: string, opts: EnqueueAuditOptions = {}): Promise<void> {
+  await enforceDailyAiSpendCap(auditId)
+
   if (process.env.TRIGGER_SECRET_KEY) {
     try {
       const { runAuditTask } = await import('../trigger/audit-task')

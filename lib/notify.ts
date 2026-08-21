@@ -11,6 +11,7 @@ export type AlertEvent =
   | 'audit_generation_failed'
   | 'audit_recovery_failed'
   | 'audit_cost_threshold_exceeded'
+  | 'daily_ai_spend_cap_blocked'
   | 'anthropic_balance_warning'
   | 'admin_auth_rate_limited'
   | 'rate_limit_degraded'

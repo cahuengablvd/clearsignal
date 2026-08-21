@@ -1,24 +1,42 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   runFullAudit: vi.fn(),
   task: vi.fn((definition) => definition),
+  enforceDailyAiSpendCap: vi.fn(),
+  AbortTaskRunError: class AbortTaskRunError extends Error {
+    constructor(message: string) {
+      super(message)
+      this.name = 'AbortTaskRunError'
+    }
+  },
+  DailyAiSpendBlockedError: class DailyAiSpendBlockedError extends Error {},
 }))
 
 vi.mock('@trigger.dev/sdk', () => ({
   queue: vi.fn((definition) => definition),
   task: mocks.task,
+  AbortTaskRunError: mocks.AbortTaskRunError,
 }))
 vi.mock('../lib/audit-runner', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/audit-runner')>()),
   runFullAudit: mocks.runFullAudit,
 }))
+vi.mock('../lib/daily-ai-spend', () => ({
+  enforceDailyAiSpendCap: mocks.enforceDailyAiSpendCap,
+  DailyAiSpendBlockedError: mocks.DailyAiSpendBlockedError,
+}))
 
 import { buildGenerationMeta } from '../lib/audit-runner'
-import { runAuditWithDeployment } from '../trigger/audit-task'
+import { runAuditTask, runAuditWithDeployment } from '../trigger/audit-task'
 import { latestObservedEngineVersion } from '../lib/engine-version'
 
 describe('generation deployment identity', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.enforceDailyAiSpendCap.mockResolvedValue({ queue_blocked: false })
+  })
+
   it('passes the Trigger deployment version into the audit run', async () => {
     await runAuditWithDeployment(
       { auditId: 'audit-123' },
@@ -29,6 +47,36 @@ describe('generation deployment identity', () => {
       engineVersion: '20260812.3',
       engineCommit: 'abc123def',
     }))
+  })
+
+  it('aborts task-level retries for a classified deterministic failure', async () => {
+    mocks.runFullAudit.mockRejectedValueOnce(
+      new Error('Report validation blocked PDF export: invalid enum value')
+    )
+
+    await expect(runAuditWithDeployment({ auditId: 'audit-deterministic' })).rejects.toMatchObject({
+      name: 'AbortTaskRunError',
+      message: expect.stringContaining('Report validation blocked'),
+    })
+  })
+
+  it('does not start a queued Trigger run after earlier work consumes the cap', async () => {
+    mocks.enforceDailyAiSpendCap.mockRejectedValueOnce(
+      new mocks.DailyAiSpendBlockedError('Daily AI spend cap reached')
+    )
+
+    await expect(runAuditWithDeployment({ auditId: 'audit-cap-blocked' })).rejects.toMatchObject({
+      name: 'AbortTaskRunError',
+    })
+    expect(mocks.runFullAudit).not.toHaveBeenCalled()
+  })
+
+  it('keeps task-level retries enabled for transient failures', async () => {
+    const transient = new Error('Anthropic network timeout')
+    mocks.runFullAudit.mockRejectedValueOnce(transient)
+
+    await expect(runAuditWithDeployment({ auditId: 'audit-transient' })).rejects.toBe(transient)
+    expect((runAuditTask as any).retry).toEqual({ maxAttempts: 2 })
   })
 
   it('writes an explicitly supplied engine version to report metadata', () => {

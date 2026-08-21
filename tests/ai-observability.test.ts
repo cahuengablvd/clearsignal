@@ -62,8 +62,8 @@ describe('AI observability cost reconciliation', () => {
 
   it('updates audit api_cost_usd from persisted AI call logs', async () => {
     mocks.state.logs = [
-      { estimated_cost_usd: 0.5, input_tokens: 100, output_tokens: 50 },
-      { estimated_cost_usd: 0.75, input_tokens: 200, output_tokens: 70 },
+      { estimated_cost_usd: 0.5, input_tokens: 100, output_tokens: 50, recovery_attempt: 0 },
+      { estimated_cost_usd: 0.75, input_tokens: 200, output_tokens: 70, recovery_attempt: 0 },
     ]
 
     const summary = await reconcileAuditAiCost('audit-1')
@@ -74,6 +74,22 @@ describe('AI observability cost reconciliation', () => {
       patch: { api_cost_usd: 1.25 },
     })
     expect(mocks.notify).not.toHaveBeenCalled()
+  })
+
+  it('reports the summed cost when the same platform run is attempted twice', async () => {
+    mocks.state.logs = [
+      { estimated_cost_usd: 0.9, input_tokens: 800, output_tokens: 300, recovery_attempt: 0 },
+      { estimated_cost_usd: 1.1, input_tokens: 900, output_tokens: 350, recovery_attempt: 0 },
+    ]
+
+    const summary = await reconcileAuditAiCost('audit-retried')
+
+    expect(summary?.totalUsd).toBe(2)
+    expect(summary?.callCount).toBe(2)
+    expect(mocks.state.updates).toContainEqual({
+      table: 'audits',
+      patch: { api_cost_usd: 2 },
+    })
   })
 
   it('adds a one-time cost alert when the audit crosses the configured threshold', async () => {

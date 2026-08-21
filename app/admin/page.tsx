@@ -87,6 +87,14 @@ type Audit = {
   deterministic_failure?: boolean
 }
 
+type DailyAiSpend = {
+  utc_date: string
+  spend_usd: number | null
+  cap_usd: number
+  queue_blocked: boolean
+  error?: string
+}
+
 const emptyForm = {
   email: '',
   url: '',
@@ -265,6 +273,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
   const [audits, setAudits] = useState<Audit[]>([])
+  const [dailyAiSpend, setDailyAiSpend] = useState<DailyAiSpend | null>(null)
   // Finding one audit in a long list is the daily pain, not archiving. A filter
   // over what is already loaded solves it without a migration or a second screen.
   const [query, setQuery] = useState('')
@@ -346,6 +355,7 @@ export default function AdminPage() {
     }
     const data = await res.json()
     const nextAudits = (data.audits || []) as Audit[]
+    setDailyAiSpend((data.daily_ai_spend || null) as DailyAiSpend | null)
     setLoadError(null)
     setAudits(nextAudits)
     return nextAudits
@@ -592,6 +602,7 @@ export default function AdminPage() {
         // operator in the admin surface so the real error remains visible.
         const data = await res.json()
         setAudits((data.audits || []) as Audit[])
+        setDailyAiSpend((data.daily_ai_spend || null) as DailyAiSpend | null)
       } catch {
         setAuthed(true)
         setLoadError('Could not reach the server. Check your connection and retry.')
@@ -741,6 +752,18 @@ export default function AdminPage() {
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {dailyAiSpend && (
+          <div className={`mb-4 rounded border px-4 py-3 text-sm ${
+            dailyAiSpend.queue_blocked
+              ? 'border-red-200 bg-red-50 text-red-900'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          }`}>
+            <span className="font-semibold">AI spend today (UTC):</span>{' '}
+            {formatCost(dailyAiSpend.spend_usd) || 'unavailable'} / {formatCost(dailyAiSpend.cap_usd)}
+            {' \u00b7 '}{dailyAiSpend.queue_blocked ? 'Queue blocked' : 'Queue open'}
+          </div>
+        )}
+
         {/* Create manual / comped audit (no Stripe) */}
         <Card className="mb-8">
           <CardContent className="p-5">

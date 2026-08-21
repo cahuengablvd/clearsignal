@@ -1,6 +1,8 @@
-import { queue, task } from '@trigger.dev/sdk'
+import { AbortTaskRunError, queue, task } from '@trigger.dev/sdk'
 import { runFullAudit } from '../lib/audit-runner'
 import type { AuditTrigger } from '../lib/audit-execution'
+import { isDeterministicAuditFailure } from '../lib/audit-recovery'
+import { DailyAiSpendBlockedError, enforceDailyAiSpendCap } from '../lib/daily-ai-spend'
 
 export const fullAuditQueue = queue({
   name: 'full-audit',
@@ -11,14 +13,23 @@ type AuditTaskPayload = { auditId: string; reuseGeoEvidence?: boolean; trigger?:
 type DeploymentIdentity = { version: string; shortCode: string; git?: { commitSha?: string } }
 
 export async function runAuditWithDeployment(payload: AuditTaskPayload, deployment?: DeploymentIdentity) {
-  await runFullAudit(payload.auditId, {
-    reuseGeoEvidence: payload.reuseGeoEvidence ?? false,
-    trigger: payload.trigger ?? 'unknown',
-    endpoint: payload.endpoint ?? 'trigger:run-full-audit',
-    engineVersion: deployment?.version,
-    engineCommit: deployment?.git?.commitSha,
-  })
-  return { auditId: payload.auditId, status: 'done' }
+  try {
+    await enforceDailyAiSpendCap(payload.auditId)
+    await runFullAudit(payload.auditId, {
+      reuseGeoEvidence: payload.reuseGeoEvidence ?? false,
+      trigger: payload.trigger ?? 'unknown',
+      endpoint: payload.endpoint ?? 'trigger:run-full-audit',
+      engineVersion: deployment?.version,
+      engineCommit: deployment?.git?.commitSha,
+    })
+    return { auditId: payload.auditId, status: 'done' }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (err instanceof DailyAiSpendBlockedError || isDeterministicAuditFailure(message)) {
+      throw new AbortTaskRunError(message)
+    }
+    throw err
+  }
 }
 
 /**

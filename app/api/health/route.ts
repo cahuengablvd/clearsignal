@@ -4,6 +4,7 @@ import { availableEngines } from '@/lib/geo'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { STALE_PROCESSING_MS } from '@/lib/audit-recovery'
 import { ADMIN_AUDIT_COLUMNS } from '@/lib/admin-audit-schema'
+import { getDailyAiSpendStatus } from '@/lib/daily-ai-spend'
 
 // No caching - this is a live diagnostic.
 export const dynamic = 'force-dynamic'
@@ -84,11 +85,14 @@ export async function GET(req: NextRequest) {
   checks.aeo_engines = { ok: true, type: 'env-presence', detail: availableEngines().join(', ') }
 
   // Live audit fulfillment counts - surfaces stuck/failed paid audits.
-  const audits = await auditCounts()
+  const [audits, dailyAiSpend] = await Promise.all([
+    auditCounts(),
+    getDailyAiSpendStatus(),
+  ])
 
   // "Healthy" = the things that must be live/present for the core pipeline.
   const required = ['supabase', 'admin_audits_schema', 'env:ANTHROPIC_API_KEY', 'env:SUPABASE_SERVICE_ROLE_KEY', 'env:FIRECRAWL_API_KEY', 'env:ACCESS_TOKEN_SECRET']
-  const healthy = required.every((k) => checks[k]?.ok)
+  const healthy = required.every((k) => checks[k]?.ok) && !dailyAiSpend.queue_blocked
 
   return NextResponse.json(
     {
@@ -97,6 +101,7 @@ export async function GET(req: NextRequest) {
       deployment: await deploymentInfo(),
       checks,
       audits,
+      daily_ai_spend: dailyAiSpend,
       ts: new Date().toISOString(),
     },
     { status: healthy ? 200 : 503 }

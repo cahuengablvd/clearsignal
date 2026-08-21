@@ -8,6 +8,7 @@ import { buildAdminEngineCoverage } from '@/lib/admin-engine-coverage'
 import { ADMIN_AUDIT_SELECT } from '@/lib/admin-audit-schema'
 import { latestObservedEngineVersion } from '@/lib/engine-version'
 import { isDeterministicAuditFailure } from '@/lib/audit-recovery'
+import { getDailyAiSpendStatus } from '@/lib/daily-ai-spend'
 
 function lastActivityAt(audit: {
   created_at: string
@@ -70,6 +71,8 @@ export async function GET(req: NextRequest) {
   if (!isValidAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const dailyAiSpend = await getDailyAiSpendStatus()
 
   const { data: audits, error } = await supabaseAdmin
     .from('audits')
@@ -223,5 +226,5 @@ export async function GET(req: NextRequest) {
     return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime()
   })
 
-  return NextResponse.json({ audits: withLinks })
+  return NextResponse.json({ audits: withLinks, daily_ai_spend: dailyAiSpend })
 }

@@ -19,6 +19,8 @@
   - `AUTO_DELIVER_AUDITS` is unset or `false`.
   - `QUALITY_CRITIC_ENABLED` is unset or `false` unless intentionally sampling shadow critic.
   - `NOTIFY_WEBHOOK_URL` is set for paid-audit/admin-auth alerts.
+  - `DAILY_AI_SPEND_CAP_USD` is set identically in Vercel and Trigger.dev. The conservative
+    built-in default is **`$5.00` per UTC day**.
 
 ## Trigger.dev (Backend / Generation)
 
@@ -69,6 +71,7 @@ AUTO_DELIVER_AUDITS=false
 QUALITY_CRITIC_ENABLED=false
 AUDIT_AI_COST_ALERT_USD
 AUDIT_AI_CALL_ALERT_COUNT
+DAILY_AI_SPEND_CAP_USD=5
 ANTHROPIC_BALANCE_ALERT_THRESHOLD
 MONTHLY_BUDGET_USD
 ADMIN_ALERT_EMAIL

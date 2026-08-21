@@ -217,3 +217,25 @@ unless you are investigating a regression in one of them.
   the prose — drop or rewrite the item, never edit the finding. The measurement wins over the
   sentence. Cover JSON-LD, meta description, H1, FAQ structure and primary CTA.
 - Spec: `TASKS_REPORT_COHERENCE.md`.
+
+## R38 — A paid audit and a test run share one spend cap and one alert
+
+- Seen: 2026-08-21, reviewing the `R34` implementation. Not yet triggered in production — there are
+  no paying customers yet, which is exactly why it should be closed before there are.
+- `enqueueAudit` (`lib/audit-queue.ts:22`) calls `enforceDailyAiSpendCap` before anything
+  distinguishes who is asking. A customer who has already paid €149 can be refused because the owner
+  spent the day's cap on verification regenerations.
+- Chain: payment → Stripe webhook → enqueue → cap exceeded → throw → webhook returns 500 → Stripe
+  retries. The audit stays `queued`, the customer is told nothing, and the operator gets **one**
+  notification per UTC day — possibly already spent on their own morning test run.
+- At the `$5.00` default and `$1.06` per audit the cap binds on the fifth run of a day. 2026-08-20
+  had roughly fifteen.
+- The delivery promise is two business days, so there is slack; the problem is priority, not
+  latency. A paying customer and a test regeneration currently queue with equal standing.
+- Fix, cheapest first: a blocked **paid** audit alerts every time rather than once per day, and is
+  visible in `/admin` as "blocked by spend cap, customer waiting" rather than plain `queued`.
+  Preferably paid audits are counted but not refused: the cap exists to catch the owner's
+  experiments, not to decline work that is already paid for.
+- Do not fix by removing the cap or by raising the default. The guard is correct; only its blast
+  radius is wrong.
+

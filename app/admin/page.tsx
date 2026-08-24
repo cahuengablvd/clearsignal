@@ -46,6 +46,11 @@ type Audit = {
     successful_combinations: number
     failed_or_skipped_combinations: number
     complete: boolean
+    gate?: { passed: boolean; reasons: string[] } | null
+    per_engine?: Array<{ engine: string; successful_samples: number; expected_samples: number; grounded_samples: number; no_citation_samples: number; tool_failure_samples: number; provider_error_samples: number; timeout_samples: number }>
+    failed_rows?: Array<{ query: string; engine: string; status: string; status_reason?: string; attempts: number; diagnostic_answer_text?: string }>
+    observed_at?: string
+    evidence_age_days?: number
   } | null
   quality_summary?: {
     stage: string | null
@@ -369,15 +374,29 @@ export default function AdminPage() {
     setRegeneratingId(auditId)
     setRegenMsg(null)
     try {
-      const res = await fetch('/api/audit', {
+      const requestRegeneration = (confirmReuseAge = false) => fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           audit_id: auditId,
+          reuse_geo_evidence: true,
+          confirm_reuse_age: confirmReuseAge,
           override_deterministic_failure: overrideDeterministicFailure,
         }),
       })
-      const data = await res.json().catch(() => ({}))
+      let res = await requestRegeneration()
+      let data = await res.json().catch(() => ({}))
+      if (res.status === 409 && data.error === 'reuse_evidence_age_confirmation_required') {
+        const observed = data.observed_at ? ` Observed ${String(data.observed_at).slice(0, 10)}.` : ''
+        const confirmed = window.confirm(`Stored GEO evidence is ${data.evidence_age_days} days old (warning threshold: ${data.threshold_days} days).${observed}\n\nReuse this stored evidence for regeneration?`)
+        if (!confirmed) {
+          setRegenMsg({ ok: false, text: 'Regeneration cancelled; stored GEO evidence was not reused.' })
+          setRegeneratingId(null)
+          return
+        }
+        res = await requestRegeneration(true)
+        data = await res.json().catch(() => ({}))
+      }
       if (res.ok) {
         const now = new Date().toISOString()
         setAudits((items) =>
@@ -559,14 +578,14 @@ export default function AdminPage() {
     await loadAudits()
   }
 
-  async function approveAndSend(auditId: string) {
+  async function approveAndSend(auditId: string, force = false, reason?: string) {
     setApprovingId(auditId)
     setRegenMsg(null)
     try {
       const res = await fetch('/api/admin/audits/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audit_id: auditId }),
+        body: JSON.stringify({ audit_id: auditId, force, reason }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
@@ -575,6 +594,10 @@ export default function AdminPage() {
         // read as data loss.
         setRegenMsg({ ok: true, text: 'Report emailed. It moved to the Finished section below.' })
         setHideFinished(false)
+      } else if (res.status === 409 && data.error === 'coverage_gate_failed') {
+        const overrideReason = window.prompt(`Coverage gate failed: ${(data.reasons || []).join('; ')}\n\nEnter a reason to force approval:`)
+        if (overrideReason?.trim()) await approveAndSend(auditId, true, overrideReason.trim())
+        else setRegenMsg({ ok: false, text: 'Approval requires a non-empty override reason when coverage failed.' })
       } else {
         setRegenMsg({ ok: false, text: data.error || `Email delivery failed (${res.status})` })
       }
@@ -1184,6 +1207,11 @@ export default function AdminPage() {
                           No evidence: {audit.engine_coverage_summary.missing_engines.map(formatEngineName).join(', ')}
                         </div>
                       )}
+                      {audit.engine_coverage_summary.gate && <div className="mt-2 font-semibold">Coverage gate: {audit.engine_coverage_summary.gate.passed ? 'PASS' : 'FAIL'}</div>}
+                      {audit.engine_coverage_summary.gate?.reasons.map((reason) => <div key={reason} className="mt-1">{reason}</div>)}
+                      {audit.engine_coverage_summary.observed_at && <div className="mt-1">Observed: {formatDate(audit.engine_coverage_summary.observed_at)}{audit.engine_coverage_summary.evidence_age_days !== undefined ? ` · Evidence age: ${audit.engine_coverage_summary.evidence_age_days} days` : ''}</div>}
+                      {audit.engine_coverage_summary.per_engine?.length ? <div className="mt-2 space-y-1 border-t pt-2">{audit.engine_coverage_summary.per_engine.map((engine) => <div key={engine.engine}><span className="font-medium">{formatEngineName(engine.engine)}</span>: {engine.successful_samples}/{engine.expected_samples} successful; grounded {engine.grounded_samples}; no citations {engine.no_citation_samples}; tool failures {engine.tool_failure_samples}; provider errors {engine.provider_error_samples}; timeouts {engine.timeout_samples}</div>)}</div> : null}
+                      {audit.engine_coverage_summary.failed_rows?.length ? <div className="mt-2 space-y-2 border-t pt-2"><div className="font-semibold">Failed sample ledger</div>{audit.engine_coverage_summary.failed_rows.map((row, index) => <div key={`${row.engine}-${row.query}-${index}`} className="rounded border bg-white p-2"><div><span className="font-medium">{formatEngineName(row.engine)}</span> · {row.status} · attempts {row.attempts}</div><div className="mt-1">{row.query}</div>{row.status_reason && <div className="mt-1 text-muted-foreground">Reason: {row.status_reason}</div>}{row.diagnostic_answer_text && <div className="mt-1 text-muted-foreground">Diagnostic: {row.diagnostic_answer_text}</div>}</div>)}</div> : null}
                     </div>
                   )}
 

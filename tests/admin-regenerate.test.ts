@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
     id: 'audit-1',
     audit_status: 'awaiting_review',
     admin_notes: null as string | null,
+    report: null as unknown,
   },
   selectSingle: vi.fn(),
   auditEq: vi.fn(),
@@ -49,6 +50,7 @@ function request(body: Record<string, unknown>) {
 }
 
 function setupSupabase({ stageDeleteError = null }: { stageDeleteError?: unknown } = {}) {
+  mocks.auditEq.mockReset()
   mocks.selectSingle.mockResolvedValue({ data: mocks.audit, error: null })
   mocks.auditEq
     .mockReturnValueOnce({ single: mocks.selectSingle })
@@ -80,6 +82,7 @@ describe('admin audit regeneration route', () => {
       id: 'audit-1',
       audit_status: 'awaiting_review',
       admin_notes: null,
+      report: null,
     }
     mocks.isValidAdminCookie.mockReturnValue(true)
     mocks.enqueueAudit.mockResolvedValue(undefined)
@@ -123,11 +126,30 @@ describe('admin audit regeneration route', () => {
     expect(mocks.enqueueAudit).not.toHaveBeenCalled()
   })
 
+  it('warns only for old reused evidence and accepts explicit confirmation', async () => {
+    mocks.audit = { id: 'audit-1', audit_status: 'awaiting_review', admin_notes: null, report: { geo: { observed_at: new Date(Date.now() - 15 * 86400000).toISOString() } } }
+    setupSupabase()
+    const warning = await POST(request({ audit_id: 'audit-1', reuse_geo_evidence: true }) as never)
+    expect(warning.status).toBe(409)
+    expect((await warning.json()).error).toBe('reuse_evidence_age_confirmation_required')
+    setupSupabase()
+    const confirmed = await POST(request({ audit_id: 'audit-1', reuse_geo_evidence: true, confirm_reuse_age: true }) as never)
+    expect(confirmed.status).toBe(200)
+  })
+
+  it('does not warn below threshold or when legacy evidence has no observation date', async () => {
+    mocks.audit = { id: 'audit-1', audit_status: 'awaiting_review', admin_notes: null, report: { geo: { observed_at: new Date().toISOString() } } }; setupSupabase()
+    expect((await POST(request({ audit_id: 'audit-1' }) as never)).status).toBe(200)
+    mocks.audit = { id: 'audit-1', audit_status: 'awaiting_review', admin_notes: null, report: { geo: {} } }; setupSupabase()
+    expect((await POST(request({ audit_id: 'audit-1' }) as never)).status).toBe(200)
+  })
+
   it('requires an explicit override before requeueing a deterministic failure', async () => {
     mocks.audit = {
       id: 'audit-1',
       audit_status: 'failed',
       admin_notes: 'Claude output failed validation after retry: ZodError',
+      report: null,
     }
     setupSupabase()
 
@@ -144,6 +166,7 @@ describe('admin audit regeneration route', () => {
       id: 'audit-1',
       audit_status: 'failed',
       admin_notes: 'Claude output failed validation after retry: ZodError',
+      report: null,
     }
     setupSupabase()
 

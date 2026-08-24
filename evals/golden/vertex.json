@@ -1,0 +1,1000 @@
+{
+  "gap": {
+    "ai_search": {
+      "score": 38,
+      "finding": "The homepage uses atmospheric language that is hard for AI engines to extract as a direct answer. Named entities like Marbella, La Zagaleta, Sotogrande, and Dmitry Mateshin add some signal. No FAQ structure, schema markup cues, or buyer-question framing appears in the crawled content. The journal posts are the strongest citation candidates, but the homepage itself is unlikely to surface for specific buyer queries.",
+      "severity": "critical",
+      "is_likely_cited": false,
+      "missing_signals": [
+        "No FAQ section addressing common buyer questions such as buying costs or residency rules.",
+        "No structured data markup cues visible in the crawled homepage content.",
+        "Buyer nationality groups are never named, so nationality-specific queries find no match.",
+        "No definition of the buying process steps that AI engines could extract as a list.",
+        "The phrase 'off-market property Marbella' does not appear verbatim in the homepage copy.",
+        "No named price bands or property type criteria that match typed buyer search queries.",
+        "Journal articles are not surfaced with enough homepage context to signal topical authority."
+      ]
+    },
+    "where_you_win": [
+      "The off-market positioning is stated clearly and early in the page.",
+      "Geographic coverage from Marbella to Sotogrande is named with specific neighbourhood detail.",
+      "The named founder gives the business a human face absent from many portal-style competitors.",
+      "Area pages with residence counts signal structured local knowledge to buyers and search engines.",
+      "The journal includes buyer guides and area comparisons that may attract early-stage researchers.",
+      "End-to-end service covering legal, tax, and residency is named explicitly, not implied.",
+      "The 'deliberate scarcity' framing of a small client list is a legible differentiator.",
+      "Seller-side privacy positioning ('confidential marketing') addresses a real concern for HNW owners."
+    ],
+    "where_you_lose": [
+      "The hero headline names no buyer type, so Northern European buyers may not self-identify quickly.",
+      "No above-fold inquiry CTA exists for buyers; only 'Scroll' appears in the hero.",
+      "A EUR 600,000 land plot and EUR 845,000 townhouse may conflict with the ultra-prime positioning.",
+      "Dmitry Mateshin is named but has no photo or biography on the homepage.",
+      "The phrase 'old-world service, new-world precision' appears twice without deeper explanation.",
+      "UK, German, Dutch, and Scandinavian buyers are never named as target audiences in the copy.",
+      "No client testimonial, attributed or anonymised, appears anywhere on the page.",
+      "The EUR 50M transacted figure lacks a time period, which may appear modest for a luxury house.",
+      "No third-party press mention, professional registration, or industry recognition is visible."
+    ],
+    "competitor_analysis": []
+  },
+  "geo": {
+    "brand": "Vertex",
+    "summary": "Vertex was named in 0 of 9 successfully tested engine-query combinations across OpenAI, Claude and Perplexity. The measured AI visibility score was 0/100; mention rate was 0% and citation rate was 0%. AI visibility evidence was reused from the previous completed scan.",
+    "evidence": [
+      {
+        "query": "best luxury real estate agents Costa del Sol Marbella",
+        "engine": "openai",
+        "citations": [
+          "https://www.mpdunne.com/",
+          "http://www.solvilla.es/",
+          "https://www.marbellaco.com/",
+          "https://www.abarzo.com/"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-001",
+        "query_intent": "category_discovery",
+        "cited_domains": [
+          "mpdunne.com",
+          "solvilla.es",
+          "marbellaco.com",
+          "abarzo.com"
+        ],
+        "answer_excerpt": "Marbella, situated on Spain's Costa del Sol, is renowned for its luxury real estate market. Several esteemed agencies specialize in high-end properties in this region. Here are some of the top luxury real estate agencies in Marbella: **[MPDunne & Hamptons International Marbella](https://www.mpdunne.com/?utm_source=openai)** **Cerrado · Agentes inmobiliarios · 4.8 (25 reseñas)** _Av. Bulevar Príncipe Alfonso de Hohenlohe, Edificio Centro Expo, Local 11-12, 29602 Marbella, Málaga, España_ With over 20 years of experience, MPDunne offers premium villas, apartments, and penthouses in Marbella's most sought-after locations, combining local expertise with a global network. **[Solvilla - Of...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": [
+          "MPDunne",
+          "Hamptons International",
+          "Solvilla"
+        ]
+      },
+      {
+        "query": "how to buy off-market villa property Spain without public listing",
+        "engine": "claude",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-002",
+        "query_intent": "problem",
+        "cited_domains": [],
+        "answer_excerpt": "Great question! Buying an **off-market villa in Spain** is one of the smartest ways to find exclusive properties, avoid competition, and sometimes negotiate better prices. Here's a comprehensive guide: --- ## 🏡 How to Buy an Off-Market Villa in Spain (Without a Public Listing) --- ### 1. **Work With a Specialist Off-Market Buyer's Agent**\nThis is the **most effective strategy**. A dedicated buyer's agent (not a selling agent) works exclusively for you and has access to a private network of unlisted properties. - Look for agents specializing in luxury/villa markets in areas like **Marbella, Ibiza, Costa Brava, Mallorca, or Valencia**.\n- Ask explicitly: *\"Do you have off-market or pocket...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "how to buy off-market villa property Spain without public listing",
+        "engine": "perplexity",
+        "citations": [
+          "https://silent-sale.com/",
+          "https://www.buvivo.com/en/blog/off-market-property-spain-foreign-buyer-guide-2026",
+          "https://www.familyfuturerealestate.com/off-market",
+          "https://sobeinvest.com/off-market-properties-marbella",
+          "https://www.homerunmarbella.com/7741-off-market-marbella-luxury-property",
+          "https://english.elpais.com/spain/2026-08-06/spains-secret-luxury-housing-market-prices-start-at-175-million-with-sales-reaching-up-to-14-and-16-million.html",
+          "https://appropertiesspain.com/news/233/how-to-find-off-market-properties/",
+          "https://loragaleva.com/en/off-market-homes/",
+          "https://www.cdsproperty.es/off-market-property-investments",
+          "https://luxoestates.com/real-estate/off-market-properties-marbella-how-to-find-2026/",
+          "https://www.exclusivealgarvevillas.com/de/blog/2026/06/23/the-discreet-off-market-luxury-villa-search-in-the-algarve-in-2026",
+          "https://www.vogueproperties.com/blog/find-off-market-homes-soller-mallorca/",
+          "https://homemadeestatemarbella.com/off-market-properties-marbella/",
+          "https://www.kcproperties.es/off-market-opportunities-in-marbella-how-to-access-exclusive-properties/",
+          "https://esenarliving.com/off-market/",
+          "https://www.spain-sothebysrealty.com/off-market-properties-spain",
+          "https://www.drivenproperties.es/en/off-market",
+          "https://zimmerestates.com/from-abroad-to-beachfront-how-to-buy-your-spanish-villa-hassle-free-3/",
+          "https://sellmyhousespain.com/sell/villa/"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-003",
+        "query_intent": "problem",
+        "cited_domains": [
+          "silent-sale.com",
+          "buvivo.com",
+          "familyfuturerealestate.com",
+          "sobeinvest.com",
+          "homerunmarbella.com",
+          "elpais.com",
+          "appropertiesspain.com",
+          "loragaleva.com",
+          "cdsproperty.es",
+          "luxoestates.com",
+          "exclusivealgarvevillas.com",
+          "vogueproperties.com",
+          "homemadeestatemarbella.com",
+          "kcproperties.es",
+          "esenarliving.com",
+          "spain-sothebysrealty.com",
+          "drivenproperties.es",
+          "zimmerestates.com",
+          "sellmyhousespain.com"
+        ],
+        "answer_excerpt": "To buy an **off-market villa in Spain** without a public listing, the practical route is to work through a **local buyer’s agent or private property finder** with real owner relationships, register a very specific brief, and be financially ready to move fast when a private opportunity appears.[2][10][12] - **Define your target clearly**: one area, property type, budget band, and must-haves; off-market agents respond better to a precise brief than a vague search.[7][10]\n- **Use trusted local intermediaries**: off-market sales are typically shared through small networks of agents and qualified buyers rather than portals or public websites.[3][4][8]\n- **Ask for private or silent inventory**: m...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "how to buy off-market villa property Spain without public listing",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-004",
+        "query_intent": "problem",
+        "cited_domains": [],
+        "answer_excerpt": "Buying an off-market villa property in Spain involves a more discreet process, often facilitated through personal networks or specialized real estate agents. Here’s how you can go about it: 1. **Network Locally:** - Connect with locals or expatriates who might have knowledge of off-market opportunities. - Attend local events or join expatriate groups in the area you're interested in. 2. **Hire a Real Estate Agent:** - Look for agents who specialize in off-market properties. - Agents with a strong local presence are often informed about properties that aren't publicly listed. 3. **Contact Property Finders:** - Engage a property finding service or consultant who can search fo...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "luxury residential real estate broker Puerto Banus Nueva Andalucia",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-005",
+        "query_intent": "other",
+        "cited_domains": [],
+        "answer_excerpt": "Looking for a luxury residential real estate broker in Puerto Banús and Nueva Andalucía? Here are a few top options: 1. **Solvilla**: Specializes in luxury properties and offers personalized services. 2. **Marbella Estates**: Known for an extensive portfolio of luxury homes in Puerto Banús and Nueva Andalucía. 3. **Luxury Villa Sales**: Focuses on high-end villas with bespoke services. 4. **MPDunne Properties**: Offers a variety of luxury real estate options and has a strong reputation for customer service. 5. **Pureliving Properties**: Expert in premium properties with personalized attention for buyers and sellers. These brokers offer tailored solutions to meet the needs of affluent c...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": [
+          "Solvilla",
+          "MPDunne"
+        ]
+      },
+      {
+        "query": "international property relocation services Costa del Sol high net worth",
+        "engine": "openai",
+        "citations": [
+          "https://www.google.com/maps/search/Terra+Sol+Group%2C+Costa+del+Sol%2C+Spain",
+          "https://www.google.com/maps/search/Byrne+Overseas%2C+Costa+del+Sol%2C+Spain",
+          "https://www.google.com/maps/search/MV+Property%2C+Costa+del+Sol%2C+Spain",
+          "https://www.google.com/maps/search/SANOVIA%2C+Estepona+and+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/LCBSE%2C+Costa+del+Sol%2C+Spain",
+          "https://www.google.com/maps/search/VOESTATES%2C+Costa+del+Sol%2C+Spain",
+          "https://www.google.com/maps/search/All+Marbella%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/LUXO%2C+Marbella+and+Costa+del+Sol%2C+Spain"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-006",
+        "query_intent": "other",
+        "cited_domains": [
+          "google.com"
+        ],
+        "answer_excerpt": "The Costa del Sol has become a prime destination for high-net-worth individuals seeking luxury properties and comprehensive relocation services. Several boutique agencies specialize in catering to the unique needs of affluent clients, offering tailored assistance in property acquisition, legal matters, and lifestyle integration. Here are some notable firms: **[Terra Sol Group](https://www.google.com/maps/search/Terra+Sol+Group%2C+Costa+del+Sol%2C+Spain?utm_source=openai)**\n_Costa del Sol, Spain_\nFounded by two brothers—one based in New York and the other on the Costa del Sol—Terra Sol Group assists discerning buyers in finding Mediterranean properties. They offer services such as luxury rea...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": [
+          "Terra Sol Group"
+        ]
+      },
+      {
+        "query": "private villa sales Marbella 1-7 million euros discrete transactions",
+        "engine": "openai",
+        "citations": [
+          "https://www.google.com/maps/search/Golden+Mile+Luxury+Villa%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/Frontline+Golf+Villa+Marbella%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/Rooftop+Design+Villa+Marbella%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/Villa+%C3%88lan%2C+Nueva+Andaluc%C3%ADa%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/Villa+Romano%2C+Altos+de+Puente+Romano%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/Luxury+Mediterranean+Villa+in+Sierra+Blanca%2C+Sierra+Blanca%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/Contemporary+Villa+in+Sierra+Blanca%2C+Sierra+Blanca%2C+Marbella%2C+Spain",
+          "https://www.google.com/maps/search/Villa+in+La+Quinta+Golf%2C+La+Quinta+Golf%2C+Marbella%2C+Spain",
+          "https://www.marbella-hills-homes.com/properties/marbella/marbella-golden-mile/sierra-blanca/villas"
+        ],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-007",
+        "query_intent": "other",
+        "cited_domains": [
+          "google.com",
+          "marbella-hills-homes.com"
+        ],
+        "answer_excerpt": "Marbella offers a diverse selection of private villas priced between EUR 1 million and EUR 7 million, catering to buyers seeking discretion in their transactions. Here are some notable properties within this range: **[Golden Mile Luxury Villa](https://www.google.com/maps/search/Golden+Mile+Luxury+Villa%2C+Marbella%2C+Spain?utm_source=openai)**\n_Marbella, Spain_\nA 4-bedroom, 4-bathroom villa spanning 844 m², priced at EUR 2,850,000. Located in the prestigious Golden Mile area. **[Frontline Golf Villa Marbella](https://www.google.com/maps/search/Frontline+Golf+Villa+Marbella%2C+Marbella%2C+Spain?utm_source=openai)**\n_Marbella, Spain_\nThis 6-bedroom, 6-bathroom villa offers 733 m² of living space and...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "expat relocation package legal tax guidance Spain real estate purchase",
+        "engine": "claude",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-008",
+        "query_intent": "other",
+        "cited_domains": [],
+        "answer_excerpt": "Here is a comprehensive guide on **Expat Relocation Packages, Legal & Tax Guidance for Real Estate Purchase in Spain**. This covers the key areas you need to navigate successfully. --- # 🇪🇸 Expat Guide: Relocation Packages, Legal & Tax Guidance for Buying Real Estate in Spain --- ## 1. 📦 Understanding Your Relocation Package When relocating to Spain through an employer, relocation packages typically include some or all of the following. Understanding what's covered — and what's taxable — is critical. ### Common Relocation Package Components\n| Component | Typical Coverage | Tax Treatment in Spain |\n|---|---|---|\n| Moving/shipping costs | Often 100% covered | Generally non-taxable if...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      },
+      {
+        "query": "expat relocation package legal tax guidance Spain real estate purchase",
+        "engine": "openai",
+        "citations": [],
+        "brand_cited": false,
+        "evidence_id": "GEO-QUERY-009",
+        "query_intent": "other",
+        "cited_domains": [],
+        "answer_excerpt": "If you're considering relocating to Spain and acquiring real estate, it's important to understand the legal and tax implications. Here's an overview: ### Relocation Package 1. **Work Permits and Visas**: Ensure your relocation package includes assistance with obtaining the necessary visas and work permits. 2. **Moving Expenses**: Check if the package covers moving expenses, including logistics for shipping personal belongings. 3. **Accommodation**: Some packages include temporary housing or housing allowances. ### Tax Guidance 1. **Tax Residency**: If you spend more than 183 days in Spain, you may be considered a tax resident, subjecting you to Spanish taxes on global income. 2. **Inc...",
+        "brand_position": null,
+        "brand_mentioned": false,
+        "competitors_mentioned": []
+      }
+    ],
+    "test_counts": {
+      "configured_engines": 3,
+      "configured_queries": 6,
+      "failed_combinations": 9,
+      "skipped_combinations": 0,
+      "expected_combinations": 18,
+      "successful_combinations": 9
+    },
+    "avg_position": null,
+    "brand_domain": "vertexspain.com",
+    "mention_rate": 0,
+    "citation_rate": 0,
+    "engines_tested": [
+      "openai",
+      "claude",
+      "perplexity"
+    ],
+    "queries_tested": 6,
+    "query_analysis": {
+      "queries": [
+        {
+          "query": "best luxury real estate agents Costa del Sol Marbella",
+          "intent": "category_discovery"
+        },
+        {
+          "query": "how to buy off-market villa property Spain without public listing",
+          "intent": "problem"
+        },
+        {
+          "query": "luxury residential real estate broker Puerto Banus Nueva Andalucia",
+          "intent": "other"
+        },
+        {
+          "query": "international property relocation services Costa del Sol high net worth",
+          "intent": "other"
+        },
+        {
+          "query": "private villa sales Marbella 1-7 million euros discrete transactions",
+          "intent": "other"
+        },
+        {
+          "query": "expat relocation package legal tax guidance Spain real estate purchase",
+          "intent": "other"
+        }
+      ],
+      "coverage": [
+        {
+          "intent": "category_discovery",
+          "query_count": 1,
+          "mention_rate": 0,
+          "citation_rate": 0,
+          "cited_combinations": 0,
+          "mentioned_combinations": 0,
+          "successful_combinations": 1
+        },
+        {
+          "intent": "problem",
+          "query_count": 1,
+          "mention_rate": 0,
+          "citation_rate": 0,
+          "cited_combinations": 0,
+          "mentioned_combinations": 0,
+          "successful_combinations": 3
+        },
+        {
+          "intent": "other",
+          "query_count": 4,
+          "mention_rate": 0,
+          "citation_rate": 0,
+          "cited_combinations": 0,
+          "mentioned_combinations": 0,
+          "successful_combinations": 5
+        }
+      ],
+      "taxonomy_version": "v1"
+    },
+    "share_of_voice": 0,
+    "missing_signals": [
+      "Vertex was not mentioned in the successfully tested engine-query combinations.",
+      "vertexspain.com was not cited in the successfully tested responses."
+    ],
+    "recommendations": [
+      "Strengthen owned-page content around the buyer questions used in this scan.",
+      "Add structured FAQ and service/entity markup that matches the tested query set.",
+      "Prioritize third-party profiles or local sources that appeared in the tested responses.",
+      "Re-run a fresh GEO scan after content and source improvements are live."
+    ],
+    "score_breakdown": {
+      "weights": {
+        "mention": 0.4,
+        "citation": 0.25,
+        "position": 0.2,
+        "share_of_voice": 0.15
+      },
+      "mention_rate": 0,
+      "citation_rate": 0,
+      "position_score": 0,
+      "share_of_voice": 0
+    },
+    "ai_visibility_score": 0,
+    "source_gap_analysis": [
+      {
+        "cited_source": "google.com",
+        "signals_found": [
+          "Clear category language",
+          "Independent/editorial source"
+        ],
+        "recommended_fix": "Ensure Vertex has a fully completed and verified Google Business Profile with accurate category (luxury real estate agency), service area (Marbella to Sotogrande), and consistent NAP details matching the website — before investing time here, verify whether this Maps search surface is actually driving relevant buyer demand for your segment.",
+        "target_missing_signals": [],
+        "why_this_source_gets_cited": "This is a Google Maps search result page for a real estate agency on the Costa del Sol, providing structured local business data and geographic context that may make it quotable as a location reference. The page format signals category and geography clearly to crawlers."
+      },
+      {
+        "cited_source": "mpdunne.com",
+        "signals_found": [
+          "Clear category language",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "recommended_fix": "Consider adding a clearly labelled credentials or recognition section to vertexspain.com — for example, any verified industry memberships, press mentions, or professional affiliations — so the page carries comparable institutional authority signals alongside its existing proof metrics.",
+        "target_missing_signals": [],
+        "why_this_source_gets_cited": "MPDunne explicitly names its award credentials (Luxury Lifestyle Award, LUXLife Award), claims a specific geographic positioning (Golden Mile, opposite Marbella Club Hotel), and references a global network affiliation (Hamptons International), providing layered authority signals. It also names specific property categories and locations clearly."
+      },
+      {
+        "cited_source": "solvilla.es",
+        "signals_found": [
+          "Clear category language",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "recommended_fix": "",
+        "target_missing_signals": [],
+        "why_this_source_gets_cited": "Solvilla presents highly specific, data-rich proof signals on its homepage — total sales volume (EUR 3 billion+), number of properties sold (500+), current-year transaction count (92 sales), and average price (EUR 5.7M) — which may make it quotable as a market-activity reference. These concrete figures are clearly structured and easily extractable."
+      },
+      {
+        "cited_source": "marbellaco.com",
+        "signals_found": [
+          "Clear category language",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "recommended_fix": "Add a concise, factually specific 'About Vertex' section to the homepage or a dedicated page that states founding year, team size, languages spoken, and the specific geographies covered (e.g., Golden Mile, La Zagaleta, Sotogrande) in plain, crawlable text — mirroring the factual anchors observed in cited competitors.",
+        "target_missing_signals": [],
+        "why_this_source_gets_cited": "Marbella & Co clearly states its founding year (1997), ownership identity (Danish-owned), multilingual team (8 languages), and named sub-regions (the 'Golden Triangle'), providing specific factual anchors that may make it quotable for category and market context. Property type and area categorisation is also clearly structured."
+      },
+      {
+        "cited_source": "abarzo.com",
+        "signals_found": [
+          "Clear category language",
+          "Review / proof signals",
+          "Specific ICP language",
+          "Pricing / use-case content"
+        ],
+        "recommended_fix": "Vertex's ICP language ('the few people for whom the right home on this coast is never a transaction') is evocative but implicit — consider adding a short, plainly worded statement explicitly naming the buyer profile (e.g., international UHNW buyers, private family offices) in a crawlable text block to strengthen specific ICP signals.",
+        "target_missing_signals": [],
+        "why_this_source_gets_cited": "ABARZO explicitly names its target client segment (high-net-worth individuals), service differentiators (off-market, discreet, tailored), and provides specific agency metrics (10+ years, 900+ properties sold). The page also references video content channels, adding a multi-format content signal."
+      },
+      {
+        "cited_source": "silent-sale.com",
+        "signals_found": [
+          "Clear category language",
+          "Specific ICP language"
+        ],
+        "recommended_fix": "Vertex references off-market estates but does not have a dedicated page or clearly labeled section explaining the off-market process for sellers and buyers — consider creating a concise 'Off-Market' page that defines what this means at Vertex, who it serves, and how it works, in plain descriptive language that is easily extractable.",
+        "target_missing_signals": [],
+        "why_this_source_gets_cited": "Silent Sale presents a clearly differentiated positioning around off-market and private real estate transactions, with explicit named founder details (Lisa Turkina) and a stated philosophy around discretion, which may make it quotable when AI engines address off-market or private sale queries. The concept is named and defined in plain language."
+      }
+    ],
+    "cited_domains_ranked": [
+      {
+        "count": 2,
+        "domain": "google.com"
+      },
+      {
+        "count": 1,
+        "domain": "mpdunne.com"
+      },
+      {
+        "count": 1,
+        "domain": "solvilla.es"
+      },
+      {
+        "count": 1,
+        "domain": "marbellaco.com"
+      },
+      {
+        "count": 1,
+        "domain": "abarzo.com"
+      },
+      {
+        "count": 1,
+        "domain": "silent-sale.com"
+      },
+      {
+        "count": 1,
+        "domain": "buvivo.com"
+      },
+      {
+        "count": 1,
+        "domain": "familyfuturerealestate.com"
+      },
+      {
+        "count": 1,
+        "domain": "sobeinvest.com"
+      },
+      {
+        "count": 1,
+        "domain": "homerunmarbella.com"
+      }
+    ],
+    "competitor_visibility": [
+      {
+        "name": "MPDunne",
+        "mention_rate": 22.2
+      },
+      {
+        "name": "Solvilla",
+        "mention_rate": 22.2
+      },
+      {
+        "name": "Hamptons International",
+        "mention_rate": 11.1
+      },
+      {
+        "name": "Terra Sol Group",
+        "mention_rate": 11.1
+      }
+    ],
+    "technical_eligibility": {
+      "checks": [
+        {
+          "id": "ELIG-HTTP-001",
+          "label": "Public HTTP access",
+          "detail": "The target returned HTTP 200.",
+          "status": "eligible",
+          "evidence": "https://vertexspain.com/"
+        },
+        {
+          "id": "ELIG-INDEX-001",
+          "label": "Index directives",
+          "detail": "No explicit noindex directive was detected in the captured document head or HTTP response.",
+          "status": "eligible"
+        },
+        {
+          "id": "ELIG-CANONICAL-001",
+          "label": "Canonical target",
+          "detail": "The canonical URL points to the audited page.",
+          "status": "eligible",
+          "evidence": "https://vertexspain.com/"
+        },
+        {
+          "id": "ELIG-RENDERED-001",
+          "label": "Crawlable rendered content",
+          "detail": "Substantive text was present in the rendered crawl.",
+          "status": "eligible",
+          "evidence": "8016 text characters observed"
+        }
+      ],
+      "checked_at": "2026-08-21T09:14:34.568Z",
+      "crawler_access": [
+        {
+          "detail": "No matching robots.txt disallow rule was observed.",
+          "engine": "OpenAI / ChatGPT Search",
+          "status": "eligible",
+          "crawler": "OAI-SearchBot"
+        },
+        {
+          "detail": "No matching robots.txt disallow rule was observed.",
+          "engine": "Perplexity",
+          "status": "eligible",
+          "crawler": "PerplexityBot"
+        }
+      ],
+      "overall_status": "eligible"
+    },
+    "staged_recommendations": [
+      {
+        "stage": "RETRIEVAL",
+        "action": "Strengthen owned-page content around the buyer questions used in this scan.",
+        "depends_on_access": false
+      },
+      {
+        "stage": "ENTITY",
+        "action": "Add structured FAQ and service/entity markup that matches the tested query set.",
+        "depends_on_access": false
+      },
+      {
+        "stage": "AUTHORITY",
+        "action": "Prioritize third-party profiles or local sources that appeared in the tested responses.",
+        "depends_on_access": false
+      },
+      {
+        "stage": "MEASUREMENT",
+        "action": "Re-run a fresh GEO scan after content and source improvements are live.",
+        "depends_on_access": false
+      }
+    ]
+  },
+  "meta": {
+    "url": "https://vertexspain.com/",
+    "tier": "automated",
+    "domain": "vertexspain.com",
+    "competitors": [],
+    "generated_at": "2026-08-21T09:16:36.133Z",
+    "engine_commit": "b5895be65391b9d82ea8113d3982ac4c560bd186",
+    "engine_version": "20260821.2",
+    "canonical_brand": "Vertex",
+    "icp_description": "Private real estate brokerage on the Costa del Sol, Spain, between Malaga and\nSotogrande: Marbella, Puerto Banus, Nueva Andalucia, San Pedro de Alcantara.\nSells luxury residential property from EUR 600,000 to EUR 7,000,000, including\noff-market acquisitions and discreet sales, plus relocation support with legal\nand tax guidance. Buyers are international high-net-worth individuals relocating\nto or investing on the Costa del Sol. Site is in English; founder and principal\nbroker is Dmitry Mateshin.",
+    "business_context": {
+      "business_model": "local_business",
+      "verified_facts": "",
+      "purchase_availability": "available_inquiry",
+      "ships_internationally": "on_site_service",
+      "primary_conversion_goal": "inquiry",
+      "target_markets_languages": "Spain, Costa del Sol (Marbella, Puerto Banus, Estepona, Sotogrande);\nbuyers from Northern Europe, UK, Scandinavia, Netherlands, Germany.\nSite language: English.",
+      "provenance_or_authentication": "unknown"
+    },
+    "verified_facts_layer": [],
+    "alternative_brand_forms": [
+      "Vertexspain"
+    ],
+    "observed_business_context": {}
+  },
+  "action": {
+    "top_fixes": [
+      {
+        "id": 1,
+        "owner": "Founder / marketing",
+        "title": "Add an above-fold buyer inquiry CTA",
+        "effort": "easy",
+        "impact": "high",
+        "control": "high",
+        "category": "cta",
+        "confidence": 45,
+        "claim_level": "recommended",
+        "description": "Place a 'Speak with Dmitry' prompt in the hero so buyers can act immediately.",
+        "implementer": "Developer",
+        "probability": "low",
+        "evidence_ids": [
+          "OBS-CTA-001"
+        ],
+        "evidence_basis": "Based on: OBS-CTA-001",
+        "confidence_basis": "A graphical button/link was found, but no CTA text, href, submit behavior, or accessible label confirmed it as a primary CTA",
+        "confidence_level": "low",
+        "depends_on_access": false,
+        "recommendation_stage": "PROMINENCE"
+      },
+      {
+        "id": 2,
+        "owner": "Founder / marketing",
+        "title": "Name your target buyer nationalities in the hero copy",
+        "effort": "easy",
+        "impact": "high",
+        "control": "high",
+        "category": "copy",
+        "confidence": 60,
+        "claim_level": "inferred",
+        "contributor": "Copywriter",
+        "description": "Add 'UK, German, Dutch, and Scandinavian buyers' to the hero or subheadline.",
+        "implementer": "Developer",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Copy recommendation is based on audit synthesis; no single direct evidence item proves the business impact",
+        "confidence_level": "medium",
+        "depends_on_access": false,
+        "recommendation_stage": "PROMINENCE"
+      },
+      {
+        "id": 3,
+        "owner": "SEO",
+        "title": "Add buyer FAQ content to the homepage",
+        "effort": "medium",
+        "impact": "high",
+        "control": "high",
+        "category": "ai_search",
+        "inferred": "Cited competitors may carry clearer category language, ICP signals, and pricing context.",
+        "observed": "Vertex was not detected across tested category-discovery and problem-intent query combinations.",
+        "confidence": 84,
+        "claim_level": "observed",
+        "contributor": "Copywriter",
+        "description": "Observed: Vertex was not detected across tested category-discovery and problem-intent query combinations. Inferred: Cited competitors may carry clearer category language, ICP signals, and pricing context. Recommended: Add a homepage FAQ answering three to five common buyer questions using plain, specific language; as a lower-control alternative, publish a dedicated journal article on buying costs and residency rules.",
+        "implementer": "Developer",
+        "probability": "medium",
+        "recommended": "Add a homepage FAQ answering three to five common buyer questions using plain, specific language; as a lower-control alternative, publish a dedicated journal article on buying costs and residency rules.",
+        "evidence_ids": [
+          "GEO-INTENT-CATEGORY-DISCOVERY",
+          "GEO-INTENT-PROBLEM",
+          "GEO-SOURCE-002",
+          "GEO-SOURCE-003"
+        ],
+        "evidence_basis": "Based on: GEO-INTENT-CATEGORY-DISCOVERY, GEO-INTENT-PROBLEM, GEO-SOURCE-002, GEO-SOURCE-003",
+        "confidence_basis": "Matched a question-style heading in the rendered HTML",
+        "confidence_level": "medium",
+        "depends_on_access": false,
+        "recommendation_stage": "CITATION"
+      },
+      {
+        "id": 4,
+        "owner": "Founder / marketing",
+        "title": "Add a photo and brief biography of Dmitry Mateshin to the homepage",
+        "effort": "easy",
+        "impact": "medium",
+        "control": "medium",
+        "category": "proof",
+        "confidence": 65,
+        "claim_level": "inferred",
+        "description": "A two-sentence bio and headshot make the named founder credible to first-time visitors.",
+        "implementer": "Founder / marketing",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+        "confidence_level": "medium",
+        "depends_on_access": false,
+        "recommendation_stage": "AUTHORITY"
+      },
+      {
+        "id": 5,
+        "owner": "Founder / marketing",
+        "title": "Recommended fix",
+        "effort": "easy",
+        "impact": "medium",
+        "control": "medium",
+        "category": "proof",
+        "confidence": 65,
+        "claim_level": "inferred",
+        "description": "State the time period and methodology directly beneath the stat on the homepage.",
+        "implementer": "Founder / marketing",
+        "probability": "medium",
+        "evidence_ids": [],
+        "evidence_basis": "Based on audit synthesis; no single direct evidence item.",
+        "confidence_basis": "Recommendation is based on audit synthesis and should be reviewed before implementation",
+        "confidence_level": "medium",
+        "depends_on_access": false,
+        "recommendation_stage": "AUTHORITY"
+      }
+    ],
+    "ship_first": [
+      "Add an above-fold buyer inquiry CTA",
+      "Insert UK, German, Dutch, and Scandinavian buyers into the hero or subheadline copy.",
+      "Upload a headshot and two-sentence biography of Dmitry Mateshin to the homepage.",
+      "",
+      "Write and publish a homepage FAQ covering buying costs, residency rules, and off-market access."
+    ],
+    "ignore_for_now": [
+      "Pursuing third-party press mentions or directory listings — control is low and the owned-channel fixes above are higher priority.",
+      "Rewriting the journal archive — the existing articles are a longer-term citation asset; fix the homepage first."
+    ],
+    "executive_summary": "Vertex's off-market positioning and geographic specificity from Marbella to Sotogrande are clearly stated on the page. Vertex was not detected in tested buyer situations including category discovery and problem-intent queries on the Costa del Sol. MPDunne and Solvilla appeared in those queries instead. First, add an above-fold buyer inquiry CTA.",
+    "outreach_messages": [
+      {
+        "note": "Replace with the contact's first name before sending.",
+        "channel": "linkedin",
+        "message": "Hi, I looked at the Vertex homepage from a buyer's perspective. The off-market positioning reads clearly. One thing that stood out: there's no inquiry prompt in the hero for buyers who are ready to act. A 'Speak with Dmitry' button above the fold would give high-intent visitors a direct path before they scroll. Happy to share the two other quick copy changes I'd pair with it if useful."
+      },
+      {
+        "note": "Replace and before sending.",
+        "channel": "email",
+        "message": "Hi, I reviewed the Vertex homepage with a focus on how international buyers — particularly from the UK, Germany, and Northern Europe — experience it on a first visit. Three things stood out: 1. The hero has no buyer inquiry CTA. A visitor who reads the headline and wants to act has no immediate next step.\n2. UK, German, Dutch, and Scandinavian buyers are never named in the copy. A buyer from Hamburg scanning quickly may not recognise themselves as your client.\n3. Adding one line of context would strengthen it considerably. All three are quick to address. If it would be helpful, I can walk through the specific wording changes I'd suggest. Best,"
+      },
+      {
+        "note": "Adjust the handle to match Vertex's actual account before posting.",
+        "channel": "twitter",
+        "message": "Looked at the @VertexMarbella homepage. Off-market positioning is clear and early — that's the strongest part. Harder: no buyer CTA above the fold, and UK/German buyers are never named in the copy. Two sentences in the hero could fix both."
+      }
+    ]
+  },
+  "clarity": {
+    "cta": {
+      "score": 50,
+      "finding": "The primary above-fold CTA is only 'Scroll.' No inquiry prompt appears until the bottom of the page. A high-intent buyer who lands, reads the hero, and wants to act has no immediate path to contact. 'Request a private appraisal' appears mid-page for sellers, but buyers get no equivalent early prompt.",
+      "severity": "critical",
+      "suggested_rewrite": "Request a Quote."
+    },
+    "headline": {
+      "score": 55,
+      "finding": "The headline is evocative but does not state what Vertex does or for whom. 'Considered addresses' may not connect with a buyer searching for Marbella luxury property. A first-time visitor cannot confirm they are in the right place from the headline alone. The subheadline adds context, but many visitors read only the largest text.",
+      "severity": "medium",
+      "current_headline": "The coast's most considered addresses.",
+      "suggested_rewrite": "Private buyer and seller representation for luxury property on the Costa del Sol — Marbella to Sotogrande."
+    },
+    "trust_proof": {
+      "score": 60,
+      "finding": "'EUR 50M property transacted' is a modest figure for a luxury brokerage and may undercut the premium positioning. Dmitry Mateshin is named and titled, but no photo or brief biography appears on the homepage. Client nationalities (40+) are listed as a number with no supporting context.",
+      "severity": "medium",
+      "missing_elements": [
+        "A photo and two-sentence biography of Dmitry Mateshin visible on the homepage",
+        "",
+        "At least one attributed or anonymised client testimonial from a named buyer nationality",
+        "Clarification of whether EUR 50M is annual or cumulative transaction volume",
+        "Any third-party recognition, press mention, or professional registration visible on the page"
+      ]
+    },
+    "messaging_fit": {
+      "score": 65,
+      "finding": "The 'old-world service, new-world precision' line appears twice on the page. Repetition may suggest a lack of depth in the supporting copy. The off-market positioning is well-stated, but the public portfolio shown includes a EUR 600,000 land plot and an EUR 845,000 townhouse. Those prices may conflict with the ultra-prime tone set by the hero copy.",
+      "severity": "medium"
+    },
+    "overall_score": 62,
+    "icp_visibility": {
+      "score": 58,
+      "finding": "The page targets international HNW buyers but never names them directly. Phrases like 'the few people for whom the right home is never a transaction' are atmospheric but vague. A UK or German buyer scanning quickly may not recognise themselves as the intended client. Northern European buyer markets are absent from the copy entirely.",
+      "severity": "medium"
+    }
+  },
+  "ready_materials": {
+    "faq": [
+      {
+        "answer": "Use the contact options on Vertex's website to discuss your needs and next steps.",
+        "question": "How do I contact Vertex?"
+      },
+      {
+        "answer": "Share the relevant project, service, appointment, or inquiry details so the team can respond with accurate next steps.",
+        "question": "What information should I share with Vertex?"
+      }
+    ],
+    "json_ld": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@graph\": [\n    {\n      \"@type\": \"Organization\",\n      \"name\": \"Vertex\",\n      \"url\": \"https://vertexspain.com/\"\n    },\n    {\n      \"@type\": \"FAQPage\",\n      \"mainEntity\": [\n        {\n          \"@type\": \"Question\",\n          \"name\": \"How do I contact Vertex?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Use the contact options on Vertex's website to discuss your needs and next steps.\"\n          }\n        },\n        {\n          \"@type\": \"Question\",\n          \"name\": \"What information should I share with Vertex?\",\n          \"acceptedAnswer\": {\n            \"@type\": \"Answer\",\n            \"text\": \"Share the relevant project, service, appointment, or inquiry details so the team can respond with accurate next steps.\"\n          }\n        }\n      ]\n    }\n  ]\n}\n</script>",
+    "meta_title": "Luxury Property Marbella to Sotogrande | Vertex Spain",
+    "cta_variants": [
+      "Contact the business",
+      "Contact Vertex",
+      "Request information"
+    ],
+    "meta_description": "Vertex is a local business. Send an inquiry to discuss options, availability, and next steps."
+  },
+  "data_limitations": [
+    "AI visibility evidence was reused from the previous completed scan for this audit.",
+    "Reused AI visibility evidence was rechecked with the current brand-alias detector over stored answer excerpts; this can recover missed mentions in excerpts but cannot prove absence beyond the stored excerpt.",
+    "AI visibility findings are limited to 9 tested engine-query combinations across openai, claude, perplexity.",
+    "This audit does not use GA4, CRM, ad platform, heatmap, or sales-cycle data, so conversion and revenue impact are framed as hypotheses.",
+    "Crawler output may miss visual-only content, gated content, personalized pages, or assets blocked by the target site.",
+    "Recommendations should be reviewed by the business owner before publishing claims, guarantees, case studies, or client results."
+  ],
+  "technical_findings": [
+    {
+      "id": "cta_present",
+      "label": "Primary call-to-action",
+      "detail": "Graphical CTA-like element detected; verify manually whether it is an actionable primary CTA.",
+      "status": "unknown",
+      "evidence": {
+        "url": "https://vertexspain.com/",
+        "checked_at": "2026-08-21T09:14:34.556Z",
+        "html_snippet": "<a class=\"brand\" aria-label=\"Vertex — home\" href=\"https://vertexspain.com/\"><svg class=\"brand-mark\" viewBox=\"0 0 100 92\" fill=\"none\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M9 9 L50 84 L91 9\" stroke=\"currentColor\"...",
+        "extracted_text": null
+      },
+      "confidence": 45,
+      "evidence_id": "OBS-CTA-001",
+      "classification": "manual_verification",
+      "confidence_basis": "A graphical button/link was found, but no CTA text, href, submit behavior, or accessible label confirmed it as a primary CTA"
+    },
+    {
+      "id": "h1_present",
+      "label": "Headline (H1)",
+      "detail": "The coast’s most considered addresses.",
+      "status": "present",
+      "evidence": {
+        "url": "https://vertexspain.com/",
+        "checked_at": "2026-08-21T09:14:34.556Z",
+        "html_snippet": "<h1 class=\"display\" data-cms-key=\"home.hero.headline\" data-cms-type=\"text\">The coast’s most considered addresses.</h1>",
+        "extracted_text": "The coast’s most considered addresses."
+      },
+      "confidence": 98,
+      "evidence_id": "OBS-H1-001",
+      "classification": "detected",
+      "confidence_basis": "Matched a single <h1> element in the rendered HTML"
+    },
+    {
+      "id": "json_ld",
+      "label": "Structured data (schema.org JSON-LD)",
+      "detail": "JSON-LD present (@type: RealEstateAgent).",
+      "status": "present",
+      "evidence": {
+        "url": "https://vertexspain.com/",
+        "checked_at": "2026-08-21T09:14:34.556Z",
+        "html_snippet": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"RealEstateAgent\",\"@id\":\"https://vertexspain.com/#organization\",\"name\":\"Vertex\",\"legalName\":\"Vertex\",\"url\":\"https://vertexspain.com\",\"descriptio...",
+        "extracted_text": "RealEstateAgent"
+      },
+      "confidence": 99,
+      "evidence_id": "OBS-SCHEMA-001",
+      "classification": "detected",
+      "confidence_basis": "Found an application/ld+json script in the rendered HTML"
+    },
+    {
+      "id": "meta_description",
+      "label": "Meta description",
+      "detail": "Private real estate on the Costa del Sol. Representing extraordinary residences between Malaga and Sotogrande since 2026.",
+      "status": "present",
+      "evidence": {
+        "url": "https://vertexspain.com/",
+        "checked_at": "2026-08-21T09:14:34.556Z",
+        "html_snippet": "<meta name=\"description\" content=\"Private real estate on the Costa del Sol. Representing extraordinary residences between Malaga and Sotogrande since 2026.\"",
+        "extracted_text": "Private real estate on the Costa del Sol. Representing extraordinary residences between Malaga and Sotogrande since 2026."
+      },
+      "confidence": 97,
+      "evidence_id": "OBS-META-001",
+      "classification": "detected",
+      "confidence_basis": "Matched <meta name=\"description\"> with content"
+    },
+    {
+      "id": "social_proof",
+      "label": "Social proof signals",
+      "detail": "No textual social-proof signals found - verify whether logos/testimonials exist as images.",
+      "status": "unknown",
+      "evidence": {
+        "url": "https://vertexspain.com/",
+        "checked_at": "2026-08-21T09:14:34.556Z",
+        "html_snippet": null,
+        "extracted_text": null
+      },
+      "confidence": 45,
+      "evidence_id": "OBS-PROOF-001",
+      "classification": "manual_verification",
+      "confidence_basis": "No proof-related keywords found; visual logos may not be detectable from text"
+    },
+    {
+      "id": "faq_structure",
+      "label": "FAQ / Q&A structure",
+      "detail": "FAQ/Q&A structure was detected.",
+      "status": "present",
+      "evidence": {
+        "url": "https://vertexspain.com/",
+        "checked_at": "2026-08-21T09:14:34.556Z",
+        "html_snippet": null,
+        "extracted_text": null
+      },
+      "confidence": 84,
+      "evidence_id": "OBS-FAQ-001",
+      "classification": "detected",
+      "confidence_basis": "Matched a question-style heading in the rendered HTML"
+    }
+  ],
+  "validation_warnings": [
+    "ready_materials: rebuilt publishable materials from verified/observed facts",
+    "action_coherence: reconciled the first action to action.top_fixes.0"
+  ],
+  "implementation_briefs": [
+    {
+      "steps": [
+        "Add a clearly labelled button or inline prompt in the hero section with the text 'Speak with Dmitry' (or equivalent first-name personalisation) that links directly to the contact/inquiry form or opens a pre-filled email or WhatsApp thread.",
+        "Ensure the CTA is visible without scrolling on desktop (1280 px wide) and mobile (375 px wide) viewports.",
+        "Apply sufficient colour contrast between the button and hero background to meet WCAG AA (minimum 4.5:1 for normal text).",
+        "QA the link destination to confirm it reaches the inquiry mechanism with no broken redirects."
+      ],
+      "fix_title": "Add an above-fold buyer inquiry CTA",
+      "acceptance_criteria": [
+        "Done when a 'Speak with Dmitry' CTA element is present in the hero section of the homepage and is visible in the viewport without scrolling on both a 375 px mobile and a 1280 px desktop screen.",
+        "Done when clicking or tapping the CTA successfully opens or scrolls to an active inquiry form, email client, or messaging thread with no 404 or broken-link errors.",
+        "Done when the CTA button passes a WCAG AA colour-contrast check (≥ 4.5:1) using an automated accessibility tool."
+      ]
+    },
+    {
+      "steps": [
+        "Revise the hero headline or subheadline to explicitly name the primary buyer nationalities; for example, include a phrase such as 'serving UK, German, Dutch, and Scandinavian buyers' or equivalent natural-language phrasing.",
+        "Ensure the nationality language appears in the rendered HTML of the hero section (not only in metadata or off-screen elements) so it is readable by both visitors and crawlers.",
+        "Review surrounding hero copy for consistency so the nationality reference does not conflict with or duplicate other messaging."
+      ],
+      "fix_title": "Name your target buyer nationalities in the hero copy",
+      "acceptance_criteria": [
+        "Done when the homepage hero section contains visible, crawlable text that references at least three of the four target buyer nationalities (UK, German, Dutch, Scandinavian) in the rendered HTML.",
+        "Done when the updated copy is confirmed present in a Screaming Frog or equivalent crawl of the homepage hero element."
+      ]
+    },
+    {
+      "steps": [
+        "Identify three to five common questions a first-time international buyer searching for property on the Costa del Sol would ask (for example: questions about the buying process in Spain, typical costs and taxes, residency rules, how to arrange a viewing, or what documents are required); use plain, specific language that mirrors how buyers phrase these questions.",
+        "Write concise, factual answers to each question; where specific figures or legal details are uncertain, direct buyers to contact Vertex or consult a qualified adviser rather than stating unverified specifics.",
+        "Add the FAQ block to the homepage in visible, crawlable HTML; a collapsible accordion component is acceptable provided the question text is present in the page source.",
+        "Attach the supplied FAQPage JSON-LD schema to the homepage <head>, with each question-and-answer pair matching the visible FAQ copy exactly.",
+        "As a lower-control alternative (or complement), publish a dedicated journal or blog article covering buying costs and residency rules and link to it from the homepage FAQ block."
+      ],
+      "fix_title": "Add buyer FAQ content to the homepage",
+      "acceptance_criteria": [
+        "Done when the homepage contains a minimum of three visible, crawlable FAQ items in the rendered HTML, each with a distinct question and a plain-language answer.",
+        "Done when a FAQPage JSON-LD block is present in the homepage <head> and validates without errors in the Google Rich Results Test (or equivalent schema validator), with question text matching the visible copy.",
+        "Done when each answer that references legal, tax, or regulatory specifics either cites a verifiable source or directs the reader to contact Vertex or a qualified professional for confirmation."
+      ]
+    },
+    {
+      "steps": [
+        "Source or commission a professional headshot of Dmitry Mateshin and optimise the image for web (appropriate file size, descriptive alt text including his name and role).",
+        "Write a two-sentence biography covering his relevant background and role at Vertex; keep claims to verifiable facts supplied by the operator and avoid unverified performance claims.",
+        "Place the headshot and biography in a visible section of the homepage (for example, an 'About' or 'Meet your adviser' block) where it renders without scrolling past the initial hero on desktop."
+      ],
+      "fix_title": "Add a photo and brief biography of Dmitry Mateshin to the homepage",
+      "acceptance_criteria": [
+        "Done when the homepage displays a headshot image with alt text containing Dmitry Mateshin's name and a minimum two-sentence biography in visible, crawlable HTML.",
+        "Done when the headshot image loads successfully (HTTP 200) and the alt attribute is non-empty as confirmed by a page audit tool.",
+        "Done when no claim in the biography relates to conversion rates, revenue, or other unverified business outcomes."
+      ]
+    },
+    {
+      "steps": [
+        "Locate every numerical statistic or performance claim currently displayed on the homepage.",
+        "Directly beneath each stat, add a single line of supporting copy that states: (a) the time period the stat covers, and (b) the methodology or data source used to derive it (for example, internal transaction records, a specific date range, or a named third-party source).",
+        "Ensure the supporting copy is in visible, crawlable HTML adjacent to the stat — not only in a tooltip or hidden element.",
+        "Review all stat-plus-context pairs with the operator to confirm accuracy before publishing; remove or replace any stat whose time period or methodology cannot be verified."
+      ],
+      "fix_title": "State the time period and methodology directly beneath the stat on the homepage",
+      "acceptance_criteria": [
+        "Done when every homepage stat is accompanied by visible text stating both the time period it covers and the methodology or source, confirmed by visual QA on the live page.",
+        "Done when no homepage stat lacks an adjacent time-period and methodology disclosure, as verified by a manual page review.",
+        "Done when the operator has signed off on the accuracy of each stat-plus-context pair prior to publication."
+      ]
+    }
+  ],
+  "technical_eligibility": {
+    "checks": [
+      {
+        "id": "ELIG-HTTP-001",
+        "label": "Public HTTP access",
+        "detail": "The target returned HTTP 200.",
+        "status": "eligible",
+        "evidence": "https://vertexspain.com/"
+      },
+      {
+        "id": "ELIG-INDEX-001",
+        "label": "Index directives",
+        "detail": "No explicit noindex directive was detected in the captured document head or HTTP response.",
+        "status": "eligible"
+      },
+      {
+        "id": "ELIG-CANONICAL-001",
+        "label": "Canonical target",
+        "detail": "The canonical URL points to the audited page.",
+        "status": "eligible",
+        "evidence": "https://vertexspain.com/"
+      },
+      {
+        "id": "ELIG-RENDERED-001",
+        "label": "Crawlable rendered content",
+        "detail": "Substantive text was present in the rendered crawl.",
+        "status": "eligible",
+        "evidence": "8016 text characters observed"
+      }
+    ],
+    "checked_at": "2026-08-21T09:14:34.568Z",
+    "crawler_access": [
+      {
+        "detail": "No matching robots.txt disallow rule was observed.",
+        "engine": "OpenAI / ChatGPT Search",
+        "status": "eligible",
+        "crawler": "OAI-SearchBot"
+      },
+      {
+        "detail": "No matching robots.txt disallow rule was observed.",
+        "engine": "Perplexity",
+        "status": "eligible",
+        "crawler": "PerplexityBot"
+      }
+    ],
+    "overall_status": "eligible"
+  }
+}

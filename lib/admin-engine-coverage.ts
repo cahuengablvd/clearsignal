@@ -1,4 +1,5 @@
 import { FULL_AUDIT_ENGINES } from './engine-scope'
+import { SUCCESSFUL_STATUSES, type CoverageGate, type EngineCoverage, type LedgerRow } from './geo/coverage'
 
 export type AdminEngineCoverage = {
   configured_engines: string[]
@@ -8,6 +9,11 @@ export type AdminEngineCoverage = {
   successful_combinations: number
   failed_or_skipped_combinations: number
   complete: boolean
+  per_engine: EngineCoverage[]
+  failed_rows: Array<Pick<LedgerRow, 'query' | 'engine' | 'status' | 'status_reason' | 'attempts' | 'diagnostic_answer_text'>>
+  gate: CoverageGate | null
+  observed_at?: string
+  evidence_age_days?: number
 }
 
 function finiteCount(value: unknown): number {
@@ -37,6 +43,17 @@ export function buildAdminEngineCoverage(report: unknown): AdminEngineCoverage |
   const failedOrSkippedCombinations =
     finiteCount(counts?.failed_combinations) + finiteCount(counts?.skipped_combinations)
 
+  const perEngine = Array.isArray((geo as { engine_coverage?: unknown }).engine_coverage) ? (geo as { engine_coverage: EngineCoverage[] }).engine_coverage : []
+  const ledger = Array.isArray((geo as { ledger?: unknown }).ledger) ? (geo as { ledger: LedgerRow[] }).ledger : []
+  const failedRows = ledger
+    .filter((row) => !SUCCESSFUL_STATUSES.includes(row.status))
+    .map(({ query, engine, status, status_reason, attempts, diagnostic_answer_text }) => ({
+      query, engine, status, status_reason, attempts,
+      diagnostic_answer_text: diagnostic_answer_text?.slice(0, 240),
+    }))
+  const gate = ((geo as { coverage_gate?: CoverageGate }).coverage_gate) || null
+  const observedAt = (geo as { observed_at?: string }).observed_at
+  const age = observedAt ? Math.max(0, Math.floor((Date.now() - Date.parse(observedAt)) / 86_400_000)) : undefined
   return {
     configured_engines: configuredEngines,
     engines_with_evidence: enginesWithEvidence,
@@ -44,6 +61,7 @@ export function buildAdminEngineCoverage(report: unknown): AdminEngineCoverage |
     expected_combinations: expectedCombinations,
     successful_combinations: successfulCombinations,
     failed_or_skipped_combinations: failedOrSkippedCombinations,
-    complete: missingEngines.length === 0 && failedOrSkippedCombinations === 0,
+    complete: gate ? gate.passed : missingEngines.length === 0 && failedOrSkippedCombinations === 0,
+    per_engine: perEngine, failed_rows: failedRows, gate, observed_at: observedAt, evidence_age_days: age,
   }
 }

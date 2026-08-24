@@ -14,6 +14,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { anthropicUsageEvent, type CostEvent } from '../cost-tracker'
 import { logAnthropicCall, type AnthropicRequestMeta } from '../ai-observability'
 import { FULL_AUDIT_ENGINES } from '../engine-scope'
+import type { ToolEvents } from './coverage'
 
 export type EngineId = (typeof FULL_AUDIT_ENGINES)[number]
 
@@ -25,6 +26,11 @@ export interface EngineResponse {
   /** Source URLs the engine cited / grounded its answer on. */
   citations: string[]
   error?: string
+  model?: string
+  latency_ms?: number
+  http_status?: number
+  attempts: number
+  tool_events?: ToolEvents
 }
 
 const ENGINE_TIMEOUT_MS = 45_000
@@ -112,7 +118,7 @@ async function queryClaude(
         .join('')
         .trim()
 
-      return { engine: 'claude', ok: true, answer, citations: [] }
+      return { engine: 'claude', ok: true, answer, citations: [], model: res.model, attempts: 1, tool_events: { search_requests: 0, search_results: 0, tool_errors: [], protocol: 'none' } }
     }
 
     // web_search_20260209 supports dynamic filtering on Sonnet 4.6. The server
@@ -144,6 +150,7 @@ async function queryClaude(
     let answer = ''
     const citations: string[] = []
 
+    const tool_events: ToolEvents = { search_requests: 0, search_results: 0, tool_errors: [], protocol: 'claude_web_search' }
     for (const block of res.content ?? []) {
       if (block.type === 'text') {
         answer += block.text
@@ -153,12 +160,15 @@ async function queryClaude(
       } else if (block.type === 'web_search_tool_result') {
         const inner = block.content
         if (Array.isArray(inner)) {
+          if (inner.length) tool_events.search_results++
           for (const r of inner) if (r?.url) citations.push(r.url)
-        }
+        } else if (inner?.type === 'web_search_tool_result_error') tool_events.tool_errors.push(String(inner.error_code || 'tool_error'))
+      } else if (block.type === 'server_tool_use') {
+        tool_events.search_requests++
       }
     }
 
-    return { engine: 'claude', ok: true, answer: answer.trim(), citations: uniqueUrls(citations) }
+    return { engine: 'claude', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: res.model, attempts: 1, tool_events }
   } catch (err) {
     const model = opts.webSearch === false ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
     await logAnthropicCall({
@@ -177,6 +187,8 @@ async function queryClaude(
       answer: '',
       citations: [],
       error: err instanceof Error ? err.message : String(err),
+      http_status: typeof (err as { status?: unknown })?.status === 'number' ? (err as { status: number }).status : undefined,
+      attempts: 1,
     }
   }
 }
@@ -191,7 +203,7 @@ async function queryPerplexity(
 ): Promise<EngineResponse> {
   const key = process.env.PERPLEXITY_API_KEY
   if (!key) {
-    return { engine: 'perplexity', ok: false, answer: '', citations: [], error: 'PERPLEXITY_API_KEY not set' }
+    return { engine: 'perplexity', ok: false, answer: '', citations: [], error: 'PERPLEXITY_API_KEY not set', attempts: 1 }
   }
   try {
     const resp = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -203,7 +215,7 @@ async function queryPerplexity(
         messages: [{ role: 'user', content: question }],
       }),
     })
-    if (!resp.ok) throw new Error(`Perplexity HTTP ${resp.status}: ${await resp.text()}`)
+    if (!resp.ok) { const err: any = new Error(`Perplexity HTTP ${resp.status}: ${await resp.text()}`); err.http_status = resp.status; throw err }
     const data: any = await resp.json()
     opts.onUsage?.({
       provider: 'perplexity',
@@ -214,7 +226,7 @@ async function queryPerplexity(
     })
     const answer: string = data?.choices?.[0]?.message?.content ?? ''
     const citations: string[] = data?.citations ?? data?.search_results?.map((s: any) => s?.url) ?? []
-    return { engine: 'perplexity', ok: true, answer: answer.trim(), citations: uniqueUrls(citations) }
+    return { engine: 'perplexity', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events: { search_requests: 1, search_results: citations.length, tool_errors: [], protocol: 'perplexity_sonar' } }
   } catch (err) {
     return {
       engine: 'perplexity',
@@ -222,6 +234,7 @@ async function queryPerplexity(
       answer: '',
       citations: [],
       error: err instanceof Error ? err.message : String(err),
+      http_status: (err as any)?.http_status, attempts: 1,
     }
   }
 }
@@ -236,7 +249,7 @@ async function queryOpenAI(
 ): Promise<EngineResponse> {
   const key = process.env.OPENAI_API_KEY
   if (!key) {
-    return { engine: 'openai', ok: false, answer: '', citations: [], error: 'OPENAI_API_KEY not set' }
+    return { engine: 'openai', ok: false, answer: '', citations: [], error: 'OPENAI_API_KEY not set', attempts: 1 }
   }
   try {
     const resp = await fetch('https://api.openai.com/v1/responses', {
@@ -249,7 +262,7 @@ async function queryOpenAI(
         input: question,
       }),
     })
-    if (!resp.ok) throw new Error(`OpenAI HTTP ${resp.status}: ${await resp.text()}`)
+    if (!resp.ok) { const err: any = new Error(`OpenAI HTTP ${resp.status}: ${await resp.text()}`); err.http_status = resp.status; throw err }
     const data: any = await resp.json()
     opts.onUsage?.({
       provider: 'openai',
@@ -261,7 +274,9 @@ async function queryOpenAI(
 
     let answer = ''
     const citations: string[] = []
+    const tool_events: ToolEvents = { search_requests: 0, search_results: 0, tool_errors: [], protocol: 'openai_web_search_preview' }
     for (const item of data?.output ?? []) {
+      if (item?.type === 'web_search_call') { tool_events.search_requests++; if (item.status && item.status !== 'completed') tool_events.tool_errors.push(String(item.status)) }
       if (item?.type === 'message') {
         for (const c of item.content ?? []) {
           if (c?.type === 'output_text') {
@@ -276,7 +291,8 @@ async function queryOpenAI(
     // Fallback for SDK-style convenience field.
     if (!answer && typeof data?.output_text === 'string') answer = data.output_text
 
-    return { engine: 'openai', ok: true, answer: answer.trim(), citations: uniqueUrls(citations) }
+    tool_events.search_results = citations.length
+    return { engine: 'openai', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events }
   } catch (err) {
     return {
       engine: 'openai',
@@ -284,6 +300,7 @@ async function queryOpenAI(
       answer: '',
       citations: [],
       error: err instanceof Error ? err.message : String(err),
+      http_status: (err as any)?.http_status, attempts: 1,
     }
   }
 }
@@ -312,13 +329,14 @@ export async function queryEngine(
   question: string,
   opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string; meta?: AnthropicRequestMeta } = {}
 ): Promise<EngineResponse> {
-  try {
-    const timeout = opts.webSearch === false
-      ? FAST_ENGINE_TIMEOUT_MS
-      : engine === 'claude'
-        ? CLAUDE_WEB_SEARCH_TIMEOUT_MS
-        : ENGINE_TIMEOUT_MS
-    return await withTimeout(
+  const timeout = opts.webSearch === false
+    ? FAST_ENGINE_TIMEOUT_MS
+    : engine === 'claude'
+      ? CLAUDE_WEB_SEARCH_TIMEOUT_MS
+      : ENGINE_TIMEOUT_MS
+  const run = async () => {
+    const started = Date.now()
+    const result = await withTimeout(
       (signal) => engine === 'claude'
         ? queryClaude(question, {
             webSearch: opts.webSearch,
@@ -331,13 +349,26 @@ export async function queryEngine(
       timeout,
       `${engine} query`
     )
-  } catch (err) {
-    return {
-      engine,
-      ok: false,
-      answer: '',
-      citations: [],
-      error: err instanceof Error ? err.message : String(err),
-    }
+    // Some adapters catch the abort raised by our timeout and return an
+    // AbortError response before Promise.race observes its rejection. Normalize
+    // that path so it has the same retry/classification semantics as the thrown
+    // timeout path.
+    const normalized = !result.ok && /abort/i.test(result.error || '')
+      ? { ...result, error: `${engine} query timed out after ${timeout}ms` }
+      : result
+    return { ...normalized, latency_ms: Date.now() - started }
   }
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const started = Date.now()
+    let result: EngineResponse
+    try {
+      result = await run()
+    } catch (err) {
+      result = { engine, ok: false, answer: '', citations: [], error: err instanceof Error ? err.message : String(err), attempts: attempt, latency_ms: Date.now() - started }
+    }
+    const retryable = !result.ok && (result.http_status === 429 || [500, 502, 503, 504].includes(result.http_status || 0) || /fetch failed|ECONNRESET|timed out/i.test(result.error || ''))
+    if (!retryable || attempt === 2) return { ...result, attempts: attempt }
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.floor(Math.random() * 2001)))
+  }
+  throw new Error('unreachable')
 }

@@ -47,7 +47,7 @@ describe('engine request cancellation', () => {
     vi.useRealTimers()
   })
 
-  it('gives Claude web search 90 seconds, then aborts without recording late usage', async () => {
+  it('retries an actual Claude timeout once, aborting both attempts without recording late usage', async () => {
     const onUsage = vi.fn()
     const settled = vi.fn()
     const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
@@ -58,17 +58,21 @@ describe('engine request cancellation', () => {
       meta: { auditId: 'audit-timeout', stage: 'geo_engine:claude' },
     })
     void resultPromise.then(settled)
-    await vi.advanceTimersByTimeAsync(45_000)
+    await vi.advanceTimersByTimeAsync(46_000)
 
     expect(mocks.signals).toHaveLength(1)
     expect(mocks.signals[0].aborted).toBe(false)
     expect(settled).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(45_000)
+    await vi.advanceTimersByTimeAsync(91_000)
+    await vi.advanceTimersByTimeAsync(90_000)
     const result = await resultPromise
 
     expect(result.ok).toBe(false)
-    expect(mocks.signals[0].aborted).toBe(true)
+    expect(result.attempts).toBe(2)
+    expect(mocks.signals).toHaveLength(2)
+    expect(mocks.signals.every((signal) => signal.aborted)).toBe(true)
     expect(clearTimeoutSpy).toHaveBeenCalled()
     expect(onUsage).not.toHaveBeenCalled()
     expect(mocks.logAnthropicCall).not.toHaveBeenCalledWith(
@@ -127,12 +131,15 @@ describe('engine request cancellation', () => {
     }))
 
     const resultPromise = queryEngine(engine, 'buyer question', { onUsage })
-    await vi.advanceTimersByTimeAsync(45_000)
+    await vi.advanceTimersByTimeAsync(46_000)
+    await vi.advanceTimersByTimeAsync(46_000)
+    await vi.advanceTimersByTimeAsync(46_000)
     const result = await resultPromise
 
     expect(result.ok).toBe(false)
-    expect(fetchSignals).toHaveLength(1)
-    expect(fetchSignals[0].aborted).toBe(true)
+    expect(result.attempts).toBe(2)
+    expect(fetchSignals).toHaveLength(2)
+    expect(fetchSignals.every((signal) => signal.aborted)).toBe(true)
     expect(onUsage).not.toHaveBeenCalled()
     expect(vi.getTimerCount()).toBe(0)
   })

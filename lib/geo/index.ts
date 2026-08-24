@@ -32,6 +32,7 @@ import {
   geoAnalysisUserPrompt,
 } from '../prompts'
 import { availableEngines, queryEngine, type EngineId } from './engines'
+import { ANSWER_TEXT_LIMIT, DIAGNOSTIC_TEXT_LIMIT, SUCCESSFUL_STATUSES, buildEngineCoverage, classifyEngineResponse, deriveExcerpt, evaluateCoverageGate, type LedgerRow } from './coverage'
 import { analyzeCitedSources } from './sources'
 import { buildQueryAnalysis, classifyQueryIntent } from './query-taxonomy'
 import { scrapeUrl } from '../firecrawl'
@@ -72,23 +73,34 @@ export function buildGeoSummary(input: {
   brand: string
   test_counts: GeoTestCounts
   mention_rate: number
-  citation_rate: number
+  citation_rate: number | null
   ai_visibility_score: number
   mentionedCombinations?: number
   engines?: string[]
   evidenceReused?: boolean
+  coverageGate?: { passed: boolean; reasons: string[] }
 }): string {
   const successful = input.test_counts.successful_combinations
   const mentioned =
     typeof input.mentionedCombinations === 'number'
       ? input.mentionedCombinations
       : Math.round((input.mention_rate / 100) * successful)
-  const engineText = input.engines?.length ? ` across ${formatEngineList(input.engines)}` : ''
   const reuseDisclosure = input.evidenceReused
     ? ' AI visibility evidence was reused from the previous completed scan.'
     : ''
+  // Failed coverage gate: no index, no pooled percentages - only counts and the
+  // deterministic reasons. Every rebuild path (validator, reuse, rerender) must pass
+  // the gate through so this text survives to the client report.
+  if (input.coverageGate && !input.coverageGate.passed) {
+    const reasons = input.coverageGate.reasons.length ? ` ${input.coverageGate.reasons.join('; ')}.` : ''
+    return `Coverage was insufficient to report an AI visibility index.${reasons} ${input.brand} was named in ${mentioned} of ${successful} answers received.${reuseDisclosure}`
+  }
+  const engineText = input.engines?.length ? ` across ${formatEngineList(input.engines)}` : ''
+  const citationText = input.citation_rate == null
+    ? 'citation rate was not measurable (no grounded answers)'
+    : `citation rate was ${input.citation_rate}%`
 
-  return `${input.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations${engineText}. The measured AI visibility score was ${input.ai_visibility_score}/100; mention rate was ${input.mention_rate}% and citation rate was ${input.citation_rate}%.${reuseDisclosure}`
+  return `${input.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations${engineText}. The measured AI visibility score was ${input.ai_visibility_score}/100; mention rate was ${input.mention_rate}% and ${citationText}.${reuseDisclosure}`
 }
 
 function listValidator<T extends string>(key: string) {
@@ -201,14 +213,27 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       }))
     )
   )
-  const testCounts = geoTestCounts(queries.length, engines.length, settled.filter((s) => s.res.ok).length, 0)
-  const raw = settled
-    .filter((s) => s.res.ok)
-    .map((s) => ({ engine: s.engine, query: s.query, answer: s.res.answer, citations: s.res.citations }))
+  const observed = new Date().toISOString()
+  // `settled` is ordered query-major (queries.flatMap(engines)), so the query index is
+  // positional - duplicate query strings cannot select the wrong ledger row.
+  const ledger: LedgerRow[] = settled.map((s, i) => { const classified = classifyEngineResponse(s.res, { engine: s.engine, webSearch }); const queryIndex = Math.floor(i / engines.length); return { query_id: `Q${queryIndex + 1}`, query: s.query, engine: s.engine, sample_index: 1, status: classified.status, status_reason: classified.reason, tool_events: s.res.tool_events, attempts: s.res.attempts, model: s.res.model, http_status: s.res.http_status, answer_length: s.res.answer.length, citations_count: s.res.citations.length, latency_ms: s.res.latency_ms, observed_at: observed, diagnostic_answer_text: SUCCESSFUL_STATUSES.includes(classified.status) ? undefined : s.res.answer.slice(0, DIAGNOSTIC_TEXT_LIMIT) } })
+  const successfulIndexes = ledger.map((row, i) => (SUCCESSFUL_STATUSES.includes(row.status) ? i : -1)).filter((i) => i >= 0)
+  const testCounts: GeoTestCounts = geoTestCounts(queries.length, engines.length, successfulIndexes.length, 0)
+  testCounts.expected_samples = testCounts.expected_combinations; testCounts.successful_samples = successfulIndexes.length; testCounts.grounded_samples = ledger.filter(r => r.status === 'ok_grounded').length; testCounts.no_citation_samples = ledger.filter(r => r.status === 'ok_no_citations').length
+  const raw = successfulIndexes.map((ledgerIndex) => { const s = settled[ledgerIndex]; return { engine: s.engine, query: s.query, answer: s.res.answer, citations: s.res.citations, res: s.res, ledgerIndex } })
   const enginesTested = [...new Set(raw.map((result) => result.engine))]
 
   if (raw.length === 0) {
-    return emptyResult(brand, brandDomain, queries.length, engines, testCounts)
+    // Every sample failed: keep the attempted ledger, per-engine coverage and a failed
+    // gate so the client never sees a 0/0 "score" and approval stays blocked.
+    const engine_coverage = buildEngineCoverage(ledger, queries.length, engines)
+    const coverage_gate = evaluateCoverageGate(engine_coverage)
+    return GeoResultSchema.parse({
+      ...emptyResult(brand, brandDomain, queries.length, engines, testCounts),
+      citation_rate: null,
+      summary: buildGeoSummary({ brand, test_counts: testCounts, mention_rate: 0, citation_rate: null, ai_visibility_score: 0, mentionedCombinations: 0, engines: [], coverageGate: coverage_gate }),
+      ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed,
+    })
   }
 
   // 3. Build the competitor set: user-provided + (optionally) discovered names.
@@ -261,11 +286,15 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       brand_position = 1 + competitorIdxs.filter((i) => i < brandIdx).length
     }
 
+    const answer_text = r.answer.slice(0, ANSWER_TEXT_LIMIT); const excerpt = deriveExcerpt(answer_text)
+    const row = ledger[r.ledgerIndex]
+    row.evidence_id = `GEO-QUERY-${String(i + 1).padStart(3, '0')}`
     return {
       evidence_id: `GEO-QUERY-${String(i + 1).padStart(3, '0')}`,
       engine: r.engine,
       query: r.query,
-      answer_excerpt: truncate(r.answer, ANSWER_EXCERPT_LIMIT),
+      answer_excerpt: excerpt.excerpt,
+      answer_text, excerpt_offset: excerpt.offset, status: row.status, grounding: row.status === 'ok_grounded' ? 'grounded' : 'no_citations', tool_events: r.res.tool_events, sample_index: 1, query_id: row.query_id, combination_id: `${row.query_id}-${r.engine}`, model: r.res.model, observed_at: row.observed_at,
       citations: r.citations,
       brand_mentioned,
       brand_cited,
@@ -297,7 +326,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       : 0
 
   const mention_rate = pct(brandMentions, total)
-  const citation_rate = pct(brandCitations, total)
+  const citation_rate = testCounts.grounded_samples ? pct(brandCitations, testCounts.grounded_samples) : null
   const share_of_voice =
     brandMentions + competitorMentionsTotal > 0
       ? round((brandMentions / (brandMentions + competitorMentionsTotal)) * 100, 1)
@@ -307,7 +336,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const ai_visibility_score = Math.round(
     100 *
       (SCORE_WEIGHTS.mention * (mention_rate / 100) +
-        SCORE_WEIGHTS.citation * (citation_rate / 100) +
+        SCORE_WEIGHTS.citation * ((citation_rate ?? 0) / 100) +
         SCORE_WEIGHTS.position * positionScore01 +
         SCORE_WEIGHTS.share_of_voice * (share_of_voice / 100))
   )
@@ -339,7 +368,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     ai_visibility_score,
     test_counts: testCounts,
     mention_rate,
-    citation_rate,
+    citation_rate: citation_rate ?? 0,
     mentionedCombinations: brandMentions,
     engines: enginesTested,
     cited_domains_ranked,
@@ -354,7 +383,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         user: geoAnalysisUserPrompt(
           brand,
           brandDomain,
-          { ai_visibility_score, mention_rate, citation_rate, share_of_voice },
+          { ai_visibility_score, mention_rate, citation_rate: citation_rate ?? 0, share_of_voice },
           evidence.map((e) => ({
             engine: e.engine,
             query: e.query,
@@ -409,6 +438,9 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     }
   }
 
+  const engine_coverage = buildEngineCoverage(ledger, queries.length, engines)
+  const coverage_gate = evaluateCoverageGate(engine_coverage)
+  if (!coverage_gate.passed) narrative.summary = buildGeoSummary({ brand, test_counts: testCounts, mention_rate, citation_rate, ai_visibility_score, mentionedCombinations: brandMentions, engines: enginesTested, coverageGate: coverage_gate })
   const result: GeoResult = {
     brand,
     brand_domain: brandDomain,
@@ -422,7 +454,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     avg_position,
     score_breakdown: {
       mention_rate,
-      citation_rate,
+      citation_rate: citation_rate ?? 0,
       position_score,
       share_of_voice,
       weights: {
@@ -438,6 +470,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     ...narrative,
     source_gap_analysis,
     query_analysis: buildQueryAnalysis(evidence),
+    ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed,
   }
 
   return GeoResultSchema.parse(result)

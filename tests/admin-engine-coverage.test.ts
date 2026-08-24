@@ -19,7 +19,7 @@ describe('admin engine coverage', () => {
       },
     })
 
-    expect(coverage).toEqual({
+    expect(coverage).toMatchObject({
       configured_engines: ['claude', 'perplexity', 'openai'],
       engines_with_evidence: ['openai', 'perplexity'],
       missing_engines: ['claude'],
@@ -36,5 +36,14 @@ describe('admin engine coverage', () => {
     expect(source).toContain('Engine coverage gap before approval')
     expect(source).toContain('No evidence:')
     expect(source).toContain('audit.engine_coverage_summary.missing_engines')
+    expect(source).toContain('Failed sample ledger')
+  })
+
+  it('exposes only failed ledger rows with a bounded diagnostic', () => {
+    const coverage = buildAdminEngineCoverage({ geo: { engines_tested: ['claude'], ledger: [
+      { query: 'good', engine: 'claude', status: 'ok_grounded', attempts: 1 },
+      { query: 'failed query', engine: 'openai', status: 'timeout', status_reason: 'timeout', attempts: 2, diagnostic_answer_text: 'x'.repeat(400) },
+    ] } })
+    expect(coverage?.failed_rows).toEqual([expect.objectContaining({ query: 'failed query', engine: 'openai', status: 'timeout', attempts: 2, diagnostic_answer_text: 'x'.repeat(240) })])
   })
 })

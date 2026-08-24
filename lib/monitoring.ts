@@ -69,15 +69,15 @@ export function computeDelta(
     .filter((d) => !prevDomains.has(d))
 
   let brandCitationChange: 'gained' | 'lost' | 'none' = 'none'
-  if (current.citation_rate > 0 && previous.citation_rate === 0) brandCitationChange = 'gained'
-  else if (current.citation_rate === 0 && previous.citation_rate > 0) brandCitationChange = 'lost'
+  if ((current.citation_rate ?? 0) > 0 && (previous.citation_rate ?? 0) === 0) brandCitationChange = 'gained'
+  else if ((current.citation_rate ?? 0) === 0 && (previous.citation_rate ?? 0) > 0) brandCitationChange = 'lost'
 
   const delta: MonitoringDelta = {
     is_first_run: false,
     ai_visibility_score: dScore,
     mention_rate: round(current.mention_rate - previous.mention_rate),
     share_of_voice: round(current.share_of_voice - previous.share_of_voice),
-    citation_rate: round(current.citation_rate - previous.citation_rate),
+    citation_rate: round((current.citation_rate ?? 0) - (previous.citation_rate ?? 0)),
     new_competitors: newCompetitors,
     new_cited_domains: newCitedDomains,
     brand_citation_change: brandCitationChange,

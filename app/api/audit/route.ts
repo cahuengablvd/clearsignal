@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     const {
       audit_id,
       reuse_geo_evidence = true,
+      confirm_reuse_age = false,
       override_deterministic_failure = false,
     } = await req.json()
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     // Check audit exists
     const { data: audit, error } = await supabaseAdmin
       .from('audits')
-      .select('id, audit_status, admin_notes')
+      .select('id, audit_status, admin_notes, report')
       .eq('id', audit_id)
       .single()
 
@@ -38,6 +39,12 @@ export async function POST(req: NextRequest) {
 
     if (audit.audit_status === 'processing') {
       return NextResponse.json({ error: 'Audit is already processing' }, { status: 409 })
+    }
+    const observedAt = (audit.report as { geo?: { observed_at?: string } } | null)?.geo?.observed_at
+    const warnDays = Number(process.env.GEO_REUSE_AGE_WARN_DAYS || 14)
+    const ageDays = observedAt ? Math.max(0, Math.floor((Date.now() - Date.parse(observedAt)) / 86400000)) : null
+    if (reuse_geo_evidence && ageDays !== null && Number.isFinite(ageDays) && ageDays > warnDays && !confirm_reuse_age) {
+      return NextResponse.json({ error: 'reuse_evidence_age_confirmation_required', evidence_age_days: ageDays, observed_at: observedAt, threshold_days: warnDays }, { status: 409 })
     }
 
     const deterministicFailure = isDeterministicAuditFailure(
@@ -100,6 +107,7 @@ export async function POST(req: NextRequest) {
       success: true,
       audit_id,
       reuse_geo_evidence: Boolean(reuse_geo_evidence),
+      evidence_age_days: ageDays,
       deterministic_failure_overridden: Boolean(override_deterministic_failure),
     })
   } catch (err) {

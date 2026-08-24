@@ -17,6 +17,7 @@ import { ASTROTURFING_PATTERNS, BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS }
 import { CLIENT_VISIBLE_REPLACEMENT_SENTENCES } from './trust/decisions'
 import { buildVerifiedFactsLayer, factAllowed } from './verified-facts'
 import { buildGeoSummary } from './geo'
+import { evaluateCoverageGate, SUCCESSFUL_STATUSES } from './geo/coverage'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
 import { buildGeoActionEvidenceCatalog, filterGeoActionEvidenceIds } from './geo/action-evidence'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
@@ -1489,6 +1490,51 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
       `geo_counts: evidence length ${geo.evidence.length} does not equal successful_combinations ${counts.successful_combinations}`
     )
   }
+  if (counts.successful_samples !== undefined && geo.evidence.length !== counts.successful_samples) {
+    errors.push(`geo_counts: evidence length ${geo.evidence.length} does not equal successful_samples ${counts.successful_samples}`)
+  }
+  if (counts.grounded_samples !== undefined && counts.no_citation_samples !== undefined && counts.grounded_samples + counts.no_citation_samples !== (counts.successful_samples ?? counts.successful_combinations)) {
+    errors.push('geo_counts: grounded + no_citation does not equal successful samples')
+  }
+  for (const evidence of geo.evidence) {
+    if (evidence.answer_text && (evidence.excerpt_offset ?? 0) > evidence.answer_text.length) errors.push('geo_counts: excerpt_offset outside answer_text')
+  }
+  // A1 coverage structures must agree with each other wherever the data exists. Legacy
+  // reports (no ledger / coverage / sample counts) are not held to checks their data
+  // cannot support; fresh reports with inconsistent coverage must not pass silently.
+  if (counts.grounded_samples !== undefined && (geo.citation_rate === null) !== (counts.grounded_samples === 0)) {
+    errors.push('geo_counts: citation_rate must be null exactly when there are no grounded samples')
+  }
+  const ledger = Array.isArray(geo.ledger) ? geo.ledger : null
+  if (ledger && counts.successful_samples !== undefined) {
+    const ledgerSuccessful = ledger.filter((row) => (SUCCESSFUL_STATUSES as string[]).includes(row.status)).length
+    if (ledgerSuccessful !== counts.successful_samples) {
+      errors.push(`geo_counts: ledger successful rows (${ledgerSuccessful}) do not equal successful_samples (${counts.successful_samples})`)
+    }
+  }
+  const coverage = Array.isArray(geo.engine_coverage) ? geo.engine_coverage : null
+  if (coverage) {
+    const coverageSuccessful = coverage.reduce((n, item) => n + item.successful_samples, 0)
+    if (counts.successful_samples !== undefined && coverageSuccessful !== counts.successful_samples) {
+      errors.push(`geo_counts: engine coverage successful samples (${coverageSuccessful}) do not equal successful_samples (${counts.successful_samples})`)
+    }
+    const coverageGrounded = coverage.reduce((n, item) => n + item.grounded_samples, 0)
+    if (counts.grounded_samples !== undefined && coverageGrounded !== counts.grounded_samples) {
+      errors.push(`geo_counts: engine coverage grounded samples (${coverageGrounded}) do not equal grounded_samples (${counts.grounded_samples})`)
+    }
+    // Expected totals are only comparable when every configured engine has a coverage row
+    // (a legacy reuse may lack a row for an engine that left no evidence).
+    const coverageExpected = coverage.reduce((n, item) => n + item.expected_samples, 0)
+    if (counts.expected_samples !== undefined && coverage.length === counts.configured_engines && coverageExpected !== counts.expected_samples) {
+      errors.push(`geo_counts: engine coverage expected samples (${coverageExpected}) do not equal expected_samples (${counts.expected_samples})`)
+    }
+    if (geo.coverage_gate) {
+      const recomputed = evaluateCoverageGate(coverage, { configuredEngines: counts.configured_engines })
+      if (recomputed.passed !== geo.coverage_gate.passed) {
+        errors.push(`geo_counts: coverage gate mismatch (stored ${geo.coverage_gate.passed ? 'passed' : 'failed'}, recomputed ${recomputed.passed ? 'passed' : 'failed'})`)
+      }
+    }
+  }
 
   const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
   const cited = geo.evidence.filter((e) => e.brand_cited).length
@@ -1516,6 +1562,9 @@ function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void)
     mentionedCombinations: mentioned,
     engines,
     evidenceReused: reused,
+    // A failed coverage gate keeps the deterministic insufficient-coverage summary; the
+    // validator must never rebuild an index/percentage sentence over it.
+    coverageGate: geo.coverage_gate,
   })
   if (geo.summary !== expected) {
     geo.summary = expected

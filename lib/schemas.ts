@@ -282,6 +282,12 @@ export const GeoEvidenceSchema = z.object({
     'use_case',
     'other',
   ]).optional(),
+  status: z.enum(['ok_grounded', 'ok_no_citations', 'tool_failure', 'provider_error', 'timeout', 'empty', 'invalid', 'skipped']).optional(),
+  grounding: z.enum(['grounded', 'no_citations']).optional(),
+  tool_events: z.object({ search_requests: z.number(), search_results: z.number(), tool_errors: z.array(z.string()), protocol: z.enum(['claude_web_search', 'openai_web_search_preview', 'perplexity_sonar', 'none']) }).optional(),
+  sample_index: z.number().int().positive().optional(),
+  query_id: z.string().optional(), combination_id: z.string().optional(), model: z.string().optional(), observed_at: z.string().optional(),
+  answer_text: z.string().optional(), excerpt_offset: z.number().int().nonnegative().optional(),
 })
 
 export type GeoEvidence = z.infer<typeof GeoEvidenceSchema>
@@ -455,8 +461,36 @@ export const GeoTestCountsSchema = z.object({
   successful_combinations: z.number(),
   failed_combinations: z.number(),
   skipped_combinations: z.number(),
+  expected_samples: z.number().optional(), successful_samples: z.number().optional(), grounded_samples: z.number().optional(), no_citation_samples: z.number().optional(),
 })
 export type GeoTestCounts = z.infer<typeof GeoTestCountsSchema>
+
+/** A1 per-engine coverage row (typed; optional on GeoResult for legacy reports). */
+export const EngineCoverageSchema = z.object({
+  engine: z.string(),
+  configured_queries: z.number(),
+  expected_samples: z.number(),
+  successful_samples: z.number(),
+  grounded_samples: z.number(),
+  no_citation_samples: z.number(),
+  tool_failure_samples: z.number(),
+  provider_error_samples: z.number(),
+  timeout_samples: z.number(),
+  empty_or_invalid_samples: z.number(),
+  skipped_samples: z.number(),
+  queries_with_evidence: z.number(),
+  gate_passed: z.boolean(),
+  gate_reasons: z.array(z.string()),
+})
+export type EngineCoverageRow = z.infer<typeof EngineCoverageSchema>
+
+/** A1 deterministic coverage gate (typed; optional on GeoResult for legacy reports). */
+export const CoverageGateSchema = z.object({
+  passed: z.boolean(),
+  reasons: z.array(z.string()),
+  thresholds: z.object({ min_queries_per_engine_ratio: z.number(), min_overall_success_ratio: z.number(), min_valid_core_slots: z.number() }),
+  evaluated_at: z.string(),
+})
 
 export const GeoResultSchema = z.object({
   brand: z.string(),
@@ -467,7 +501,7 @@ export const GeoResultSchema = z.object({
   // Deterministic metrics
   ai_visibility_score: z.number().min(0).max(100),
   mention_rate: z.number().min(0).max(100),
-  citation_rate: z.number().min(0).max(100),
+  citation_rate: z.number().min(0).max(100).nullable(),
   share_of_voice: z.number().min(0).max(100),
   avg_position: z.number().nullable(),
   score_breakdown: GeoScoreBreakdownSchema,
@@ -487,6 +521,11 @@ export const GeoResultSchema = z.object({
   query_analysis: GeoQueryAnalysisSchema.optional(),
   technical_eligibility: TechnicalEligibilitySchema.optional(),
   staged_recommendations: z.array(StagedGeoRecommendationSchema).optional(),
+  ledger: z.array(z.object({ query_id: z.string(), query: z.string(), engine: z.string(), sample_index: z.number(), status: z.enum(['ok_grounded', 'ok_no_citations', 'tool_failure', 'provider_error', 'timeout', 'empty', 'invalid', 'skipped']), status_reason: z.string().optional(), tool_events: z.object({ search_requests: z.number(), search_results: z.number(), tool_errors: z.array(z.string()), protocol: z.enum(['claude_web_search', 'openai_web_search_preview', 'perplexity_sonar', 'none']) }).optional(), attempts: z.number(), model: z.string().optional(), http_status: z.number().optional(), answer_length: z.number(), citations_count: z.number(), latency_ms: z.number().optional(), observed_at: z.string(), evidence_id: z.string().optional(), diagnostic_answer_text: z.string().optional() })).optional(),
+  engine_coverage: z.array(EngineCoverageSchema).optional(),
+  coverage_gate: CoverageGateSchema.optional(),
+  observed_at: z.string().optional(),
+  observed_until: z.string().optional(),
 })
 
 export type GeoResult = z.infer<typeof GeoResultSchema>

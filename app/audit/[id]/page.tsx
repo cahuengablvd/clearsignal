@@ -12,6 +12,8 @@ import { RoleExport } from '@/components/role-export'
 import { CopyButton } from '@/components/copy-button'
 import { footerText } from '@/lib/pdf-footer'
 import { queryIntentLabel } from '@/lib/geo/query-taxonomy'
+import { engineDisplayName } from '@/lib/geo/coverage'
+import { buildGeoSummary } from '@/lib/geo'
 import { recommendationStageLabel } from '@/lib/geo/recommendation-stages'
 import { buildClientReport, validateClientReportProjection } from '@/lib/client-report'
 import { AUDIT_PROCESS_LABEL, AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
@@ -216,6 +218,31 @@ export default async function AuditPage({
     notFound()
   }
   const isPdf = searchParams.pdf === 'true'
+  // `report_only` is the documented emergency presentation rollback: preserve
+  // the recorded gate for reviewers, but render the pre-gate client surfaces.
+  const reportOnly = report.geo?.coverage_gate?.passed === false && process.env.GEO_COVERAGE_GATE_MODE === 'report_only'
+  const gatePresentationFailed = report.geo?.coverage_gate?.passed === false && !reportOnly
+  // This only reconstructs the displayed narrative from the stored measurements;
+  // the failed gate and all recorded data remain intact for reviewer diagnostics.
+  const geoSummary = report.geo && reportOnly
+    ? buildGeoSummary({
+        brand: report.geo.brand,
+        test_counts: report.geo.test_counts ?? {
+          configured_queries: report.geo.queries_tested,
+          configured_engines: report.geo.engines_tested.length,
+          expected_combinations: report.geo.queries_tested * report.geo.engines_tested.length,
+          successful_combinations: report.geo.evidence.length,
+          failed_combinations: 0,
+          skipped_combinations: 0,
+        },
+        mention_rate: report.geo.mention_rate,
+        citation_rate: report.geo.citation_rate,
+        ai_visibility_score: report.geo.ai_visibility_score,
+        mentionedCombinations: report.geo.evidence.filter((e) => e.brand_mentioned).length,
+        engines: report.geo.engines_tested,
+        evidenceReused: report.geo.summary.includes('AI visibility evidence was reused from the previous completed scan'),
+      })
+    : report.geo?.summary
   const technicalEligibility = report.technical_eligibility || report.geo?.technical_eligibility
 
   return (
@@ -445,7 +472,7 @@ export default async function AuditPage({
         {report.geo && (
           <>
             <h2 className="text-2xl font-bold mb-4 mt-10">AI Visibility (GEO / AEO)</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            {!gatePresentationFailed ? <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <Card>
                 <CardContent className="p-4 text-center">
                   <div className="text-3xl font-bold">{report.geo.ai_visibility_score}</div>
@@ -472,17 +499,17 @@ export default async function AuditPage({
                   <div className="text-xs text-muted-foreground mt-1">Successful combinations</div>
                 </CardContent>
               </Card>
-            </div>
+            </div> : <Card className="mb-6 border-amber-300 bg-amber-50"><CardContent className="p-5"><p className="font-medium">Measurement coverage was insufficient</p><p className="text-sm text-muted-foreground mt-1">{report.geo.coverage_gate?.reasons.join('; ')}</p><p className="text-sm text-muted-foreground mt-1">No AI visibility index or pooled percentages are reported for this scan; only the counts below and the individual answers further down.</p><div className="mt-3 text-sm">{report.geo.engine_coverage?.map((e) => <p key={e.engine}>{engineDisplayName(e.engine)}: {e.successful_samples}/{e.expected_samples} answers received.</p>)}</div></CardContent></Card>}
 
             <Card className="mb-6 border-primary/20 bg-primary/5">
               <CardContent className="p-5">
-                <p className="text-sm leading-relaxed">{report.geo.summary}</p>
+                <p className="text-sm leading-relaxed">{geoSummary}</p>
                 <p className="text-xs text-muted-foreground mt-3">
                   Engines tested: {report.geo.engines_tested.join(', ')}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                {!gatePresentationFailed && <p className="text-xs text-muted-foreground mt-1">
                   Visibility is specific to this tested query set; different buyer questions can produce different results.
-                </p>
+                </p>}
                 {report.geo.test_counts && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Queries configured: {report.geo.test_counts.configured_queries}. Engines configured:{' '}
@@ -492,23 +519,26 @@ export default async function AuditPage({
                     {report.geo.test_counts.failed_combinations + report.geo.test_counts.skipped_combinations}.
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Score = {Math.round(report.geo.score_breakdown.weights.mention * 100)}%
-                  mention-rate ({Math.round(report.geo.mention_rate)}) +{' '}
-                  {Math.round(report.geo.score_breakdown.weights.citation * 100)}% citation-rate (
-                  {Math.round(report.geo.citation_rate)}) +{' '}
-                  {Math.round(report.geo.score_breakdown.weights.position * 100)}% position +{' '}
-                  {Math.round(report.geo.score_breakdown.weights.share_of_voice * 100)}% share-of-voice.
-                  Measured deterministically from the answers below
-                  {report.geo.avg_position != null
-                    ? `; avg. position when named: ${report.geo.avg_position}`
-                    : ''}
-                  .
-                </p>
+                {!gatePresentationFailed && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Score = {Math.round(report.geo.score_breakdown.weights.mention * 100)}%
+                    mention-rate ({Math.round(report.geo.mention_rate)}) +{' '}
+                    {Math.round(report.geo.score_breakdown.weights.citation * 100)}% citation-rate (
+                    {report.geo.citation_rate == null ? 'n/a' : Math.round(report.geo.citation_rate)}) +{' '}
+                    {Math.round(report.geo.score_breakdown.weights.position * 100)}% position +{' '}
+                    {Math.round(report.geo.score_breakdown.weights.share_of_voice * 100)}% share-of-voice.
+                    Measured deterministically from the answers below
+                    {report.geo.avg_position != null
+                      ? `; avg. position when named: ${report.geo.avg_position}`
+                      : ''}
+                    .
+                  </p>
+                )}
               </CardContent>
             </Card>
+            {report.geo.engine_coverage?.length ? <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">Measurement coverage by engine</h3><div className="space-y-1 text-sm text-muted-foreground">{report.geo.engine_coverage.map((engine) => <p key={engine.engine}>{engineDisplayName(engine.engine)}: {engine.successful_samples}/{engine.expected_samples} answers received; {engine.grounded_samples} grounded; {engine.no_citation_samples} without citations; {engine.tool_failure_samples + engine.provider_error_samples + engine.timeout_samples} failed.</p>)}</div>{report.geo.observed_at && <p className="mt-2 text-xs text-muted-foreground">Evidence observed {report.geo.observed_at.slice(0, 10)}.</p>}</CardContent></Card> : null}
 
-            {report.geo.query_analysis && report.geo.query_analysis.coverage.length > 0 && (
+            {!gatePresentationFailed && report.geo.query_analysis && report.geo.query_analysis.coverage.length > 0 && (
               <Card className="mb-6">
                 <CardContent className="p-5">
                   <h3 className="font-semibold mb-1">Visibility by buyer intent</h3>
@@ -534,7 +564,7 @@ export default async function AuditPage({
             )}
 
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
-              {report.geo.competitor_visibility.length > 0 && (
+              {!gatePresentationFailed && report.geo.competitor_visibility.length > 0 && (
                 <Card>
                   <CardContent className="p-5">
                     <h3 className="font-semibold mb-3">Who AI recommends instead</h3>
@@ -689,6 +719,22 @@ export default async function AuditPage({
                           <p className="text-xs text-muted-foreground mb-2">
                             AI-reported answer; not independently verified by ClearSignal.
                           </p>
+                          {e.status === 'ok_no_citations' && (
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Answered without citations (the engine did not ground this answer in web sources).
+                            </p>
+                          )}
+                          {(e.excerpt_offset ?? 0) > 0 && (
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Opening narration was omitted from this excerpt; the full raw answer is stored unchanged.
+                            </p>
+                          )}
+                          {!isPdf && e.answer_text && (
+                            <details className="mb-2 text-xs text-muted-foreground print:hidden">
+                              <summary className="cursor-pointer">Show the full stored answer</summary>
+                              <pre className="whitespace-pre-wrap font-sans mt-2">{e.answer_text}</pre>
+                            </details>
+                          )}
                           <div className="text-xs text-muted-foreground space-y-1">
                             {e.competitors_mentioned.length > 0 && (
                               <div>

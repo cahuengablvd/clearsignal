@@ -57,6 +57,7 @@ import { auditExecutionContext, runAuditStage, type AuditTrigger } from './audit
 import { qualityCriticEnabled, runQualityCritic } from './quality/critic'
 import { reconcileAuditAiCost } from './ai-observability'
 import { isAnswerEngineCompetitorName } from './engine-scope'
+import { buildEngineCoverage, evaluateCoverageGate, SUCCESSFUL_STATUSES, type LedgerRow } from './geo/coverage'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
@@ -76,7 +77,8 @@ export function buildGenerationMeta(opts: Pick<RunFullAuditOptions, 'engineVersi
 export function buildDataLimitations(
   geo: GeoResult | null,
   reusedGeoEvidence = false,
-  targetPage?: Pick<ScrapedPage, 'cacheState' | 'cachedAt'>
+  targetPage?: Pick<ScrapedPage, 'cacheState' | 'cachedAt'>,
+  opts: { generatedAt?: string } = {}
 ): string[] {
   const limits = [
     'This audit does not use GA4, CRM, ad platform, heatmap, or sales-cycle data, so conversion and revenue impact are framed as hypotheses.',
@@ -84,12 +86,18 @@ export function buildDataLimitations(
     'Recommendations should be reviewed by the business owner before publishing claims, guarantees, case studies, or client results.',
   ]
   if (geo) {
+    if (geo.observed_at) {
+      const observedUntil = geo.observed_until || geo.observed_at
+      limits.unshift(`AI visibility evidence was observed between ${geo.observed_at.slice(0, 10)} and ${observedUntil.slice(0, 10)}; this report was generated on ${opts.generatedAt?.slice(0, 10) || 'an unknown date'}.`)
+      const generatedAt = opts.generatedAt
+      if (reusedGeoEvidence && generatedAt) { const days = Math.floor((Date.parse(generatedAt) - Date.parse(geo.observed_at)) / 86400000); if (days > 7) limits.unshift(`Reused evidence is ${days} days older than this report.`) }
+    } else if (reusedGeoEvidence) limits.unshift('AI visibility evidence date is unknown for this reused report.')
     limits.unshift(
       `AI visibility findings are limited to ${geo.evidence.length} tested engine-query combinations across ${geo.engines_tested.join(', ')}.`
     )
     if (reusedGeoEvidence) {
       limits.unshift('AI visibility evidence was reused from the previous completed scan for this audit.')
-      limits.unshift('Reused AI visibility evidence was rechecked with the current brand-alias detector over stored answer excerpts; this can recover missed mentions in excerpts but cannot prove absence beyond the stored excerpt.')
+      limits.unshift('Reused AI visibility evidence was rechecked with the current brand-alias detector over the full stored answers when available; legacy excerpts remain the fallback.')
     }
   } else {
     limits.unshift('Live AI visibility evidence was unavailable for this run.')
@@ -177,7 +185,9 @@ export function recomputeReusedGeoEvidence(
     .map((name) => ({ name, variants: buildVariants({ name }) }))
 
   const evidence = geo.evidence.map((e) => {
-    const answer = e.answer_excerpt || ''
+    // Fresh scans derive every deterministic text signal from the full answer. Reuse
+    // must do the same whenever A1 stored it; legacy records only have an excerpt.
+    const answer = e.answer_text || e.answer_excerpt || ''
     const brand_mentioned = textMentions(answer, brandVariants.tokens)
     const brand_cited = citationsInclude(e.citations || [], brandVariants.domain)
     const positions: { name: string; index: number; isBrand: boolean }[] = []
@@ -213,8 +223,20 @@ export function recomputeReusedGeoEvidence(
   const positionScore01 = mentionPositions.length
     ? mentionPositions.reduce((sum, p) => sum + Math.max(0, 1 - (p - 1) / 5), 0) / mentionPositions.length
     : 0
+  // A1 ledger for the reuse path. A stored A1 ledger is reused as-is; legacy evidence
+  // (pre-A1) is synthesized from the successful rows only: status is inferred from the
+  // presence of citations, the observation date stays '' (unknown - a disclosure concern,
+  // not a coverage concern), and no per-engine failures are invented.
+  const existingLedger = geo.ledger as LedgerRow[] | undefined
+  const uniqueQueries = [...new Set(geo.evidence.map((x) => x.query))]
+  const ledger: LedgerRow[] = existingLedger || evidence.map((e) => ({ query_id: e.query_id || `Q${uniqueQueries.indexOf(e.query) + 1}`, query: e.query, engine: e.engine, sample_index: e.sample_index || 1, status: e.status || (e.citations.length ? 'ok_grounded' : 'ok_no_citations'), attempts: 1, answer_length: (e.answer_text || e.answer_excerpt).length, citations_count: e.citations.length, observed_at: e.observed_at || '' }))
+  const groundedSamples = ledger.filter((r) => r.status === 'ok_grounded').length
+  const noCitationSamples = ledger.filter((r) => r.status === 'ok_no_citations').length
+
   const mention_rate = pct(brandMentions, total)
-  const citation_rate = pct(brandCitations, total)
+  // Same A1 denominators as a fresh scan: mentions over successful samples, citations over
+  // grounded samples only; `null` when nothing was grounded.
+  const citation_rate = groundedSamples > 0 ? pct(brandCitations, groundedSamples) : null
   const share_of_voice = brandMentions + competitorMentionsTotal > 0
     ? round((brandMentions / (brandMentions + competitorMentionsTotal)) * 100, 1)
     : 0
@@ -222,23 +244,41 @@ export function recomputeReusedGeoEvidence(
   const ai_visibility_score = Math.round(
     100 *
     (REUSED_GEO_WEIGHTS.mention * (mention_rate / 100) +
-      REUSED_GEO_WEIGHTS.citation * (citation_rate / 100) +
+      REUSED_GEO_WEIGHTS.citation * ((citation_rate ?? 0) / 100) +
       REUSED_GEO_WEIGHTS.position * positionScore01 +
       REUSED_GEO_WEIGHTS.share_of_voice * (share_of_voice / 100))
   )
   const competitor_visibility = competitorList
     .map((c) => ({
       name: c.name,
-      mention_rate: pct(evidence.filter((e) => textMentions(e.answer_excerpt, c.variants.tokens)).length, total),
+      mention_rate: pct(evidence.filter((e) => textMentions(e.answer_text || e.answer_excerpt || '', c.variants.tokens)).length, total),
     }))
     .filter((c) => c.mention_rate > 0)
     .sort((a, b) => b.mention_rate - a.mention_rate)
     .slice(0, 10)
 
+  // Coverage from the full ledger (legacy rows included - a missing `observed_at` must not
+  // drop a row). Expected samples come from the configured query count, not from how many
+  // legacy rows survived. A configured engine with no stored evidence cannot be named, so
+  // the gate only reports the count.
+  const configuredEngines = geo.engines_tested.length ? geo.engines_tested : [...new Set(evidence.map((e) => e.engine))]
+  const configuredQueries = geo.test_counts?.configured_queries ?? geo.queries_tested
+  const engine_coverage = buildEngineCoverage(ledger, configuredQueries, configuredEngines)
+  const coverage_gate = evaluateCoverageGate(engine_coverage, { configuredEngines: geo.test_counts?.configured_engines })
+  const test_counts = geo.test_counts
+    ? {
+        ...geo.test_counts,
+        expected_samples: geo.test_counts.expected_samples ?? geo.test_counts.expected_combinations,
+        successful_samples: evidence.length,
+        grounded_samples: groundedSamples,
+        no_citation_samples: noCitationSamples,
+      }
+    : geo.test_counts
   return {
     ...geo,
     brand,
     evidence,
+    test_counts,
     ai_visibility_score,
     mention_rate,
     citation_rate,
@@ -247,12 +287,13 @@ export function recomputeReusedGeoEvidence(
     competitor_visibility,
     score_breakdown: {
       mention_rate,
-      citation_rate,
+      citation_rate: citation_rate ?? 0,
       position_score,
       share_of_voice,
       weights: REUSED_GEO_WEIGHTS,
     },
     query_analysis: buildQueryAnalysis(evidence),
+    ledger, engine_coverage, coverage_gate,
   }
 }
 
@@ -308,6 +349,9 @@ export function rebuildReusedGeoNarrative(
       mentionedCombinations: mentioned,
       engines,
       evidenceReused: true,
+      // Reuse keeps the same coverage semantics as a fresh scan: a failed gate
+      // removes the index/percentages from the summary.
+      coverageGate: geo.coverage_gate,
     }),
     missing_signals: missingSignals,
     recommendations: [
@@ -826,11 +870,13 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       console.warn(`Implementation briefs failed for ${auditId} (continuing without them):`, err)
     }
 
-    // 7. Assemble report
+    // 7. Assemble report. One generation timestamp feeds both report.meta and the
+    // evidence-date disclosure so they can never disagree.
+    const generatedAt = new Date().toISOString()
     const report: ClearSignalReport = {
       meta: {
         url: audit.url,
-        generated_at: new Date().toISOString(),
+        generated_at: generatedAt,
         icp_description: icp,
         competitors: competitors.map((c) => c.url),
         tier: (audit.tier as 'automated' | 'reviewed' | 'sprint') || 'automated',
@@ -845,7 +891,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       clarity,
       gap,
       action: actionWithStages,
-      data_limitations: buildDataLimitations(geo, Boolean(reusedGeo), targetPage),
+      data_limitations: buildDataLimitations(geo, Boolean(reusedGeo), targetPage, { generatedAt }),
       geo,
       technical_findings: technicalFindings,
       technical_eligibility: technicalEligibility,

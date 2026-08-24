@@ -14,13 +14,14 @@ describe('GEO summary engine coverage', () => {
     queryEngine.mockReset()
     queryEngine.mockImplementation(async (engine: string, query: string) => {
       if (engine === 'claude') {
-        return { engine, ok: false, answer: '', citations: [], error: 'timed out' }
+        return { engine, ok: false, answer: '', citations: [], error: 'timed out', attempts: 1 }
       }
       return {
         engine,
         ok: true,
-        answer: `Example is relevant for ${query}.`,
+        answer: `${`Example is relevant for ${query}. `.repeat(12)}`,
         citations: [],
+        attempts: 1,
       }
     })
   })
@@ -37,7 +38,7 @@ describe('GEO summary engine coverage', () => {
     })
 
     expect(result.engines_tested).toEqual(['openai', 'perplexity'])
-    expect(result.summary).toContain('across OpenAI and Perplexity')
-    expect(result.summary).not.toContain('Claude')
+    expect(result.summary).toContain('Coverage was insufficient to report an AI visibility index')
+    expect(result.summary).toContain('Claude answered 0 of 1 questions')
   })
 })

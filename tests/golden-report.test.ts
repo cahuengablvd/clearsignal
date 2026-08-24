@@ -176,10 +176,22 @@ describe('golden-report regression test', () => {
     expect(reused).toBeTruthy()
     expect(reused?.evidence.length).toBeGreaterThan(0)
     expect(reused?.test_counts?.successful_combinations).toBe(reused?.evidence.length)
-    expect(reused?.summary).toContain(`${reused?.evidence.length} successfully tested engine-query combinations`)
+    // Legacy synthesis reports real per-engine evidence against the configured query
+    // count - never fake zeros, and never "expected" shrunk to the surviving rows.
+    expect(reused?.engine_coverage?.length).toBeGreaterThan(0)
+    for (const row of reused?.engine_coverage ?? []) {
+      expect(row.successful_samples).toBeGreaterThan(0)
+      expect(row.queries_with_evidence).toBeGreaterThan(0)
+      expect(row.expected_samples).toBe(reused?.test_counts?.configured_queries)
+    }
+    // The AZ Moving scan answered only 3 of 6 Claude questions, so the coverage gate
+    // legitimately fails - and the summary must then carry no index or percentages.
+    expect(reused?.coverage_gate?.passed).toBe(false)
+    expect(reused?.coverage_gate?.reasons.join(' ')).toMatch(/Claude answered 3 of 6 questions/)
+    expect(reused?.coverage_gate?.reasons.join(' ')).not.toMatch(/answered 0 of/)
+    expect(reused?.summary).toContain('Coverage was insufficient to report an AI visibility index')
     expect(reused?.summary).toContain('AI visibility evidence was reused from the previous completed scan')
-    expect(reused?.summary).toMatch(/Claude/i)
-    expect(reused?.summary).not.toMatch(/0 of 6 tested|Perplexity and OpenAI|core reason/i)
+    expect(reused?.summary).not.toMatch(/\/100|mention rate was/)
   })
 
   fixtureIt('removes inferred answer-engine aliases from reused GEO evidence', () => {

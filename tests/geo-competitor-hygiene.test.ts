@@ -19,8 +19,9 @@ describe('GEO competitor and cited-source hygiene', () => {
     queryEngine.mockReset()
     queryEngine.mockResolvedValue({
       ok: true,
-      answer: 'ChatGPT, Claude, Perplexity, Gemini, Copilot, Google AI Overviews, AI Mode, com.mt, and Genuine Rival are relevant options.',
+      answer: `${'ChatGPT, Claude, Perplexity, Gemini, Copilot, Google AI Overviews, AI Mode, com.mt, and Genuine Rival are relevant options. '.repeat(3)}`,
       citations: ['https://example.co.uk/post', 'https://news.example.com.mt/x'],
+      attempts: 1,
     })
   })
 
@@ -60,8 +61,9 @@ describe('GEO competitor and cited-source hygiene', () => {
   it('excludes multi-token engine aliases without hiding companies that contain other tokens', async () => {
     queryEngine.mockResolvedValue({
       ok: true,
-      answer: 'Ahrefs, Semrush, AI4Life, Perplexity Labs Consulting, and Genuine Rival are relevant options.',
+      answer: `${'Ahrefs, Semrush, AI4Life, Perplexity Labs Consulting, and Genuine Rival are relevant options. '.repeat(3)}`,
       citations: [],
+      attempts: 1,
     })
     callClaudeJSON.mockResolvedValue({
       competitors: [

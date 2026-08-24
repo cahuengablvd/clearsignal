@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 
 const mocks = vi.hoisted(() => ({
   scrapeUrl: vi.fn(),
-  generateBuyerQueries: vi.fn(),
+  generateValidatedQueryPlan: vi.fn(),
 }))
 
 vi.mock('@/lib/auth', () => ({
@@ -11,7 +11,7 @@ vi.mock('@/lib/auth', () => ({
   ADMIN_COOKIE: 'admin',
 }))
 vi.mock('@/lib/firecrawl', () => ({ scrapeUrl: mocks.scrapeUrl }))
-vi.mock('@/lib/geo', () => ({ generateBuyerQueries: mocks.generateBuyerQueries }))
+vi.mock('@/lib/geo', () => ({ generateValidatedQueryPlan: mocks.generateValidatedQueryPlan }))
 
 function request() {
   return new NextRequest('http://localhost:3000/api/admin/audits/preview', {
@@ -30,7 +30,7 @@ function request() {
 describe('admin preview input quality', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.generateBuyerQueries.mockResolvedValue(['Which security service should I choose?'])
+    mocks.generateValidatedQueryPlan.mockResolvedValue({ core: [{ query: 'Which security service should I choose?', slot: 'category_discovery', language: 'en', geo_scope: 'none', rationale: '' }], supplemental: [], provenance: [], valid_core_slots: 6, review_required: false, primary_language: 'en', markets: [] })
   })
 
   it('does not generate queries from a browser-verification response', async () => {
@@ -39,7 +39,7 @@ describe('admin preview input quality', () => {
     const response = await POST(request())
 
     expect(response.status).toBe(422)
-    expect(mocks.generateBuyerQueries).not.toHaveBeenCalled()
+    expect(mocks.generateValidatedQueryPlan).not.toHaveBeenCalled()
   })
 
   it('generates normally for a long legitimate page mentioning Cloudflare', async () => {
@@ -51,7 +51,7 @@ describe('admin preview input quality', () => {
     const response = await POST(request())
 
     expect(response.status).toBe(200)
-    expect(mocks.generateBuyerQueries).toHaveBeenCalledOnce()
+    expect(mocks.generateValidatedQueryPlan).toHaveBeenCalledOnce()
   })
 
   it('does not invent a vertical when neither a readable page nor a description is available', async () => {
@@ -71,6 +71,6 @@ describe('admin preview input quality', () => {
     const response = await POST(emptyRequest)
 
     expect(response.status).toBe(422)
-    expect(mocks.generateBuyerQueries).not.toHaveBeenCalled()
+    expect(mocks.generateValidatedQueryPlan).not.toHaveBeenCalled()
   })
 })

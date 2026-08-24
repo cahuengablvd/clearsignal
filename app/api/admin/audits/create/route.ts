@@ -5,8 +5,10 @@ import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { enqueueAudit } from '@/lib/audit-queue'
 import { notify } from '@/lib/notify'
 import { trySignToken } from '@/lib/tokens'
-import { BusinessContextSchema, competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
+import { BusinessContextSchema, competitorUrlSchema, icpTextSchema, QueryProvenanceSchema } from '@/lib/schemas'
 import { normalizeWebsiteUrl } from '@/lib/normalize-url'
+import { applyOperatorEdits, validateSavedQueryPlan } from '@/lib/geo'
+import { parseMarketsLanguages } from '@/lib/geo/language'
 
 export const maxDuration = 60
 
@@ -25,6 +27,8 @@ const requestSchema = z.object({
   tier: z.enum(['automated', 'reviewed', 'sprint']).optional().default('automated'),
   // Operator-confirmed buyer-intent queries from the preview/confirmation step.
   queries: z.array(z.string().min(1)).max(12).optional(),
+  query_plan: z.object({ core: z.array(z.unknown()), supplemental: z.array(z.unknown()), provenance: z.array(QueryProvenanceSchema), valid_core_slots: z.number(), review_required: z.boolean(), primary_language: z.string(), markets: z.array(z.string()), warnings: z.array(z.string()).optional() }).optional(),
+  override_query_validation: z.boolean().optional().default(false),
   business_context: BusinessContextSchema.optional(),
 })
 
@@ -64,8 +68,18 @@ export async function POST(req: NextRequest) {
     queued_at: queuedAt,
     tier: input.tier,
   }
-  const queries = input.queries?.length ? input.queries : null
-  const businessContext = BusinessContextSchema.parse(input.business_context || {})
+  let queries = input.queries?.length ? input.queries : null
+  let structuredPlan = input.query_plan
+  if (structuredPlan && queries) {
+    const saved = validateSavedQueryPlan(structuredPlan)
+    if (!saved.valid) return NextResponse.json({ error: `Invalid query plan: ${saved.reason}` }, { status: 400 })
+    const markets = parseMarketsLanguages(input.business_context?.target_markets_languages).markets
+    const edited = applyOperatorEdits(saved.plan, queries, { brandAliases: [new URL(input.url).hostname.replace(/^www\./, '')], markets, override: input.override_query_validation })
+    if (edited.rejected) return NextResponse.json({ error: 'Edited query did not pass validation; correct it or use an explicit operator override.', query_plan: edited.plan }, { status: 400 })
+    structuredPlan = edited.plan
+    queries = edited.plan.provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => item.query)
+  }
+  const businessContext = BusinessContextSchema.parse({ ...(input.business_context || {}), ...(structuredPlan ? { query_plan: structuredPlan } : {}) })
 
   let { data: audit, error: insertError } = await supabaseAdmin
     .from('audits')

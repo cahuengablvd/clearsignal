@@ -38,7 +38,7 @@ import {
   briefUserPrompt,
 } from './prompts'
 import { deliverAuditEmail } from './email-delivery'
-import { buildGeoSummary, runGeoScan } from './geo'
+import { buildGeoSummary, generateValidatedQueryPlan, runGeoScan, validateSavedQueryPlan } from './geo'
 import { buildVariants, citationsInclude, textMentions, firstMentionIndex, sld } from './geo/detect'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
 import { buildGeoActionEvidenceCatalog } from './geo/action-evidence'
@@ -210,11 +210,14 @@ export function recomputeReusedGeoEvidence(
     }
   })
 
-  const total = evidence.length
-  const brandMentions = evidence.filter((e) => e.brand_mentioned).length
-  const brandCitations = evidence.filter((e) => e.brand_cited).length
-  const competitorMentionsTotal = evidence.reduce((sum, e) => sum + e.competitors_mentioned.length, 0)
-  const mentionPositions = evidence
+  // Supplemental probes are explanatory only. Reuse must keep them out of every
+  // core measurement just as a fresh scan does.
+  const measurementEvidence = evidence.filter((item) => item.scope !== 'supplemental')
+  const total = measurementEvidence.length
+  const brandMentions = measurementEvidence.filter((e) => e.brand_mentioned).length
+  const brandCitations = measurementEvidence.filter((e) => e.brand_cited).length
+  const competitorMentionsTotal = measurementEvidence.reduce((sum, e) => sum + e.competitors_mentioned.length, 0)
+  const mentionPositions = measurementEvidence
     .filter((e) => e.brand_position != null)
     .map((e) => e.brand_position as number)
   const avg_position = mentionPositions.length
@@ -251,7 +254,7 @@ export function recomputeReusedGeoEvidence(
   const competitor_visibility = competitorList
     .map((c) => ({
       name: c.name,
-      mention_rate: pct(evidence.filter((e) => textMentions(e.answer_text || e.answer_excerpt || '', c.variants.tokens)).length, total),
+      mention_rate: pct(measurementEvidence.filter((e) => textMentions(e.answer_text || e.answer_excerpt || '', c.variants.tokens)).length, total),
     }))
     .filter((c) => c.mention_rate > 0)
     .sort((a, b) => b.mention_rate - a.mention_rate)
@@ -264,12 +267,24 @@ export function recomputeReusedGeoEvidence(
   const configuredEngines = geo.engines_tested.length ? geo.engines_tested : [...new Set(evidence.map((e) => e.engine))]
   const configuredQueries = geo.test_counts?.configured_queries ?? geo.queries_tested
   const engine_coverage = buildEngineCoverage(ledger, configuredQueries, configuredEngines)
-  const coverage_gate = evaluateCoverageGate(engine_coverage, { configuredEngines: geo.test_counts?.configured_engines })
+  const provenance = geo.query_provenance || uniqueQueries.map((query, index) => ({ query_id: `Q${index + 1}`, query, slot: ['category_discovery', 'problem_need', 'comparison_alternatives', 'icp_use_case', 'trust_or_pricing', 'local_or_second_decision'][Math.min(index, 5)] as import('./geo/query-taxonomy').QuerySlot, intent: evidence.find((e) => e.query === query)?.query_intent || 'other', language: 'unknown', language_source: 'legacy' as const, geo_scope: 'none' as const, scope: 'core' as const, source: 'legacy' as const, rationale: '', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' as const }))
+  // Legacy evidence has no A4 identity. Add only the matching provenance fields;
+  // stored intent and all historic measurement fields remain untouched.
+  const provenanceById = new Map(provenance.map((item) => [item.query_id, item]))
+  const legacyProvenanceByQuery = provenance.every((item) => item.source === 'legacy')
+    ? new Map(provenance.map((item) => [item.query, item]))
+    : undefined
+  const evidenceWithProvenance = evidence.map((item) => {
+    const itemProvenance = item.query_id ? provenanceById.get(item.query_id) : legacyProvenanceByQuery?.get(item.query)
+    return itemProvenance ? { ...item, query_id: item.query_id || itemProvenance.query_id, query_intent: item.query_intent || itemProvenance.intent, scope: item.scope || itemProvenance.scope } : item
+  })
+  const validCoreSlots = provenance.filter((p) => p.scope === 'core' && p.state === 'valid').length
+  const coverage_gate = evaluateCoverageGate(engine_coverage, { configuredEngines: geo.test_counts?.configured_engines, ...(geo.query_plan ? { validCoreSlots, coreSlots: 6 } : {}) })
   const test_counts = geo.test_counts
     ? {
         ...geo.test_counts,
         expected_samples: geo.test_counts.expected_samples ?? geo.test_counts.expected_combinations,
-        successful_samples: evidence.length,
+        successful_samples: measurementEvidence.length,
         grounded_samples: groundedSamples,
         no_citation_samples: noCitationSamples,
       }
@@ -277,7 +292,7 @@ export function recomputeReusedGeoEvidence(
   return {
     ...geo,
     brand,
-    evidence,
+    evidence: evidenceWithProvenance,
     test_counts,
     ai_visibility_score,
     mention_rate,
@@ -292,7 +307,9 @@ export function recomputeReusedGeoEvidence(
       share_of_voice,
       weights: REUSED_GEO_WEIGHTS,
     },
-    query_analysis: buildQueryAnalysis(evidence),
+    query_analysis: buildQueryAnalysis(evidenceWithProvenance.filter((e) => e.scope !== 'supplemental')),
+    query_provenance: provenance,
+    query_plan: geo.query_plan || { valid_core_slots: validCoreSlots, review_required: validCoreSlots < 6, primary_language: 'unknown', markets: [] },
     ledger, engine_coverage, coverage_gate,
   }
 }
@@ -643,7 +660,21 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       : runAuditStage(
           exec,
           'geo_scan',
-          () => runGeoScan({
+          async () => {
+            const saved = businessContext.query_plan ? validateSavedQueryPlan(businessContext.query_plan) : null
+            const savedPlan = saved?.valid ? saved.plan : undefined
+            if (businessContext.query_plan && saved && !saved.valid) console.warn(`[audit-runner] invalid saved A4 query plan for ${auditId}: ${saved.reason}; using compatible operator path`)
+            const queryPlan = process.env.GEO_QUERY_PLAN_MODE === 'legacy' || savedPlan || audit.geo_queries?.length ? undefined : await generateValidatedQueryPlan({
+              brand,
+              category: targetMarkdown.slice(0, 600),
+              icp,
+              targetMarketsLanguages: businessContext.target_markets_languages,
+              pageLanguage: undefined,
+              brandAliases: [brandEntity.canonical_brand, brandEntity.domain, ...brandEntity.alternative_brand_forms],
+              onUsage: (event) => cost.add(event),
+              meta: { auditId, stage: 'geo_query_generation', trigger: exec.trigger, recoveryAttempt: exec.attempt, workerId: exec.workerId, endpoint: exec.endpoint },
+            })
+            return runGeoScan({
             brand,
             url: audit.url,
             category: targetMarkdown.slice(0, 600),
@@ -651,7 +682,8 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
             competitors: competitorUrls,
             queryCount: 6,
             // Use operator-confirmed queries when present (from the confirmation screen).
-            providedQueries: (audit.geo_queries as string[] | null) || undefined,
+            queryPlan: savedPlan || queryPlan,
+            providedQueries: savedPlan ? undefined : (audit.geo_queries as string[] | null) || undefined,
             // Paid audit: also scrape the most-cited sources and explain why they win.
             analyzeSources: true,
             maxSources: 6,
@@ -665,9 +697,10 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
               workerId: exec.workerId,
               endpoint: exec.endpoint,
             },
-          }),
+          }) },
           (stored) => GeoResultSchema.parse(stored)
         ).catch((err) => {
+          if (err instanceof Error && err.message.includes('query_plan_insufficient')) throw err
           console.error(`GEO scan failed for ${auditId} (continuing without it):`, err)
           return null
         })

@@ -9,8 +9,16 @@ vi.mock('../lib/geo/engines', () => ({
 }))
 
 import { runGeoScan } from '../lib/geo'
+import { QUERY_SLOTS, intentForSlot } from '../lib/geo/query-taxonomy'
+import type { QueryPlan } from '../lib/geo'
 
 const longAnswer = (lead: string) => `${lead} ${'Additional grounded detail sentence. '.repeat(12)}`
+const structuredPlan = (supplemental = false): QueryPlan => {
+  const core = QUERY_SLOTS.map((slot, index) => ({ query: index < 2 ? 'same buyer question in Riga today' : `buyer question ${index + 1} in Riga today`, slot, language: 'en', market: 'Riga', geo_scope: 'explicit' as const, rationale: 'Tests a buyer situation in the target market.' }))
+  const secondary = supplemental ? [{ query: 'secondary buyer question in Riga today', slot: 'category_discovery' as const, language: 'ru', market: 'Riga', geo_scope: 'explicit' as const, rationale: 'Secondary-language probe.' }] : []
+  const provenance = [...core.map((item, index) => ({ ...item, query_id: `Q${index + 1}`, intent: intentForSlot(item.slot), language_source: 'intake' as const, scope: 'core' as const, source: 'generator' as const, validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' as const })), ...secondary.map((item, index) => ({ ...item, query_id: `S${index + 1}`, intent: intentForSlot(item.slot), language_source: 'intake' as const, scope: 'supplemental' as const, source: 'generator' as const, validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' as const }))]
+  return { core, supplemental: secondary, provenance, valid_core_slots: 6, review_required: false, primary_language: 'en', markets: ['Riga'] }
+}
 
 describe('A1 mixed-status run', () => {
   beforeEach(() => {
@@ -124,5 +132,39 @@ describe('A1 mixed-status run', () => {
     expect(result.evidence[0].answer_text).toBeTruthy()
     expect(result.evidence[0].answer_excerpt).toBeTruthy()
     expect(result.evidence[0].excerpt_offset).toBe(0)
+  })
+
+  it('keeps the legacy six-string measurement contract available for the runner rollback', async () => {
+    const queries = ['best option nearby', 'solve this need nearby', 'compare options nearby', 'option for families nearby', 'trusted option nearby', 'local option nearby']
+    mocks.callClaudeJSON.mockImplementation(async (request: { purpose: string }) => request.purpose === 'geo:query_generation' ? { queries } : { competitors: [] })
+    mocks.queryEngine.mockResolvedValue({ engine: 'claude', ok: true, attempts: 1, answer: longAnswer('Target is a relevant option here.'), citations: ['https://target.example/page'], tool_events: { search_requests: 1, search_results: 1, tool_errors: [], protocol: 'claude_web_search' } })
+
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', queryCount: 6, engines: ['claude'], analyzeSources: false, narrative: false })
+    expect(mocks.queryEngine).toHaveBeenCalledTimes(6)
+    expect(result.ledger).toHaveLength(6)
+    expect(result.query_provenance).toHaveLength(6)
+    expect(result.query_provenance?.every((item) => item.scope === 'core' && item.source === 'generator')).toBe(true)
+    expect(result.supplemental_probes).toEqual([])
+  })
+
+  it('keeps duplicate structured query executions attached to their positional provenance', async () => {
+    mocks.queryEngine.mockResolvedValue({ engine: 'claude', ok: true, attempts: 1, answer: longAnswer('Target is a relevant option here.'), citations: ['https://target.example/page'], tool_events: { search_requests: 1, search_results: 1, tool_errors: [], protocol: 'claude_web_search' } })
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', queryPlan: structuredPlan(), engines: ['claude'], analyzeSources: false, narrative: false })
+    expect(result.ledger?.map((row) => row.query_id)).toEqual(['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'])
+    expect(result.evidence.map((item) => item.query_id)).toEqual(['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'])
+  })
+
+  it('keeps supplemental-only appearances out of all core measurements', async () => {
+    mocks.queryEngine.mockImplementation(async (_engine: string, query: string) => ({ engine: 'claude', ok: true, attempts: 1, answer: longAnswer(query.startsWith('secondary') ? 'Target is a relevant option here.' : 'Another provider is a relevant option here.'), citations: query.startsWith('secondary') ? ['https://target.example/page'] : [], tool_events: { search_requests: 1, search_results: 1, tool_errors: [], protocol: 'claude_web_search' } }))
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', queryPlan: structuredPlan(true), engines: ['claude'], analyzeSources: false, narrative: false })
+    expect(result.evidence.filter((item) => item.scope === 'supplemental')).toHaveLength(1)
+    expect(result.mention_rate).toBe(0)
+    expect(result.ai_visibility_score).toBe(0)
+    expect(result.share_of_voice).toBe(0)
+    expect(result.test_counts).toMatchObject({ successful_combinations: 6, supplemental_successful_combinations: 1 })
+    expect(result.engine_coverage?.[0]).toMatchObject({ expected_samples: 6, successful_samples: 6 })
+    expect(result.query_analysis?.queries.some((item) => item.query.startsWith('secondary'))).toBe(false)
+    expect(result.query_analysis?.coverage.reduce((sum, item) => sum + item.successful_combinations, 0)).toBe(6)
+    expect(result.coverage_gate?.passed).toBe(true)
   })
 })

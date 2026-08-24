@@ -563,6 +563,11 @@ export default async function AuditPage({
               </Card>
             )}
 
+            {report.geo.query_provenance?.filter((item) => item.scope === 'core' && item.state === 'valid').length ? (
+              <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">Why these questions were tested</h3><div className="space-y-3 text-sm">{report.geo.query_provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => <div key={item.query_id} className="border-b pb-2 last:border-0"><p className="font-medium">{item.query}</p><p className="text-xs text-muted-foreground">Buyer situation: {queryIntentLabel(item.intent)} · Language: {item.language}{item.market ? ` · Market: ${item.market}` : ''}{item.rationale ? ` · ${item.rationale}` : ''}</p></div>)}</div>{report.geo.query_plan && report.geo.query_plan.valid_core_slots < 6 ? <p className="mt-3 text-sm text-muted-foreground">{6 - report.geo.query_plan.valid_core_slots} of 6 buyer situations could not be tested validly.</p> : null}</CardContent></Card>
+            ) : null}
+            {report.geo.supplemental_probes?.length ? <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">Secondary-language probe — not included in the index</h3><div className="space-y-2 text-sm">{report.geo.supplemental_probes.map((probe) => <div key={probe.query_id}><p className="font-medium">{probe.query}</p><p className="text-xs text-muted-foreground">{probe.per_engine.map((row) => `${engineDisplayName(row.engine)}: ${row.mentioned} named, ${row.cited} cited in ${row.successful} answers`).join(' · ')}</p></div>)}</div></CardContent></Card> : null}
+
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
               {!gatePresentationFailed && report.geo.competitor_visibility.length > 0 && (
                 <Card>

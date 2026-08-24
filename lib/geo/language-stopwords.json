@@ -1,0 +1,12 @@
+{
+  "en": ["the", "and", "for", "with", "best", "what", "where", "how"],
+  "lv": ["un", "par", "kas", "kā", "labākais", "ar", "vai", "kuru"],
+  "ru": ["и", "в", "на", "как", "какой", "для", "лучший", "где"],
+  "lt": ["ir", "kaip", "geriausias", "su", "kur", "kas", "bei", "ar"],
+  "et": ["ja", "kuidas", "parim", "koos", "kus", "mis", "või", "jaoks"],
+  "de": ["und", "für", "mit", "beste", "wie", "wo", "was", "oder"],
+  "es": ["y", "para", "con", "mejor", "cómo", "dónde", "qué", "los"],
+  "fr": ["et", "pour", "avec", "meilleur", "comment", "où", "quel", "les"],
+  "it": ["e", "per", "con", "migliore", "come", "dove", "quale", "gli"],
+  "pl": ["i", "dla", "z", "najlepszy", "jak", "gdzie", "jaki", "oraz"]
+}

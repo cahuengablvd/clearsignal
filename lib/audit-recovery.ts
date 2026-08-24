@@ -49,7 +49,7 @@ export function isDeterministicAuditFailure(notes: string | null | undefined): b
   const currentFailureWindow = notes.split(DETERMINISTIC_FAILURE_OVERRIDE_MARKER).at(-1) ?? notes
   // A report-validation block is deterministic for the stored payload. Retrying
   // generation immediately only repeats the same failure and spends the budget.
-  return /Report validation blocked/i.test(currentFailureWindow) || /zod|schema|invalid enum|invalid literal|expected .* received|Claude output failed validation/i.test(currentFailureWindow)
+  return /query_plan_insufficient/i.test(currentFailureWindow) || /Report validation blocked/i.test(currentFailureWindow) || /zod|schema|invalid enum|invalid literal|expected .* received|Claude output failed validation/i.test(currentFailureWindow)
 }
 
 export function recoveryAttemptsExhausted(attempts: number | null | undefined): boolean {

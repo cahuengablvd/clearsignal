@@ -1,5 +1,16 @@
 import type { GeoEvidence, GeoQueryAnalysis, GeoQueryIntent } from '../schemas'
 
+export const QUERY_SLOTS = ['category_discovery', 'problem_need', 'comparison_alternatives', 'icp_use_case', 'trust_or_pricing', 'local_or_second_decision'] as const
+export type QuerySlot = typeof QUERY_SLOTS[number]
+export function intentForSlot(slot: QuerySlot, choice?: 'trust' | 'pricing' | 'local' | 'use_case' | 'comparison' | 'alternatives'): GeoQueryIntent {
+  if (slot === 'category_discovery') return 'category_discovery'
+  if (slot === 'problem_need') return 'problem'
+  if (slot === 'comparison_alternatives') return choice === 'alternatives' ? 'alternatives' : 'comparison'
+  if (slot === 'icp_use_case') return 'use_case'
+  if (slot === 'trust_or_pricing') return choice === 'pricing' ? 'pricing' : 'trust'
+  return choice === 'use_case' ? 'use_case' : 'local'
+}
+
 export const DEFAULT_PAID_QUERY_INTENT_PLAN = [
   'category/discovery',
   'problem/need',
@@ -58,12 +69,12 @@ export function attachQueryIntents(evidence: GeoEvidence[]): GeoEvidence[] {
 
 export function buildQueryAnalysis(evidenceInput: GeoEvidence[]): GeoQueryAnalysis {
   const evidence = attachQueryIntents(evidenceInput)
-  const queries = new Map<string, GeoQueryIntent>()
-  for (const item of evidence) queries.set(item.query, item.query_intent || 'other')
+  const queries = new Map<string, { query: string; intent: GeoQueryIntent }>()
+  for (const item of evidence) queries.set(item.query_id || item.query, { query: item.query, intent: item.query_intent || 'other' })
 
   const coverage = INTENT_ORDER.map((intent) => {
     const rows = evidence.filter((item) => item.query_intent === intent)
-    const queryCount = [...queries.values()].filter((value) => value === intent).length
+    const queryCount = [...queries.values()].filter((value) => value.intent === intent).length
     const mentioned = rows.filter((item) => item.brand_mentioned).length
     const cited = rows.filter((item) => item.brand_cited).length
     return {
@@ -79,7 +90,7 @@ export function buildQueryAnalysis(evidenceInput: GeoEvidence[]): GeoQueryAnalys
 
   return {
     taxonomy_version: 'v1',
-    queries: [...queries.entries()].map(([query, intent]) => ({ query, intent })),
+    queries: [...queries.values()],
     coverage,
   }
 }

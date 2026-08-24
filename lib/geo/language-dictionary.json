@@ -1,0 +1,12 @@
+{
+  "en": ["english", "en"],
+  "lv": ["latvian", "latviešu", "latviesu", "latvian language", "lv", "латышский"],
+  "ru": ["russian", "русский", "ru"],
+  "lt": ["lithuanian", "lietuvių", "lietuviu", "lt"],
+  "et": ["estonian", "eesti", "et"],
+  "de": ["german", "deutsch", "de"],
+  "es": ["spanish", "español", "espanol", "es"],
+  "fr": ["french", "français", "francais", "fr"],
+  "it": ["italian", "italiano", "it"],
+  "pl": ["polish", "polski", "pl"]
+}

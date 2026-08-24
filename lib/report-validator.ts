@@ -1186,7 +1186,7 @@ function rebuildGeoMeasurementV2(report: ClearSignalReport, warn: (message: stri
   if (!geo) return
 
   if (Array.isArray(geo.evidence)) {
-    const queryAnalysis = buildQueryAnalysis(geo.evidence)
+    const queryAnalysis = buildQueryAnalysis(geo.evidence.filter((item) => item.scope !== 'supplemental'))
     if (JSON.stringify(geo.query_analysis) !== JSON.stringify(queryAnalysis)) {
       geo.query_analysis = queryAnalysis
       warn('geo: rebuilt buyer-intent taxonomy from saved evidence')
@@ -1485,19 +1485,61 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
     )
   }
 
-  if (geo.evidence.length !== counts.successful_combinations) {
+  const coreEvidence = geo.evidence.filter((item) => item.scope !== 'supplemental')
+  if (coreEvidence.length !== counts.successful_combinations) {
     errors.push(
-      `geo_counts: evidence length ${geo.evidence.length} does not equal successful_combinations ${counts.successful_combinations}`
+      `geo_counts: core evidence length ${coreEvidence.length} does not equal successful_combinations ${counts.successful_combinations}`
     )
   }
-  if (counts.successful_samples !== undefined && geo.evidence.length !== counts.successful_samples) {
-    errors.push(`geo_counts: evidence length ${geo.evidence.length} does not equal successful_samples ${counts.successful_samples}`)
+  if (counts.successful_samples !== undefined && coreEvidence.length !== counts.successful_samples) {
+    errors.push(`geo_counts: core evidence length ${coreEvidence.length} does not equal successful_samples ${counts.successful_samples}`)
   }
   if (counts.grounded_samples !== undefined && counts.no_citation_samples !== undefined && counts.grounded_samples + counts.no_citation_samples !== (counts.successful_samples ?? counts.successful_combinations)) {
     errors.push('geo_counts: grounded + no_citation does not equal successful samples')
   }
   for (const evidence of geo.evidence) {
     if (evidence.answer_text && (evidence.excerpt_offset ?? 0) > evidence.answer_text.length) errors.push('geo_counts: excerpt_offset outside answer_text')
+  }
+  const supplementalEvidence = geo.evidence.filter((item) => item.scope === 'supplemental')
+  if (counts.supplemental_successful_combinations !== undefined && supplementalEvidence.length !== counts.supplemental_successful_combinations) {
+    errors.push('geo_counts: supplemental evidence does not equal supplemental successful combinations')
+  }
+  if (geo.query_provenance) {
+    const provenance = new Map(geo.query_provenance.map((item) => [item.query_id, item]))
+    for (const evidence of geo.evidence) {
+      const item = evidence.query_id ? provenance.get(evidence.query_id) : undefined
+      if (!item) errors.push(`geo_provenance: evidence query_id ${evidence.query_id || 'missing'} has no provenance`)
+      else if (evidence.query !== item.query) errors.push(`geo_provenance: query mismatch for ${item.query_id}`)
+      else if (evidence.query_intent !== item.intent) errors.push(`geo_provenance: intent mismatch for ${item.query_id}`)
+      else if ((evidence.scope || 'core') !== item.scope) errors.push(`geo_provenance: scope mismatch for ${item.query_id}`)
+    }
+    // A4 plans have stable identities.  Keep this strict for a fresh plan, while
+    // allowing the explicit legacy synthesis path to represent historical runs
+    // whose saved query set did not carry slot metadata.
+    const freshPlan = geo.query_provenance.some((item) => item.source !== 'legacy')
+    if (freshPlan) {
+      const evidenceIdentities = new Set<string>()
+      for (const evidence of geo.evidence) {
+        const identity = `${evidence.query_id}:${evidence.engine}:${evidence.sample_index || 1}`
+        if (evidenceIdentities.has(identity)) errors.push(`geo_provenance: duplicate evidence identity ${identity}`)
+        evidenceIdentities.add(identity)
+      }
+      const core = geo.query_provenance.filter((item) => item.scope === 'core')
+      const queryIds = new Set<string>()
+      const slots = new Set<string>()
+      for (const item of core) {
+        if (queryIds.has(item.query_id)) errors.push(`geo_provenance: duplicate core query_id ${item.query_id}`)
+        queryIds.add(item.query_id)
+        if (slots.has(item.slot)) errors.push(`geo_provenance: duplicate core slot ${item.slot}`)
+        slots.add(item.slot)
+      }
+      if (geo.query_plan) {
+        const validCoreSlots = core.filter((item) => item.state === 'valid').length
+        if (geo.query_plan.valid_core_slots !== validCoreSlots) {
+          errors.push(`geo_provenance: valid_core_slots ${geo.query_plan.valid_core_slots} does not equal valid core provenance ${validCoreSlots}`)
+        }
+      }
+    }
   }
   // A1 coverage structures must agree with each other wherever the data exists. Legacy
   // reports (no ledger / coverage / sample counts) are not held to checks their data
@@ -1536,8 +1578,8 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
     }
   }
 
-  const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
-  const cited = geo.evidence.filter((e) => e.brand_cited).length
+  const mentioned = coreEvidence.filter((e) => e.brand_mentioned).length
+  const cited = coreEvidence.filter((e) => e.brand_cited).length
   if (mentioned > counts.successful_combinations) {
     errors.push('geo_counts: mentioned combinations exceed successful combinations')
   }

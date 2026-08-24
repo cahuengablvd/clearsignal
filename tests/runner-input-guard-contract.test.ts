@@ -28,7 +28,7 @@ describe('scrape-quality runner guard contract', () => {
     const code = source('app/api/admin/audits/preview/route.ts')
     const guard = code.indexOf('assessScrapeQuality(category)')
     expect(guard).toBeGreaterThan(-1)
-    expect(guard).toBeLessThan(code.indexOf('generateBuyerQueries({'))
+    expect(guard).toBeLessThan(code.indexOf('generateValidatedQueryPlan({'))
     expect(code).toContain("scrapeQuality.kind !== 'substantive'")
   })
 })

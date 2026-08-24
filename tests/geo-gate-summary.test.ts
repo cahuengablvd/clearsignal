@@ -14,6 +14,7 @@ vi.mock('../lib/anthropic', () => ({ callClaudeJSON: vi.fn() }))
 
 import { recomputeReusedGeoEvidence, rebuildReusedGeoNarrative } from '../lib/audit-runner'
 import { validateReport } from '../lib/report-validator'
+import { intentForSlot, QUERY_SLOTS } from '../lib/geo/query-taxonomy'
 import type { ClearSignalReport, GeoResult } from '../lib/schemas'
 import AuditPage from '../app/audit/[id]/page'
 
@@ -109,5 +110,34 @@ describe('A1 gate-failed reports keep the insufficient-coverage semantics everyw
 
     const pdf = await render({ ...report, geo }, { pdf: 'true' })
     expect(pdf).not.toContain('Show the full stored answer')
+  })
+
+  it('renders customer-safe A4 core provenance, incomplete coverage, and supplemental language probes', async () => {
+    const report = rozie()
+    const geo = rebuildReusedGeoNarrative(report.geo as GeoResult)
+    const queries = [...new Set(geo.evidence.map((item) => item.query))].slice(0, 6)
+    const provenance = queries.map((query, index) => ({
+      query_id: `Q${index + 1}`, query: index === 0 ? 'лучший стоматолог в Риге' : query,
+      slot: QUERY_SLOTS[index]!, intent: intentForSlot(QUERY_SLOTS[index]!), language: index === 0 ? 'ru' : 'lv', language_source: 'intake' as const,
+      market: 'Riga', geo_scope: 'explicit' as const, scope: 'core' as const, source: 'generator' as const,
+      rationale: 'Matches this buyer situation in the selected market.', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' as const,
+    }))
+    const a4 = {
+      ...geo,
+      query_provenance: provenance,
+      query_plan: { valid_core_slots: 5, review_required: true, primary_language: 'lv', markets: ['Latvia', 'Riga'] },
+      supplemental_probes: [{ query_id: 'S1', slot: 'category_discovery', language: 'ru', query: 'стоматолог Рига', per_engine: [{ engine: 'openai', successful: 1, mentioned: 1, cited: 0 }] }],
+      coverage_gate: { ...geo.coverage_gate!, passed: true, reasons: [] },
+    }
+    const markup = await render({ ...report, geo: a4 })
+    expect(markup).toContain('Why these questions were tested')
+    expect(markup).toContain('Buyer situation')
+    expect(markup).toContain('ru')
+    expect(markup).toContain('Riga')
+    expect(markup).toContain('1 of 6 buyer situations could not be tested validly.')
+    expect(markup).toContain('Secondary-language probe — not included in the index')
+    expect(markup).toContain('1 named, 0 cited in 1 answers')
+    expect(markup).not.toContain('Buyer situation: Other')
+    expect(markup).not.toMatch(/query_plan_insufficient|unavailable_reason|slot_mismatch/)
   })
 })

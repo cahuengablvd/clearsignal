@@ -125,6 +125,7 @@ type AuditPreview = {
   business_context?: typeof emptyForm.business_context
   competitors: string[]
   queries: string[]
+  plan?: { core: Array<{ query: string; slot: string; language: string }>; supplemental: Array<{ query: string; slot: string; language: string }>; provenance: Array<{ query_id: string; query: string; slot: string; language: string; state: string; validation: { errors: string[]; warnings: string[] } }>; valid_core_slots: number; review_required: boolean; primary_language: string; markets: string[]; warnings?: string[] }
   scraped: boolean
 }
 
@@ -535,7 +536,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/audits/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, queries: finalQueries }),
+        body: JSON.stringify({ ...payload, queries: finalQueries, ...(preview?.plan ? { query_plan: preview.plan } : {}) }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -837,6 +838,7 @@ export default function AdminPage() {
                   <div className="text-xs font-semibold text-muted-foreground mb-2">
                     Buyer queries that will be tested ({editedQueries.length}) - edit, remove, or add before running
                   </div>
+                  {preview.plan ? <div className="mt-4 overflow-x-auto"><p className="text-xs font-semibold text-muted-foreground mb-2">Query plan</p><table className="w-full text-xs"><thead><tr className="text-left text-muted-foreground"><th>Slot</th><th>Language</th><th>Status</th><th>Reason</th></tr></thead><tbody>{preview.plan.provenance.map((item) => <tr key={item.query_id} className="border-t"><td className="py-1">{item.slot}</td><td>{item.language}</td><td>{item.state}</td><td>{[...item.validation.errors, ...item.validation.warnings].join(', ') || 'valid'}</td></tr>)}</tbody></table></div> : null}
                   <div className="space-y-2">
                     {editedQueries.map((q, i) => (
                       <div key={i} className="flex items-center gap-2">

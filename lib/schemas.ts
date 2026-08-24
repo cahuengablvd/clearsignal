@@ -63,6 +63,8 @@ export const BusinessContextSchema = z.object({
   provenance_or_authentication: enumOrCustom(provenanceSchema).optional().default('unknown'),
   target_markets_languages: z.string().max(1000).optional().default(''),
   verified_facts: z.string().max(2000).optional().default(''),
+  // A4 operator-confirmed structured plan. JSON only; no database migration.
+  query_plan: z.unknown().optional(),
 })
 export type BusinessContext = z.infer<typeof BusinessContextSchema>
 
@@ -288,6 +290,7 @@ export const GeoEvidenceSchema = z.object({
   sample_index: z.number().int().positive().optional(),
   query_id: z.string().optional(), combination_id: z.string().optional(), model: z.string().optional(), observed_at: z.string().optional(),
   answer_text: z.string().optional(), excerpt_offset: z.number().int().nonnegative().optional(),
+  scope: z.enum(['core', 'supplemental']).optional(),
 })
 
 export type GeoEvidence = z.infer<typeof GeoEvidenceSchema>
@@ -342,6 +345,21 @@ export const GeoQueryIntentSchema = z.enum([
   'other',
 ])
 export type GeoQueryIntent = z.infer<typeof GeoQueryIntentSchema>
+
+export const GeneratedQuerySchema = z.object({
+  query: z.string(),
+  slot: z.enum(['category_discovery', 'problem_need', 'comparison_alternatives', 'icp_use_case', 'trust_or_pricing', 'local_or_second_decision']),
+  intent_choice: z.enum(['trust', 'pricing', 'local', 'use_case', 'comparison', 'alternatives']).optional(),
+  language: z.string(), market: z.string().optional(), geo_scope: z.enum(['explicit', 'implicit', 'none']), rationale: z.string(),
+})
+export const QueryProvenanceSchema = GeneratedQuerySchema.extend({
+  query_id: z.string(), intent: GeoQueryIntentSchema,
+  language_source: z.enum(['intake', 'operator', 'page_detected', 'legacy']),
+  scope: z.enum(['core', 'supplemental']), source: z.enum(['generator', 'operator', 'legacy']),
+  validation: z.object({ passed: z.boolean(), errors: z.array(z.string()), warnings: z.array(z.string()), regenerated: z.boolean(), overridden_by_operator: z.boolean().optional() }),
+  state: z.enum(['valid', 'unavailable']), unavailable_reason: z.string().optional(), slot_mismatch: z.boolean().optional(),
+})
+export type QueryProvenance = z.infer<typeof QueryProvenanceSchema>
 
 export const GeoQueryAnalysisSchema = z.object({
   taxonomy_version: z.literal('v1'),
@@ -462,6 +480,7 @@ export const GeoTestCountsSchema = z.object({
   failed_combinations: z.number(),
   skipped_combinations: z.number(),
   expected_samples: z.number().optional(), successful_samples: z.number().optional(), grounded_samples: z.number().optional(), no_citation_samples: z.number().optional(),
+  supplemental_expected_combinations: z.number().optional(), supplemental_successful_combinations: z.number().optional(),
 })
 export type GeoTestCounts = z.infer<typeof GeoTestCountsSchema>
 
@@ -526,6 +545,9 @@ export const GeoResultSchema = z.object({
   coverage_gate: CoverageGateSchema.optional(),
   observed_at: z.string().optional(),
   observed_until: z.string().optional(),
+  query_provenance: z.array(QueryProvenanceSchema).optional(),
+  query_plan: z.object({ valid_core_slots: z.number(), review_required: z.boolean(), primary_language: z.string(), markets: z.array(z.string()), warnings: z.array(z.string()).optional() }).optional(),
+  supplemental_probes: z.array(z.object({ query_id: z.string(), slot: z.string(), language: z.string(), query: z.string(), per_engine: z.array(z.object({ engine: z.string(), successful: z.number(), mentioned: z.number(), cited: z.number() })) })).optional(),
 })
 
 export type GeoResult = z.infer<typeof GeoResultSchema>

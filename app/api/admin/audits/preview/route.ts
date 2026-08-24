@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { isValidAdminCookie, ADMIN_COOKIE } from '@/lib/auth'
 import { BusinessContextSchema, competitorUrlSchema, icpTextSchema } from '@/lib/schemas'
-import { generateBuyerQueries } from '@/lib/geo'
+import { generateValidatedQueryPlan } from '@/lib/geo'
 import { scrapeUrl } from '@/lib/firecrawl'
 import { normalizeMarkdown } from '@/lib/normalize-markdown'
 import { assessScrapeQuality } from '@/lib/scrape-quality'
@@ -75,11 +75,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const queries = await generateBuyerQueries({
+    const plan = await generateValidatedQueryPlan({
       brand,
       category,
       icp: input.icp_description,
-      count: 6,
+      targetMarketsLanguages: input.business_context?.target_markets_languages,
+      brandAliases: [brand, new URL(input.url).hostname.replace(/^www\./, '')],
       meta: {
         auditId: null,
         stage: 'preview_query_generation',
@@ -93,7 +94,8 @@ export async function POST(req: NextRequest) {
       icp_description: input.icp_description,
       competitors,
       business_context: BusinessContextSchema.parse(input.business_context || {}),
-      queries,
+      queries: plan.core.map((q) => q.query),
+      plan,
       scraped: !!raw,
     })
   } catch (err) {

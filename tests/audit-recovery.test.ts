@@ -128,6 +128,28 @@ describe('audit recovery guard', () => {
     expect(mocks.enqueueAudit).not.toHaveBeenCalled()
   })
 
+  it('stops a stale query-plan-insufficient audit for manual correction without scheduling a provider retry', async () => {
+    mocks.queuedRows = [{
+      id: 'query-plan-manual-correction',
+      audit_status: 'queued',
+      created_at: '2026-08-01T00:00:00.000Z',
+      queued_at: new Date(Date.now() - STALE_QUEUED_MS - 1).toISOString(),
+      last_generated_at: null,
+      processing_started_at: null,
+      recovery_attempts: 0,
+      admin_notes: '[2026-08-24T00:00:00.000Z] Audit generation failed: query_plan_insufficient',
+    }]
+
+    const summary = await recoverStuckAudits()
+
+    expect(summary).toMatchObject({ found: 1, re_enqueued: 0, deterministic_skipped: 1, failed: 1 })
+    expect(mocks.enqueueAudit).not.toHaveBeenCalled()
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+      audit_status: 'failed',
+      admin_notes: expect.stringContaining('manual fix required'),
+    }))
+  })
+
   it('still re-enqueues stale processing audits', async () => {
     mocks.staleProcessingRows = [{
       id: 'stale-processing',

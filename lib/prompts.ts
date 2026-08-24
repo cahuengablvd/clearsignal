@@ -74,8 +74,9 @@ Return ONLY a JSON object with keys: icp, headline, cta, trust, ai_search, top_i
 export const MODEL_GEO_QUERIES = 'claude-haiku-4-5-20251001'
 export const MODEL_GEO_ANALYSIS = 'claude-sonnet-4-6'
 
-export const GEO_QUERIES_SYSTEM = `You generate the buyer-intent search queries a real prospect would type into an AI assistant (ChatGPT, Perplexity, Claude) when looking for a product like this one.
+export const GEO_QUERIES_SYSTEM = `You generate buyer-intent questions a real prospect would ask when looking for a product like this one.
 These are the questions where the brand WANTS to be recommended.
+Never include prompt-engineering terms or answer-engine names in buyer questions.
 ${UNTRUSTED_GUARD}
 Return ONLY valid JSON, no commentary.`
 
@@ -83,7 +84,8 @@ export function geoQueriesUserPrompt(
   brand: string,
   category: string,
   icp: string,
-  count: number
+  count: number,
+  opts?: { primaryLanguage?: string; markets?: string[]; plan?: Array<{ slot: string; language: string; scope: string }>; brandAliases?: string[]; regenerate?: Array<{ slot: string; errors: string[] }> }
 ): string {
   const queryPlan = count === DEFAULT_PAID_QUERY_INTENT_PLAN.length
     ? `Use this exact six-question intent plan:\n${DEFAULT_PAID_QUERY_INTENT_PLAN
@@ -91,6 +93,9 @@ export function geoQueriesUserPrompt(
         .join('\n')}`
     : `Mix:\n- "best X for Y" comparison queries\n- problem-first queries ("how do I ...")\n- alternatives / vs queries`
 
+  const structured = opts?.plan?.length
+    ? `Return exactly these planned records:\n${opts.plan.map((x) => `- ${x.slot}: ${x.language}, ${x.scope}`).join('\n')}\nPrimary language: ${opts.primaryLanguage || 'infer from page'}\nTarget markets: ${(opts.markets || []).join(', ') || 'not provided'}\nBrand forms that must not appear: ${(opts.brandAliases || [brand]).join(', ')}\nInclude a target market in category_discovery, icp_use_case and local_or_second_decision when markets are provided. Rationale must be 25 words or fewer and only explain test-set fit.\n${opts.regenerate?.length ? `Regenerate only these invalid slots and address their validation errors: ${opts.regenerate.map((x) => `${x.slot} (${x.errors.join(', ')})`).join('; ')}.` : ''}\nReturn ONLY { "queries": [{ "query":"...", "slot":"...", "language":"...", "market":"...", "geo_scope":"explicit|implicit|none", "rationale":"...", "intent_choice":"..." }] }`
+    : ''
   return `Brand: ${brand}
 Product category / what it does:
 ${category ? untrustedBlock('PAGE_SNIPPET', category, 1200) : 'Unknown - infer from the brand'}
@@ -101,7 +106,7 @@ ${queryPlan}
 
 Do NOT mention the brand name in the queries - we want to see if the brand surfaces on its own.
 
-Return ONLY a JSON object: { "queries": ["<query>", ...] }`
+${structured || 'Return ONLY a JSON object: { "queries": ["<query>", ...] }'}`
 }
 
 // Competitor discovery: pure EXTRACTION of product names from answers. It does

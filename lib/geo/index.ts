@@ -20,6 +20,8 @@ import {
   type GeoResult,
   type GeoEvidence,
   type GeoTestCounts,
+  type QueryProvenance,
+  QueryProvenanceSchema,
 } from '../schemas'
 import {
   MODEL_GEO_QUERIES,
@@ -34,7 +36,10 @@ import {
 import { availableEngines, queryEngine, type EngineId } from './engines'
 import { ANSWER_TEXT_LIMIT, DIAGNOSTIC_TEXT_LIMIT, SUCCESSFUL_STATUSES, buildEngineCoverage, classifyEngineResponse, deriveExcerpt, evaluateCoverageGate, type LedgerRow } from './coverage'
 import { analyzeCitedSources } from './sources'
-import { buildQueryAnalysis, classifyQueryIntent } from './query-taxonomy'
+import { buildQueryAnalysis, classifyQueryIntent, intentForSlot, QUERY_SLOTS, type QuerySlot } from './query-taxonomy'
+import { detectLanguage, parseMarketsLanguages } from './language'
+import { validateGeneratedQuery, type GeneratedQuery } from './query-validation'
+import { sanitizeGeneratedProse } from '../sanitize'
 import { scrapeUrl } from '../firecrawl'
 import { normalizeMarkdown } from '../normalize-markdown'
 import { boundSampleClaims } from '../sanitize'
@@ -141,10 +146,103 @@ export interface RunGeoOptions {
   targetMarkdown?: string
   /** Explicit query set (e.g. user-confirmed). Skips query generation when set. */
   providedQueries?: string[]
+  /** A4 validated plan. It takes precedence over legacy string queries. */
+  queryPlan?: QueryPlan
   /** Optional cost/usage hook for audit-level cost tracking. */
   onUsage?: (event: CostEvent) => void
   /** Structured metadata for Anthropic request attribution. */
   meta?: AnthropicRequestMeta
+}
+
+export type QueryPlan = { core: GeneratedQuery[]; supplemental: GeneratedQuery[]; provenance: QueryProvenance[]; valid_core_slots: number; review_required: boolean; primary_language: string; markets: string[]; warnings?: string[] }
+
+/** Reject fresh persisted plans that cannot safely carry A4 provenance. */
+export function validateSavedQueryPlan(value: unknown): { valid: true; plan: QueryPlan } | { valid: false; reason: string } {
+  if (!value || typeof value !== 'object') return { valid: false, reason: 'missing_query_plan' }
+  const candidate = value as Partial<QueryPlan>
+  if (!Array.isArray(candidate.core) || !Array.isArray(candidate.supplemental) || !Array.isArray(candidate.provenance)) return { valid: false, reason: 'query_plan_shape' }
+  const parsed = candidate.provenance.map((item) => QueryProvenanceSchema.safeParse(item))
+  if (parsed.some((item) => !item.success)) return { valid: false, reason: 'query_plan_provenance_schema' }
+  const provenance = parsed.map((item) => item.data!) as QueryProvenance[]
+  const core = provenance.filter((item) => item.scope === 'core')
+  if (core.length !== 6 || core.some((item, index) => item.query_id !== `Q${index + 1}` || item.slot !== QUERY_SLOTS[index])) return { valid: false, reason: 'query_plan_core_identity' }
+  if (new Set(core.map((item) => item.slot)).size !== 6 || new Set(core.map((item) => item.query_id)).size !== 6) return { valid: false, reason: 'query_plan_duplicate_core' }
+  if (provenance.some((item) => item.scope === 'supplemental' && !item.query_id.startsWith('S'))) return { valid: false, reason: 'query_plan_supplemental_identity' }
+  if (candidate.core.some((item) => !core.some((provenanceItem) => provenanceItem.query === item.query && provenanceItem.slot === item.slot)) || candidate.supplemental.some((item) => !provenance.some((provenanceItem) => provenanceItem.scope === 'supplemental' && provenanceItem.query === item.query && provenanceItem.slot === item.slot))) return { valid: false, reason: 'query_plan_scope_coherence' }
+  const plan: QueryPlan = { core: candidate.core as GeneratedQuery[], supplemental: candidate.supplemental as GeneratedQuery[], provenance, valid_core_slots: candidate.valid_core_slots ?? core.filter((item) => item.state === 'valid').length, review_required: candidate.review_required ?? core.some((item) => item.state !== 'valid'), primary_language: candidate.primary_language || core[0]!.language, markets: candidate.markets || [], warnings: candidate.warnings }
+  if (plan.valid_core_slots !== core.filter((item) => item.state === 'valid').length) return { valid: false, reason: 'query_plan_valid_core_slots' }
+  return { valid: true, plan }
+}
+
+/** Applies explicit admin text edits without disguising them as generator output. */
+export function applyOperatorEdits(plan: QueryPlan, queries: string[], ctx: { brandAliases: string[]; markets: string[]; categoryTerms?: string[]; override?: boolean }): { plan: QueryPlan; rejected: boolean } {
+  const edited = plan.provenance.map((item) => item.scope !== 'core' ? item : { ...item, query: queries[Number(item.query_id.slice(1)) - 1]?.trim() || item.query })
+  const provenance = edited.map((item) => {
+    if (item.scope !== 'core') return item
+    const original = plan.provenance.find((candidate) => candidate.query_id === item.query_id)!
+    if (item.query === original.query) return item
+    const generated: GeneratedQuery = { query: item.query, slot: item.slot, intent_choice: item.intent_choice, language: item.language, market: item.market, geo_scope: item.geo_scope, rationale: item.rationale }
+    const siblings = edited.filter((candidate) => candidate.scope === 'core' && candidate.query_id !== item.query_id && candidate.state === 'valid').map((candidate) => ({ query: candidate.query, slot: candidate.slot, intent_choice: candidate.intent_choice, language: candidate.language, market: candidate.market, geo_scope: candidate.geo_scope, rationale: candidate.rationale }))
+    const validation = validateGeneratedQuery(generated, { brandAliases: ctx.brandAliases, markets: ctx.markets, language: generated.language, engineNames: ['ChatGPT', 'Claude', 'Perplexity', 'OpenAI'], siblings, categoryTerms: ctx.categoryTerms })
+    const overridden = !validation.passed && !!ctx.override
+    return { ...item, query: item.query, source: 'operator' as const, validation: { ...validation, regenerated: false, ...(overridden ? { overridden_by_operator: true } : {}) }, state: validation.passed || overridden ? 'valid' as const : 'unavailable' as const, ...(validation.passed || overridden ? { unavailable_reason: undefined } : { unavailable_reason: validation.errors.join(',') }) }
+  })
+  const core = provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => ({ query: item.query, slot: item.slot, intent_choice: item.intent_choice, language: item.language, market: item.market, geo_scope: item.geo_scope, rationale: item.rationale }))
+  const supplemental = provenance.filter((item) => item.scope === 'supplemental' && item.state === 'valid').map((item) => ({ query: item.query, slot: item.slot, intent_choice: item.intent_choice, language: item.language, market: item.market, geo_scope: item.geo_scope, rationale: item.rationale }))
+  const valid_core_slots = core.length
+  return { plan: { ...plan, core, supplemental, provenance, valid_core_slots, review_required: valid_core_slots < 6 }, rejected: provenance.some((item) => item.source === 'operator' && item.state === 'unavailable') }
+}
+
+function structuredValidator(data: unknown): { queries: GeneratedQuery[] } {
+  const value = data as { queries?: unknown }
+  if (!Array.isArray(value?.queries)) throw new Error('Expected structured queries')
+  return { queries: value.queries.map((item) => {
+    const q = item as Partial<GeneratedQuery>
+    if (!q || typeof q.query !== 'string' || !QUERY_SLOTS.includes(q.slot as QuerySlot) || typeof q.language !== 'string' || typeof q.rationale !== 'string') throw new Error('Invalid structured query')
+    return { query: q.query, slot: q.slot as QuerySlot, intent_choice: q.intent_choice, language: q.language, market: q.market, geo_scope: q.geo_scope === 'explicit' || q.geo_scope === 'implicit' || q.geo_scope === 'none' ? q.geo_scope : 'none', rationale: q.rationale }
+  }) }
+}
+
+export async function generateValidatedQueryPlan(opts: { brand: string; category?: string; icp?: string; targetMarketsLanguages?: string; pageLanguage?: string; brandAliases?: string[]; onUsage?: (event: CostEvent) => void; meta?: AnthropicRequestMeta }): Promise<QueryPlan> {
+  const parsed = parseMarketsLanguages(opts.targetMarketsLanguages)
+  const primary = parsed.languages[0] || opts.pageLanguage || detectLanguage(`${opts.category || ''} ${opts.icp || ''}`).lang
+  const primaryLanguage = primary
+  const secondary = parsed.languages[1]
+  const warnings = parsed.languages.length > 2 ? ['additional_languages_ignored'] : []
+  const coreSlots = QUERY_SLOTS.map((slot) => ({ slot, language: primaryLanguage, scope: 'core' }))
+  const supplementalSlots = secondary && Number(process.env.GEO_SECONDARY_PROBES ?? 2) > 0
+    ? (['category_discovery', 'trust_or_pricing'] as QuerySlot[]).slice(0, Math.max(0, Math.min(2, Number(process.env.GEO_SECONDARY_PROBES ?? 2)))).map((slot) => ({ slot, language: secondary, scope: 'supplemental' })) : []
+  const languageSource = parsed.languages.length ? 'intake' as const : 'page_detected' as const
+  const request = async (plan: Array<{ slot: string; language: string; scope: string }>, regenerate?: Array<{ slot: string; errors: string[] }>) => {
+    const data = await callClaudeJSON<{ queries: GeneratedQuery[] }>({ model: MODEL_GEO_QUERIES, system: GEO_QUERIES_SYSTEM, user: geoQueriesUserPrompt(opts.brand, opts.category || '', opts.icp || '', plan.length, { primaryLanguage, markets: parsed.markets, plan, brandAliases: opts.brandAliases || [opts.brand], regenerate }), validate: structuredValidator, maxTokens: 900, purpose: 'geo:query_generation', onUsage: opts.onUsage, meta: opts.meta ? { ...opts.meta, stage: regenerate ? 'geo_query_regeneration' : 'geo_query_generation' } : undefined })
+    return data.queries
+  }
+  const requested = [...coreSlots, ...supplementalSlots]
+  let generated: GeneratedQuery[] = []
+  try { generated = await request(requested) } catch { generated = [] }
+  const bySlot = new Map(generated.map((q) => [`${q.slot}:${q.language}`, q]))
+  const validations = new Map<string, ReturnType<typeof validateGeneratedQuery>>()
+  const validateAll = (items: GeneratedQuery[]) => items.map((q) => { const v = validateGeneratedQuery(q, { brandAliases: opts.brandAliases || [opts.brand], markets: parsed.markets, language: q.language, engineNames: ['ChatGPT', 'Claude', 'Perplexity', 'OpenAI'], siblings: items.filter((x) => x !== q), categoryTerms: (opts.category || '').split(/\W+/).filter((x) => x.length > 3).slice(0, 8) }); validations.set(`${q.slot}:${q.language}`, v); return q })
+  validateAll(generated)
+  const invalid = requested.filter((wanted) => { const q = bySlot.get(`${wanted.slot}:${wanted.language}`); return !q || !validations.get(`${wanted.slot}:${wanted.language}`)?.passed }).map((wanted) => ({ ...wanted, errors: validations.get(`${wanted.slot}:${wanted.language}`)?.errors || ['missing_slot'] }))
+  if (invalid.length) {
+    let repaired: GeneratedQuery[] = []
+    try { repaired = await request(requested.filter((x) => invalid.some((bad) => bad.slot === x.slot && bad.language === x.language && bad.scope === x.scope)), invalid) } catch { repaired = [] }
+    for (const q of repaired) bySlot.set(`${q.slot}:${q.language}`, q)
+    generated = [...bySlot.values()]; validations.clear(); validateAll(generated)
+  }
+  const provenance: QueryProvenance[] = []; const core: GeneratedQuery[] = []; const supplemental: GeneratedQuery[] = []
+  for (let i = 0; i < requested.length; i++) {
+    const wanted = requested[i]; const q = bySlot.get(`${wanted.slot}:${wanted.language}`); const validation = q ? validations.get(`${wanted.slot}:${wanted.language}`) : undefined
+    const scope = wanted.scope as 'core' | 'supplemental'; const query_id = scope === 'core' ? `Q${QUERY_SLOTS.indexOf(wanted.slot as QuerySlot) + 1}` : `S${supplemental.length + 1}`
+    const valid = !!q && !!validation?.passed
+    const safe = q || { query: '', slot: wanted.slot as QuerySlot, language: wanted.language, geo_scope: 'none' as const, rationale: '' }
+    const prov: QueryProvenance = { ...safe, rationale: sanitizeGeneratedProse(safe.rationale).slice(0, 250), query_id, intent: intentForSlot(safe.slot, safe.intent_choice), language_source: languageSource, scope, source: 'generator', validation: { passed: valid, errors: validation?.errors || ['missing_slot'], warnings: validation?.warnings || [], regenerated: invalid.some((x) => x.slot === wanted.slot && x.language === wanted.language && x.scope === wanted.scope) }, state: valid ? 'valid' : 'unavailable', ...(valid ? {} : { unavailable_reason: (validation?.errors || ['missing_slot']).join(',') }), ...(safe.language === 'en' && validation?.warnings.includes('slot_mismatch') ? { slot_mismatch: true } : {}) }
+    provenance.push(prov); if (valid) (scope === 'core' ? core : supplemental).push(safe)
+  }
+  const validCore = core.length
+  if (validCore < 4) { const err = new Error('query_plan_insufficient'); ;(err as Error & { deterministic?: boolean }).deterministic = true; throw err }
+  return { core, supplemental, provenance, valid_core_slots: validCore, review_required: validCore < 6, primary_language: primaryLanguage, markets: parsed.markets, warnings }
 }
 
 /**
@@ -191,20 +289,26 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const brandDomain = registrableDomain(url)
   const brandVariants = buildVariants({ name: brand, url })
 
-  // 1. Use the caller-confirmed query set if given (honoring edits, capped at
-  // 8 to bound cost), else generate one.
-  const queries =
-    opts.providedQueries && opts.providedQueries.length > 0
-      ? opts.providedQueries.slice(0, 8)
-      : await generateBuyerQueries({ brand, category, icp, count: queryCount, onUsage: opts.onUsage, meta: opts.meta })
+  // A4 plan controls IDs, buyer intent and scope. Legacy input gets honest minimal provenance.
+  let queryPlan = opts.queryPlan
+  // Direct callers retain the legacy string contract. Paid/admin runners construct
+  // the validated A4 plan before reaching this scan.
+  const legacyQueries = queryPlan ? [] : opts.providedQueries && opts.providedQueries.length > 0
+    ? opts.providedQueries.slice(0, 8)
+    : await generateBuyerQueries({ brand, category, icp, count: queryCount, onUsage: opts.onUsage, meta: opts.meta })
+  const provenance: QueryProvenance[] = queryPlan?.provenance || legacyQueries.map((query, index) => ({ query_id: `Q${index + 1}`, query, slot: QUERY_SLOTS[Math.min(index, 5)], intent: intentForSlot(QUERY_SLOTS[Math.min(index, 5)]), language: detectLanguage(query).lang, language_source: 'legacy' as const, geo_scope: 'none' as const, scope: 'core' as const, source: opts.providedQueries ? 'operator' as const : 'generator' as const, rationale: '', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' as const }))
+  const executions = provenance.filter((p) => p.state === 'valid').slice(0, 8)
+  const queries = executions.map((p) => p.query)
+  const provenanceById = new Map(provenance.map((p) => [p.query_id, p]))
+  const coreQueries = provenance.filter((p) => p.scope === 'core' && p.state === 'valid')
 
   // 2. Fan out: every query against every engine, in parallel.
   const settled = await Promise.all(
-    queries.flatMap((query) =>
+    executions.flatMap((plan) =>
       engines.map(async (engine) => ({
         engine,
-        query,
-        res: await queryEngine(engine, query, {
+        plan,
+        res: await queryEngine(engine, plan.query, {
           webSearch,
           onUsage: opts.onUsage,
           purpose: `geo:${engine}`,
@@ -216,11 +320,15 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const observed = new Date().toISOString()
   // `settled` is ordered query-major (queries.flatMap(engines)), so the query index is
   // positional - duplicate query strings cannot select the wrong ledger row.
-  const ledger: LedgerRow[] = settled.map((s, i) => { const classified = classifyEngineResponse(s.res, { engine: s.engine, webSearch }); const queryIndex = Math.floor(i / engines.length); return { query_id: `Q${queryIndex + 1}`, query: s.query, engine: s.engine, sample_index: 1, status: classified.status, status_reason: classified.reason, tool_events: s.res.tool_events, attempts: s.res.attempts, model: s.res.model, http_status: s.res.http_status, answer_length: s.res.answer.length, citations_count: s.res.citations.length, latency_ms: s.res.latency_ms, observed_at: observed, diagnostic_answer_text: SUCCESSFUL_STATUSES.includes(classified.status) ? undefined : s.res.answer.slice(0, DIAGNOSTIC_TEXT_LIMIT) } })
+  const ledger: LedgerRow[] = settled.map((s) => { const classified = classifyEngineResponse(s.res, { engine: s.engine, webSearch }); return { query_id: s.plan.query_id, query: s.plan.query, engine: s.engine, sample_index: 1, status: classified.status, status_reason: classified.reason, tool_events: s.res.tool_events, attempts: s.res.attempts, model: s.res.model, http_status: s.res.http_status, answer_length: s.res.answer.length, citations_count: s.res.citations.length, latency_ms: s.res.latency_ms, observed_at: observed, diagnostic_answer_text: SUCCESSFUL_STATUSES.includes(classified.status) ? undefined : s.res.answer.slice(0, DIAGNOSTIC_TEXT_LIMIT) } })
   const successfulIndexes = ledger.map((row, i) => (SUCCESSFUL_STATUSES.includes(row.status) ? i : -1)).filter((i) => i >= 0)
-  const testCounts: GeoTestCounts = geoTestCounts(queries.length, engines.length, successfulIndexes.length, 0)
-  testCounts.expected_samples = testCounts.expected_combinations; testCounts.successful_samples = successfulIndexes.length; testCounts.grounded_samples = ledger.filter(r => r.status === 'ok_grounded').length; testCounts.no_citation_samples = ledger.filter(r => r.status === 'ok_no_citations').length
-  const raw = successfulIndexes.map((ledgerIndex) => { const s = settled[ledgerIndex]; return { engine: s.engine, query: s.query, answer: s.res.answer, citations: s.res.citations, res: s.res, ledgerIndex } })
+  const coreLedger = ledger.filter((row) => provenanceById.get(row.query_id)?.scope !== 'supplemental')
+  const coreSuccessfulIndexes = successfulIndexes.filter((index) => provenanceById.get(ledger[index].query_id)?.scope !== 'supplemental')
+  const testCounts: GeoTestCounts = geoTestCounts(coreQueries.length || queries.length, engines.length, coreSuccessfulIndexes.length, 0)
+  testCounts.expected_samples = testCounts.expected_combinations; testCounts.successful_samples = coreSuccessfulIndexes.length; testCounts.grounded_samples = coreLedger.filter(r => r.status === 'ok_grounded').length; testCounts.no_citation_samples = coreLedger.filter(r => r.status === 'ok_no_citations').length
+  testCounts.supplemental_expected_combinations = ledger.length - coreLedger.length
+  testCounts.supplemental_successful_combinations = successfulIndexes.length - coreSuccessfulIndexes.length
+  const raw = successfulIndexes.map((ledgerIndex) => { const s = settled[ledgerIndex]; return { engine: s.engine, query: s.plan.query, plan: s.plan, answer: s.res.answer, citations: s.res.citations, res: s.res, ledgerIndex } })
   const enginesTested = [...new Set(raw.map((result) => result.engine))]
 
   if (raw.length === 0) {
@@ -301,17 +409,19 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       brand_position,
       competitors_mentioned,
       cited_domains: citedDomains(r.citations),
-      query_intent: classifyQueryIntent(r.query),
+      query_intent: r.plan.intent || classifyQueryIntent(r.query),
+      scope: r.plan.scope,
     }
   })
 
   // 5. Reproducible metrics + score.
-  const total = evidence.length
-  const brandMentions = evidence.filter((e) => e.brand_mentioned).length
-  const brandCitations = evidence.filter((e) => e.brand_cited).length
-  const competitorMentionsTotal = evidence.reduce((sum, e) => sum + e.competitors_mentioned.length, 0)
+  const coreEvidence = evidence.filter((e) => e.scope !== 'supplemental')
+  const total = coreEvidence.length
+  const brandMentions = coreEvidence.filter((e) => e.brand_mentioned).length
+  const brandCitations = coreEvidence.filter((e) => e.brand_cited).length
+  const competitorMentionsTotal = coreEvidence.reduce((sum, e) => sum + e.competitors_mentioned.length, 0)
 
-  const mentionPositions = evidence
+  const mentionPositions = coreEvidence
     .filter((e) => e.brand_position != null)
     .map((e) => e.brand_position as number)
   const avg_position =
@@ -345,7 +455,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const competitor_visibility = competitorList
     .map((c) => ({
       name: c.name,
-      mention_rate: pct(evidence.filter((e) => textMentions(e.answer_excerpt, c.variants.tokens)).length, total),
+      mention_rate: pct(coreEvidence.filter((e) => textMentions(e.answer_excerpt, c.variants.tokens)).length, total),
     }))
     .filter((c) => c.mention_rate > 0)
     .sort((a, b) => b.mention_rate - a.mention_rate)
@@ -353,7 +463,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
 
   // Cited domains ranked by frequency across all answers.
   const domainCounts = new Map<string, number>()
-  for (const e of evidence) {
+  for (const e of coreEvidence) {
     for (const d of e.cited_domains) domainCounts.set(d, (domainCounts.get(d) || 0) + 1)
   }
   const cited_domains_ranked = [...domainCounts.entries()]
@@ -384,7 +494,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
           brand,
           brandDomain,
           { ai_visibility_score, mention_rate, citation_rate: citation_rate ?? 0, share_of_voice },
-          evidence.map((e) => ({
+          coreEvidence.map((e) => ({
             engine: e.engine,
             query: e.query,
             answer: e.answer_excerpt,
@@ -430,7 +540,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         brand,
         targetUrl: url,
         targetMarkdown: targetMd,
-        evidence,
+        evidence: coreEvidence,
         maxSources,
         onUsage: opts.onUsage,
         meta: opts.meta ? { ...opts.meta, stage: 'geo_cited_source_analysis' } : undefined,
@@ -438,13 +548,13 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     }
   }
 
-  const engine_coverage = buildEngineCoverage(ledger, queries.length, engines)
-  const coverage_gate = evaluateCoverageGate(engine_coverage)
+  const engine_coverage = buildEngineCoverage(coreLedger, coreQueries.length || queries.length, engines)
+  const coverage_gate = evaluateCoverageGate(engine_coverage, { validCoreSlots: queryPlan?.valid_core_slots, coreSlots: 6 })
   if (!coverage_gate.passed) narrative.summary = buildGeoSummary({ brand, test_counts: testCounts, mention_rate, citation_rate, ai_visibility_score, mentionedCombinations: brandMentions, engines: enginesTested, coverageGate: coverage_gate })
   const result: GeoResult = {
     brand,
     brand_domain: brandDomain,
-    queries_tested: queries.length,
+    queries_tested: coreQueries.length || queries.length,
     engines_tested: enginesTested,
     test_counts: testCounts,
     ai_visibility_score,
@@ -468,8 +578,11 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     competitor_visibility,
     cited_domains_ranked,
     ...narrative,
+    query_provenance: provenance,
+    query_plan: queryPlan ? { valid_core_slots: queryPlan.valid_core_slots, review_required: queryPlan.review_required, primary_language: queryPlan.primary_language, markets: queryPlan.markets, warnings: queryPlan.warnings } : undefined,
+    supplemental_probes: provenance.filter((p) => p.scope === 'supplemental' && p.state === 'valid').map((p) => ({ query_id: p.query_id, slot: p.slot, language: p.language, query: p.query, per_engine: engines.map((engine) => { const rows = evidence.filter((e) => e.query_id === p.query_id && e.engine === engine); return { engine, successful: rows.length, mentioned: rows.filter((e) => e.brand_mentioned).length, cited: rows.filter((e) => e.brand_cited).length } }) })),
     source_gap_analysis,
-    query_analysis: buildQueryAnalysis(evidence),
+    query_analysis: buildQueryAnalysis(coreEvidence),
     ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed,
   }
 

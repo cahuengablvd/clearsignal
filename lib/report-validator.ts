@@ -1549,7 +1549,14 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
   }
   const ledger = Array.isArray(geo.ledger) ? geo.ledger : null
   if (ledger && counts.successful_samples !== undefined) {
-    const ledgerSuccessful = ledger.filter((row) => (SUCCESSFUL_STATUSES as string[]).includes(row.status)).length
+    // A4 executes supplemental probes in the same ledger, but its sample counts,
+    // coverage gate and index are deliberately core-only. Resolve scope solely
+    // through the durable query_id -> provenance relationship; legacy reports
+    // without provenance retain their historical all-ledger behavior.
+    const provenanceById = geo.query_provenance ? new Map(geo.query_provenance.map((item) => [item.query_id, item])) : null
+    const ledgerSuccessful = ledger.filter((row) =>
+      (SUCCESSFUL_STATUSES as string[]).includes(row.status) && provenanceById?.get(row.query_id)?.scope !== 'supplemental'
+    ).length
     if (ledgerSuccessful !== counts.successful_samples) {
       errors.push(`geo_counts: ledger successful rows (${ledgerSuccessful}) do not equal successful_samples (${counts.successful_samples})`)
     }

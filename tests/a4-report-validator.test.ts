@@ -30,6 +30,29 @@ function freshReport(): ClearSignalReport {
 function errors(report: ClearSignalReport) { return validateReport(report).errors.filter((error) => error.startsWith('geo_')) }
 
 describe('A4 fresh-report provenance validator', () => {
+  it('reconciles successful ledger rows against core provenance only', () => {
+    const base = freshReport()
+    const geo = base.geo!
+    const supplementalIds = ['S1', 'S1', 'S2', 'S2']
+    const supplementalEvidence = supplementalIds.map((query_id, index) => ({ ...geo.evidence[index]!, query_id, scope: 'supplemental' as const }))
+    const supplementalLedger = supplementalIds.map((query_id, index) => ({ ...geo.ledger![index]!, query_id }))
+    const supplementalProvenance = ['S1', 'S2'].map((query_id, index) => ({ ...geo.query_provenance![index]!, query_id, scope: 'supplemental' as const }))
+    const report = {
+      ...base,
+      geo: {
+        ...geo,
+        evidence: [...geo.evidence, ...supplementalEvidence],
+        ledger: [...geo.ledger!, ...supplementalLedger],
+        query_provenance: [...geo.query_provenance!, ...supplementalProvenance],
+        test_counts: { ...geo.test_counts!, supplemental_expected_combinations: 4, supplemental_successful_combinations: 4 },
+      },
+    }
+    expect(errors(report).join('\n')).not.toMatch(/ledger successful rows/)
+
+    const mismatched = { ...report, geo: { ...report.geo!, ledger: report.geo!.ledger!.map((row, index) => index === 0 ? { ...row, status: 'provider_error' as const } : row) } }
+    expect(errors(mismatched).join('\n')).toMatch(/ledger successful rows/)
+  })
+
   it('rejects every malformed fresh A4 provenance relationship', () => {
     const base = freshReport()
     const geo = base.geo!

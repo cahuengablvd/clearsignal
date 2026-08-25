@@ -76,7 +76,7 @@ export const MODEL_GEO_ANALYSIS = 'claude-sonnet-4-6'
 
 export const GEO_QUERIES_SYSTEM = `You generate buyer-intent questions a real prospect would ask when looking for a product like this one.
 These are the questions where the brand WANTS to be recommended.
-Never include prompt-engineering terms or answer-engine names in buyer questions.
+Never include prompt-engineering terms, testing mechanics, or answer-engine names in buyer questions.
 ${UNTRUSTED_GUARD}
 Return ONLY valid JSON, no commentary.`
 
@@ -85,7 +85,7 @@ export function geoQueriesUserPrompt(
   category: string,
   icp: string,
   count: number,
-  opts?: { primaryLanguage?: string; markets?: string[]; plan?: Array<{ slot: string; language: string; scope: string }>; brandAliases?: string[]; regenerate?: Array<{ slot: string; errors: string[] }> }
+  opts?: { primaryLanguage?: string; markets?: string[]; plan?: Array<{ slot: string; language: string; scope: string }>; brandAliases?: string[]; regenerate?: Array<{ slot: string; language: string; scope: string; errors: string[] }> }
 ): string {
   const queryPlan = count === DEFAULT_PAID_QUERY_INTENT_PLAN.length
     ? `Use this exact six-question intent plan:\n${DEFAULT_PAID_QUERY_INTENT_PLAN
@@ -93,8 +93,11 @@ export function geoQueriesUserPrompt(
         .join('\n')}`
     : `Mix:\n- "best X for Y" comparison queries\n- problem-first queries ("how do I ...")\n- alternatives / vs queries`
 
+  const repairInstructions = opts?.regenerate?.length
+    ? `Regenerate only these invalid slots; do not return or change valid records:\n${opts.regenerate.map((x) => `- ${x.slot}: ${x.language}, ${x.scope}; failures: ${x.errors.join(', ')}. ${repairGuidance(x.errors, x.language)}`).join('\n')}`
+    : ''
   const structured = opts?.plan?.length
-    ? `Return exactly these planned records:\n${opts.plan.map((x) => `- ${x.slot}: ${x.language}, ${x.scope}`).join('\n')}\nPrimary language: ${opts.primaryLanguage || 'infer from page'}\nTarget markets: ${(opts.markets || []).join(', ') || 'not provided'}\nBrand forms that must not appear: ${(opts.brandAliases || [brand]).join(', ')}\nInclude a target market in category_discovery, icp_use_case and local_or_second_decision when markets are provided. Rationale must be 25 words or fewer and only explain test-set fit.\n${opts.regenerate?.length ? `Regenerate only these invalid slots and address their validation errors: ${opts.regenerate.map((x) => `${x.slot} (${x.errors.join(', ')})`).join('; ')}.` : ''}\nReturn ONLY { "queries": [{ "query":"...", "slot":"...", "language":"...", "market":"...", "geo_scope":"explicit|implicit|none", "rationale":"...", "intent_choice":"..." }] }`
+    ? `Return exactly these planned records:\n${opts.plan.map((x) => `- ${x.slot}: ${x.language}, ${x.scope}`).join('\n')}\nPrimary language: ${opts.primaryLanguage || 'infer from page'}\nTarget markets: ${(opts.markets || []).join(', ') || 'not provided'}\nBrand forms that must not appear: ${(opts.brandAliases || [brand]).join(', ')}\nThe query string itself MUST be fully written in the requested language for its row; language is not metadata. Never return English query text for a row planned as lv or ru.\nWhen markets are provided, category_discovery, icp_use_case and local_or_second_decision queries MUST include an accepted target-market form from the market context above. Do not invent a location.\nWrite natural buyer questions only. Never mention query, prompt, testing mechanics, ChatGPT, Claude, Perplexity, or an AI assistant/chatbot, unless the product category itself legitimately requires an AI-related concept.\nFor category_discovery, include the actual buyer-facing product or service category in the query; do not describe this audit or testing process.\nRationale must be 25 words or fewer and only explain test-set fit.\n${repairInstructions}\nReturn ONLY { "queries": [{ "query":"...", "slot":"...", "language":"...", "market":"...", "geo_scope":"explicit|implicit|none", "rationale":"...", "intent_choice":"..." }] }`
     : ''
   return `Brand: ${brand}
 Product category / what it does:
@@ -107,6 +110,16 @@ ${queryPlan}
 Do NOT mention the brand name in the queries - we want to see if the brand surfaces on its own.
 
 ${structured || 'Return ONLY a JSON object: { "queries": ["<query>", ...] }'}`
+}
+
+function repairGuidance(errors: string[], language: string): string {
+  const guidance: string[] = []
+  if (errors.includes('language_mismatch')) guidance.push(`The previous query was not written in ${language}; the replacement query text MUST be fully in ${language}`)
+  if (errors.includes('geo_scope_missing')) guidance.push('Include one accepted target-market form from the current market context')
+  if (errors.includes('meta_words')) guidance.push('Do not mention query, prompt, or testing mechanics')
+  if (errors.includes('engine_name')) guidance.push('Do not mention ChatGPT, Claude, Perplexity, or OpenAI')
+  if (errors.includes('category_missing')) guidance.push('Include the buyer-facing product or service category')
+  return guidance.length ? guidance.join('. ') + '.' : 'Replace it with a valid natural buyer question.'
 }
 
 // Competitor discovery: pure EXTRACTION of product names from answers. It does

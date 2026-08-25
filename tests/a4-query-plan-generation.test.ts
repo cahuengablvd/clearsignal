@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({ callClaudeJSON: vi.fn() }))
 vi.mock('../lib/anthropic', () => ({ callClaudeJSON: mocks.callClaudeJSON }))
 
 import { generateValidatedQueryPlan } from '../lib/geo'
+import { detectLanguage } from '../lib/geo/language'
+import { geoQueriesUserPrompt } from '../lib/prompts'
 import type { GeneratedQuery } from '../lib/geo/query-validation'
 import { QUERY_SLOTS } from '../lib/geo/query-taxonomy'
 
@@ -110,6 +112,67 @@ describe('A4 paid query-plan generation', () => {
     expect(repairRequest.user).toContain('category_discovery: lv, core')
     expect(repairRequest.user).not.toContain('category_discovery: ru, supplemental')
     expect(plan.provenance.find((item) => item.query_id === 'S1')).toMatchObject({ query: ruQueries[0].query, validation: { regenerated: false }, state: 'valid' })
+  })
+
+  it('repairs the controlled ClearSignal Latvia/Riga production defect once and keeps valid rows untouched', async () => {
+    const initial = [...lvQueries.map((query) => ({ ...query })), ...ruQueries.map((query) => ({ ...query }))]
+    initial[0] = { ...initial[0], query: 'what is the best AI visibility audit service', language: 'lv', market: '', geo_scope: 'none' }
+    initial[6] = { ...initial[6], query: '\u043a\u0430\u043a\u043e\u0439 ChatGPT query \u043d\u0443\u0436\u0435\u043d \u0434\u043b\u044f \u0430\u0443\u0434\u0438\u0442\u0430 \u0432\u0438\u0434\u0438\u043c\u043e\u0441\u0442\u0438', language: 'ru', market: 'Riga', geo_scope: 'explicit' }
+    const repairedQ1: GeneratedQuery = { ...lvQueries[0], query: 'k\u0101 izv\u0113l\u0113ties AI redzam\u012bbas auditu R\u012bg\u0101 Latvij\u0101' }
+    const repairedS1: GeneratedQuery = { ...ruQueries[0], query: '\u0433\u0434\u0435 \u0437\u0430\u043a\u0430\u0437\u0430\u0442\u044c \u0430\u0443\u0434\u0438\u0442 AI-\u0432\u0438\u0434\u0438\u043c\u043e\u0441\u0442\u0438 \u0432 \u0420\u0438\u0433\u0435 \u041b\u0430\u0442\u0432\u0438\u044f' }
+    mocks.callClaudeJSON
+      .mockResolvedValueOnce(response(initial))
+      .mockResolvedValueOnce(response([repairedQ1, repairedS1]))
+
+    const plan = await generateValidatedQueryPlan({
+      brand: 'ClearSignal',
+      brandAliases: ['ClearSignal', 'getclearsignal.io'],
+      category: 'AI visibility audit',
+      icp: 'Marketing and SEO agencies',
+      targetMarketsLanguages: 'Latvia, Riga - Latvian and Russian',
+    })
+
+    expect(mocks.callClaudeJSON).toHaveBeenCalledTimes(2)
+    expect(plan.provenance.filter((item) => item.state === 'unavailable').map((item) => ({ id: item.query_id, errors: item.validation.errors }))).toEqual([])
+    expect(plan.core).toHaveLength(6)
+    expect(plan.supplemental).toHaveLength(2)
+    expect(plan.core.every((query) => detectLanguage(query.query).lang === 'lv')).toBe(true)
+    expect(plan.supplemental.every((query) => detectLanguage(query.query).lang === 'ru')).toBe(true)
+    expect(plan.provenance.filter((item) => item.scope === 'core' && ['category_discovery', 'icp_use_case', 'local_or_second_decision'].includes(item.slot)).every((item) => item.validation.errors.includes('geo_scope_missing') === false)).toBe(true)
+    expect(plan.provenance.every((item) => item.validation.errors.includes('meta_words') === false && item.validation.errors.includes('engine_name') === false && item.validation.errors.includes('category_missing') === false)).toBe(true)
+    expect(plan.provenance.find((item) => item.query_id === 'Q2')?.query).toBe(lvQueries[1].query)
+    expect(plan.provenance.find((item) => item.query_id === 'S2')?.query).toBe(ruQueries[1].query)
+
+    const generationPrompt = mocks.callClaudeJSON.mock.calls[0][0].user
+    expect(generationPrompt).toContain('query string itself MUST be fully written in the requested language')
+    expect(generationPrompt).toContain('MUST include an accepted target-market form')
+    expect(generationPrompt).toContain('Never mention query, prompt, testing mechanics, ChatGPT, Claude, Perplexity')
+    expect(generationPrompt).toContain('category_discovery, include the actual buyer-facing product or service category')
+
+    const repairPrompt = mocks.callClaudeJSON.mock.calls[1][0].user
+    expect(repairPrompt).toContain('language_mismatch')
+    expect(repairPrompt).toContain('previous query was not written in lv')
+    expect(repairPrompt).toContain('geo_scope_missing')
+    expect(repairPrompt).toContain('accepted target-market form')
+    expect(repairPrompt).toContain('meta_words')
+    expect(repairPrompt).toContain('Do not mention query, prompt, or testing mechanics')
+    expect(repairPrompt).toContain('engine_name')
+    expect(repairPrompt).toContain('Do not mention ChatGPT, Claude, Perplexity, or OpenAI')
+  })
+
+  it('states the complete repair contract for each validator failure', () => {
+    const prompt = geoQueriesUserPrompt('ClearSignal', 'AI visibility audit', 'SEO agencies', 1, {
+      primaryLanguage: 'lv',
+      markets: ['Latvia', 'Riga'],
+      plan: [{ slot: 'category_discovery', language: 'lv', scope: 'core' }],
+      regenerate: [{ slot: 'category_discovery', language: 'lv', scope: 'core', errors: ['language_mismatch', 'geo_scope_missing', 'meta_words', 'engine_name', 'category_missing'] }],
+    })
+
+    expect(prompt).toContain('previous query was not written in lv')
+    expect(prompt).toContain('accepted target-market form')
+    expect(prompt).toContain('Do not mention query, prompt, or testing mechanics')
+    expect(prompt).toContain('Do not mention ChatGPT, Claude, Perplexity, or OpenAI')
+    expect(prompt).toContain('Include the buyer-facing product or service category')
   })
 
   it('fails deterministically when fewer than four core slots validate', async () => {

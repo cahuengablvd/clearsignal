@@ -213,7 +213,7 @@ export async function generateValidatedQueryPlan(opts: { brand: string; category
   const supplementalSlots = secondary && Number(process.env.GEO_SECONDARY_PROBES ?? 2) > 0
     ? (['category_discovery', 'trust_or_pricing'] as QuerySlot[]).slice(0, Math.max(0, Math.min(2, Number(process.env.GEO_SECONDARY_PROBES ?? 2)))).map((slot) => ({ slot, language: secondary, scope: 'supplemental' })) : []
   const languageSource = parsed.languages.length ? 'intake' as const : 'page_detected' as const
-  const request = async (plan: Array<{ slot: string; language: string; scope: string }>, regenerate?: Array<{ slot: string; errors: string[] }>) => {
+  const request = async (plan: Array<{ slot: string; language: string; scope: string }>, regenerate?: Array<{ slot: string; language: string; scope: string; errors: string[] }>) => {
     const data = await callClaudeJSON<{ queries: GeneratedQuery[] }>({ model: MODEL_GEO_QUERIES, system: GEO_QUERIES_SYSTEM, user: geoQueriesUserPrompt(opts.brand, opts.category || '', opts.icp || '', plan.length, { primaryLanguage, markets: parsed.markets, plan, brandAliases: opts.brandAliases || [opts.brand], regenerate }), validate: structuredValidator, maxTokens: 900, purpose: 'geo:query_generation', onUsage: opts.onUsage, meta: opts.meta ? { ...opts.meta, stage: regenerate ? 'geo_query_regeneration' : 'geo_query_generation' } : undefined })
     return data.queries
   }

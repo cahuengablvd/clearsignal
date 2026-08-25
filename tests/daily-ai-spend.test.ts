@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => {
   const state = {
@@ -48,12 +48,19 @@ import {
 } from '../lib/daily-ai-spend'
 
 describe('daily AI spend guard', () => {
+  const originalCap = process.env.DAILY_AI_SPEND_CAP_USD
+
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.state.logs = []
     mocks.state.logError = null
     mocks.state.alertInsertError = null
     process.env.DAILY_AI_SPEND_CAP_USD = '2.5'
+  })
+
+  afterEach(() => {
+    if (originalCap === undefined) delete process.env.DAILY_AI_SPEND_CAP_USD
+    else process.env.DAILY_AI_SPEND_CAP_USD = originalCap
   })
 
   it('sums only the current UTC day and reports a blocked queue above the cap', async () => {

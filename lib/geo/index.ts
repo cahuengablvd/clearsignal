@@ -198,13 +198,19 @@ function normalizeGeneratedLanguage(q: GeneratedQuery): GeneratedQuery {
   return { ...q, language: normalizedLanguage, ...(normalizedLanguage !== q.language ? { model_language: q.language } : {}) }
 }
 
+function normalizeGeneratedIntentChoice(value: unknown): GeneratedQuery['intent_choice'] {
+  if (value === undefined || value === 'core' || value === 'supplemental') return undefined
+  if (value === 'trust' || value === 'pricing' || value === 'local' || value === 'use_case' || value === 'comparison' || value === 'alternatives') return value
+  throw new Error('Invalid structured intent_choice')
+}
+
 function structuredValidator(data: unknown): { queries: GeneratedQuery[] } {
   const value = data as { queries?: unknown }
   if (!Array.isArray(value?.queries)) throw new Error('Expected structured queries')
   return { queries: value.queries.map((item) => {
     const q = item as Partial<GeneratedQuery>
     if (!q || typeof q.query !== 'string' || !QUERY_SLOTS.includes(q.slot as QuerySlot) || typeof q.language !== 'string' || typeof q.rationale !== 'string') throw new Error('Invalid structured query')
-    return normalizeGeneratedLanguage({ query: q.query, slot: q.slot as QuerySlot, intent_choice: q.intent_choice, language: q.language, market: q.market, geo_scope: q.geo_scope === 'explicit' || q.geo_scope === 'implicit' || q.geo_scope === 'none' ? q.geo_scope : 'none', rationale: q.rationale })
+    return normalizeGeneratedLanguage({ query: q.query, slot: q.slot as QuerySlot, intent_choice: normalizeGeneratedIntentChoice(q.intent_choice), language: q.language, market: q.market, geo_scope: q.geo_scope === 'explicit' || q.geo_scope === 'implicit' || q.geo_scope === 'none' ? q.geo_scope : 'none', rationale: q.rationale })
   }) }
 }
 

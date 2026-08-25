@@ -350,7 +350,7 @@ export const GeneratedQuerySchema = z.object({
   query: z.string(),
   slot: z.enum(['category_discovery', 'problem_need', 'comparison_alternatives', 'icp_use_case', 'trust_or_pricing', 'local_or_second_decision']),
   intent_choice: z.enum(['trust', 'pricing', 'local', 'use_case', 'comparison', 'alternatives']).optional(),
-  language: z.string(), market: z.string().optional(), geo_scope: z.enum(['explicit', 'implicit', 'none']), rationale: z.string(),
+  language: z.string(), model_language: z.string().optional(), market: z.string().optional(), geo_scope: z.enum(['explicit', 'implicit', 'none']), rationale: z.string(),
 })
 export const QueryProvenanceSchema = GeneratedQuerySchema.extend({
   query_id: z.string(), intent: GeoQueryIntentSchema,

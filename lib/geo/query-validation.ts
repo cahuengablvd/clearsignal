@@ -3,7 +3,7 @@ import { detectLanguage } from './language'
 import { classifyQueryIntent, type QuerySlot } from './query-taxonomy'
 
 export type GeoScope = 'explicit' | 'implicit' | 'none'
-export type GeneratedQuery = { query: string; slot: QuerySlot; intent_choice?: 'trust' | 'pricing' | 'local' | 'use_case' | 'comparison' | 'alternatives'; language: string; market?: string; geo_scope: GeoScope; rationale: string }
+export type GeneratedQuery = { query: string; slot: QuerySlot; intent_choice?: 'trust' | 'pricing' | 'local' | 'use_case' | 'comparison' | 'alternatives'; language: string; model_language?: string; market?: string; geo_scope: GeoScope; rationale: string }
 export type QueryValidation = { passed: boolean; errors: string[]; warnings: string[] }
 
 const META = /\b(query|prompt|ai assistant|chatgpt|perplexity|claude)\b/i

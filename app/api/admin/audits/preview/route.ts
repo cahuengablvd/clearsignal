@@ -100,6 +100,22 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[admin/preview] query generation failed:', err)
+    const insufficient = err instanceof Error && err.message === 'query_plan_insufficient'
+    const plan = insufficient ? (err as Error & { plan?: unknown }).plan : undefined
+    if (plan) {
+      return NextResponse.json({
+        error: 'query_plan_insufficient',
+        status: 'query_plan_insufficient',
+        brand,
+        url: input.url,
+        icp_description: input.icp_description,
+        competitors,
+        business_context: BusinessContextSchema.parse(input.business_context || {}),
+        queries: [],
+        plan,
+        scraped: !!raw,
+      }, { status: 422 })
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Failed to generate queries' },
       { status: 500 }

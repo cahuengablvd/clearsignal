@@ -73,4 +73,19 @@ describe('admin preview input quality', () => {
     expect(response.status).toBe(422)
     expect(mocks.generateValidatedQueryPlan).not.toHaveBeenCalled()
   })
+
+  it('preserves a deterministic insufficient plan for operator diagnosis without creating an audit', async () => {
+    const plan = {
+      core: [], supplemental: [], valid_core_slots: 3, review_required: true, primary_language: 'lv', markets: ['Latvia', 'Riga'],
+      provenance: [{ query_id: 'Q1', query: 'pakalpojums Rīgā Latvijā', slot: 'category_discovery', language: 'lv', geo_scope: 'explicit', rationale: '', intent: 'category_discovery', language_source: 'intake', scope: 'core', source: 'generator', validation: { passed: false, errors: ['geo_scope_missing'], warnings: [], regenerated: true }, state: 'unavailable', unavailable_reason: 'geo_scope_missing' }],
+    }
+    mocks.scrapeUrl.mockResolvedValue(null)
+    mocks.generateValidatedQueryPlan.mockRejectedValue(Object.assign(new Error('query_plan_insufficient'), { deterministic: true, plan }))
+    const { POST } = await import('../app/api/admin/audits/preview/route')
+    const response = await POST(request())
+    const body = await response.json()
+
+    expect(response.status).toBe(422)
+    expect(body).toMatchObject({ error: 'query_plan_insufficient', status: 'query_plan_insufficient', plan: { valid_core_slots: 3, review_required: true, provenance: [expect.objectContaining({ query_id: 'Q1', validation: expect.objectContaining({ errors: ['geo_scope_missing'] }) })] } })
+  })
 })

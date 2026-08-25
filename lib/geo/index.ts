@@ -193,13 +193,18 @@ export function applyOperatorEdits(plan: QueryPlan, queries: string[], ctx: { br
   return { plan: { ...plan, core, supplemental, provenance, valid_core_slots, review_required: valid_core_slots < 6 }, rejected: provenance.some((item) => item.source === 'operator' && item.state === 'unavailable') }
 }
 
+function normalizeGeneratedLanguage(q: GeneratedQuery): GeneratedQuery {
+  const normalizedLanguage = parseMarketsLanguages(q.language).languages[0] || q.language.toLowerCase()
+  return { ...q, language: normalizedLanguage, ...(normalizedLanguage !== q.language ? { model_language: q.language } : {}) }
+}
+
 function structuredValidator(data: unknown): { queries: GeneratedQuery[] } {
   const value = data as { queries?: unknown }
   if (!Array.isArray(value?.queries)) throw new Error('Expected structured queries')
   return { queries: value.queries.map((item) => {
     const q = item as Partial<GeneratedQuery>
     if (!q || typeof q.query !== 'string' || !QUERY_SLOTS.includes(q.slot as QuerySlot) || typeof q.language !== 'string' || typeof q.rationale !== 'string') throw new Error('Invalid structured query')
-    return { query: q.query, slot: q.slot as QuerySlot, intent_choice: q.intent_choice, language: q.language, market: q.market, geo_scope: q.geo_scope === 'explicit' || q.geo_scope === 'implicit' || q.geo_scope === 'none' ? q.geo_scope : 'none', rationale: q.rationale }
+    return normalizeGeneratedLanguage({ query: q.query, slot: q.slot as QuerySlot, intent_choice: q.intent_choice, language: q.language, market: q.market, geo_scope: q.geo_scope === 'explicit' || q.geo_scope === 'implicit' || q.geo_scope === 'none' ? q.geo_scope : 'none', rationale: q.rationale })
   }) }
 }
 
@@ -215,7 +220,9 @@ export async function generateValidatedQueryPlan(opts: { brand: string; category
   const languageSource = parsed.languages.length ? 'intake' as const : 'page_detected' as const
   const request = async (plan: Array<{ slot: string; language: string; scope: string }>, regenerate?: Array<{ slot: string; language: string; scope: string; errors: string[] }>) => {
     const data = await callClaudeJSON<{ queries: GeneratedQuery[] }>({ model: MODEL_GEO_QUERIES, system: GEO_QUERIES_SYSTEM, user: geoQueriesUserPrompt(opts.brand, opts.category || '', opts.icp || '', plan.length, { primaryLanguage, markets: parsed.markets, plan, brandAliases: opts.brandAliases || [opts.brand], regenerate }), validate: structuredValidator, maxTokens: 900, purpose: 'geo:query_generation', onUsage: opts.onUsage, meta: opts.meta ? { ...opts.meta, stage: regenerate ? 'geo_query_regeneration' : 'geo_query_generation' } : undefined })
-    return data.queries
+    // Keep the mapping robust in tests and callers which provide already-parsed
+    // structured data, as well as in the production validator above.
+    return data.queries.map(normalizeGeneratedLanguage)
   }
   const requested = [...coreSlots, ...supplementalSlots]
   let generated: GeneratedQuery[] = []
@@ -241,8 +248,12 @@ export async function generateValidatedQueryPlan(opts: { brand: string; category
     provenance.push(prov); if (valid) (scope === 'core' ? core : supplemental).push(safe)
   }
   const validCore = core.length
-  if (validCore < 4) { const err = new Error('query_plan_insufficient'); ;(err as Error & { deterministic?: boolean }).deterministic = true; throw err }
-  return { core, supplemental, provenance, valid_core_slots: validCore, review_required: validCore < 6, primary_language: primaryLanguage, markets: parsed.markets, warnings }
+  const plan = { core, supplemental, provenance, valid_core_slots: validCore, review_required: validCore < 6, primary_language: primaryLanguage, markets: parsed.markets, warnings }
+  if (validCore < 4) {
+    const err = Object.assign(new Error('query_plan_insufficient'), { deterministic: true, plan })
+    throw err
+  }
+  return plan
 }
 
 /**

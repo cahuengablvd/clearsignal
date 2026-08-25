@@ -125,7 +125,8 @@ type AuditPreview = {
   business_context?: typeof emptyForm.business_context
   competitors: string[]
   queries: string[]
-  plan?: { core: Array<{ query: string; slot: string; language: string }>; supplemental: Array<{ query: string; slot: string; language: string }>; provenance: Array<{ query_id: string; query: string; slot: string; language: string; state: string; validation: { errors: string[]; warnings: string[] } }>; valid_core_slots: number; review_required: boolean; primary_language: string; markets: string[]; warnings?: string[] }
+  status?: 'query_plan_insufficient'
+  plan?: { core: Array<{ query: string; slot: string; language: string }>; supplemental: Array<{ query: string; slot: string; language: string }>; provenance: Array<{ query_id: string; query: string; slot: string; language: string; model_language?: string; scope: string; state: string; validation: { errors: string[]; warnings: string[] } }>; valid_core_slots: number; review_required: boolean; primary_language: string; markets: string[]; warnings?: string[] }
   scraped: boolean
 }
 
@@ -503,9 +504,13 @@ export default function AdminPage() {
         body: JSON.stringify(payload),
       })
       const data = await res.json()
-      if (res.ok) {
+      if (res.ok || (data.status === 'query_plan_insufficient' && data.plan)) {
         setPreview(data as AuditPreview)
-        setEditedQueries((data as AuditPreview).queries)
+        const previewData = data as AuditPreview
+        setEditedQueries(previewData.status === 'query_plan_insufficient'
+          ? previewData.plan!.provenance.filter((item) => item.scope === 'core').map((item) => item.query)
+          : previewData.queries)
+        if (!res.ok) setCreateMsg({ ok: false, text: 'Query plan is insufficient. Correct the unavailable rows; the server will not create an audit until at least four core rows validate.' })
       } else {
         setCreateMsg({ ok: false, text: data.error || 'Failed to preview audit' })
       }
@@ -799,6 +804,11 @@ export default function AdminPage() {
             {preview ? (
               /* Step 2: confirmation screen - nothing runs until "Confirm & run". */
               <div className="space-y-4">
+                {preview.status === 'query_plan_insufficient' && (
+                  <div className="text-xs text-red-800 bg-red-50 border border-red-200 rounded p-2">
+                    Query plan is insufficient. No audit has been created.
+                  </div>
+                )}
                 <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                   <div><span className="text-muted-foreground">Brand:</span> <strong>{preview.brand}</strong></div>
                   <div className="break-all"><span className="text-muted-foreground">URL:</span> {preview.url}</div>

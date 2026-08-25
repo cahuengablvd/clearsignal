@@ -160,6 +160,30 @@ describe('A4 paid query-plan generation', () => {
     expect(repairPrompt).toContain('Do not mention ChatGPT, Claude, Perplexity, or OpenAI')
   })
 
+  it('normalizes language-name metadata before matching planned Latvia/Riga rows and preserves the declaration', async () => {
+    const declaredNames = [...lvQueries, ...ruQueries].map((query) => ({
+      ...query,
+      language: query.language === 'lv' ? 'Latvian' : 'Russian',
+    }))
+    mocks.callClaudeJSON.mockResolvedValue(response(declaredNames))
+
+    const plan = await generateValidatedQueryPlan({
+      brand: 'ClearSignal',
+      brandAliases: ['ClearSignal', 'getclearsignal.io'],
+      category: 'AI visibility audit',
+      icp: 'Marketing and SEO agencies',
+      targetMarketsLanguages: 'Latvia, Riga - Latvian and Russian',
+    })
+
+    expect(mocks.callClaudeJSON).toHaveBeenCalledTimes(1)
+    expect(plan.core).toHaveLength(6)
+    expect(plan.supplemental).toHaveLength(2)
+    expect(plan.core.every((query) => query.language === 'lv')).toBe(true)
+    expect(plan.supplemental.every((query) => query.language === 'ru')).toBe(true)
+    expect(plan.provenance.filter((item) => item.scope === 'core').every((item) => item.model_language === 'Latvian')).toBe(true)
+    expect(plan.provenance.filter((item) => item.scope === 'supplemental').every((item) => item.model_language === 'Russian')).toBe(true)
+  })
+
   it('states the complete repair contract for each validator failure', () => {
     const prompt = geoQueriesUserPrompt('ClearSignal', 'AI visibility audit', 'SEO agencies', 1, {
       primaryLanguage: 'lv',

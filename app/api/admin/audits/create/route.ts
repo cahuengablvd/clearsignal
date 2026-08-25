@@ -70,14 +70,21 @@ export async function POST(req: NextRequest) {
   }
   let queries = input.queries?.length ? input.queries : null
   let structuredPlan = input.query_plan
-  if (structuredPlan && queries) {
+  if (structuredPlan) {
     const saved = validateSavedQueryPlan(structuredPlan)
     if (!saved.valid) return NextResponse.json({ error: `Invalid query plan: ${saved.reason}` }, { status: 400 })
-    const markets = parseMarketsLanguages(input.business_context?.target_markets_languages).markets
-    const edited = applyOperatorEdits(saved.plan, queries, { brandAliases: [new URL(input.url).hostname.replace(/^www\./, '')], markets, override: input.override_query_validation })
-    if (edited.rejected) return NextResponse.json({ error: 'Edited query did not pass validation; correct it or use an explicit operator override.', query_plan: edited.plan }, { status: 400 })
-    structuredPlan = edited.plan
-    queries = edited.plan.provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => item.query)
+    if (queries) {
+      const markets = parseMarketsLanguages(input.business_context?.target_markets_languages).markets
+      const edited = applyOperatorEdits(saved.plan, queries, { brandAliases: [new URL(input.url).hostname.replace(/^www\./, '')], markets, override: input.override_query_validation })
+      if (edited.rejected) return NextResponse.json({ error: 'Edited query did not pass validation; correct it or use an explicit operator override.', query_plan: edited.plan }, { status: 400 })
+      structuredPlan = edited.plan
+      queries = edited.plan.provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => item.query)
+    } else {
+      structuredPlan = saved.plan
+    }
+    if (structuredPlan.valid_core_slots < 4) {
+      return NextResponse.json({ error: 'query_plan_insufficient', query_plan: structuredPlan }, { status: 422 })
+    }
   }
   const businessContext = BusinessContextSchema.parse({ ...(input.business_context || {}), ...(structuredPlan ? { query_plan: structuredPlan } : {}) })
 

@@ -86,6 +86,6 @@ describe('admin preview input quality', () => {
     const body = await response.json()
 
     expect(response.status).toBe(422)
-    expect(body).toMatchObject({ error: 'query_plan_insufficient', status: 'query_plan_insufficient', plan: { valid_core_slots: 3, review_required: true, provenance: [expect.objectContaining({ query_id: 'Q1', validation: expect.objectContaining({ errors: ['geo_scope_missing'] }) })] } })
+    expect(body).toMatchObject({ error: 'query_plan_insufficient', status: 'query_plan_insufficient', plan: { valid_core_slots: 3, review_required: true, provenance: [expect.objectContaining({ query_id: 'Q1', state: 'unavailable', unavailable_reason: 'geo_scope_missing', validation: expect.objectContaining({ errors: ['geo_scope_missing'] }) })] } })
   })
 })

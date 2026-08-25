@@ -2,6 +2,7 @@
 
 import { Fragment, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { hasInsufficientQueryPlan } from '@/lib/admin-preview'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -504,7 +505,7 @@ export default function AdminPage() {
         body: JSON.stringify(payload),
       })
       const data = await res.json()
-      if (res.ok || (data.status === 'query_plan_insufficient' && data.plan)) {
+      if (res.ok || hasInsufficientQueryPlan(data)) {
         setPreview(data as AuditPreview)
         const previewData = data as AuditPreview
         setEditedQueries(previewData.status === 'query_plan_insufficient'

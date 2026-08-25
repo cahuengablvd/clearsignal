@@ -53,6 +53,7 @@ describe('A4 paid query-plan generation', () => {
     expect(request.user).toContain('category_discovery: lv, core')
     expect(request.user).toContain('category_discovery: ru, supplemental')
     expect(request.user).toContain('Brand forms that must not appear: Dental Riga, dentalriga.lv, DentalRiga')
+    expect(request.maxTokens).toBe(1800)
   })
 
   it('uses the supplied intake rather than hardcoding the Latvia/Riga plan', async () => {

@@ -198,3 +198,19 @@ unless you are investigating a regression in one of them.
   experiments, not to decline work that is already paid for.
 - Do not fix by removing the cap or by raising the default. The guard is correct; only its blast
   radius is wrong.
+
+## R39 — Brand detection cannot see names unrelated to the domain (first paid report affected)
+
+- Seen: 2026-08-25, audit `63bfd278` (`alahli.com`) — the first paid audit. "Named in 1 of 15",
+  while page 11 shows an OpenAI answer, verdict "Not named", listing "Saudi National Bank (SNB)"
+  second, and page 15 describes the "SNB Global Multi-Currency Credit Card" in a full paragraph.
+- Cause: `resolveBrandEntity` (`lib/brand.ts:117`) keeps only name candidates sharing a stem with
+  the domain token. "Saudi National Bank" and "SNB" share nothing with `alahli` and are discarded,
+  though the page title is "Alahli (SNB)". No operator input for aliases exists. `R1` family; the
+  recheck-over-stored-answers machinery from `R1` is the delivery path for the fix.
+- Direction of harm: undercounts the customer's visibility — a false negative about them, in their
+  own paid report.
+- Fix: operator-supplied aliases merged into `alternative_brand_forms`, applied to detection,
+  competitor exclusion and the report header; exact token matching, capped at 10.
+- Spec: `TASKS_BRAND_ALIASES.md`.
+

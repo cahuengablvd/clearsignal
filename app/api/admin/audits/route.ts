@@ -183,6 +183,7 @@ export async function GET(req: NextRequest) {
     const engine_version = generationMeta?.engine_version || null
     const engine_commit = generationMeta?.engine_commit || null
     const engine_coverage_summary = buildAdminEngineCoverage(a.report)
+    const entity_diagnostics = (a.report as { geo?: { entity_resolution?: { entities?: unknown[] } } } | null)?.geo?.entity_resolution?.entities || []
     const { report: _report, quality: _quality, ...audit } = a
     const last_activity_at = lastActivityAt(a)
     if (['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(a.audit_status)) {
@@ -199,6 +200,7 @@ export async function GET(req: NextRequest) {
         validation_repair_count,
         quality_summary: qualitySummary(a.quality),
         engine_coverage_summary,
+        entity_diagnostics,
         ai_cost_summary: costByAudit.get(a.id) ?? null,
         deterministic_failure: isDeterministicAuditFailure(a.admin_notes),
         report_url: token ? `/audit/${a.id}?token=${token}` : `/audit/${a.id}`,
@@ -216,6 +218,7 @@ export async function GET(req: NextRequest) {
       validation_repair_count,
       quality_summary: qualitySummary(a.quality),
       engine_coverage_summary,
+      entity_diagnostics,
       ai_cost_summary: costByAudit.get(a.id) ?? null,
       deterministic_failure: isDeterministicAuditFailure(a.admin_notes),
       report_url: null as string | null,

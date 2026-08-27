@@ -291,6 +291,7 @@ export const GeoEvidenceSchema = z.object({
   query_id: z.string().optional(), combination_id: z.string().optional(), model: z.string().optional(), observed_at: z.string().optional(),
   answer_text: z.string().optional(), excerpt_offset: z.number().int().nonnegative().optional(),
   scope: z.enum(['core', 'supplemental']).optional(),
+  entity_observations: z.array(z.object({ entity_id: z.string(), name_as_written: z.string(), role: z.enum(['competitor', 'channel_or_directory', 'source_or_publisher', 'engine', 'generic', 'unknown']), span_start: z.number().int().nonnegative(), span_end: z.number().int().nonnegative(), matched_alias: z.string(), text_source: z.enum(['answer_text', 'answer_excerpt']) })).optional(),
 })
 
 export type GeoEvidence = z.infer<typeof GeoEvidenceSchema>
@@ -528,6 +529,8 @@ export const GeoResultSchema = z.object({
   competitor_visibility: z.array(
     z.object({ name: z.string(), mention_rate: z.number().min(0).max(100) })
   ),
+  entity_resolution: z.object({ version: z.enum(['v1', 'legacy']), entities: z.array(z.object({ entity_id: z.string(), display_name: z.string(), aliases: z.array(z.string()), role: z.enum(['competitor', 'channel_or_directory', 'source_or_publisher', 'engine', 'generic', 'unknown']), role_source: z.enum(['operator', 'dictionary', 'extractor', 'reviewer']), state: z.enum(['accepted', 'channel', 'unconfirmed', 'rejected']), state_reason: z.string().optional(), occurrences: z.number(), distinct_queries: z.number(), distinct_engines: z.number(), domain_corroborated: z.boolean(), operator_provided: z.boolean(), possible_competitor_flag: z.boolean().optional(), composite: z.boolean().optional() })) }).optional(),
+  channels_observed: z.array(z.object({ name: z.string(), kind: z.string(), mention_rate: z.number().min(0).max(100), role_source: z.enum(['operator', 'dictionary', 'extractor', 'reviewer']) })).optional(),
   cited_domains_ranked: z.array(z.object({ domain: z.string(), count: z.number() })),
   // LLM narrative
   missing_signals: z.array(z.string()),

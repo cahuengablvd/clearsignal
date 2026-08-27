@@ -16,6 +16,7 @@ import { engineDisplayName } from '@/lib/geo/coverage'
 import { buildGeoSummary } from '@/lib/geo'
 import { recommendationStageLabel } from '@/lib/geo/recommendation-stages'
 import { buildClientReport, validateClientReportProjection } from '@/lib/client-report'
+import { buildClientEntityPresentation, ENTITY_DISCLOSURE } from '@/lib/entity-presentation'
 import { AUDIT_PROCESS_LABEL, AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
 import { ReviewerNote } from '@/components/reviewer-note'
 import { Download, ArrowLeft } from 'lucide-react'
@@ -222,6 +223,7 @@ export default async function AuditPage({
   // the recorded gate for reviewers, but render the pre-gate client surfaces.
   const reportOnly = report.geo?.coverage_gate?.passed === false && process.env.GEO_COVERAGE_GATE_MODE === 'report_only'
   const gatePresentationFailed = report.geo?.coverage_gate?.passed === false && !reportOnly
+  const entityPresentation = report.geo ? buildClientEntityPresentation(report.geo) : null
   // This only reconstructs the displayed narrative from the stored measurements;
   // the failed gate and all recorded data remain intact for reviewer diagnostics.
   const geoSummary = report.geo && reportOnly
@@ -569,12 +571,13 @@ export default async function AuditPage({
             {report.geo.supplemental_probes?.length ? <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">Secondary-language probe — not included in the index</h3><div className="space-y-2 text-sm">{report.geo.supplemental_probes.map((probe) => <div key={probe.query_id}><p className="font-medium">{probe.query}</p><p className="text-xs text-muted-foreground">{probe.per_engine.map((row) => `${engineDisplayName(row.engine)}: ${row.mentioned} named, ${row.cited} cited in ${row.successful} answers`).join(' · ')}</p></div>)}</div></CardContent></Card> : null}
 
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
-              {!gatePresentationFailed && report.geo.competitor_visibility.length > 0 && (
+              {!gatePresentationFailed && entityPresentation && entityPresentation.competitors.length > 0 && (
                 <Card>
                   <CardContent className="p-5">
-                    <h3 className="font-semibold mb-3">Who AI recommends instead</h3>
+                    <h3 className="font-semibold mb-1">Competitors AI mentioned</h3>
+                    <p className="text-sm text-muted-foreground mb-3">{ENTITY_DISCLOSURE}</p>
                     <div className="space-y-2">
-                      {report.geo.competitor_visibility.slice(0, 6).map((c, i) => (
+                      {entityPresentation.competitors.slice(0, 6).map((c, i) => (
                         <div key={i} className="flex items-center justify-between text-sm">
                           <span>{c.name}</span>
                           <span className="font-mono text-muted-foreground">
@@ -583,9 +586,13 @@ export default async function AuditPage({
                         </div>
                       ))}
                     </div>
+                    {entityPresentation.competitors.slice(0, 3).map((competitor) => <p key={competitor.name} className="mt-2 border-l-2 pl-2 text-xs text-muted-foreground">AI named {competitor.name}: &quot;{competitor.quote}&quot;</p>)}
                   </CardContent>
                 </Card>
               )}
+              {!gatePresentationFailed && entityPresentation?.channels.length ? (
+                <Card><CardContent className="p-5"><h3 className="font-semibold mb-1">Channels and directories AI mentioned</h3><p className="text-sm text-muted-foreground mb-3">Observed separately from competitors.</p><div className="space-y-2">{entityPresentation.channels.slice(0, 6).map((channel) => <div key={channel.name} className="flex items-center justify-between text-sm"><span>{channel.name}</span><span className="font-mono text-muted-foreground">{Math.round(channel.mention_rate)}%</span></div>)}</div></CardContent></Card>
+              ) : null}
               {report.geo.cited_domains_ranked.length > 0 && (
                 <Card>
                   <CardContent className="p-5">

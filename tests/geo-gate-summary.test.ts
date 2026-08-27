@@ -75,7 +75,7 @@ describe('A1 gate-failed reports keep the insufficient-coverage semantics everyw
       const markup = await render({ ...rozie(), geo })
       expect(markup).toContain('AI Visibility / 100')
       expect(markup).toContain('Visibility by buyer intent')
-      expect(markup).toContain('Who AI recommends instead')
+      expect(markup).toContain('Competitors AI mentioned')
       expect(markup).not.toContain('Coverage was insufficient to report an AI visibility index')
       expect(markup).not.toContain('Measurement coverage was insufficient')
     } finally {

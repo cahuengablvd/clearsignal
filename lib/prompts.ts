@@ -125,9 +125,7 @@ function repairGuidance(errors: string[], language: string): string {
 // Competitor discovery: pure EXTRACTION of product names from answers. It does
 // not decide the brand's own status (that stays deterministic) - it only finds
 // candidate rival names so we can measure share of voice.
-export const GEO_COMPETITORS_SYSTEM = `You extract product/company names from AI assistant answers.
-List only real product or vendor names that appear, excluding the brand itself.
-Return ONLY valid JSON, no commentary.`
+export const GEO_COMPETITORS_SYSTEM = `Extract literal named entities from AI assistant answers. Return only JSON candidates. Names must appear literally in the answer; quote must be at most 120 characters and contain that name literally. Use role competitor, channel_or_directory, source_or_publisher, engine, generic, or unknown. Exclude the audited brand and answer-engine names. Do not merge, split, or infer names.`
 
 export function geoCompetitorsUserPrompt(
   brand: string,
@@ -141,8 +139,7 @@ export function geoCompetitorsUserPrompt(
 Answers:
 ${blocks}
 
-List the distinct product/company names recommended or mentioned across these answers, excluding "${brand}".
-Return ONLY a JSON object: { "competitors": ["<name>", ...] } (max 12, most prominent first).`
+Return ONLY { "candidates": [{ "name": "...", "role": "competitor", "quote": "...", "answer_index": 0 }] }. Names are mentions, not recommendations.`
 }
 
 // The narrative layer. The model is given the DETERMINISTIC facts and metrics

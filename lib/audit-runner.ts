@@ -58,6 +58,7 @@ import { qualityCriticEnabled, runQualityCritic } from './quality/critic'
 import { reconcileAuditAiCost } from './ai-observability'
 import { isAnswerEngineCompetitorName } from './engine-scope'
 import { buildEngineCoverage, evaluateCoverageGate, SUCCESSFUL_STATUSES, type LedgerRow } from './geo/coverage'
+import { resolveEntities } from './geo/entities'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
@@ -184,6 +185,14 @@ export function recomputeReusedGeoEvidence(
     )
     .map((name) => ({ name, variants: buildVariants({ name }) }))
 
+  const resolution = resolveEntities({
+    brandVariants: [brand, ...(opts.alternativeBrandForms || [])], operatorCompetitors: opts.explicitCompetitors,
+    candidates: competitorNames.map((name) => ({ name, role_guess: 'competitor', quote: name, answer_index: 0 })),
+    answers: geo.evidence.map((item) => ({ answer_text: item.answer_text, answer_excerpt: item.answer_excerpt, query_id: item.query_id, engine: item.engine, citedDomains: item.cited_domains })),
+  })
+  const acceptedNames = new Set(resolution.entities.filter((entity) => entity.role === 'competitor' && entity.state === 'accepted').map((entity) => entity.display_name))
+  const acceptedCompetitors = process.env.GEO_ENTITY_PIPELINE === 'legacy' ? competitorList : competitorList.filter((item) => acceptedNames.has(item.name))
+
   const evidence = geo.evidence.map((e) => {
     // Fresh scans derive every deterministic text signal from the full answer. Reuse
     // must do the same whenever A1 stored it; legacy records only have an excerpt.
@@ -193,7 +202,7 @@ export function recomputeReusedGeoEvidence(
     const positions: { name: string; index: number; isBrand: boolean }[] = []
     const brandIndex = firstMentionIndex(answer, brandVariants.tokens)
     if (brandIndex >= 0) positions.push({ name: brand, index: brandIndex, isBrand: true })
-    for (const c of competitorList) {
+    for (const c of acceptedCompetitors) {
       const index = firstMentionIndex(answer, c.variants.tokens)
       if (index >= 0) positions.push({ name: c.name, index, isBrand: false })
     }
@@ -251,7 +260,7 @@ export function recomputeReusedGeoEvidence(
       REUSED_GEO_WEIGHTS.position * positionScore01 +
       REUSED_GEO_WEIGHTS.share_of_voice * (share_of_voice / 100))
   )
-  const competitor_visibility = competitorList
+  const competitor_visibility = acceptedCompetitors
     .map((c) => ({
       name: c.name,
       mention_rate: pct(measurementEvidence.filter((e) => textMentions(e.answer_text || e.answer_excerpt || '', c.variants.tokens)).length, total),
@@ -274,9 +283,11 @@ export function recomputeReusedGeoEvidence(
   const legacyProvenanceByQuery = provenance.every((item) => item.source === 'legacy')
     ? new Map(provenance.map((item) => [item.query, item]))
     : undefined
-  const evidenceWithProvenance = evidence.map((item) => {
+  const evidenceWithProvenance = evidence.map((item, index) => {
     const itemProvenance = item.query_id ? provenanceById.get(item.query_id) : legacyProvenanceByQuery?.get(item.query)
-    return itemProvenance ? { ...item, query_id: item.query_id || itemProvenance.query_id, query_intent: item.query_intent || itemProvenance.intent, scope: item.scope || itemProvenance.scope } : item
+    const observations = resolution.observationsByAnswer[index]
+    const enriched = { ...item, ...(observations?.length ? { entity_observations: observations } : {}) }
+    return itemProvenance ? { ...enriched, query_id: item.query_id || itemProvenance.query_id, query_intent: item.query_intent || itemProvenance.intent, scope: item.scope || itemProvenance.scope } : enriched
   })
   const validCoreSlots = provenance.filter((p) => p.scope === 'core' && p.state === 'valid').length
   const coverage_gate = evaluateCoverageGate(engine_coverage, { configuredEngines: geo.test_counts?.configured_engines, ...(geo.query_plan ? { validCoreSlots, coreSlots: 6 } : {}) })
@@ -300,6 +311,8 @@ export function recomputeReusedGeoEvidence(
     share_of_voice,
     avg_position,
     competitor_visibility,
+    entity_resolution: { version: process.env.GEO_ENTITY_PIPELINE === 'legacy' ? 'legacy' : 'v1', entities: resolution.entities },
+    channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: 'directory', mention_rate: pct(measurementEvidence.filter((item) => (resolution.observationsByAnswer[geo.evidence.indexOf(item)] || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
     score_breakdown: {
       mention_rate,
       citation_rate: citation_rate ?? 0,

@@ -762,6 +762,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   validateEmptyClientFields(walked, errors)
   validatePublishableFacts(walked, errors)
   rebuildGeoMeasurementV2(walked, warn)
+  validateEntityPrecision(walked, errors, warn)
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
@@ -843,6 +844,51 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   }
 
   return { report: walked, warnings, errors }
+}
+
+function validateEntityPrecision(report: ClearSignalReport, errors: string[], warn: (message: string) => void): void {
+  const geo = report.geo
+  if (!geo?.entity_resolution || geo.entity_resolution.version === 'legacy') return
+  const entities = new Map(geo.entity_resolution.entities.map((entity) => [entity.entity_id, entity]))
+  const accepted = new Set(geo.entity_resolution.entities.filter((entity) => entity.role === 'competitor' && entity.state === 'accepted').map((entity) => entity.display_name))
+  for (const item of geo.competitor_visibility) if (!accepted.has(item.name)) errors.push(`a3: competitor_visibility contains non-accepted entity ${item.name}`)
+  const validObservationIds = new Set<string>()
+  for (const evidence of geo.evidence) {
+    const observations = evidence.entity_observations || []
+    for (const observation of observations) {
+      const entity = entities.get(observation.entity_id)
+      if (!entity) {
+        errors.push(`a3: observation has unknown entity ${observation.entity_id}`)
+        continue
+      }
+      const source = observation.text_source === 'answer_text' ? evidence.answer_text : evidence.answer_excerpt
+      if (!source) {
+        errors.push(`a3: ${observation.text_source} observation without ${observation.text_source} ${observation.entity_id}`)
+        continue
+      }
+      const literal = source.slice(observation.span_start, observation.span_end)
+      if (
+        observation.span_start < 0 ||
+        observation.span_end > source.length ||
+        observation.span_start >= observation.span_end ||
+        literal !== observation.name_as_written ||
+        literal.toLowerCase() !== observation.matched_alias.toLowerCase()
+      ) {
+        errors.push(`a3: invalid entity span ${observation.entity_id}`)
+        continue
+      }
+      validObservationIds.add(observation.entity_id)
+    }
+  }
+  for (const entity of geo.entity_resolution.entities) {
+    if (entity.role === 'competitor' && entity.state === 'accepted' && geo.competitor_visibility.some((item) => item.name === entity.display_name) && !validObservationIds.has(entity.entity_id)) {
+      errors.push(`a3: accepted competitor has no valid observation ${entity.display_name}`)
+    }
+  }
+  const before = geo.evidence.flatMap((item) => item.competitors_mentioned)
+  for (const name of before) if (!accepted.has(name)) errors.push(`a3: client competitor mention is not accepted ${name}`)
+  const strings = JSON.stringify({ competitor_visibility: geo.competitor_visibility, channels_observed: geo.channels_observed || [] })
+  if (/recommend(?:s|ed|ation)/i.test(strings)) { warn('a3: recommendation wording removed from entity presentation') }
 }
 
 function ensureExecutiveSummary(report: ClearSignalReport, warn: (m: string) => void): void {

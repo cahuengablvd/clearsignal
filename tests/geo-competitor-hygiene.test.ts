@@ -88,16 +88,11 @@ describe('GEO competitor and cited-source hygiene', () => {
       narrative: false,
     })
 
-    expect(result.competitor_visibility.map((competitor) => competitor.name)).toEqual([
-      'Ahrefs',
-      'Semrush',
-      'AI4Life',
-      'Perplexity Labs Consulting',
-      'Genuine Rival',
-    ])
+    expect(result.competitor_visibility).toEqual([])
+    expect(result.entity_resolution?.entities.filter((entity) => entity.role === 'competitor').every((entity) => entity.state === 'unconfirmed')).toBe(true)
   })
 
-  it('keeps an explicitly supplied answer engine as a competitor', async () => {
+  it('never accepts an answer engine as a competitor, including operator input', async () => {
     const result = await runGeoScan({
       brand: 'Target',
       url: 'https://target.example',

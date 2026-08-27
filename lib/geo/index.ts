@@ -53,6 +53,7 @@ import {
   registrableDomain,
   sld,
 } from './detect'
+import { resolveEntities, type EntityCandidate } from './entities'
 
 const SCORE_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
 const ANSWER_EXCERPT_LIMIT = 700
@@ -130,6 +131,10 @@ export interface RunGeoOptions {
   category?: string
   icp?: string
   competitors?: string[]
+  /** Confirmed alternative names for the same business. */
+  brandAliases?: string[]
+  /** Intake classification; only used for the A3 marketplace ambiguity diagnostic. */
+  businessModel?: string
   queryCount?: number
   engines?: EngineId[]
   /** Discover rival names from the answers to enrich share-of-voice. */
@@ -368,39 +373,64 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const competitorList: Competitor[] = competitors
     .filter(Boolean)
     .map((c) => ({ name: prettyName(c), variants: buildVariants({ url: c, name: prettyName(c) }) }))
+    .filter((competitor) => !textMentions(competitor.name, brandVariants.tokens))
 
+  const extractedCandidates: EntityCandidate[] = []
   if (discoverCompetitors) {
     try {
-      const { competitors: discovered } = await callClaudeJSON<{ competitors: string[] }>({
+      const extracted = await callClaudeJSON<{ candidates?: EntityCandidate[]; competitors?: string[] }>({
         model: MODEL_GEO_QUERIES,
         system: GEO_COMPETITORS_SYSTEM,
         user: geoCompetitorsUserPrompt(brand, raw.map((r) => ({ query: r.query, answer: r.answer }))),
-        validate: (d) => listValidator<string>('competitors')(d) as { competitors: string[] },
+        validate: (d) => {
+          const value = d as { candidates?: unknown; competitors?: unknown }
+          if (Array.isArray(value.candidates)) return { candidates: value.candidates as EntityCandidate[] }
+          if (Array.isArray(value.competitors)) return { candidates: (value.competitors as string[]).map((name) => ({ name, role_guess: 'competitor', quote: name, answer_index: 0 })) }
+          throw new Error('Expected structured candidates')
+        },
         maxTokens: 512,
         purpose: 'geo:competitor_discovery',
         onUsage: opts.onUsage,
         meta: opts.meta ? { ...opts.meta, stage: 'geo_competitor_discovery' } : undefined,
       })
-      for (const name of discovered) {
+      const candidates = extracted.candidates || (extracted.competitors || []).map((name) => ({ name, role_guess: 'competitor' as const, quote: name, answer_index: 0 }))
+      for (const candidate of candidates) {
+        const name = candidate.name
         const key = sld(name) || name.toLowerCase()
         if (!key || key === sld(brandDomain)) continue
-        if (name.includes('.') && !registrableDomain(name)) continue
+        if (textMentions(name, brandVariants.tokens)) continue
+        // A sentence-ending period in a label such as "Moving Co." is not a malformed
+        // domain. Keep human-readable candidates so deterministic generic rejection can
+        // classify them instead of silently dropping them before the A3 trust boundary.
+        if (!/\s/.test(name) && name.includes('.') && !registrableDomain(name)) continue
         // Explicit operator input wins. Only inferred names are filtered.
         if (isAnswerEngineCompetitorName(name)) continue
         if (competitorList.some((c) => sld(c.name) === key || competitorKey(c.name) === competitorKey(name))) continue
         competitorList.push({ name, variants: buildVariants({ name }) })
+        extractedCandidates.push(candidate)
       }
     } catch (err) {
       console.warn('GEO competitor discovery failed, continuing with provided list:', err)
     }
   }
 
+  const resolution = resolveEntities({
+    brandVariants: [brand, ...(opts.brandAliases || [])], operatorCompetitors: competitors,
+    candidates: [...competitors.map((name) => ({ name, role_guess: 'competitor' as const, quote: name, answer_index: 0 })), ...extractedCandidates],
+    answers: raw.map((r) => ({ answer_text: r.answer.slice(0, ANSWER_TEXT_LIMIT), answer_excerpt: deriveExcerpt(r.answer.slice(0, ANSWER_TEXT_LIMIT)).excerpt, query_id: r.plan.query_id, engine: r.engine, citedDomains: citedDomains(r.citations) })),
+    businessModel: opts.businessModel,
+  })
+  const acceptedNames = new Set(resolution.entities.filter((entity) => entity.state === 'accepted' && entity.role === 'competitor').map((entity) => entity.display_name))
+  const acceptedCompetitors = process.env.GEO_ENTITY_PIPELINE === 'legacy'
+    ? competitorList
+    : competitorList.filter((competitor) => acceptedNames.has(competitor.name))
+
   // 4. Deterministic detection per (engine, query).
   const evidence: GeoEvidence[] = raw.map((r, i) => {
     const brand_mentioned = textMentions(r.answer, brandVariants.tokens)
     const brand_cited = citationsInclude(r.citations, brandVariants.domain)
 
-    const competitors_mentioned = competitorList
+    const competitors_mentioned = acceptedCompetitors
       .filter((c) => textMentions(r.answer, c.variants.tokens))
       .map((c) => c.name)
 
@@ -408,7 +438,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     let brand_position: number | null = null
     if (brand_mentioned) {
       const brandIdx = firstMentionIndex(r.answer, brandVariants.tokens)
-      const competitorIdxs = competitorList
+      const competitorIdxs = acceptedCompetitors
         .map((c) => firstMentionIndex(r.answer, c.variants.tokens))
         .filter((i) => i >= 0)
       brand_position = 1 + competitorIdxs.filter((i) => i < brandIdx).length
@@ -431,6 +461,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       cited_domains: citedDomains(r.citations),
       query_intent: r.plan.intent || classifyQueryIntent(r.query),
       scope: r.plan.scope,
+      entity_observations: resolution.observationsByAnswer[i],
     }
   })
 
@@ -472,10 +503,10 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   )
 
   // Competitor visibility (deterministic mention_rate per competitor).
-  const competitor_visibility = competitorList
+  const competitor_visibility = acceptedCompetitors
     .map((c) => ({
       name: c.name,
-      mention_rate: pct(coreEvidence.filter((e) => textMentions(e.answer_excerpt, c.variants.tokens)).length, total),
+      mention_rate: pct(coreEvidence.filter((e) => textMentions(e.answer_text || e.answer_excerpt, c.variants.tokens)).length, total),
     }))
     .filter((c) => c.mention_rate > 0)
     .sort((a, b) => b.mention_rate - a.mention_rate)
@@ -596,6 +627,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     },
     evidence,
     competitor_visibility,
+    entity_resolution: { version: process.env.GEO_ENTITY_PIPELINE === 'legacy' ? 'legacy' : 'v1', entities: resolution.entities },
+    channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: 'directory', mention_rate: pct(coreEvidence.filter((item) => (item.entity_observations || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
     cited_domains_ranked,
     ...narrative,
     query_provenance: provenance,

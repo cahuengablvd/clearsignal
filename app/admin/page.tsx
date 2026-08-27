@@ -12,6 +12,7 @@ import { pollAuditStatus } from '@/lib/audit-polling'
 import { normalizeWebsiteUrl } from '@/lib/normalize-url'
 import { BAND_LABEL, bandFor } from '@/lib/audit-bands'
 import { adminSessionState } from '@/lib/admin-session'
+import { buildAdminEntityDiagnostics } from '@/lib/entity-presentation'
 
 type Audit = {
   id: string
@@ -91,6 +92,8 @@ type Audit = {
   engine_commit?: string | null
   engine_version_drift?: boolean
   deterministic_failure?: boolean
+  business_context?: { brand_aliases?: string }
+  entity_diagnostics?: Array<{ entity_id: string; display_name: string; role: string; state: string; state_reason?: string; role_source: string; occurrences: number; distinct_queries: number; distinct_engines: number; domain_corroborated: boolean; operator_provided: boolean; possible_competitor_flag?: boolean; composite?: boolean }>
 }
 
 type DailyAiSpend = {
@@ -1296,6 +1299,8 @@ export default function AdminPage() {
                       {audit.quality_summary.criticError.message || 'unknown error'}
                     </div>
                   )}
+
+                  {audit.entity_diagnostics?.length ? <details className="mb-3 rounded border border-slate-200 bg-slate-50 p-3 text-xs"><summary className="cursor-pointer font-semibold">A3 entity diagnostics ({audit.entity_diagnostics.length})</summary><div className="mt-2 space-y-2">{buildAdminEntityDiagnostics(audit.entity_diagnostics).map((entity) => <div key={entity.entity_id} className="rounded border bg-white p-2"><div className="font-medium">{entity.display_name} <span className="text-muted-foreground">· {entity.role} · {entity.state}</span></div><div>{entity.kind === 'channel_or_directory' ? 'Channel/directory' : 'Competitor candidate'} · source: {entity.role_source} · occurrences: {entity.occurrences} · queries: {entity.distinct_queries} · engines: {entity.distinct_engines}</div><div>Domain corroborated: {String(entity.domain_corroborated)} · operator provided: {String(entity.operator_provided)}{entity.possible_competitor_flag !== undefined ? ` · possible competitor: ${entity.possible_competitor_flag}` : ''}{entity.composite !== undefined ? ` · composite: ${entity.composite}` : ''}</div>{entity.state_reason ? <div className="text-muted-foreground">Reason: {entity.state_reason}</div> : null}</div>)}</div></details> : null}
 
                   <div className="flex items-center gap-2 mb-3">
                     {['done', 'awaiting_review', 'delivery_failed', 'delivered'].includes(audit.audit_status) && (

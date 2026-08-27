@@ -9,6 +9,13 @@ import { ADMIN_AUDIT_SELECT } from '@/lib/admin-audit-schema'
 import { latestObservedEngineVersion } from '@/lib/engine-version'
 import { isDeterministicAuditFailure } from '@/lib/audit-recovery'
 import { getDailyAiSpendStatus } from '@/lib/daily-ai-spend'
+import { BusinessContextSchema } from '@/lib/schemas'
+import { z } from 'zod'
+
+const updateContextSchema = z.object({
+  audit_id: z.string().uuid(),
+  brand_aliases: z.string().max(1000),
+})
 
 function lastActivityAt(audit: {
   created_at: string
@@ -230,4 +237,27 @@ export async function GET(req: NextRequest) {
   })
 
   return NextResponse.json({ audits: withLinks, daily_ai_spend: dailyAiSpend })
+}
+
+/** Update only the operator-confirmed aliases; do not let an inline edit erase context. */
+export async function PATCH(req: NextRequest) {
+  if (!isValidAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const parsed = updateContextSchema.safeParse(await req.json())
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid input', details: parsed.error.errors }, { status: 400 })
+
+  const aliases = BusinessContextSchema.shape.brand_aliases.safeParse(parsed.data.brand_aliases)
+  if (!aliases.success) return NextResponse.json({ error: aliases.error.errors[0]?.message || 'Invalid brand aliases' }, { status: 400 })
+  const { data: audit, error: readError } = await supabaseAdmin
+    .from('audits')
+    .select('business_context')
+    .eq('id', parsed.data.audit_id)
+    .single()
+  if (readError || !audit) return NextResponse.json({ error: 'Audit not found' }, { status: 404 })
+
+  const business_context = BusinessContextSchema.parse({ ...(audit.business_context || {}), brand_aliases: aliases.data })
+  const { error: updateError } = await supabaseAdmin.from('audits').update({ business_context }).eq('id', parsed.data.audit_id)
+  if (updateError) return NextResponse.json({ error: 'Failed to save brand aliases' }, { status: 500 })
+  return NextResponse.json({ success: true, business_context })
 }

@@ -63,6 +63,13 @@ export const BusinessContextSchema = z.object({
   provenance_or_authentication: enumOrCustom(provenanceSchema).optional().default('unknown'),
   target_markets_languages: z.string().max(1000).optional().default(''),
   verified_facts: z.string().max(2000).optional().default(''),
+  brand_aliases: z.string().max(1000).optional().superRefine((value, ctx) => {
+    if (!value) return
+    const aliases = value.split(';').map((item) => item.trim()).filter(Boolean)
+    if (aliases.length > 10) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Brand aliases must contain 10 names or fewer' })
+    }
+  }),
   // A4 operator-confirmed structured plan. JSON only; no database migration.
   query_plan: z.unknown().optional(),
 })

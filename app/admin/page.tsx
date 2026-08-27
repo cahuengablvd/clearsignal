@@ -119,6 +119,7 @@ const emptyForm = {
     provenance_or_authentication: 'unknown',
     target_markets_languages: '',
     verified_facts: '',
+    brand_aliases: '',
   },
 }
 
@@ -144,7 +145,7 @@ type SelectOption = {
 }
 
 const businessContextOptions: Record<
-  Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>,
+  Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts' | 'brand_aliases'>,
   { label: string; error: string; options: SelectOption[] }
 > = {
   business_model: {
@@ -257,7 +258,7 @@ function resolvedBusinessContextValue(value: string): string {
 
 function setBusinessContextValue(
   current: typeof emptyForm,
-  key: Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>,
+  key: Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts' | 'brand_aliases'>,
   value: string
 ) {
   return {
@@ -321,7 +322,7 @@ export default function AdminPage() {
   const [regenMsg, setRegenMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   function businessContextErrors(): string[] {
-    return (Object.entries(businessContextOptions) as Array<[Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>, typeof businessContextOptions.business_model]>)
+    return (Object.entries(businessContextOptions) as Array<[Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts' | 'brand_aliases'>, typeof businessContextOptions.business_model]>)
       .filter(([key]) => selectValue(form.business_context[key], businessContextOptions[key].options) === CUSTOM_OPTION)
       .filter(([key]) => !customValue(form.business_context[key]).trim())
       .map(([, config]) => config.error)
@@ -579,6 +580,23 @@ export default function AdminPage() {
     })
   }
 
+  async function saveBrandAliases(auditId: string, brandAliases: string) {
+    const res = await fetch('/api/admin/audits', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audit_id: auditId, brand_aliases: brandAliases }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setRegenMsg({ ok: false, text: data.error || 'Could not save brand aliases' })
+      return
+    }
+    setAudits((items) => items.map((audit) => audit.id === auditId
+      ? { ...audit, business_context: { ...(audit.business_context || {}), brand_aliases: data.business_context.brand_aliases } }
+      : audit))
+    setRegenMsg({ ok: true, text: 'Brand aliases saved. Re-generate with reused evidence to re-score stored answers.' })
+  }
+
   async function markDelivered(auditId: string) {
     await fetch('/api/admin/status', {
       method: 'POST',
@@ -733,7 +751,7 @@ export default function AdminPage() {
   }
 
   function renderBusinessContextSelect(
-    key: Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts'>
+    key: Exclude<BusinessContextKey, 'target_markets_languages' | 'verified_facts' | 'brand_aliases'>
   ) {
     const config = businessContextOptions[key]
     const raw = form.business_context[key]
@@ -988,6 +1006,16 @@ export default function AdminPage() {
                   onChange={(e) => setForm({
                     ...form,
                     business_context: { ...form.business_context, target_markets_languages: e.target.value },
+                  })}
+                />
+                <Textarea
+                  placeholder="Brand aliases (semicolon-separated, e.g. Saudi National Bank; SNB)"
+                  rows={2}
+                  maxLength={1000}
+                  value={form.business_context.brand_aliases}
+                  onChange={(e) => setForm({
+                    ...form,
+                    business_context: { ...form.business_context, brand_aliases: e.target.value },
                   })}
                 />
                 <Textarea
@@ -1394,6 +1422,21 @@ export default function AdminPage() {
                       className="text-xs"
                       onBlur={(e) => saveNotes(audit.id, e.target.value)}
                     />
+                  </div>
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor={`brand-aliases-${audit.id}`}>
+                      Brand aliases (semicolon-separated; maximum 10)
+                    </label>
+                    <Textarea
+                      id={`brand-aliases-${audit.id}`}
+                      placeholder="e.g. Saudi National Bank; SNB"
+                      defaultValue={audit.business_context?.brand_aliases || ''}
+                      rows={2}
+                      maxLength={1000}
+                      className="text-xs"
+                      onBlur={(e) => saveBrandAliases(audit.id, e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Save, then re-generate with reused evidence to re-score stored answers without new engine calls.</p>
                   </div>
                   <div className="mt-3">
                     <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor={`reviewer-note-${audit.id}`}>

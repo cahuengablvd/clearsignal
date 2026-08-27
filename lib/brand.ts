@@ -17,6 +17,41 @@ export type BrandEntity = {
   alternative_brand_forms: string[]
 }
 
+/**
+ * Clean the operator's semicolon-separated names without guessing whether they
+ * belong to the business. That judgement belongs to the operator and review
+ * gate, not the domain-stem heuristic used for page-derived candidates.
+ */
+export function parseBrandAliases(value: string | null | undefined): string[] {
+  const seen = new Set<string>()
+  const aliases: string[] = []
+  for (const raw of (value || '').split(';')) {
+    const alias = raw.trim()
+    // Case- and punctuation-insensitive de-duplication, while preserving the
+    // operator's spelling for the report header.
+    const key = alias.toLocaleLowerCase().replace(/[\s\p{P}\p{S}_]+/gu, '')
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    aliases.push(alias)
+  }
+  return aliases
+}
+
+/** Merge confirmed operator aliases ahead of heuristic page-derived forms. */
+export function mergeBrandAliases(entity: BrandEntity, operatorAliases?: string): BrandEntity {
+  const canonicalKey = normalizeToken(entity.canonical_brand)
+  const alternatives = new Map<string, string>()
+  const add = (value: string) => {
+    const key = value.toLocaleLowerCase().replace(/[\s\p{P}\p{S}_]+/gu, '')
+    if (!key || key === canonicalKey || alternatives.has(key)) return
+    alternatives.set(key, value)
+  }
+  // Operator input wins spelling/order when it duplicates a page heuristic.
+  for (const alias of parseBrandAliases(operatorAliases)) add(alias)
+  for (const alias of entity.alternative_brand_forms) add(alias)
+  return { ...entity, alternative_brand_forms: [...alternatives.values()] }
+}
+
 function titleCase(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }

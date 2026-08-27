@@ -4,10 +4,12 @@ import { sanitizeGeneratedReportValue } from './sanitize'
 import { rebuildReusedGeoNarrative } from './audit-runner'
 import { archiveCurrentReportVersion } from './report-versions'
 import { buildVerifiedFactsLayer } from './verified-facts'
+import { normalizeBusinessContext } from './business-context'
 import { appendAdminNote } from './admin-notes'
 import { requireSupabaseWrite } from './supabase-write'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import type { BusinessContext, ClearSignalReport } from './schemas'
+import { mergeBrandAliases } from './brand'
 
 export async function rerenderStoredAuditReport(auditId: string): Promise<{
   validation_warnings: string[]
@@ -27,10 +29,20 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
   }
 
   const existing = audit.report as ClearSignalReport
-  const businessContext = (existing.meta.business_context || audit.business_context) as BusinessContext | undefined
+  // The audit row is the operator-editable source of truth. Merge it over the
+  // historic report context so an alias saved after generation takes effect.
+  const businessContext = normalizeBusinessContext({
+    ...(existing.meta.business_context || {}),
+    ...(audit.business_context || {}),
+  }) as BusinessContext
+  const brandEntity = mergeBrandAliases({
+    canonical_brand: existing.meta.canonical_brand || existing.geo?.brand || '',
+    domain: existing.meta.domain || existing.meta.url,
+    alternative_brand_forms: existing.meta.alternative_brand_forms || [],
+  }, businessContext?.brand_aliases)
   const rebuiltGeo = existing.geo ? rebuildReusedGeoNarrative(existing.geo, {
-    canonicalBrand: existing.meta.canonical_brand,
-    alternativeBrandForms: existing.meta.alternative_brand_forms,
+    canonicalBrand: brandEntity.canonical_brand,
+    alternativeBrandForms: brandEntity.alternative_brand_forms,
   }) : null
   const technicalEligibility = existing.technical_eligibility || rebuiltGeo?.technical_eligibility
   const geo = rebuiltGeo ? {
@@ -53,6 +65,8 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
     validation_warnings: [],
     meta: {
       ...existing.meta,
+      canonical_brand: brandEntity.canonical_brand,
+      alternative_brand_forms: brandEntity.alternative_brand_forms,
       business_context: businessContext ?? existing.meta.business_context,
       verified_facts_layer: verifiedFactsLayer,
     },

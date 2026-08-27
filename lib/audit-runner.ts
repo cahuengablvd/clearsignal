@@ -2,7 +2,7 @@ import { supabaseAdmin } from './supabase'
 import { scrapeUrl, scrapePage, type ScrapedPage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
 import { requireUsableScrape } from './scrape-quality'
-import { resolveBrandEntity } from './brand'
+import { mergeBrandAliases, resolveBrandEntity } from './brand'
 import { inferObservedBusinessContext, normalizeBusinessContext } from './business-context'
 import { validateReport } from './report-validator'
 import { computeTechnicalFindings } from './findings'
@@ -117,14 +117,14 @@ export function reusableGeoFromAudit(audit: {
   competitor_1?: string | null
   competitor_2?: string | null
   competitor_3?: string | null
-}): GeoResult | null {
+}, currentBrand?: { canonicalBrand: string; alternativeBrandForms: string[] }): GeoResult | null {
   const maybeReport = audit.report as { geo?: unknown; meta?: { canonical_brand?: string; alternative_brand_forms?: string[] } } | null | undefined
   if (!maybeReport?.geo) return null
   const parsed = GeoResultSchema.safeParse(maybeReport.geo)
   if (!parsed.success || parsed.data.evidence.length === 0) return null
   return rebuildReusedGeoNarrative(parsed.data, {
-    canonicalBrand: maybeReport.meta?.canonical_brand,
-    alternativeBrandForms: maybeReport.meta?.alternative_brand_forms,
+    canonicalBrand: currentBrand?.canonicalBrand || maybeReport.meta?.canonical_brand,
+    alternativeBrandForms: currentBrand?.alternativeBrandForms || maybeReport.meta?.alternative_brand_forms,
     explicitCompetitors: [audit.competitor_1, audit.competitor_2, audit.competitor_3]
       .filter((value): value is string => Boolean(value)),
   })
@@ -647,11 +647,12 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     })
     // Resolve ONE brand entity from the page (not just the domain label) so the
     // report stops mixing "BLVD Production", "Blvdprod" and "blvdprod.com".
-    const brandEntity = resolveBrandEntity({
+    const resolvedBrandEntity = resolveBrandEntity({
       url: audit.url,
       html: targetPage.html,
       markdown: targetMarkdown,
     })
+    const brandEntity = mergeBrandAliases(resolvedBrandEntity, businessContext.brand_aliases)
     const brand = brandEntity.canonical_brand
     const eligibilityPromise = checkTechnicalEligibility({
       url: audit.url,
@@ -664,7 +665,12 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
 
     // 3b. Live AI-visibility (GEO/AEO) scan - full breadth across every
     // configured engine. Runs alongside the messaging analysis below.
-    const reusedGeo = opts.reuseGeoEvidence ? reusableGeoFromAudit(audit) : null
+    const reusedGeo = opts.reuseGeoEvidence
+      ? reusableGeoFromAudit(audit, {
+          canonicalBrand: brandEntity.canonical_brand,
+          alternativeBrandForms: brandEntity.alternative_brand_forms,
+        })
+      : null
     if (reusedGeo) {
       console.log(`[audit-runner] reusing GEO evidence for ${auditId}: ${reusedGeo.evidence.length} combinations`)
     }
@@ -701,6 +707,8 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
             analyzeSources: true,
             maxSources: 6,
             targetMarkdown,
+            brandAliases: brandEntity.alternative_brand_forms,
+            businessModel: businessContext.business_model,
             onUsage: (event) => cost.add(event),
             meta: {
               auditId,

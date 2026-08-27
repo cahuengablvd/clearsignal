@@ -104,7 +104,26 @@ describe('GEO competitor and cited-source hygiene', () => {
       narrative: false,
     })
 
-    expect(result.competitor_visibility).toEqual([{ name: 'Chatgpt', mention_rate: 100 }])
+    expect(result.competitor_visibility).toEqual([])
+    expect(result.entity_resolution?.entities.find((entity) => entity.role === 'engine')?.state).toBe('rejected')
+  })
+
+  it('does not discover an operator-confirmed brand alias as a competitor', async () => {
+    queryEngine.mockResolvedValue({ ok: true, answer: 'Saudi National Bank (SNB) is a leading option. '.repeat(10), citations: [], attempts: 1 })
+    callClaudeJSON.mockResolvedValue({ competitors: ['SNB', 'Genuine Rival'] })
+
+    const result = await runGeoScan({
+      brand: 'Alahli',
+      brandAliases: ['Saudi National Bank', 'SNB'],
+      url: 'https://alahli.com',
+      providedQueries: ['Which option should I choose?'],
+      engines: ['openai'],
+      analyzeSources: false,
+      narrative: false,
+    })
+
+    expect(result.evidence[0]?.brand_mentioned).toBe(true)
+    expect(result.competitor_visibility.map((competitor) => competitor.name)).not.toContain('SNB')
   })
 
   it('counts registrable cited domains and never a bare public suffix', async () => {

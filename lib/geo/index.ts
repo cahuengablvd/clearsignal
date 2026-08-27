@@ -313,6 +313,11 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const engines = opts.engines ?? availableEngines()
   const brandDomain = registrableDomain(url)
   const brandVariants = buildVariants({ name: brand, url })
+  for (const alias of opts.brandAliases || []) {
+    for (const token of buildVariants({ name: alias }).tokens) {
+      if (!brandVariants.tokens.includes(token)) brandVariants.tokens.push(token)
+    }
+  }
 
   // A4 plan controls IDs, buyer intent and scope. Legacy input gets honest minimal provenance.
   let queryPlan = opts.queryPlan

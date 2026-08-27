@@ -10,18 +10,21 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-21. R35-R37 are fixed and production-verified; Vertex remains awaiting review and was not delivered.
+**Last updated:** 2026-08-27. R39 brand aliases are deployed to Vercel and Trigger; the paid-audit regeneration verification remains pending. No customer delivery occurred.
 
 ## Deploys
 
-- **Vercel** — auto-deploys `main`; production admin reports app commit `d50def9`.
-- **Trigger.dev** — version **`20260821.3`**, deployed from `C:\csdeploy` at commit `d50def9`,
-  5 tasks. Carries the R34 spend guard and the R35-R37 report-coherence checks.
+- **Vercel** — production deployment includes R39 brand-alias code from **`8d68d60`**.
+- **Trigger.dev** — version **`20260827.2`**, deployed from `C:\csdeploy` at commit
+  **`8d68d60`** (R39 brand aliases), 5 tasks; deployment succeeded.
 - **Supabase** — migration `014_daily_ai_spend_guard.sql` applied 2026-08-21 with RLS enabled.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
 - Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
   on a version mismatch. See `DEPLOY.md`.
+- **A1 reminder:** any A1 change touching `lib/geo/*` requires a separate Trigger deploy from
+  `C:\csdeploy`; Vercel's `main` deployment alone does not make it live. Observe first production
+  A1 report size before declaring that operational check closed.
 
 ## Blocked on the owner, not on code
 
@@ -67,6 +70,27 @@ a handler is written. Three or more agencies raising it means a positioning prob
 
 ## Verification standing
 
+- **R39 PRODUCTION VERIFICATION PENDING.** Set `Saudi National Bank; SNB; SNB AlAhli` on paid audit
+  `63bfd278`, then run one full regeneration (fresh engines, early in the day and within the spend cap).
+  Confirm the named count rises from 1/15 and no alias appears as a competitor before customer delivery.
+
+- **A3 PRODUCTION VERIFICATION PENDING.** Commit `9889879` has deployment parity across
+  `origin/main`, Vercel, and `C:\csdeploy`; Trigger `20260827.1` deployed successfully. The signed-in
+  admin create form is ready, but no controlled audit was submitted because browser confirmation is
+  required immediately before transmitting the audit context and incurring production API spend.
+
+- **A4 PRODUCTION VERIFIED — READY FOR A3.** Controlled audit
+  `d1d99664-14a2-4b86-9948-f18564bee0d0` (`getclearsignal.io`) is `awaiting_review`, not delivered.
+  Its final report ran on Trigger `20260825.5` / commit `639e1d3`: core ledger 18 expected, 13 successful,
+  5 failed; supplemental ledger 6 expected, 5 successful, 1 failed. Core and supplemental reconcile
+  independently; 24 ledger pairs are unique; provenance/evidence IDs and A1 fields are mechanically clean.
+  The intended core-only coverage gate failed (Claude 5/6, Perplexity 2/6, OpenAI 6/6). Final row-to-report
+  duration was ~1h22m25s, API cost `$2.917636`, and stored report JSON was 148,397 UTF-8 bytes; admin diagnostics remained responsive.
+- **A1 production verified — ready for A4.** Controlled comped audit `bcdbba5a-3004-4241-af2c-5cd9549b175f`
+  (`getclearsignal.io`) completed `awaiting_review` in ~5m13s at `$1.361498`, with no delivery.
+  Ledger: 18/18 rows; 15/18 successful (Claude 6/6, Perplexity 3/6, OpenAI 6/6). Gate correctly
+  failed because Perplexity was below 4/6: Q3/Q5/Q6 were HTTP 429 `provider_error` after two attempts.
+  Stored report was 127,686 bytes (~125 KB); admin remained responsive; no A1 integrity defect observed.
 - `vertexspain.com` (audit `beb637a8`) — regenerated once on Trigger `20260821.2`, then re-rendered
   on app commit `d50def9`; `awaiting_review`, not delivered. Production review passed R35-R37: the
   four-sentence summary, first fix and Ship first agree; ready copy names `local business`; detected
@@ -96,6 +120,12 @@ Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
 
 `R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22`, `R30` and `R38` remain open. They wait for real customers
 to set their priority. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
+
+## Deferred follow-up
+
+- Free-score (`/score/[id]`) gate/display behavior was deliberately left unchanged during the paid
+  A1 final pass. Assess and scope it separately; do not treat the paid-report `report_only` rollback
+  as a free-score fix.
 
 ## Cost
 

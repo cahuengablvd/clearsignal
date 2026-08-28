@@ -18,6 +18,36 @@ vi.mock('../lib/ai-observability', () => ({
 
 import { callClaudeJSON } from '../lib/anthropic'
 import { queryEngine } from '../lib/geo/engines'
+import { ActionGenerationBlockSchema } from '../lib/schemas'
+
+function actionResponse(description: string | undefined) {
+  const fix = {
+    id: 1,
+    title: 'Clarify the category page',
+    ...(description === undefined ? {} : { description }),
+    impact: 'high',
+    effort: 'easy',
+    category: 'copy',
+  }
+  return {
+    executive_summary: 'ClearSignal has a specific starting point.',
+    top_fixes: [fix, { ...fix, id: 2 }, { ...fix, id: 3 }],
+    ship_first: ['Clarify the category page'],
+    ignore_for_now: ['Delay lower-priority outreach changes'],
+    outreach_messages: [
+      { channel: 'linkedin', message: 'LinkedIn message.', note: 'Use after the page update.' },
+      { channel: 'email', message: 'Email message.', note: 'Use after the page update.' },
+      { channel: 'twitter', message: 'Twitter message.', note: 'Use after the page update.' },
+    ],
+  }
+}
+
+function claudeJsonResponse(value: unknown) {
+  return {
+    usage: { input_tokens: 10, output_tokens: 5 },
+    content: [{ type: 'text', text: JSON.stringify(value) }],
+  }
+}
 
 function pendingUntilAbort(signal?: AbortSignal): Promise<never> {
   if (!signal) return Promise.reject(new Error('request signal was not provided'))
@@ -119,6 +149,49 @@ describe('engine request cancellation', () => {
     expect(mocks.logAnthropicCall).not.toHaveBeenCalledWith(
       expect.objectContaining({ status: 'succeeded', usage: expect.anything() })
     )
+  })
+
+  it('retries a missing action description and accepts a complete regenerated action object', async () => {
+    mocks.anthropicCreate
+      .mockResolvedValueOnce(claudeJsonResponse(actionResponse(undefined)))
+      .mockResolvedValueOnce(claudeJsonResponse(actionResponse('State the buyer-facing category on the existing page.')))
+
+    await expect(callClaudeJSON({
+      model: 'claude-sonnet-4-6',
+      system: 'Return JSON.',
+      user: 'Return a complete action object.',
+      validate: (value) => ActionGenerationBlockSchema.parse(value),
+      purpose: 'audit:action',
+      meta: { auditId: 'action-retry', stage: 'audit_action' },
+    })).resolves.toMatchObject({
+      top_fixes: expect.arrayContaining([
+        expect.objectContaining({ description: 'State the buyer-facing category on the existing page.' }),
+      ]),
+    })
+
+    expect(mocks.anthropicCreate).toHaveBeenCalledTimes(2)
+    expect(mocks.anthropicCreate.mock.calls[1][0].messages[0].content).toContain('top_fixes')
+    expect(mocks.logAnthropicCall).toHaveBeenLastCalledWith(expect.objectContaining({
+      purpose: 'audit:action:repair',
+      meta: expect.objectContaining({ stage: 'audit_action:repair' }),
+    }))
+  })
+
+  it.each([undefined, '   '])('rejects a retry that still has an invalid action description: %p', async (description) => {
+    mocks.anthropicCreate
+      .mockResolvedValueOnce(claudeJsonResponse(actionResponse(undefined)))
+      .mockResolvedValueOnce(claudeJsonResponse(actionResponse(description)))
+
+    await expect(callClaudeJSON({
+      model: 'claude-sonnet-4-6',
+      system: 'Return JSON.',
+      user: 'Return a complete action object.',
+      validate: (value) => ActionGenerationBlockSchema.parse(value),
+      purpose: 'audit:action',
+      meta: { auditId: 'action-retry', stage: 'audit_action' },
+    })).rejects.toThrow(/top_fixes[\s\S]*description/)
+
+    expect(mocks.anthropicCreate).toHaveBeenCalledTimes(2)
   })
 
   it.each(['openai', 'perplexity'] as const)('aborts the %s web-search fetch on the same engine timeout', async (engine) => {

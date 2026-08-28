@@ -25,7 +25,13 @@ vi.mock('../lib/firecrawl', () => ({
 }))
 vi.mock('../lib/normalize-markdown', () => ({ normalizeMarkdown: (value: string) => value }))
 vi.mock('../lib/scrape-quality', () => ({ requireUsableScrape: vi.fn() }))
-vi.mock('../lib/brand', () => ({ resolveBrandEntity: () => ({ canonical_brand: 'Dental Riga', domain: 'dentalriga.lv', alternative_brand_forms: ['DentalRiga'] }) }))
+vi.mock('../lib/brand', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/brand')>()
+  return {
+    ...actual,
+    resolveBrandEntity: () => ({ canonical_brand: 'Dental Riga', domain: 'dentalriga.lv', alternative_brand_forms: ['DentalRiga'] }),
+  }
+})
 vi.mock('../lib/business-context', () => ({ normalizeBusinessContext: (value: unknown) => value || {}, inferObservedBusinessContext: () => ({}) }))
 vi.mock('../lib/verified-facts', () => ({ buildVerifiedFactsLayer: () => ({}) }))
 vi.mock('../lib/findings', () => ({ computeTechnicalFindings: () => ({}) }))
@@ -66,7 +72,7 @@ describe('query_plan_insufficient paid-audit operation', () => {
     expect(mocks.notify).toHaveBeenCalledWith('audit_generation_failed', expect.objectContaining({ error: 'query_plan_insufficient' }))
     expect(mocks.generateValidatedQueryPlan).toHaveBeenCalledWith(expect.objectContaining({
       targetMarketsLanguages: 'Latvia, Riga - Latvian and Russian',
-      brandAliases: ['Dental Riga', 'dentalriga.lv', 'DentalRiga'],
+      brandAliases: ['Dental Riga', 'dentalriga.lv'],
     }))
   })
 

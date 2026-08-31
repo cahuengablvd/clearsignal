@@ -3,6 +3,7 @@ import { runFullAudit } from '../lib/audit-runner'
 import type { AuditTrigger } from '../lib/audit-execution'
 import { isDeterministicAuditFailure } from '../lib/audit-recovery'
 import { DailyAiSpendBlockedError, enforceDailyAiSpendCap } from '../lib/daily-ai-spend'
+import { markAuditTaskStarted, markUnhandledAuditTaskFailure } from '../lib/audit-task-lifecycle'
 
 export const fullAuditQueue = queue({
   name: 'full-audit',
@@ -14,6 +15,7 @@ type DeploymentIdentity = { version: string; shortCode: string; git?: { commitSh
 
 export async function runAuditWithDeployment(payload: AuditTaskPayload, deployment?: DeploymentIdentity) {
   try {
+    await markAuditTaskStarted(payload.auditId)
     await enforceDailyAiSpendCap(payload.auditId)
     await runFullAudit(payload.auditId, {
       reuseGeoEvidence: payload.reuseGeoEvidence ?? false,
@@ -28,6 +30,7 @@ export async function runAuditWithDeployment(payload: AuditTaskPayload, deployme
     if (err instanceof DailyAiSpendBlockedError || isDeterministicAuditFailure(message)) {
       throw new AbortTaskRunError(message)
     }
+    await markUnhandledAuditTaskFailure(payload.auditId, message)
     throw err
   }
 }

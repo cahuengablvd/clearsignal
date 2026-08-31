@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
     }
   },
   DailyAiSpendBlockedError: class DailyAiSpendBlockedError extends Error {},
+  markAuditTaskStarted: vi.fn(),
+  markUnhandledAuditTaskFailure: vi.fn(),
 }))
 
 vi.mock('@trigger.dev/sdk', () => ({
@@ -26,6 +28,10 @@ vi.mock('../lib/daily-ai-spend', () => ({
   enforceDailyAiSpendCap: mocks.enforceDailyAiSpendCap,
   DailyAiSpendBlockedError: mocks.DailyAiSpendBlockedError,
 }))
+vi.mock('../lib/audit-task-lifecycle', () => ({
+  markAuditTaskStarted: mocks.markAuditTaskStarted,
+  markUnhandledAuditTaskFailure: mocks.markUnhandledAuditTaskFailure,
+}))
 
 import { buildGenerationMeta } from '../lib/audit-runner'
 import { runAuditTask, runAuditWithDeployment } from '../trigger/audit-task'
@@ -35,6 +41,8 @@ describe('generation deployment identity', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.enforceDailyAiSpendCap.mockResolvedValue({ queue_blocked: false })
+    mocks.markAuditTaskStarted.mockResolvedValue(undefined)
+    mocks.markUnhandledAuditTaskFailure.mockResolvedValue(undefined)
   })
 
   it('passes the Trigger deployment version into the audit run', async () => {
@@ -47,6 +55,7 @@ describe('generation deployment identity', () => {
       engineVersion: '20260812.3',
       engineCommit: 'abc123def',
     }))
+    expect(mocks.markAuditTaskStarted).toHaveBeenCalledWith('audit-123')
   })
 
   it('aborts task-level retries for a classified deterministic failure', async () => {
@@ -58,6 +67,7 @@ describe('generation deployment identity', () => {
       name: 'AbortTaskRunError',
       message: expect.stringContaining('Report validation blocked'),
     })
+    expect(mocks.markUnhandledAuditTaskFailure).not.toHaveBeenCalled()
   })
 
   it('does not start a queued Trigger run after earlier work consumes the cap', async () => {
@@ -69,6 +79,20 @@ describe('generation deployment identity', () => {
       name: 'AbortTaskRunError',
     })
     expect(mocks.runFullAudit).not.toHaveBeenCalled()
+    expect(mocks.markUnhandledAuditTaskFailure).not.toHaveBeenCalled()
+  })
+
+  it('does not leave a queued audit behind when task-start work fails before generation', async () => {
+    const startupFailure = new Error('Supabase runtime initialization failed')
+    mocks.enforceDailyAiSpendCap.mockRejectedValueOnce(startupFailure)
+
+    await expect(runAuditWithDeployment({ auditId: 'audit-startup-failure' })).rejects.toBe(startupFailure)
+
+    expect(mocks.runFullAudit).not.toHaveBeenCalled()
+    expect(mocks.markUnhandledAuditTaskFailure).toHaveBeenCalledWith(
+      'audit-startup-failure',
+      'Supabase runtime initialization failed'
+    )
   })
 
   it('keeps task-level retries enabled for transient failures', async () => {
@@ -76,6 +100,7 @@ describe('generation deployment identity', () => {
     mocks.runFullAudit.mockRejectedValueOnce(transient)
 
     await expect(runAuditWithDeployment({ auditId: 'audit-transient' })).rejects.toBe(transient)
+    expect(mocks.markUnhandledAuditTaskFailure).toHaveBeenCalledWith('audit-transient', 'Anthropic network timeout')
     expect((runAuditTask as any).retry).toEqual({ maxAttempts: 2 })
   })
 

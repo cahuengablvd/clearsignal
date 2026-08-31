@@ -3,7 +3,7 @@ import { runFullAudit } from '../lib/audit-runner'
 import type { AuditTrigger } from '../lib/audit-execution'
 import { isDeterministicAuditFailure } from '../lib/audit-recovery'
 import { DailyAiSpendBlockedError, enforceDailyAiSpendCap } from '../lib/daily-ai-spend'
-import { markAuditTaskStarted, markUnhandledAuditTaskFailure } from '../lib/audit-task-lifecycle'
+import { markAuditTaskSpendBlocked, markAuditTaskStarted, markUnhandledAuditTaskFailure } from '../lib/audit-task-lifecycle'
 
 export const fullAuditQueue = queue({
   name: 'full-audit',
@@ -14,8 +14,9 @@ type AuditTaskPayload = { auditId: string; reuseGeoEvidence?: boolean; trigger?:
 type DeploymentIdentity = { version: string; shortCode: string; git?: { commitSha?: string } }
 
 export async function runAuditWithDeployment(payload: AuditTaskPayload, deployment?: DeploymentIdentity) {
+  let processingStartedAt: string | null = null
   try {
-    await markAuditTaskStarted(payload.auditId)
+    processingStartedAt = await markAuditTaskStarted(payload.auditId)
     await enforceDailyAiSpendCap(payload.auditId)
     await runFullAudit(payload.auditId, {
       reuseGeoEvidence: payload.reuseGeoEvidence ?? false,
@@ -27,7 +28,11 @@ export async function runAuditWithDeployment(payload: AuditTaskPayload, deployme
     return { auditId: payload.auditId, status: 'done' }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    if (err instanceof DailyAiSpendBlockedError || isDeterministicAuditFailure(message)) {
+    if (err instanceof DailyAiSpendBlockedError) {
+      if (processingStartedAt) await markAuditTaskSpendBlocked(payload.auditId, processingStartedAt)
+      throw new AbortTaskRunError(message)
+    }
+    if (isDeterministicAuditFailure(message)) {
       throw new AbortTaskRunError(message)
     }
     await markUnhandledAuditTaskFailure(payload.auditId, message)

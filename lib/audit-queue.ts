@@ -1,5 +1,4 @@
 import { runFullAudit } from './audit-runner'
-import { supabaseAdmin } from './supabase'
 import type { AuditTrigger } from './audit-execution'
 import { enforceDailyAiSpendCap } from './daily-ai-spend'
 
@@ -10,13 +9,13 @@ export type EnqueueAuditOptions = {
   trigger?: AuditTrigger
   endpoint?: string
 }
-
 /**
  * Kick off a paid audit.
  *
  * Production requires Trigger.dev so paid audits are durable and retryable.
- * If enqueue fails, keep the audit queued and throw so Stripe can retry the
- * webhook. Local development falls back to the old in-process runner.
+ * State transitions belong to the caller so an enqueue failure cannot overwrite
+ * a recovery claim or a task that has already started. Local development falls
+ * back to the old in-process runner.
  */
 export async function enqueueAudit(auditId: string, opts: EnqueueAuditOptions = {}): Promise<void> {
   await enforceDailyAiSpendCap(auditId)
@@ -36,31 +35,17 @@ export async function enqueueAudit(auditId: string, opts: EnqueueAuditOptions = 
       console.error('[audit-queue] Trigger.dev enqueue failed for', auditId, err)
 
       if (isProduction) {
-        await markQueued(auditId)
         throw err
       }
 
       console.warn('[audit-queue] dev fallback: running in-process')
     }
   } else if (isProduction) {
-    console.error('[audit-queue] TRIGGER_SECRET_KEY is not set in production; leaving audit queued:', auditId)
-    await markQueued(auditId)
+    console.error('[audit-queue] TRIGGER_SECRET_KEY is not set in production:', auditId)
     throw new Error('Trigger.dev is not configured in production')
   }
 
   runFullAudit(auditId, { ...opts, trigger: opts.trigger ?? 'dev_fallback' }).catch((err) => {
     console.error('[audit-queue] in-process runFullAudit failed for', auditId, err)
   })
-}
-
-async function markQueued(auditId: string) {
-  const queuedAt = new Date().toISOString()
-  const { error } = await supabaseAdmin
-    .from('audits')
-    .update({ audit_status: 'queued', queued_at: queuedAt, processing_started_at: null })
-    .eq('id', auditId)
-
-  if (error) {
-    console.error('[audit-queue] failed to mark audit queued:', error)
-  }
 }

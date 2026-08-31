@@ -50,18 +50,20 @@ function request(body: Record<string, unknown>) {
 }
 
 function setupSupabase({ stageDeleteError = null }: { stageDeleteError?: unknown } = {}) {
-  mocks.auditEq.mockReset()
   mocks.selectSingle.mockResolvedValue({ data: mocks.audit, error: null })
-  mocks.auditEq
-    .mockReturnValueOnce({ single: mocks.selectSingle })
-    .mockReturnValueOnce({ error: null })
-  mocks.auditUpdate.mockReturnValue({ eq: mocks.auditEq })
+  const auditWrite: any = {
+    eq: vi.fn(() => auditWrite),
+    select: vi.fn(() => Promise.resolve({ data: [{ id: 'audit-1' }], error: null })),
+    then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+  }
+  mocks.auditEq.mockImplementation(() => auditWrite)
+  mocks.auditUpdate.mockReturnValue(auditWrite)
   mocks.stageEq.mockReturnValue({ error: stageDeleteError })
   mocks.stageDelete.mockReturnValue({ eq: mocks.stageEq })
   mocks.from.mockImplementation((table: string) => {
     if (table === 'audits') {
       return {
-        select: vi.fn(() => ({ eq: mocks.auditEq })),
+        select: vi.fn(() => ({ eq: () => ({ single: mocks.selectSingle }) })),
         update: mocks.auditUpdate,
       }
     }
@@ -101,13 +103,13 @@ describe('admin audit regeneration route', () => {
     expect(mocks.stageDelete).toHaveBeenCalled()
     expect(mocks.stageEq).toHaveBeenCalledWith('audit_id', 'audit-1')
     expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      audit_status: 'queued',
-      queued_at: expect.any(String),
+      audit_status: 'processing',
+      processing_started_at: expect.any(String),
       recovery_attempts: 0,
     }))
     expect(mocks.enqueueAudit).toHaveBeenCalledWith('audit-1', expect.objectContaining({
       trigger: 'admin_regenerate',
-      reuseGeoEvidence: true,
+      reuseGeoEvidence: false,
     }))
     expect(mocks.stageDelete.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.enqueueAudit.mock.invocationCallOrder[0]
@@ -122,7 +124,8 @@ describe('admin audit regeneration route', () => {
 
     expect(res.status).toBe(500)
     expect(body).toEqual({ error: 'Failed to clear cached audit stages' })
-    expect(mocks.auditUpdate).not.toHaveBeenCalled()
+    expect(mocks.auditUpdate).toHaveBeenNthCalledWith(1, expect.objectContaining({ audit_status: 'processing' }))
+    expect(mocks.auditUpdate).toHaveBeenNthCalledWith(2, expect.objectContaining({ audit_status: 'queued', processing_started_at: null }))
     expect(mocks.enqueueAudit).not.toHaveBeenCalled()
   })
 
@@ -174,11 +177,11 @@ describe('admin audit regeneration route', () => {
 
     expect(res.status).toBe(200)
     expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      audit_status: 'queued',
-      queued_at: expect.any(String),
+      audit_status: 'processing',
+      processing_started_at: expect.any(String),
       recovery_attempts: 0,
-      admin_notes: expect.stringMatching(/Deterministic failure override.*admin operator/i),
     }))
+    expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({ admin_notes: expect.stringMatching(/Deterministic failure override.*admin operator/i) }))
     expect(mocks.enqueueAudit).toHaveBeenCalledWith('audit-1', expect.objectContaining({
       trigger: 'admin_regenerate',
     }))

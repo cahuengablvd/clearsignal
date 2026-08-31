@@ -18,9 +18,15 @@ vi.mock('../lib/supabase', () => ({
                 lt: () => Promise.resolve({ data: mocks.staleProcessingRows, error: null }),
               },
       }),
-      update: mocks.update.mockImplementation(() => ({
-        eq: () => Promise.resolve({ error: null }),
-      })),
+      update: mocks.update.mockImplementation(() => {
+        const builder: any = {
+          eq: () => builder,
+          lt: () => builder,
+          select: () => Promise.resolve({ data: [{ id: 'claimed' }], error: null }),
+          then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+        }
+        return builder
+      }),
     }),
   },
 }))
@@ -168,6 +174,7 @@ describe('audit recovery guard', () => {
       re_enqueued: 1,
     }))
     expect(mocks.enqueueAudit).toHaveBeenCalledWith('stale-processing', {
+      reuseGeoEvidence: false,
       trigger: 'recovery',
       endpoint: 'audit-recovery',
     })

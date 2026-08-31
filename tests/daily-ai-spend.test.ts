@@ -81,7 +81,7 @@ describe('daily AI spend guard', () => {
     expect(mocks.logQuery.lt).toHaveBeenCalledWith('created_at', '2026-08-22T00:00:00.000Z')
   })
 
-  it('leaves the audit queued, names the cap and total, and alerts only once per UTC day', async () => {
+  it('blocks the queue, names the cap and total, and alerts only once per UTC day', async () => {
     mocks.state.logs = [{ estimated_cost_usd: 2.75 }]
 
     await expect(
@@ -91,10 +91,7 @@ describe('daily AI spend guard', () => {
       message: expect.stringMatching(/cap.*\$2\.50.*current.*\$2\.75/i),
     }))
 
-    expect(mocks.auditUpdate.update).toHaveBeenCalledWith(expect.objectContaining({
-      audit_status: 'queued',
-      processing_started_at: null,
-    }))
+    expect(mocks.auditUpdate.update).not.toHaveBeenCalled()
     expect(mocks.notify).toHaveBeenCalledTimes(1)
 
     mocks.state.alertInsertError = { code: '23505', message: 'duplicate key' }

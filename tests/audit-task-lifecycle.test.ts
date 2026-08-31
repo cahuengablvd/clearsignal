@@ -18,6 +18,8 @@ vi.mock('../lib/supabase', () => ({
         mocks.updates.push(patch)
         const builder = {
           eq: (_column: string, _value: string) => builder,
+          in: (_column: string, _values: string[]) => builder,
+          select: (_columns: string) => Promise.resolve({ data: [{ id: 'audit-1' }], error: mocks.writeError }),
           then: (resolve: (value: { error: typeof mocks.writeError }) => unknown) =>
             Promise.resolve({ error: mocks.writeError }).then(resolve),
         }

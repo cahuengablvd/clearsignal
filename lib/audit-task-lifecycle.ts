@@ -8,16 +8,32 @@ const TASK_RUNTIME_FAILURE_CODE = 'task_runtime_failure'
  * Advance a durable Trigger run out of queued before work that can fail before
  * runFullAudit() reaches its own processing-state write.
  */
-export async function markAuditTaskStarted(auditId: string): Promise<void> {
-  const { error } = await supabaseAdmin
+export async function markAuditTaskStarted(auditId: string): Promise<string> {
+  const processingStartedAt = new Date().toISOString()
+  const { data, error } = await supabaseAdmin
     .from('audits')
     .update({
       audit_status: 'processing',
-      processing_started_at: new Date().toISOString(),
+      processing_started_at: processingStartedAt,
     })
     .eq('id', auditId)
+    .in('audit_status', ['queued', 'processing'])
+    .select('id')
 
   requireSupabaseWrite(error, `audits task start state for audit ${auditId}`)
+  if (!data?.length) throw new Error(`Audit task start claim lost for audit ${auditId}`)
+  return processingStartedAt
+}
+
+/** Return a spend-blocked task to the queue without clobbering later work. */
+export async function markAuditTaskSpendBlocked(auditId: string, processingStartedAt: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('audits')
+    .update({ audit_status: 'queued', queued_at: new Date().toISOString(), processing_started_at: null })
+    .eq('id', auditId)
+    .eq('audit_status', 'processing')
+    .eq('processing_started_at', processingStartedAt)
+  requireSupabaseWrite(error, `audits task spend-blocked queue state for audit ${auditId}`)
 }
 
 /**

@@ -1,6 +1,5 @@
 import { notify } from './notify'
 import { supabaseAdmin } from './supabase'
-import { requireSupabaseWrite } from './supabase-write'
 
 export const DEFAULT_DAILY_AI_SPEND_CAP_USD = 5
 
@@ -83,18 +82,6 @@ export async function getDailyAiSpendStatus(now = new Date()): Promise<DailyAiSp
   }
 }
 
-async function keepAuditQueued(auditId: string): Promise<void> {
-  const { error } = await supabaseAdmin
-    .from('audits')
-    .update({
-      audit_status: 'queued',
-      queued_at: new Date().toISOString(),
-      processing_started_at: null,
-    })
-    .eq('id', auditId)
-  requireSupabaseWrite(error, `daily AI spend guard state for audit ${auditId}`)
-}
-
 async function notifyBlockedOnce(
   auditId: string,
   status: DailyAiSpendStatus,
@@ -141,7 +128,6 @@ export async function enforceDailyAiSpendCap(
     ? `Daily AI spend cap $${status.cap_usd.toFixed(2)} cannot be checked; current UTC-day total is unavailable (${status.error || 'unknown ledger error'}).`
     : `Daily AI spend cap $${status.cap_usd.toFixed(2)} reached; current UTC-day total is $${status.spend_usd.toFixed(2)}.`
 
-  await keepAuditQueued(auditId)
   await notifyBlockedOnce(auditId, status, reason)
   throw new DailyAiSpendBlockedError(reason, status)
 }

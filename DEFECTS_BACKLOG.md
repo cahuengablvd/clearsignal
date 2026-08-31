@@ -214,3 +214,26 @@ unless you are investigating a regression in one of them.
   competitor exclusion and the report header; exact token matching, capped at 10.
 - Spec: `TASKS_BRAND_ALIASES.md`.
 
+## Non-blocking A3 report follow-up
+
+### Report synthesis contradiction
+
+- Verified signal says FAQ/Q&A exists, but cited-source gap analysis later says FAQ/Q&A is missing and recommends adding it.
+- Classification: report synthesis/content-quality; not A3.
+
+### Evidence-to-action relevance
+
+- Some actions cite evidence that is weakly or tangentially related. Example: “Add location and ICP signals” is backed by `OBS-FAQ-001`.
+- An evidence-basis / evidence-id desync was also observed in another action.
+- Classification: action synthesis/evidence alignment; not A3.
+
+### Data-limitations scope count
+
+- Data limitations says 17 tested engine-query combinations because it includes 14 core plus 3 supplemental combinations, while GEO reporting correctly uses core-only counts.
+- Clarify this as either the core-only count or explicit “14 core + 3 secondary-language.”
+- Classification: report disclosure consistency; not A3.
+
+### PDF glyph spot-check
+
+- Manually spot-check Latvian and Russian characters before delivery. No rendering defect has been confirmed.
+- Classification: QA observation; not blocker.

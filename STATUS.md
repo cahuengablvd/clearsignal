@@ -10,13 +10,14 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-27. R39 brand aliases are deployed to Vercel and Trigger; the paid-audit regeneration verification remains pending. No customer delivery occurred.
+**Last updated:** 2026-08-31. A3 production verification is formally closed; no customer delivery occurred.
 
 ## Deploys
 
-- **Vercel** — production deployment includes R39 brand-alias code from **`8d68d60`**.
-- **Trigger.dev** — version **`20260827.2`**, deployed from `C:\csdeploy` at commit
-  **`8d68d60`** (R39 brand aliases), 5 tasks; deployment succeeded.
+- **Vercel** — production `/api/health` reports **`f905c41`**.
+- **Trigger.dev** — current/deployed version **`20260831.1`**, deployed from the clean no-space
+  checkout at **`f905c41ef6bdaa23e7cb7808d2e4d81b9ad4ced3`**; runtime `node-22` / Node `22.16.0`,
+  `git.dirty: false`, 5 tasks.
 - **Supabase** — migration `014_daily_ai_spend_guard.sql` applied 2026-08-21 with RLS enabled.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
@@ -74,10 +75,15 @@ a handler is written. Three or more agencies raising it means a positioning prob
   `63bfd278`, then run one full regeneration (fresh engines, early in the day and within the spend cap).
   Confirm the named count rises from 1/15 and no alias appears as a competitor before customer delivery.
 
-- **A3 PRODUCTION VERIFICATION PENDING.** Commit `9889879` has deployment parity across
-  `origin/main`, Vercel, and `C:\csdeploy`; Trigger `20260827.1` deployed successfully. The signed-in
-  admin create form is ready, but no controlled audit was submitted because browser confirmation is
-  required immediately before transmitting the audit context and incurring production API spend.
+- **A3 PRODUCTION VERIFIED — READY FOR A2.** Final production source
+  `f905c41ef6bdaa23e7cb7808d2e4d81b9ad4ced3`; Trigger `20260831.1`, runtime `node-22` / Node `22.16.0`,
+  `git.dirty: false`. Controlled audit `d8945b66-77ef-4bf9-b80b-ed957d7fb335` recovered successfully in
+  `run_06g5gq2fvb2l24lrvk5p7j0h01` and is `awaiting_review`, not delivered. Core plan 6/6 valid; S1 valid;
+  S2 unavailable (`meta_words`, `engine_name`). Coverage: Claude 6/6, Perplexity 2/6, OpenAI 6/6. Report JSON
+  141,550 bytes; duration ~334.584s; audit-row/AI-call cost `$1.421680`; provider breakdown `$1.459371`.
+  Production PDF verified (26 pages). A1 regression PASS; A4 regression PASS; A3 entity pipeline PASS;
+  accepted competitors 0; false-competitor hygiene PASS; atomic recovery PASS; no previous blocker recurred.
+  A3 human-label precision gate is deferred to A5a; 27 labels pending.
 
 - **A4 PRODUCTION VERIFIED — READY FOR A3.** Controlled audit
   `d1d99664-14a2-4b86-9948-f18564bee0d0` (`getclearsignal.io`) is `awaiting_review`, not delivered.

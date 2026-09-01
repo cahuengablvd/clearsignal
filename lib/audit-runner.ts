@@ -1,5 +1,5 @@
 import { supabaseAdmin } from './supabase'
-import { scrapeUrl, scrapePage, type ScrapedPage } from './firecrawl'
+import { scrapeUrl, scrapePage, TargetCrawlError, type ScrapedPage } from './firecrawl'
 import { normalizeMarkdown } from './normalize-markdown'
 import { requireUsableScrape } from './scrape-quality'
 import { mergeBrandAliases, resolveBrandEntity } from './brand'
@@ -57,6 +57,7 @@ import { auditExecutionContext, runAuditStage, type AuditTrigger } from './audit
 import { qualityCriticEnabled, runQualityCritic } from './quality/critic'
 import { reconcileAuditAiCost } from './ai-observability'
 import { isAnswerEngineCompetitorName } from './engine-scope'
+import { isDeterministicAuditFailure } from './audit-recovery'
 import { buildEngineCoverage, evaluateCoverageGate, SUCCESSFUL_STATUSES, type LedgerRow } from './geo/coverage'
 import { resolveEntities } from './geo/entities'
 
@@ -66,6 +67,10 @@ export type RunFullAuditOptions = {
   endpoint?: string
   engineVersion?: string
   engineCommit?: string
+  /** Trigger keeps transient first-attempt failures fenced in processing. */
+  deferTransientFailure?: boolean
+  /** Durable Trigger run owner; protects later manual/recovery work. */
+  triggerRunId?: string
 }
 
 export function buildGenerationMeta(opts: Pick<RunFullAuditOptions, 'engineVersion' | 'engineCommit'>) {
@@ -598,16 +603,24 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
 
   // 2. Set status to processing
   const processingStartedAt = new Date().toISOString()
-  const { error: processingError } = await supabaseAdmin
-    .from('audits')
-    .update({ audit_status: 'processing', processing_started_at: processingStartedAt })
-    .eq('id', auditId)
-  requireSupabaseWrite(processingError, `audits processing state for audit ${auditId}`)
+  if (!opts.triggerRunId) {
+    const { error: processingError } = await supabaseAdmin
+      .from('audits')
+      .update({ audit_status: 'processing', processing_started_at: processingStartedAt })
+      .eq('id', auditId)
+    requireSupabaseWrite(processingError, `audits processing state for audit ${auditId}`)
+  }
 
   try {
     // 3. Scrape target (markdown + rendered HTML) + competitors
-    const targetPage = await scrapePage(audit.url)
-    cost.addFirecrawlScrape('target_page')
+    let targetPage: ScrapedPage | null
+    try {
+      targetPage = await scrapePage(audit.url)
+    } catch (err) {
+      cost.addFirecrawlScrape('target_page', err instanceof TargetCrawlError ? err.attempts : 1)
+      throw err
+    }
+    cost.addFirecrawlScrape('target_page', targetPage?.attempts ?? 1)
     if (!targetPage) {
       throw new Error(`Failed to scrape target URL: ${audit.url}`)
     }
@@ -615,8 +628,12 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     requireUsableScrape(targetMarkdown)
 
     // 3a. Deterministic structural findings from the rendered HTML.
+    const observedTargetUrl = targetPage.finalUrl || audit.url
+    if (targetPage.finalUrl && targetPage.finalUrl !== audit.url) {
+      console.info(`[audit-runner] target redirect resolved for ${auditId}: ${audit.url} -> ${targetPage.finalUrl}`)
+    }
     const technicalFindings = computeTechnicalFindings({
-      url: audit.url,
+      url: observedTargetUrl,
       html: targetPage.html,
       markdown: targetMarkdown,
     })
@@ -637,7 +654,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     const icp = audit.icp_description || ''
     const businessContext = normalizeBusinessContext(audit.business_context)
     const observedBusinessContext = inferObservedBusinessContext({
-      url: audit.url,
+      url: observedTargetUrl,
       markdown: targetMarkdown,
       html: targetPage.html,
     })
@@ -648,14 +665,14 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     // Resolve ONE brand entity from the page (not just the domain label) so the
     // report stops mixing "BLVD Production", "Blvdprod" and "blvdprod.com".
     const resolvedBrandEntity = resolveBrandEntity({
-      url: audit.url,
+      url: observedTargetUrl,
       html: targetPage.html,
       markdown: targetMarkdown,
     })
     const brandEntity = mergeBrandAliases(resolvedBrandEntity, businessContext.brand_aliases)
     const brand = brandEntity.canonical_brand
     const eligibilityPromise = checkTechnicalEligibility({
-      url: audit.url,
+      url: observedTargetUrl,
       renderedHtml: targetPage.html,
       markdown: targetMarkdown,
     }).catch((err) => {
@@ -1016,7 +1033,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     })
     const reconciledCost = await reconcileAuditAiCost(auditId).catch(() => null)
     const adminNotes = await currentAdminNotes(auditId, audit.admin_notes)
-    const { error: saveError } = await supabaseAdmin
+    let saveQuery = supabaseAdmin
       .from('audits')
       .update({
         report: finalReport,
@@ -1030,8 +1047,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
         api_cost_usd: reconciledCost?.totalUsd ?? cost.totalUsd(),
         api_cost_breakdown: cost.breakdown(),
         quality,
+        trigger_run_id: null,
       })
       .eq('id', auditId)
+    if (opts.triggerRunId) saveQuery = (saveQuery as any).eq('trigger_run_id', opts.triggerRunId)
+    const { error: saveError } = await saveQuery
     requireSupabaseWrite(saveError, `audits report for audit ${auditId}`)
 
     // 9. Delivery is operator-gated by default. During beta, the admin must
@@ -1043,10 +1063,11 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
     console.error(`Audit generation failed for ${auditId}:`, err)
     const errorMessage = err instanceof Error ? err.message : String(err)
     const validationFailed = /Report validation blocked/i.test(errorMessage)
+    const deterministicFailure = validationFailed || isDeterministicAuditFailure(errorMessage)
     const reconciledCost = await reconcileAuditAiCost(auditId).catch(() => null)
     const adminNotes = await currentAdminNotes(auditId, audit.admin_notes)
     const failurePatch: Record<string, unknown> = {
-      audit_status: validationFailed ? 'failed-validation' : 'failed',
+      audit_status: validationFailed ? 'failed-validation' : opts.deferTransientFailure && !deterministicFailure ? 'processing' : 'failed',
       last_generated_at: new Date().toISOString(),
       admin_notes: appendAdminNote(
         adminNotes,
@@ -1054,16 +1075,23 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
       ),
       api_cost_usd: reconciledCost?.totalUsd ?? cost.totalUsd(),
       api_cost_breakdown: cost.breakdown(),
+      ...(opts.deferTransientFailure && !deterministicFailure ? {} : { trigger_run_id: null }),
     }
-    const { error: failureWriteError } = await supabaseAdmin
+    let failureQuery = supabaseAdmin
       .from('audits')
       .update(failurePatch)
       .eq('id', auditId)
+    if (opts.triggerRunId) failureQuery = (failureQuery as any).eq('trigger_run_id', opts.triggerRunId)
+    const { error: failureWriteError } = await failureQuery
     requireSupabaseWrite(failureWriteError, `audits failure state for audit ${auditId}`)
-    await notify('audit_generation_failed', {
-      audit_id: auditId,
-      error: errorMessage,
-    })
+    if (opts.deferTransientFailure && !deterministicFailure) {
+      console.warn(`[audit-runner] transient failure retained for Trigger retry ${auditId}: ${errorMessage.slice(0, 300)}`)
+    } else {
+      await notify('audit_generation_failed', {
+        audit_id: auditId,
+        error: errorMessage,
+      })
+    }
     throw err
   }
 }

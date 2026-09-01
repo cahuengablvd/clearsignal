@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   },
   DailyAiSpendBlockedError: class DailyAiSpendBlockedError extends Error {},
   markAuditTaskStarted: vi.fn(),
+  markAuditTaskSpendBlocked: vi.fn(),
   markUnhandledAuditTaskFailure: vi.fn(),
 }))
 
@@ -30,6 +31,7 @@ vi.mock('../lib/daily-ai-spend', () => ({
 }))
 vi.mock('../lib/audit-task-lifecycle', () => ({
   markAuditTaskStarted: mocks.markAuditTaskStarted,
+  markAuditTaskSpendBlocked: mocks.markAuditTaskSpendBlocked,
   markUnhandledAuditTaskFailure: mocks.markUnhandledAuditTaskFailure,
 }))
 
@@ -41,7 +43,8 @@ describe('generation deployment identity', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.enforceDailyAiSpendCap.mockResolvedValue({ queue_blocked: false })
-    mocks.markAuditTaskStarted.mockResolvedValue(undefined)
+    mocks.markAuditTaskStarted.mockResolvedValue('2026-09-01T12:00:00.000Z')
+    mocks.markAuditTaskSpendBlocked.mockResolvedValue(undefined)
     mocks.markUnhandledAuditTaskFailure.mockResolvedValue(undefined)
   })
 
@@ -55,7 +58,7 @@ describe('generation deployment identity', () => {
       engineVersion: '20260812.3',
       engineCommit: 'abc123def',
     }))
-    expect(mocks.markAuditTaskStarted).toHaveBeenCalledWith('audit-123')
+    expect(mocks.markAuditTaskStarted).toHaveBeenCalledWith('audit-123', { triggerRunId: 'local-trigger-run', attempt: 1 })
   })
 
   it('aborts task-level retries for a classified deterministic failure', async () => {
@@ -82,26 +85,51 @@ describe('generation deployment identity', () => {
     expect(mocks.markUnhandledAuditTaskFailure).not.toHaveBeenCalled()
   })
 
-  it('does not leave a queued audit behind when task-start work fails before generation', async () => {
+  it('keeps a transient first attempt fenced in processing for Trigger retry', async () => {
     const startupFailure = new Error('Supabase runtime initialization failed')
     mocks.enforceDailyAiSpendCap.mockRejectedValueOnce(startupFailure)
 
     await expect(runAuditWithDeployment({ auditId: 'audit-startup-failure' })).rejects.toBe(startupFailure)
 
     expect(mocks.runFullAudit).not.toHaveBeenCalled()
-    expect(mocks.markUnhandledAuditTaskFailure).toHaveBeenCalledWith(
-      'audit-startup-failure',
-      'Supabase runtime initialization failed'
-    )
+    expect(mocks.markUnhandledAuditTaskFailure).not.toHaveBeenCalled()
   })
 
-  it('keeps task-level retries enabled for transient failures', async () => {
+  it('keeps task-level retries enabled for transient failures and only terminalizes the final attempt', async () => {
     const transient = new Error('Anthropic network timeout')
     mocks.runFullAudit.mockRejectedValueOnce(transient)
 
-    await expect(runAuditWithDeployment({ auditId: 'audit-transient' })).rejects.toBe(transient)
-    expect(mocks.markUnhandledAuditTaskFailure).toHaveBeenCalledWith('audit-transient', 'Anthropic network timeout')
+    await expect(runAuditWithDeployment({ auditId: 'audit-transient' }, undefined, { number: 1, runId: 'run-1' })).rejects.toBe(transient)
+    expect(mocks.runFullAudit).toHaveBeenCalledWith('audit-transient', expect.objectContaining({ deferTransientFailure: true, triggerRunId: 'run-1' }))
+    expect(mocks.markUnhandledAuditTaskFailure).not.toHaveBeenCalled()
+
+    mocks.runFullAudit.mockRejectedValueOnce(transient)
+    await expect(runAuditWithDeployment({ auditId: 'audit-transient' }, undefined, { number: 2, runId: 'run-1' })).rejects.toBe(transient)
+    expect(mocks.runFullAudit).toHaveBeenLastCalledWith('audit-transient', expect.objectContaining({ deferTransientFailure: false, triggerRunId: 'run-1' }))
+    expect(mocks.markUnhandledAuditTaskFailure).toHaveBeenCalledWith('audit-transient', 'Anthropic network timeout', 'run-1')
     expect((runAuditTask as any).retry).toEqual({ maxAttempts: 2 })
+  })
+
+  it('allows the same Trigger run to continue successfully on attempt 2', async () => {
+    mocks.runFullAudit.mockResolvedValueOnce(undefined)
+
+    await expect(runAuditWithDeployment({ auditId: 'audit-retry-success' }, undefined, { number: 2, runId: 'run-1' }))
+      .resolves.toEqual({ auditId: 'audit-retry-success', status: 'done' })
+
+    expect(mocks.runFullAudit).toHaveBeenCalledWith('audit-retry-success', expect.objectContaining({
+      deferTransientFailure: false,
+      triggerRunId: 'run-1',
+    }))
+  })
+
+  it.each(['failed-validation', 'awaiting_review'])('does not run when a protected %s audit loses its Trigger-run claim', async () => {
+    mocks.markAuditTaskStarted.mockRejectedValueOnce(new Error('Audit task start claim lost for audit protected'))
+
+    await expect(runAuditWithDeployment({ auditId: 'protected' }, undefined, { number: 2, runId: 'stale-run' }))
+      .rejects.toThrow('claim lost')
+
+    expect(mocks.runFullAudit).not.toHaveBeenCalled()
+    expect(mocks.markUnhandledAuditTaskFailure).not.toHaveBeenCalled()
   })
 
   it('writes an explicitly supplied engine version to report metadata', () => {

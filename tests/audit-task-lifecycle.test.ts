@@ -19,6 +19,7 @@ vi.mock('../lib/supabase', () => ({
         const builder = {
           eq: (_column: string, _value: string) => builder,
           in: (_column: string, _values: string[]) => builder,
+          is: (_column: string, _value: null) => builder,
           select: (_columns: string) => Promise.resolve({ data: [{ id: 'audit-1' }], error: mocks.writeError }),
           then: (resolve: (value: { error: typeof mocks.writeError }) => unknown) =>
             Promise.resolve({ error: mocks.writeError }).then(resolve),
@@ -39,7 +40,7 @@ describe('Trigger audit task lifecycle', () => {
   })
 
   it('moves an audit out of queued as soon as the task starts', async () => {
-    await markAuditTaskStarted('queued-audit')
+    await markAuditTaskStarted('queued-audit', { triggerRunId: 'run-1', attempt: 1 })
 
     expect(mocks.updates).toEqual([expect.objectContaining({
       audit_status: 'processing',
@@ -48,7 +49,7 @@ describe('Trigger audit task lifecycle', () => {
   })
 
   it('records an escaped task-start failure as failed with a useful code', async () => {
-    await markUnhandledAuditTaskFailure('queued-audit', 'runtime failed before generation')
+    await markUnhandledAuditTaskFailure('queued-audit', 'runtime failed before generation', 'run-1')
 
     expect(mocks.updates).toEqual([expect.objectContaining({
       audit_status: 'failed',

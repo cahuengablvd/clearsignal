@@ -46,11 +46,11 @@ export async function claimAuditRecovery(request: RecoveryClaimRequest): Promise
   const claimedAt = (request.now ?? new Date()).toISOString()
   let query: any
   if (request.kind === 'manual') {
-    query = supabaseAdmin.from('audits').update({ audit_status: 'processing', processing_started_at: claimedAt, recovery_attempts: 0 })
+    query = supabaseAdmin.from('audits').update({ audit_status: 'processing', processing_started_at: claimedAt, recovery_attempts: 0, trigger_run_id: null })
       .eq('id', request.auditId).eq('audit_status', request.observedStatus)
   } else {
     const attempts = request.audit.recovery_attempts ?? 0
-    query = supabaseAdmin.from('audits').update({ audit_status: 'processing', processing_started_at: claimedAt, recovery_attempts: attempts + 1 })
+    query = supabaseAdmin.from('audits').update({ audit_status: 'processing', processing_started_at: claimedAt, recovery_attempts: attempts + 1, trigger_run_id: null })
       .eq('id', request.audit.id).eq('audit_status', request.kind === 'queued' ? 'queued' : 'processing').eq('recovery_attempts', attempts)
     query = request.kind === 'queued' ? query.lt('queued_at', request.cutoff) : query.lt('processing_started_at', request.cutoff)
   }
@@ -63,7 +63,7 @@ export async function claimAuditRecovery(request: RecoveryClaimRequest): Promise
 /** Release only the exact claim owner; a started task refreshes this fence. */
 export async function releaseAuditRecoveryClaim(claim: RecoveryClaim): Promise<boolean> {
   const { data, error } = await supabaseAdmin.from('audits')
-    .update({ audit_status: 'queued', queued_at: new Date().toISOString(), processing_started_at: null })
+    .update({ audit_status: 'queued', queued_at: new Date().toISOString(), processing_started_at: null, trigger_run_id: null })
     .eq('id', claim.auditId).eq('audit_status', 'processing').eq('processing_started_at', claim.claimedAt).select('id')
   requireSupabaseWrite(error, `audits ${claim.kind} recovery claim release for audit ${claim.auditId}`)
   return Boolean(data?.length)

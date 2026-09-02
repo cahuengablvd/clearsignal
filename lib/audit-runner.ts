@@ -39,7 +39,7 @@ import {
 } from './prompts'
 import { deliverAuditEmail } from './email-delivery'
 import { buildGeoSummary, generateValidatedQueryPlan, runGeoScan, validateSavedQueryPlan } from './geo'
-import { buildVariants, citationsInclude, citedDomains, textMentions, firstMentionIndex, sld } from './geo/detect'
+import { buildVariants, citationsInclude, citedDomains, textMentions, firstMentionIndex, registrableDomain, sld } from './geo/detect'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
 import { buildGeoActionEvidenceCatalog } from './geo/action-evidence'
 import { checkTechnicalEligibility } from './geo/eligibility'
@@ -165,6 +165,7 @@ export function recomputeReusedGeoEvidence(
     canonicalBrand?: string
     alternativeBrandForms?: string[]
     explicitCompetitors?: string[]
+    requestedMarketsLanguages?: string
   } = {}
 ): GeoResult {
   const brand = opts.canonicalBrand || geo.brand
@@ -291,6 +292,13 @@ export function recomputeReusedGeoEvidence(
     .map(([domain, count]) => ({ domain, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
+  // Old source analysis may reflect retrieved URLs rather than authoritative
+  // citations. Keep it only for domains recomputed from cited evidence.
+  const authoritativeCitedDomains = new Set(cited_domains_ranked.map((item) => item.domain))
+  const source_gap_analysis = geo.source_gap_analysis?.filter((item) => {
+    const domain = registrableDomain(item.cited_source) || item.cited_source.toLowerCase()
+    return authoritativeCitedDomains.has(domain)
+  })
 
   // Coverage from the full ledger (legacy rows included - a missing `observed_at` must not
   // drop a row). Expected samples come from the configured query count, not from how many
@@ -335,6 +343,7 @@ export function recomputeReusedGeoEvidence(
     avg_position,
     competitor_visibility,
     cited_domains_ranked,
+    source_gap_analysis,
     entity_resolution: { version: process.env.GEO_ENTITY_PIPELINE === 'legacy' ? 'legacy' : 'v1', entities: resolution.entities },
     channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: 'directory', mention_rate: pct(measurementEvidence.filter((item) => (resolution.observationsByAnswer[geo.evidence.indexOf(item)] || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
     score_breakdown: {
@@ -352,16 +361,39 @@ export function recomputeReusedGeoEvidence(
     computation_version: 'rd-01-06',
     computed_by: { version: 'rd-01-06', at: new Date().toISOString(), source: 'reused' },
     measurement_methodology: {
-      market: geo.query_plan?.markets?.length ? geo.query_plan.markets.join(', ') : null,
-      languages_tested: [...new Set(provenance.filter((item) => item.scope === 'core').map((item) => item.language).filter((language) => language !== 'unknown'))],
+      market: measuredMarkets(provenance, geo.query_plan?.markets),
+      languages_tested: measuredLanguages(provenance),
       core_queries: provenance.filter((item) => item.scope === 'core' && item.state === 'valid').length,
       supplemental_queries: provenance.filter((item) => item.scope === 'supplemental' && item.state === 'valid').length,
       providers: configuredEngines.map((engine) => ({ engine, model: evidence.find((item) => item.engine === engine)?.model || null })),
       samples_per_combination: geo.acquisition_protocol?.samples_per_combination || 1,
       user_location: null,
       location_behavior: 'Provider default; no explicit user location was set.',
+      untested_languages_disclosure: untestedLanguageDisclosure(opts.requestedMarketsLanguages, measuredLanguages(provenance)),
+      search_mode_disclosure: searchModeDisclosure(geo.acquisition_protocol),
     },
   }
+}
+
+const LANGUAGE_NAMES: Record<string, string> = { en: 'English', lv: 'Latvian', ru: 'Russian', ar: 'Arabic' }
+function languageName(value: string): string { return LANGUAGE_NAMES[value.trim().toLowerCase()] || value }
+function measuredLanguages(provenance: NonNullable<GeoResult['query_provenance']>): string[] {
+  return [...new Set(provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => languageName(item.language)).filter((language) => language !== 'unknown'))]
+}
+function measuredMarkets(provenance: NonNullable<GeoResult['query_provenance']>, executedPlanMarkets?: string[]): string | null {
+  const markets = [...new Set(provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => item.market).filter((item): item is string => Boolean(item)))]
+  return markets.length ? markets.join(', ') : executedPlanMarkets?.length ? executedPlanMarkets.join(', ') : null
+}
+function untestedLanguageDisclosure(requested: string | undefined, tested: string[]): string | undefined {
+  if (!requested) return undefined
+  const requestedNames = Object.entries(LANGUAGE_NAMES).filter(([code, name]) => new RegExp(`\\b(${code}|${name})\\b`, 'i').test(requested)).map(([, name]) => name)
+  const missing = requestedNames.filter((name) => !tested.includes(name))
+  return missing.length ? `Only the languages listed above were tested. ${missing.join(' and ')} buyer questions were not tested in this audit.` : undefined
+}
+function searchModeDisclosure(protocol: GeoResult['acquisition_protocol']): string | undefined {
+  if (!protocol?.engines.length) return undefined
+  const modes = protocol.engines.map((item) => `${item.engine}: ${item.web_search_mode === 'disabled' ? 'web search disabled' : 'provider web-search mode'}`)
+  return `Tool/search mode: ${modes.join('; ')}. This measures provider API responses, not literal consumer ChatGPT UI observations.`
 }
 
 function competitorIdentityKey(value: string): string {
@@ -374,21 +406,23 @@ export function rebuildReusedGeoNarrative(
     canonicalBrand?: string
     alternativeBrandForms?: string[]
     explicitCompetitors?: string[]
+    requestedMarketsLanguages?: string
   } = {}
 ): GeoResult {
   const geo = recomputeReusedGeoEvidence(input, opts)
   const total = geo.test_counts?.successful_combinations ?? geo.evidence.length
   const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
   const cited = geo.evidence.filter((e) => e.brand_cited).length
+  const citationEvaluable = geo.evidence.filter((e) => e.scope !== 'supplemental' && e.citation_evaluable !== false).length
+  const citationUnresolved = total - citationEvaluable
   const engines = geo.engines_tested.length ? geo.engines_tested : [...new Set(geo.evidence.map((e) => e.engine))]
   const citedDomains = geo.cited_domains_ranked.slice(0, 3).map((d) => d.domain)
   const competitorNames = geo.competitor_visibility.slice(0, 3).map((c) => c.name)
 
   const missingSignals = [
     `${geo.brand} was not mentioned in ${mentioned === 0 ? 'any' : `${total - mentioned} of ${total}`} successfully tested engine-query combinations.`,
-    cited === 0
-      ? `${geo.brand_domain} was not cited in the successfully tested responses.`
-      : `${geo.brand_domain} was cited in ${cited} of ${total} successfully tested responses.`,
+    `Among ${citationEvaluable} responses where citation attachment could be evaluated, ${geo.brand_domain} was cited in ${cited}.`,
+    ...(citationUnresolved > 0 ? [`${citationUnresolved} additional successful responses could not be evaluated for citation attachment.`] : []),
     citedDomains.length
       ? `Cited sources surfaced in the tested responses included ${citedDomains.join(', ')}.`
       : 'No cited-source pattern was available in the reused evidence.',

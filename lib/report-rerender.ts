@@ -16,7 +16,7 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
 }> {
   const { data: audit, error } = await supabaseAdmin
     .from('audits')
-    .select('id, report, business_context, audit_status, admin_notes')
+    .select('id, report, business_context, competitor_1, competitor_2, competitor_3, audit_status, admin_notes')
     .eq('id', auditId)
     .single()
 
@@ -43,6 +43,8 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
   const rebuiltGeo = existing.geo ? rebuildReusedGeoNarrative(existing.geo, {
     canonicalBrand: brandEntity.canonical_brand,
     alternativeBrandForms: brandEntity.alternative_brand_forms,
+    explicitCompetitors: [audit.competitor_1, audit.competitor_2, audit.competitor_3].filter((value): value is string => Boolean(value)),
+    requestedMarketsLanguages: businessContext.target_markets_languages,
   }) : null
   const technicalEligibility = existing.technical_eligibility || rebuiltGeo?.technical_eligibility
   const geo = rebuiltGeo ? {

@@ -56,7 +56,8 @@ export function ScorePdfView({
 }) {
   const generatedDate = createdAt ? new Date(createdAt) : new Date()
   const competitors = geo?.competitor_visibility.slice(0, 5) ?? []
-  const scoreValue = geo?.ai_visibility_score ?? average
+  const scoreUnavailable = Boolean(geo && geo.ai_visibility_score == null)
+  const scoreValue = scoreUnavailable ? 'n/a' : (geo ? geo.ai_visibility_score : average)
   const scoreScale = geo ? 100 : 10
   const lockedSections = [
     'Full multi-engine GEO scan with web search',
@@ -100,13 +101,13 @@ export function ScorePdfView({
           <p className="mt-2 break-all text-sm text-[#756257]">{url}</p>
 
           <div className="mt-6 grid grid-cols-[0.9fr_1.1fr] gap-5">
-            <div className={`rounded-2xl border p-6 ${geo ? visBg(geo.ai_visibility_score ?? 0) : scoreBg(average)}`}>
+            <div className={`rounded-2xl border p-6 ${geo ? (scoreUnavailable ? 'bg-[#F7F4EF] border-[#DCCDBA]' : visBg(geo.ai_visibility_score!)) : scoreBg(average)}`}>
               <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#756257]">
                 {geo ? 'AI visibility score' : 'Messaging score'}
               </div>
-              <div className={`mt-2 text-7xl font-bold ${geo ? visColor(geo.ai_visibility_score ?? 0) : scoreColor(average)}`}>
+              <div className={`mt-2 text-7xl font-bold ${geo ? (scoreUnavailable ? 'text-[#6E5A50]' : visColor(geo.ai_visibility_score!)) : scoreColor(average)}`}>
                 {scoreValue}
-                <span className="ml-1 text-xl font-semibold text-[#8D7B6B]">/{scoreScale}</span>
+                {!scoreUnavailable && <span className="ml-1 text-xl font-semibold text-[#8D7B6B]">/{scoreScale}</span>}
               </div>
               <p className="mt-4 text-xs leading-5 text-[#756257]">
                 Source: ClearSignal AI Visibility Score — getclearsignal.io

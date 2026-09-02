@@ -62,6 +62,7 @@ function visBg(score: number): string {
   if (score >= 30) return 'bg-[#FFF8E9] border-[#E7D3A8]'
   return 'bg-[#FFF3EE] border-[#E6BEB1]'
 }
+const unavailableVis = 'bg-[#F7F4EF] border-[#DCCDBA] text-[#6E5A50]'
 
 function queryStatus(query: GeoEvidence) {
   if (query.brand_cited) {
@@ -234,17 +235,17 @@ export default async function ScoreResultPage({
             </div>
           </section>
 
-          <section className={`rounded-2xl border p-6 shadow-[0_22px_70px_rgba(78,49,27,0.10)] ${geo ? visBg(geo.ai_visibility_score ?? 0) : scoreBg(avg)}`}>
+          <section className={`rounded-2xl border p-6 shadow-[0_22px_70px_rgba(78,49,27,0.10)] ${geo ? (geo.ai_visibility_score == null ? unavailableVis : visBg(geo.ai_visibility_score)) : scoreBg(avg)}`}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-medium text-[#6E5A50]">
                   {geo ? 'AI Visibility Score' : 'Overall messaging score'}
                 </div>
-                <div className={`text-7xl font-bold tracking-tight mt-2 ${geo ? visColor(geo.ai_visibility_score ?? 0) : scoreColor(avg)}`}>
+                <div className={`text-7xl font-bold tracking-tight mt-2 ${geo ? (geo.ai_visibility_score == null ? 'text-[#6E5A50]' : visColor(geo.ai_visibility_score)) : scoreColor(avg)}`}>
                   {geo ? geo.ai_visibility_score ?? 'n/a' : avg}
                 </div>
                 <div className="mt-1 text-sm text-[#6E5A50]">
-                  {geo ? 'out of 100' : 'out of 10'}
+                  {geo ? (geo.ai_visibility_score == null ? 'unavailable' : 'out of 100') : 'out of 10'}
                 </div>
               </div>
               <div className="text-right">

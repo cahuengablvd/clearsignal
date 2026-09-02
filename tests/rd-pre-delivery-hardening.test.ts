@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { recomputeReusedGeoEvidence } from '../lib/audit-runner'
+import { recomputeReusedGeoEvidence, rebuildReusedGeoNarrative } from '../lib/audit-runner'
 import type { GeoResult } from '../lib/schemas'
 
 function geo(evidence: Record<string, unknown>[]): GeoResult {
@@ -52,7 +52,23 @@ describe('RD pre-delivery hardening', () => {
     const saved = geo([row({ query_id: 'Q1', scope: 'core' })])
     saved.query_plan = { valid_core_slots: 1, review_required: true, primary_language: 'English', markets: ['Saudi Arabia'] }
     saved.query_provenance = [{ query_id: 'Q1', query: 'best service', slot: 'category_discovery', intent: 'category_discovery', language: 'English', language_source: 'intake', geo_scope: 'none', scope: 'core', source: 'generator', rationale: '', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' }]
-    const result = recomputeReusedGeoEvidence(saved)
+    saved.acquisition_protocol = { version: 'rd-00', engines: [{ engine: 'claude', model_requested: 'claude-sonnet-4-6', tool_type_version: 'v1', max_uses: 2, max_tokens: 1500, web_search_mode: 'provider_default' }], user_location: null, samples_per_combination: 1, query_plan_hash: 'a'.repeat(64) }
+    const result = recomputeReusedGeoEvidence(saved, { requestedMarketsLanguages: 'Saudi Arabia, Arabic and English' })
     expect(result.measurement_methodology).toMatchObject({ market: 'Saudi Arabia', languages_tested: ['English'], core_queries: 1, supplemental_queries: 0, samples_per_combination: 1, user_location: null })
+    expect(result.measurement_methodology?.untested_languages_disclosure).toBe('Only the languages listed above were tested. Arabic buyer questions were not tested in this audit.')
+    expect(result.measurement_methodology?.search_mode_disclosure).toContain('not literal consumer ChatGPT UI')
+  })
+
+  it('drops stale retrieved-only source analysis and uses citation-evaluable reuse denominators', () => {
+    const saved = geo([
+      row({ citation_attachment: 'resolved', cited_urls: ['https://cited.example/page'], retrieved_urls: ['https://retrieved-only.example/page'] }),
+      ...Array.from({ length: 5 }, () => row({ citation_attachment: 'resolved', cited_urls: ['https://cited.example/page'] })),
+      ...Array.from({ length: 6 }, () => row({ engine: 'perplexity', citation_attachment: 'unresolved', cited_urls: null, citations: ['https://retrieved-only.example/page'] })),
+    ])
+    saved.source_gap_analysis = [{ cited_source: 'retrieved-only.example', signals_found: [], target_missing_signals: [], why_this_source_gets_cited: 'stale', recommended_fix: 'stale' }]
+    const result = rebuildReusedGeoNarrative(saved)
+    expect(result.source_gap_analysis).toEqual([])
+    expect(result.missing_signals.join(' ')).toContain('Among 6 responses where citation attachment could be evaluated')
+    expect(result.missing_signals.join(' ')).toContain('6 additional successful responses could not be evaluated')
   })
 })

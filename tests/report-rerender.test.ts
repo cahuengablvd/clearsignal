@@ -63,6 +63,7 @@ vi.mock('../lib/geo/recommendation-stages', () => ({
 }))
 
 import { rerenderStoredAuditReport } from '../lib/report-rerender'
+import { rebuildReusedGeoNarrative } from '../lib/audit-runner'
 
 describe('stored report re-render validation', () => {
   beforeEach(() => {
@@ -82,5 +83,14 @@ describe('stored report re-render validation', () => {
       }),
     }))
     expect(JSON.stringify(state.updates)).not.toContain('client-side implementation')
+  })
+
+  it('passes stored operator competitors into strict reuse validation context', async () => {
+    state.report = { ...state.report, geo: { brand: 'Legacy Co' } } as unknown as typeof state.report
+    await rerenderStoredAuditReport('legacy-audit')
+    expect(rebuildReusedGeoNarrative).toHaveBeenCalledWith(
+      state.report.geo,
+      expect.objectContaining({ explicitCompetitors: [] })
+    )
   })
 })

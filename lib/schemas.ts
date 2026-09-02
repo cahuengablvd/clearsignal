@@ -580,7 +580,7 @@ export const GeoResultSchema = z.object({
   /** Computation identity, deliberately separate from immutable acquisition facts. */
   computation_version: z.string().optional(),
   computed_by: z.object({ version: z.string(), at: z.string(), source: z.enum(['fresh', 'reused', 'rerender']) }).optional(),
-  measurement_methodology: z.object({ market: z.string().nullable(), languages_tested: z.array(z.string()), core_queries: z.number(), supplemental_queries: z.number(), providers: z.array(z.object({ engine: z.string(), model: z.string().nullable() })), samples_per_combination: z.number(), user_location: z.null(), location_behavior: z.string() }).optional(),
+  measurement_methodology: z.object({ market: z.string().nullable(), languages_tested: z.array(z.string()), core_queries: z.number(), supplemental_queries: z.number(), providers: z.array(z.object({ engine: z.string(), model: z.string().nullable() })), samples_per_combination: z.number(), user_location: z.null(), location_behavior: z.string(), untested_languages_disclosure: z.string().optional(), search_mode_disclosure: z.string().optional() }).optional(),
 })
 
 export type GeoResult = z.infer<typeof GeoResultSchema>

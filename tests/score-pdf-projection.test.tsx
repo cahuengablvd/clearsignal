@@ -86,4 +86,13 @@ describe('free score PDF projection', () => {
       )
     ).not.toThrow()
   })
+
+  it('renders an unavailable AI visibility score neutrally without substituting messaging average', async () => {
+    const { ScorePdfView } = await import('../app/score/[id]/score-pdf-view')
+    const geo = { ai_visibility_score: null, mention_rate: 0, share_of_voice: null, engines_tested: ['Claude'], evidence: [], competitor_visibility: [] } as unknown as GeoResult
+    const markup = renderToStaticMarkup(<ScorePdfView id="score-null" createdAt={null} url="https://example.com" scores={{ geo }} geo={geo} average={7} checkoutHref={null} />)
+    expect(markup).toContain('n/a')
+    expect(markup).not.toContain('/100')
+    expect(markup).not.toContain('text-[#A64B35]')
+  })
 })

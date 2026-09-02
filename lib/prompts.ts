@@ -161,10 +161,10 @@ export function geoAnalysisUserPrompt(
   brand: string,
   brandDomain: string,
   metrics: {
-    ai_visibility_score: number
+    ai_visibility_score: number | 'unavailable'
     mention_rate: number
-    citation_rate: number
-    share_of_voice: number
+    citation_rate: number | 'unavailable'
+    share_of_voice: number | 'unavailable'
   },
   evidence: {
     engine: string
@@ -188,8 +188,8 @@ export function geoAnalysisUserPrompt(
   return `Brand: ${brand} (domain: ${brandDomain})
 
 MEASURED FACTS (fixed - explain, do not change):
-- AI Visibility Score: ${metrics.ai_visibility_score}/100
-- Mention rate: ${metrics.mention_rate}% | Citation rate: ${metrics.citation_rate}% | Share of voice: ${metrics.share_of_voice}%
+- AI Visibility Score: ${metrics.ai_visibility_score === 'unavailable' ? 'unavailable' : `${metrics.ai_visibility_score}/100`}
+- Mention rate: ${metrics.mention_rate}% | Citation rate: ${metrics.citation_rate === 'unavailable' ? 'unavailable' : `${metrics.citation_rate}%`} | Share of voice: ${metrics.share_of_voice === 'unavailable' ? 'unavailable' : `${metrics.share_of_voice}%`}
 - Competitor visibility: ${competitorVisibility.map((c) => `${c.name} ${c.mention_rate}%`).join(', ') || '(none detected)'}
 - Most-cited sources: ${citedDomainsRanked.map((d) => `${d.domain} (${d.count})`).join(', ') || '(none)'}
 

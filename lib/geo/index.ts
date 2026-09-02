@@ -566,7 +566,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         user: geoAnalysisUserPrompt(
           brand,
           brandDomain,
-          { ai_visibility_score: ai_visibility_score ?? 0, mention_rate, citation_rate: citation_rate ?? 0, share_of_voice: share_of_voice ?? 0 },
+          { ai_visibility_score: ai_visibility_score ?? 'unavailable', mention_rate, citation_rate: citation_rate ?? 'unavailable', share_of_voice: share_of_voice ?? 'unavailable' },
           coreEvidence.map((e) => ({
             engine: e.engine,
             query: e.query,

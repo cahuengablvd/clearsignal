@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { runProcess } from './process.mjs';
+import { attachRuntimeToWorktree, prepareDependencyRuntime } from './dependency-runtime.mjs';
 
 async function git(repo, args) {
   const result = await runProcess('git', args, { cwd: repo, timeoutMs: 120000 });
@@ -20,17 +21,17 @@ export async function gitDiff(repo) {
 }
 export async function gitChangedPaths(repo) { return (await git(repo, ['diff', '--name-only', 'HEAD'])).split(/\r?\n/).filter(Boolean); }
 
-export async function prepareWorktree(repo, root, branch, baseCommit, taskKey) {
+export async function prepareWorktree(repo, root, branch, baseCommit, taskKey, runtimeOptions) {
   mkdirSync(root, { recursive: true });
   const path = join(root, taskKey.replace(/[^A-Za-z0-9._-]/g, '-'));
-  if (existsSync(path)) return path;
-  const branchExists = (await runProcess('git', ['show-ref', '--verify', '--quiet', `refs/heads/${branch}`], { cwd: repo })).exitCode === 0;
-  const args = branchExists ? ['worktree', 'add', path, branch] : ['worktree', 'add', '-b', branch, path, baseCommit];
-  await git(repo, args);
-  const sourceModules = join(repo, 'node_modules');
-  const targetModules = join(path, 'node_modules');
-  if (existsSync(sourceModules) && !existsSync(targetModules)) symlinkSync(sourceModules, targetModules, 'junction');
-  return path;
+  if (!existsSync(path)) {
+    const branchExists = (await runProcess('git', ['show-ref', '--verify', '--quiet', `refs/heads/${branch}`], { cwd: repo })).exitCode === 0;
+    const args = branchExists ? ['worktree', 'add', path, branch] : ['worktree', 'add', '-b', branch, path, baseCommit];
+    await git(repo, args);
+  }
+  const runtime = await prepareDependencyRuntime({ repository: path, ...runtimeOptions });
+  attachRuntimeToWorktree(path, runtime.runtimePath);
+  return { path, runtime };
 }
 
 export async function commitAll(repo, taskId, summary) {

@@ -38,7 +38,7 @@ function atSafeBoundary(store, planId) {
   return status === 'RUNNING' ? null : status === 'CANCEL_REQUESTED' ? 'CANCELLED' : status === 'PAUSE_REQUESTED' ? 'PAUSED' : status;
 }
 
-async function agentRun(store, config, task, attempt, role, model, cwd, prompt, schemaPath, sandbox, artifactDir, signal, checkpoint = null) {
+async function agentRun(store, config, task, attempt, role, model, cwd, prompt, schemaPath, sandbox, artifactDir, signal, checkpoint = null, runtimePath = null) {
   const stopped = atSafeBoundary(store, task.plan_id); if (stopped) return { status: stopped, failureSummary: `Stopped at a safe boundary: ${stopped}.` };
   const runId = store.createRun({ planId: task.plan_id, taskId: task.id, attempt, role, adapter: 'codex-cli', model, checkpoint: checkpoint || role });
   store.setTask(task.plan_id, task.id, role === 'IMPLEMENTER' ? 'IMPLEMENTING' : 'TECH_LEAD_REVIEW', { attemptCount: attempt, runId, phase: checkpoint ? `${checkpoint}_RUNNING` : `${role}_RUNNING` });
@@ -50,8 +50,8 @@ async function agentRun(store, config, task, attempt, role, model, cwd, prompt, 
   return result;
 }
 
-async function runTests(store, task, attempt, cwd, artifactDir, signal, phase = 'POST') {
-  const commands = requiredTestCommands(cwd);
+async function runTests(store, task, attempt, cwd, artifactDir, signal, phase = 'POST', runtimePath = null) {
+  const commands = requiredTestCommands(cwd, runtimePath || cwd);
   const results = [];
   mkdirSync(artifactDir, { recursive: true });
   store.setTask(task.plan_id, task.id, 'TESTING', { phase: `${phase === 'POST' ? 'TESTS' : phase}_RUNNING` });
@@ -84,7 +84,7 @@ async function deepReview(store, config, task, attempt, cwd, artifactDir, contex
   return result;
 }
 
-async function executeTask(store, config, task, worktree, signal) {
+async function executeTask(store, config, task, worktree, signal, runtimePath) {
   const basePacket = packet(task, store.planContext(task.plan_id).preamble);
   let fixInstruction = '';
   for (let attempt = task.attempt_count + 1; attempt <= task.max_attempts; attempt++) {
@@ -100,12 +100,12 @@ async function executeTask(store, config, task, worktree, signal) {
       implementation = { status: 'COMPLETED', output: completed.result };
     } else {
       const leadPrompt = `You are ClearSignal TECH_LEAD. Convert this task into the smallest precise implementation instruction. Do not change product behavior beyond the specification. Return schema-valid JSON. Choose IMPLEMENT unless a genuine human/product blocker exists.\n\n${basePacket}${retainedWork}\n${fixInstruction}`;
-      const lead = await agentRun(store, config, task, attempt, 'TECH_LEAD', config.techLeadModel, worktree, leadPrompt, schema('tech-lead'), 'read-only', join(artifactDir, 'techlead-instruction'), signal, 'TECH_LEAD');
+      const lead = await agentRun(store, config, task, attempt, 'TECH_LEAD', config.techLeadModel, worktree, leadPrompt, schema('tech-lead'), 'read-only', join(artifactDir, 'techlead-instruction'), signal, 'TECH_LEAD', runtimePath);
       if (lead.status !== 'COMPLETED') return lead;
       if (lead.output.decision === 'HUMAN_ACTION_REQUIRED') { humanFromOutput(store, task.plan_id, task.id, lead.output, lead.output.summary); return { status: 'HUMAN_ACTION_REQUIRED' }; }
       if (lead.output.decision === 'BLOCKED') return { status: 'BLOCKED', failureSummary: lead.output.summary };
       const implementationPrompt = `You are the IMPLEMENTER. Work only in this isolated ClearSignal worktree. Follow AGENTS.md and CLAUDE.md. Do not deploy, push, weaken lib/sanitize.ts or lib/report-validator.ts, bypass human review, or discard existing work. Implement the instruction, run focused tests if useful, and return schema-valid JSON.\n\nTask contract:\n${basePacket}\n\nTECH_LEAD instruction:\n${lead.output.instruction}${fixInstruction}`;
-      implementation = await agentRun(store, config, task, attempt, 'IMPLEMENTER', config.implementerModel, worktree, implementationPrompt, schema('implementer'), 'workspace-write', join(artifactDir, 'implementer'), signal, 'IMPLEMENTER');
+      implementation = await agentRun(store, config, task, attempt, 'IMPLEMENTER', config.implementerModel, worktree, implementationPrompt, schema('implementer'), 'workspace-write', join(artifactDir, 'implementer'), signal, 'IMPLEMENTER', runtimePath);
       if (implementation.status !== 'COMPLETED') return implementation;
     }
     if (implementation.output.completion_status === 'HUMAN_ACTION_REQUIRED') { humanFromOutput(store, task.plan_id, task.id, implementation.output, implementation.output.blocker); return { status: 'HUMAN_ACTION_REQUIRED' }; }
@@ -113,7 +113,7 @@ async function executeTask(store, config, task, worktree, signal) {
 
     const diff = await gitDiff(worktree);
     writeFileSync(join(artifactDir, 'diff.patch'), redactText(diff), 'utf8');
-    const tests = ['TESTS_COMPLETED', 'ASSESSMENT_PENDING', 'ASSESSMENT_RUNNING', 'ASSESSMENT_INTERRUPTED_RETRY_REQUIRED', 'ASSESSMENT_COMPLETED', 'DEEP_REVIEW_COMPLETED'].includes(task.phase) ? store.tests(task.plan_id, task.id, 'POST').map((item) => ({ name: item.command, exitCode: item.exit_code, status: item.status })) : await runTests(store, task, attempt, worktree, artifactDir, signal);
+    const tests = ['TESTS_COMPLETED', 'ASSESSMENT_PENDING', 'ASSESSMENT_RUNNING', 'ASSESSMENT_INTERRUPTED_RETRY_REQUIRED', 'ASSESSMENT_COMPLETED', 'DEEP_REVIEW_COMPLETED'].includes(task.phase) ? store.tests(task.plan_id, task.id, 'POST').map((item) => ({ name: item.command, exitCode: item.exit_code, status: item.status })) : await runTests(store, task, attempt, worktree, artifactDir, signal, 'POST', runtimePath);
     const boundary = atSafeBoundary(store, task.plan_id); if (signal.aborted || boundary) return { status: boundary === 'CANCELLED' ? 'CANCELLED' : 'PAUSED', failureSummary: 'Stopped safely; partial worktree and artifacts were preserved.' };
     writeFileSync(join(artifactDir, 'tests.json'), JSON.stringify(tests, null, 2), 'utf8');
     const baseline = store.tests(task.plan_id, task.id, 'BASELINE');
@@ -121,7 +121,7 @@ async function executeTask(store, config, task, worktree, signal) {
     let fableDecision = null;
     const assessmentContext = `${basePacket}\n\nImplementation result:\n${JSON.stringify(implementation.output)}\n\nDiff:\n${diff.slice(0, 60000)}${diff.length > 60000 ? '\n[TRUNCATED]' : ''}\n\nTests:\n${JSON.stringify(tests)}\n\nBaseline results:\n${JSON.stringify(baseline)}\n\nBaseline comparison:\n${JSON.stringify(testComparison)}`;
     const savedAssessment = task.phase === 'ASSESSMENT_COMPLETED' ? store.completedRun(task.plan_id, task.id, 'ASSESSMENT') : null;
-    const assessment = savedAssessment ? { status: 'COMPLETED', output: savedAssessment.result } : await agentRun(store, config, task, attempt, 'TECH_LEAD', config.techLeadModel, worktree, `Assess the implementation. Return schema-valid JSON. PASS only if the task and all required tests pass. CODEX_FIX must contain a concise exact instruction. Escalate to DEEP_REVIEW_REQUIRED only for architecture, trust, methodology, high-risk, or genuinely complex ambiguity.\n\n${assessmentContext}`, schema('tech-lead'), 'read-only', join(artifactDir, 'techlead-assessment'), signal, 'ASSESSMENT');
+    const assessment = savedAssessment ? { status: 'COMPLETED', output: savedAssessment.result } : await agentRun(store, config, task, attempt, 'TECH_LEAD', config.techLeadModel, worktree, `Assess the implementation. Return schema-valid JSON. PASS only if the task and all required tests pass. CODEX_FIX must contain a concise exact instruction. Escalate to DEEP_REVIEW_REQUIRED only for architecture, trust, methodology, high-risk, or genuinely complex ambiguity.\n\n${assessmentContext}`, schema('tech-lead'), 'read-only', join(artifactDir, 'techlead-assessment'), signal, 'ASSESSMENT', runtimePath);
     if (assessment.status !== 'COMPLETED') return assessment;
     let decision = assessment.output.decision;
     if (decision === 'DEEP_REVIEW_REQUIRED') {
@@ -129,7 +129,7 @@ async function executeTask(store, config, task, worktree, signal) {
       if (review.status !== 'COMPLETED') return review;
       fableDecision = review.output.decision;
       if (review.output.decision === 'BLOCKED') return { status: 'BLOCKED', failureSummary: review.output.summary };
-      const interpreted = await agentRun(store, config, task, attempt, 'TECH_LEAD', config.techLeadModel, worktree, `Interpret this Fable review into the next routing decision. Return schema-valid JSON. Fable FIX_REQUIRED cannot become PASS without a new implementation/review cycle.\n\n${assessmentContext}\n\nReview:\n${JSON.stringify(review.output)}`, schema('tech-lead'), 'read-only', join(artifactDir, 'techlead-review-interpretation'), signal);
+      const interpreted = await agentRun(store, config, task, attempt, 'TECH_LEAD', config.techLeadModel, worktree, `Interpret this Fable review into the next routing decision. Return schema-valid JSON. Fable FIX_REQUIRED cannot become PASS without a new implementation/review cycle.\n\n${assessmentContext}\n\nReview:\n${JSON.stringify(review.output)}`, schema('tech-lead'), 'read-only', join(artifactDir, 'techlead-review-interpretation'), signal, null, runtimePath);
       if (interpreted.status !== 'COMPLETED') return interpreted;
       decision = interpreted.output.decision;
       assessment.output = interpreted.output;
@@ -170,7 +170,9 @@ export async function runPlan(store, config, planId) {
     const baseCommit = configuredBase || await gitHead(config.repository); store.setPlanBase(planId, baseCommit);
     store.setPlan(planId, 'RUNNING');
     store.event('PLAN_STARTED', `Plan ${plan.name} started.`, { planId });
-    const worktree = await prepareWorktree(config.repository, join(config.stateRoot, 'worktrees'), plan.branch, baseCommit, `plan-${plan.id}`);
+    const prepared = await prepareWorktree(config.repository, join(config.stateRoot, 'worktrees'), plan.branch, baseCommit, `plan-${plan.id}`, { runtimeRoot: config.runtimeRoot, npmCliPath: config.npmCliPath });
+    const worktree = prepared.path;
+    store.event('RUNTIME_READY', `Dependency runtime ${prepared.runtime.reused ? 'reused' : 'prepared'} for lockfile ${prepared.runtime.fingerprint}.`, { planId, details: prepared.runtime });
     while (!controller.signal.aborted) {
       const currentPlan = store.plan(planId);
       if (currentPlan.status === 'PAUSED' || currentPlan.status === 'CANCELLED') break;
@@ -186,11 +188,11 @@ export async function runPlan(store, config, planId) {
       }
       if (!store.tests(planId, next.id, 'BASELINE').length) {
         store.setTask(planId, next.id, 'TESTING', { phase: 'TESTS_PENDING', worktree, baseCommit });
-        const baseline = await runTests(store, next, 0, worktree, join(config.stateRoot, 'artifacts', planId, next.id, 'baseline'), controller.signal, 'BASELINE');
+        const baseline = await runTests(store, next, 0, worktree, join(config.stateRoot, 'artifacts', planId, next.id, 'baseline'), controller.signal, 'BASELINE', prepared.runtime.runtimePath);
         if (baseline.length !== 3) return;
         store.setTask(planId, next.id, 'READY', { phase: 'BEFORE_IMPLEMENTATION', worktree, baseCommit });
       }
-      const result = await executeTask(store, config, next, worktree, controller.signal);
+      const result = await executeTask(store, config, next, worktree, controller.signal, prepared.runtime.runtimePath);
       if (result.status !== 'COMPLETED') {
         if (result.status === 'CANCELLED') {
           store.setTask(planId, next.id, 'CANCELLED', { phase: 'HUMAN_ACTION_PENDING' });

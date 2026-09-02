@@ -2,13 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["summary", "completion_status", "files_changed", "tests_run"],
+  "required": ["summary", "completion_status", "files_changed", "tests_run", "blocker", "human_action"],
   "properties": {
     "summary": { "type": "string" },
     "completion_status": { "enum": ["COMPLETE", "BLOCKED", "HUMAN_ACTION_REQUIRED"] },
     "files_changed": { "type": "array", "items": { "type": "string" } },
     "tests_run": { "type": "array", "items": { "type": "string" } },
     "blocker": { "type": ["string", "null"] },
-    "human_action": { "type": ["object", "null"] }
+    "human_action": { "type": ["object", "null"], "properties": { "title": { "type": "string" }, "explanation": { "type": "string" }, "why_manual": { "type": "string" }, "service": { "type": "string" }, "steps": { "type": "array", "items": { "type": "string" } }, "expected_result": { "type": "string" } }, "required": ["title", "explanation", "why_manual", "service", "steps", "expected_result"], "additionalProperties": false }
   }
 }

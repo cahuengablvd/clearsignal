@@ -37,6 +37,20 @@ the project's existing `.env.local` without logging it.
 State defaults to `%LOCALAPPDATA%\ClearSignalOrchestrator\clearsignal`. Deleting it discards local
 orchestration history, so back up `state.db` and `artifacts` if a plan matters.
 
+## Isolated dependency runtime
+
+Each worktree gets a junction to a managed runtime at
+`%LOCALAPPDATA%\CSO\clearsignal\runtime\<24-hex-lockfile-fingerprint>\node_modules` (the
+full SHA-256 is retained and verified in `runtime.json`).
+The runner verifies that `package.json` and the lockfile agree, reuses only a matching
+`RUNTIME_READY` fingerprint, and provisions a missing runtime with Node invoking npm's local JS
+entry point. It never copies the founder checkout's `node_modules` or `.env.local`.
+
+Provisioning uses `npm ci --ignore-scripts --no-audit`; lifecycle scripts are deliberately disabled.
+If a package requires a lifecycle script, preparation fails and execution is blocked rather than
+silently running unreviewed install code. The runtime includes only the package manifests,
+lockfile, installed packages, and `runtime.json` state metadata.
+
 ## Current MVP limits
 
 - One plan/task executes at a time.

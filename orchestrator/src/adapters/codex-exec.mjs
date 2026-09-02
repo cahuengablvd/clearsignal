@@ -3,11 +3,11 @@ import { join } from 'node:path';
 import { runProcess, classifyFailure } from '../process.mjs';
 import { redactText } from '../redact.mjs';
 
-export async function runCodex({ command = 'codex', model, cwd, prompt, schemaPath, artifactDir, sandbox = 'read-only', timeoutMs, signal }) {
+export async function runCodex({ command = 'codex', model, cwd, prompt, schemaPath, artifactDir, sandbox = 'read-only', timeoutMs, signal, env }) {
   mkdirSync(artifactDir, { recursive: true });
   const resultPath = join(artifactDir, 'result.json');
   const args = ['exec', '--json', '--output-schema', schemaPath, '--output-last-message', resultPath, '-m', model, '-s', sandbox, '-c', 'approval_policy="never"', '-C', cwd, '-'];
-  const processResult = await runProcess(command, args, { cwd, input: prompt, timeoutMs, signal });
+  const processResult = await runProcess(command, args, { cwd, input: prompt, timeoutMs, signal, env });
   writeFileSync(join(artifactDir, 'agent-events.jsonl'), redactText(processResult.stdout), 'utf8');
   writeFileSync(join(artifactDir, 'stderr.log'), redactText(processResult.stderr), 'utf8');
   const events = processResult.stdout.split(/\r?\n/).filter(Boolean).flatMap((line) => { try { return [JSON.parse(line)]; } catch { return []; } });

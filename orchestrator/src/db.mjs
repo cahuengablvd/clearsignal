@@ -16,6 +16,7 @@ export class Store {
       CREATE TABLE IF NOT EXISTS leases(name TEXT PRIMARY KEY,owner_id TEXT NOT NULL,expires_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS plan_context(plan_id TEXT PRIMARY KEY,preamble TEXT NOT NULL,raw_text TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS human_actions(id TEXT PRIMARY KEY,plan_id TEXT NOT NULL,task_id TEXT,status TEXT NOT NULL,title TEXT NOT NULL,explanation TEXT NOT NULL,why_manual TEXT NOT NULL,service TEXT NOT NULL,steps_json TEXT NOT NULL,expected_result TEXT NOT NULL,verification_json TEXT NOT NULL,created_at TEXT NOT NULL,resolved_at TEXT);
+      CREATE TABLE IF NOT EXISTS concurrent_repository_changes(id TEXT PRIMARY KEY,plan_id TEXT NOT NULL,task_id TEXT NOT NULL,run_id TEXT,expected_sha TEXT NOT NULL,observed_sha TEXT NOT NULL,operation TEXT NOT NULL,worktree TEXT NOT NULL,created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS events(seq INTEGER PRIMARY KEY AUTOINCREMENT,plan_id TEXT,task_id TEXT,run_id TEXT,type TEXT NOT NULL,level TEXT NOT NULL,public_message TEXT NOT NULL,details_json TEXT NOT NULL,created_at TEXT NOT NULL);
     `);
     for (const column of ['phase TEXT NOT NULL DEFAULT \'TECH_LEAD_PENDING\'', 'worktree TEXT', 'base_commit TEXT']) {
@@ -128,6 +129,16 @@ export class Store {
     this.event('HUMAN_ACTION_OPENED', title, { planId, taskId, level: 'warning', details: { actionId: id, service } });
     return id;
   }
+  concurrentRepositoryChange({ planId, taskId, runId = null, expectedSha, observedSha, operation, worktree }) {
+    const id = randomUUID();
+    this.db.prepare('INSERT INTO concurrent_repository_changes VALUES(?,?,?,?,?,?,?,?,?)').run(id, planId, taskId, runId, expectedSha, observedSha, operation, worktree, this.now());
+    this.setTask(planId, taskId, 'HUMAN_ACTION_REQUIRED', { phase: 'CONCURRENT_REPOSITORY_CHANGE' });
+    this.setPlan(planId, 'HUMAN_ACTION_REQUIRED');
+    const message = 'Repository changed while this task was running. No commit was created. Review the new repository state before continuing.';
+    this.event('CONCURRENT_REPOSITORY_CHANGE', message, { planId, taskId, runId, level: 'warning', details: { expectedSha, observedSha, operation, worktree } });
+    return id;
+  }
+  concurrentRepositoryChanges(planId) { return this.db.prepare('SELECT * FROM concurrent_repository_changes WHERE plan_id=? ORDER BY created_at').all(planId); }
   action(id) { return this.db.prepare('SELECT * FROM human_actions WHERE id=?').get(id); }
   resolveAction(id) {
     const action = this.action(id);

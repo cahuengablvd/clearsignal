@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runCodex } from './adapters/codex-exec.mjs';
 import { runAnthropic } from './adapters/anthropic.mjs';
-import { gitDiff, gitHead, gitStatus, gitCommitExists, prepareWorktree, commitAll } from './git.mjs';
+import { ConcurrentRepositoryChangeError, gitDiff, gitHead, gitStatus, gitCommitExists, prepareWorktree, commitAll } from './git.mjs';
 import { runProcess } from './process.mjs';
 import { requiredTestCommands } from './test-commands.mjs';
 import { compareTests, passAllowed, canExecute } from './policy.mjs';
@@ -136,7 +136,16 @@ async function executeTask(store, config, task, worktree, signal, runtimePath) {
     }
     if (decision === 'PASS' && !passAllowed({ tests, baseline, fableDecision })) decision = 'CODEX_FIX';
     if (decision === 'PASS') {
-      const commit = await commitAll(worktree, task.id, implementation.output.summary);
+      const expectedHead = await gitHead(worktree);
+      let commit;
+      try { commit = await commitAll(worktree, task.id, implementation.output.summary, { expectedHead }); }
+      catch (error) {
+        if (error instanceof ConcurrentRepositoryChangeError) {
+          store.concurrentRepositoryChange({ planId: task.plan_id, taskId: task.id, expectedSha: error.expectedHead, observedSha: error.observedHead, operation: error.operation, worktree: error.worktree });
+          return { status: 'HUMAN_ACTION_REQUIRED', failureSummary: error.message };
+        }
+        throw error;
+      }
       store.completeTaskCommit({ planId: task.plan_id, taskId: task.id, attempt, sha: commit });
       return { status: 'COMPLETED', commit };
     }

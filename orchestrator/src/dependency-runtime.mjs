@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { runProcess } from './process.mjs';
@@ -18,54 +18,34 @@ export function assertPackageLockConsistency(repository) {
   if (!root) throw new RuntimePreparationError('package-lock.json has no root package entry. Run npm install in a reviewed checkout before orchestration.');
   for (const field of ['dependencies', 'devDependencies', 'optionalDependencies']) {
     const declared = manifest[field] || {}; const locked = root[field] || {};
-    for (const [name, version] of Object.entries(declared)) {
-      if (locked[name] !== version) throw new RuntimePreparationError(`package.json and package-lock.json disagree for ${field}.${name}; refusing to guess a runtime.`);
-    }
+    for (const [name, version] of Object.entries(declared)) if (locked[name] !== version) throw new RuntimePreparationError(`package.json and package-lock.json disagree for ${field}.${name}; refusing to guess a runtime.`);
   }
 }
 
-function metadataPath(runtimePath) { return join(runtimePath, 'runtime.json'); }
-function readyRuntime(runtimePath, fingerprint) {
-  const requiredEntries = ['typescript/bin/tsc', 'vitest/vitest.mjs', 'next/dist/bin/next'];
-  if (!existsSync(metadataPath(runtimePath)) || !requiredEntries.every((entry) => existsSync(join(runtimePath, 'node_modules', entry)))) return false;
-  try { const metadata = JSON.parse(readFileSync(metadataPath(runtimePath), 'utf8')); return metadata.state === 'RUNTIME_READY' && metadata.fingerprint === fingerprint; } catch { return false; }
+const requiredEntries = ['typescript/bin/tsc', 'vitest/vitest.mjs', 'next/dist/bin/next'];
+const metadataPath = (repository) => join(repository, 'node_modules', '.clearsignal-orchestrator-runtime.json');
+function readyRuntime(repository, fingerprint) {
+  if (!requiredEntries.every((entry) => existsSync(join(repository, 'node_modules', entry))) || !existsSync(metadataPath(repository))) return false;
+  try { const metadata = JSON.parse(readFileSync(metadataPath(repository), 'utf8')); return metadata.state === 'RUNTIME_READY' && metadata.fingerprint === fingerprint; } catch { return false; }
 }
 
-export async function prepareDependencyRuntime({ repository, runtimeRoot, npmCliPath, run = runProcess }) {
+// Windows junctions created by Node or PowerShell were not a reliable runtime boundary: the
+// resulting reparse point could not consistently be traversed by Node from a Git worktree.
+// Reliability wins over caching: npm ci runs in the isolated worktree itself.
+export async function prepareDependencyRuntime({ repository, npmCliPath, run = runProcess }) {
   assertPackageLockConsistency(repository);
   const fingerprint = dependencyFingerprint(join(repository, 'package-lock.json'));
-  // The full SHA-256 remains in runtime.json. A 24-hex path key keeps Windows resolved paths short.
-  const runtimePath = join(runtimeRoot, fingerprint.slice(0, 24));
-  if (readyRuntime(runtimePath, fingerprint)) return { state: 'RUNTIME_READY', fingerprint, runtimePath, reused: true };
-  mkdirSync(runtimeRoot, { recursive: true });
-  // A partial runtime is managed state, not user source. It cannot be reused for this fingerprint.
-  if (existsSync(runtimePath)) rmSync(runtimePath, { recursive: true, force: true });
-  const staging = `${runtimePath}.preparing-${process.pid}-${Date.now()}`;
+  if (readyRuntime(repository, fingerprint)) return { state: 'RUNTIME_READY', fingerprint, runtimePath: repository, reused: true, strategy: 'isolated-worktree-npm-ci' };
   try {
-    rmSync(staging, { recursive: true, force: true }); mkdirSync(staging, { recursive: true });
-    // The runtime contains only these reviewed dependency manifests and node_modules; .env files are never copied.
-    copyFileSync(join(repository, 'package.json'), join(staging, 'package.json'));
-    copyFileSync(join(repository, 'package-lock.json'), join(staging, 'package-lock.json'));
-    writeFileSync(metadataPath(staging), JSON.stringify({ state: 'RUNTIME_PREPARING', fingerprint, createdAt: new Date().toISOString(), lifecycleScripts: 'disabled via --ignore-scripts' }, null, 2));
-    const result = await run(process.execPath, [npmCliPath, 'ci', '--ignore-scripts', '--no-audit', '--fund=false'], { cwd: staging, timeoutMs: 20 * 60000 });
-    if (result.exitCode !== 0 || !['typescript/bin/tsc', 'vitest/vitest.mjs', 'next/dist/bin/next'].every((entry) => existsSync(join(staging, 'node_modules', entry)))) throw new RuntimePreparationError(`Dependency runtime provisioning failed (npm ci exit ${result.exitCode ?? 'unavailable'}): ${(result.stderr || result.stdout).slice(-1000)}`);
-    writeFileSync(metadataPath(staging), JSON.stringify({ state: 'RUNTIME_READY', fingerprint, createdAt: new Date().toISOString(), lifecycleScripts: 'disabled via --ignore-scripts' }, null, 2));
-    if (existsSync(runtimePath)) { rmSync(staging, { recursive: true, force: true }); if (readyRuntime(runtimePath, fingerprint)) return { state: 'RUNTIME_READY', fingerprint, runtimePath, reused: true }; throw new RuntimePreparationError('A concurrent runtime preparation left an invalid runtime.'); }
-    renameSync(staging, runtimePath);
-    return { state: 'RUNTIME_READY', fingerprint, runtimePath, reused: false };
+    // npm ci owns node_modules and removes incomplete/junctioned state before installing exactly
+    // package-lock.json. This never reads or copies the founder checkout's dependencies.
+    const result = await run(process.execPath, [npmCliPath, 'ci', '--ignore-scripts', '--no-audit', '--fund=false'], { cwd: repository, timeoutMs: 20 * 60000 });
+    if (result.exitCode !== 0 || !requiredEntries.every((entry) => existsSync(join(repository, 'node_modules', entry)))) throw new RuntimePreparationError(`Dependency runtime provisioning failed (npm ci exit ${result.exitCode ?? 'unavailable'}): ${(result.stderr || result.stdout).slice(-1000)}`);
+    writeFileSync(metadataPath(repository), JSON.stringify({ state: 'RUNTIME_READY', fingerprint, preparedAt: new Date().toISOString(), strategy: 'isolated-worktree-npm-ci', lifecycleScripts: 'disabled via --ignore-scripts' }, null, 2));
+    return { state: 'RUNTIME_READY', fingerprint, runtimePath: repository, reused: false, strategy: 'isolated-worktree-npm-ci' };
   } catch (error) {
-    rmSync(staging, { recursive: true, force: true });
+    try { rmSync(metadataPath(repository), { force: true }); } catch {}
     if (error instanceof RuntimePreparationError) throw error;
     throw new RuntimePreparationError(error.message);
   }
-}
-
-export async function attachRuntimeToWorktree(worktree, runtimePath, run = runProcess) {
-  const target = join(worktree, 'node_modules');
-  try { lstatSync(target); return target; } catch { /* create below */ }
-  // Node's junction API produced a reparse point Node 24 could not traverse in a Git worktree.
-  // PowerShell creates the native directory junction; both operands are internal absolute paths.
-  const result = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'New-Item -ItemType Junction -Path $args[0] -Target $args[1] -ErrorAction Stop | Out-Null', target, join(runtimePath, 'node_modules')], { cwd: worktree, timeoutMs: 30000 });
-  if (result.exitCode !== 0) throw new RuntimePreparationError(`Could not attach dependency runtime: ${(result.stderr || result.stdout).slice(-500)}`);
-  return target;
 }

@@ -52,3 +52,8 @@ test('dependent plan retains completed task when task two is interrupted', () =>
   const { store, id } = setup(['A1', 'A2', 'A3']); store.setTask(id, 'A1', 'COMPLETED', { phase: 'COMPLETED' }); const run = store.createRun({ planId: id, taskId: 'A2', attempt: 1, role: 'IMPLEMENTER', adapter: 'mock', model: 'mock', checkpoint: 'IMPLEMENTER' }); store.setPlan(id, 'RUNNING'); store.reconcileRunning();
   assert.equal(store.tasks(id)[0].status, 'COMPLETED'); assert.equal(store.runs(id).find((item) => item.id === run).status, 'INTERRUPTED_RETRY_REQUIRED');
 });
+test('concurrent repository change persists exact SHAs and a blocking event', () => {
+  const { store, id } = setup(); store.concurrentRepositoryChange({ planId: id, taskId: 'A1', expectedSha: 'a'.repeat(40), observedSha: 'b'.repeat(40), operation: 'git commit', worktree: 'C:/worktree' });
+  const change = store.concurrentRepositoryChanges(id)[0]; assert.equal(change.expected_sha, 'a'.repeat(40)); assert.equal(change.observed_sha, 'b'.repeat(40));
+  assert.equal(store.tasks(id)[0].phase, 'CONCURRENT_REPOSITORY_CHANGE'); assert.equal(store.plan(id).status, 'HUMAN_ACTION_REQUIRED'); assert.ok(store.events(id).some((event) => event.type === 'CONCURRENT_REPOSITORY_CHANGE'));
+});

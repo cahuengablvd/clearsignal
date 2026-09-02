@@ -33,7 +33,7 @@ test('restart after tests resumes at assessment without replaying implementation
 test('interrupted assessment is retryable without replaying implementation', () => {
   const { store, id } = setup(); completed(store, id, 'IMPLEMENTER'); store.setTask(id, 'A1', 'TECH_LEAD_REVIEW', { phase: 'ASSESSMENT_RUNNING' });
   const run = store.createRun({ planId: id, taskId: 'A1', attempt: 1, role: 'TECH_LEAD', adapter: 'mock', model: 'mock', checkpoint: 'ASSESSMENT' }); store.setPlan(id, 'RUNNING'); store.reconcileRunning();
-  assert.equal(store.runs(id).find((item) => item.id === run).status, 'INTERRUPTED_RETRY_REQUIRED'); assert.equal(store.runs(id).filter((item) => item.checkpoint === 'IMPLEMENTER').length, 1);
+  assert.equal(store.runs(id).find((item) => item.id === run).status, 'INTERRUPTED_RETRY_REQUIRED'); assert.equal(store.tasks(id)[0].phase, 'ASSESSMENT_INTERRUPTED_RETRY_REQUIRED'); assert.equal(store.runs(id).filter((item) => item.checkpoint === 'IMPLEMENTER').length, 1);
 });
 test('completed assessment result survives restart and is reusable', () => {
   const { store, id, path } = setup(); completed(store, id, 'ASSESSMENT', { decision: 'CODEX_FIX', blockers: ['x'] }); const restarted = new Store(path);

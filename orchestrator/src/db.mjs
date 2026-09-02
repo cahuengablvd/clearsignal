@@ -112,13 +112,13 @@ export class Store {
   reconcileRunning() {
     const runs = this.db.prepare("SELECT * FROM runs WHERE status='RUNNING'").all();
     for (const run of runs) {
-      const phase = `${run.role}_INTERRUPTED_RETRY_REQUIRED`;
+      const phase = `${run.checkpoint || run.role}_INTERRUPTED_RETRY_REQUIRED`;
       this.finishRun(run.id, 'INTERRUPTED_RETRY_REQUIRED', { failureCode: 'orphaned_restart', failureSummary: 'Orchestrator restarted during this invocation; only this step may be retried.' });
       this.setTask(run.plan_id, run.task_id, 'READY', { phase });
       const plan = this.plan(run.plan_id);
       if (plan?.status !== 'CANCELLED') this.setPlan(run.plan_id, 'READY');
       this.event('STEP_INTERRUPTED', 'A restart interrupted an external invocation; completed earlier steps are retained.', { planId: run.plan_id, taskId: run.task_id, runId: run.id, level: 'warning', details: { role: run.role } });
-      this.event('STEP_RETRY_REQUIRED', `Only ${run.role} requires deliberate retry.`, { planId: run.plan_id, taskId: run.task_id, runId: run.id, level: 'warning' });
+      this.event('STEP_RETRY_REQUIRED', `Only ${run.checkpoint || run.role} requires deliberate retry.`, { planId: run.plan_id, taskId: run.task_id, runId: run.id, level: 'warning' });
     }
   }
   humanAction({ planId, taskId = null, title, explanation, whyManual, service, steps, expectedResult, verification = { type: 'manual_only' } }) {

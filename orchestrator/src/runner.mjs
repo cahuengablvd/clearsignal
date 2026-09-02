@@ -93,7 +93,7 @@ async function executeTask(store, config, task, worktree, signal) {
     const previousDiff = await gitDiff(worktree);
     const retainedWork = previousDiff ? `\n\nA previous attempt left these uncommitted changes. Treat them as evidence; do not discard them:\n${previousDiff.slice(0, 60000)}${previousDiff.length > 60000 ? '\n[TRUNCATED]' : ''}` : '';
     let implementation = null;
-    const resumeAfterImplementation = ['IMPLEMENTER_COMPLETED', 'TESTS_COMPLETED', 'ASSESSMENT_PENDING', 'ASSESSMENT_RUNNING', 'ASSESSMENT_COMPLETED', 'DEEP_REVIEW_COMPLETED'].includes(task.phase);
+    const resumeAfterImplementation = ['IMPLEMENTER_COMPLETED', 'TESTS_COMPLETED', 'TESTS_INTERRUPTED_RETRY_REQUIRED', 'ASSESSMENT_PENDING', 'ASSESSMENT_RUNNING', 'ASSESSMENT_INTERRUPTED_RETRY_REQUIRED', 'ASSESSMENT_COMPLETED', 'DEEP_REVIEW_COMPLETED'].includes(task.phase);
     if (resumeAfterImplementation) {
       const completed = store.completedRun(task.plan_id, task.id, 'IMPLEMENTER');
       if (!completed) return { status: 'BLOCKED', failureSummary: 'Implementation checkpoint has no persisted completed result.' };
@@ -113,7 +113,7 @@ async function executeTask(store, config, task, worktree, signal) {
 
     const diff = await gitDiff(worktree);
     writeFileSync(join(artifactDir, 'diff.patch'), redactText(diff), 'utf8');
-    const tests = ['TESTS_COMPLETED', 'ASSESSMENT_PENDING', 'ASSESSMENT_RUNNING', 'ASSESSMENT_COMPLETED', 'DEEP_REVIEW_COMPLETED'].includes(task.phase) ? store.tests(task.plan_id, task.id, 'POST').map((item) => ({ name: item.command, exitCode: item.exit_code, status: item.status })) : await runTests(store, task, attempt, worktree, artifactDir, signal);
+    const tests = ['TESTS_COMPLETED', 'ASSESSMENT_PENDING', 'ASSESSMENT_RUNNING', 'ASSESSMENT_INTERRUPTED_RETRY_REQUIRED', 'ASSESSMENT_COMPLETED', 'DEEP_REVIEW_COMPLETED'].includes(task.phase) ? store.tests(task.plan_id, task.id, 'POST').map((item) => ({ name: item.command, exitCode: item.exit_code, status: item.status })) : await runTests(store, task, attempt, worktree, artifactDir, signal);
     const boundary = atSafeBoundary(store, task.plan_id); if (signal.aborted || boundary) return { status: boundary === 'CANCELLED' ? 'CANCELLED' : 'PAUSED', failureSummary: 'Stopped safely; partial worktree and artifacts were preserved.' };
     writeFileSync(join(artifactDir, 'tests.json'), JSON.stringify(tests, null, 2), 'utf8');
     const baseline = store.tests(task.plan_id, task.id, 'BASELINE');

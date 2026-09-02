@@ -1,0 +1,13 @@
+{
+  "repository": "C:\\Claude Code\\clearsignal",
+  "executionBaseCommit": "<committed-clean-base-sha-or-null>",
+  "host": "127.0.0.1",
+  "port": 4317,
+  "codexCommand": "C:\\Path\\To\\OpenAI\\Codex\\bin\\<version>\\codex.exe",
+  "implementerModel": "gpt-5.6-terra",
+  "techLeadModel": "gpt-5.6-terra",
+  "reviewerModel": "claude-fable-5-1",
+  "maxAttempts": 3,
+  "agentTimeoutMinutes": 60,
+  "notifyWebhookEnv": "ORCHESTRATOR_NOTIFY_WEBHOOK_URL"
+}

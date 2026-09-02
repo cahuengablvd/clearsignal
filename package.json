@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "codex-usage": "node scripts/codex-usage.mjs"
+    "codex-usage": "node scripts/codex-usage.mjs",
+    "orchestrator": "node orchestrator/src/server.mjs",
+    "test:orchestrator": "node --test orchestrator/test/*.test.mjs"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision", "summary", "instruction", "task_specific_tests", "blockers"],
+  "properties": {
+    "decision": { "enum": ["IMPLEMENT", "PASS", "CODEX_FIX", "DEEP_REVIEW_REQUIRED", "HUMAN_ACTION_REQUIRED", "BLOCKED"] },
+    "summary": { "type": "string" },
+    "instruction": { "type": "string" },
+    "task_specific_tests": { "type": "array", "items": { "type": "string" } },
+    "blockers": { "type": "array", "items": { "type": "string" } },
+    "human_action": { "type": ["object", "null"] }
+  }
+}

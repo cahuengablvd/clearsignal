@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision", "summary", "blockers"],
+  "properties": {
+    "decision": { "enum": ["PASS", "PASS_WITH_NOTES", "FIX_REQUIRED", "BLOCKED"] },
+    "summary": { "type": "string" },
+    "blockers": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

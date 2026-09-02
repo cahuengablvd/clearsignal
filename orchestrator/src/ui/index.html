@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ClearSignal Orchestrator</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main><header><div><p class="eyebrow">LOCAL CONTROL CENTER</p><h1>ClearSignal Orchestrator</h1></div><span id="connection">Connecting...</span></header>
+<section class="import"><input id="planPath" placeholder="C:\Claude Code\clearsignal\TASKS_NAME.md"><button id="import">Import plan</button></section>
+<section id="empty" class="card"><h2>No plan imported</h2><p>Choose a TASKS_*.md file inside the repository.</p></section>
+<div id="dashboard" hidden><section class="hero card"><div><p class="label">CURRENT PLAN</p><h2 id="planName"></h2><p id="progress"></p></div><strong id="status"></strong></section>
+<section class="controls"><button data-action="start">Start</button><button data-action="pause">Pause</button><button data-action="resume">Resume</button><button data-action="cancel" class="secondary">Cancel safely</button></section>
+<section class="grid"><article class="card"><p class="label">CURRENT TASK</p><h3 id="taskName">-</h3><dl><dt>Agent</dt><dd id="agent">-</dd><dt>Attempt</dt><dd id="attempt">-</dd><dt>Last tests</dt><dd id="tests">-</dd></dl></article><article class="card warning" id="actionCard" hidden><p class="label">HUMAN ACTION REQUIRED</p><h3 id="actionTitle"></h3><p id="actionWhy"></p><ol id="actionSteps"></ol><p><b>Expected:</b> <span id="actionExpected"></span></p><button id="verify">Verify &amp; continue</button></article></section>
+<section class="card"><p class="label">RECENT EVENTS</p><div id="events"></div></section></div><p id="message"></p></main><script src="/app.js"></script></body></html>

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "completion_status", "files_changed", "tests_run"],
+  "properties": {
+    "summary": { "type": "string" },
+    "completion_status": { "enum": ["COMPLETE", "BLOCKED", "HUMAN_ACTION_REQUIRED"] },
+    "files_changed": { "type": "array", "items": { "type": "string" } },
+    "tests_run": { "type": "array", "items": { "type": "string" } },
+    "blocker": { "type": ["string", "null"] },
+    "human_action": { "type": ["object", "null"] }
+  }
+}

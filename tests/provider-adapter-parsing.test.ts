@@ -11,7 +11,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
   },
 }))
 
-import { queryEngine } from '../lib/geo/engines'
+import { queryEngine, rawResponseSha256 } from '../lib/geo/engines'
 import { classifyEngineResponse } from '../lib/geo/coverage'
 
 const fixture = (name: string) => JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/provider-responses', name), 'utf8'))
@@ -46,6 +46,18 @@ describe('A1 adapter parsing of the sanitized provider captures', () => {
     expect(classifyEngineResponse({ ...result, answer: `${result.answer} ${padded}` }, { engine: 'claude', webSearch: true }).status).toBe('ok_no_citations')
   })
 
+  it('captures Claude retrieved and text-cited URLs separately from the current tool blocks', async () => {
+    mocks.create.mockResolvedValue({ model: 'claude-sonnet-4-6', stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 }, content: [
+      { type: 'server_tool_use', name: 'web_search', input: { query: 'buyer research query' } },
+      { type: 'web_search_tool_result', content: [{ url: 'https://retrieved.example/page', page_age: '2 days ago' }] },
+      { type: 'text', text: padded, citations: [{ url: 'https://cited.example/page' }] },
+    ] })
+    const result = await queryEngine('claude', 'q')
+    expect(result.citations).toEqual(['https://retrieved.example/page', 'https://cited.example/page'])
+    expect(result).toMatchObject({ retrieved_urls: ['https://retrieved.example/page'], cited_urls: ['https://cited.example/page'], engine_issued_queries: ['buyer research query'], citation_attachment: 'resolved', stop_reason: 'end_turn' })
+    expect(result.retrieved_meta).toEqual([{ url: 'https://retrieved.example/page', page_age: '2 days ago' }])
+  })
+
   it('retries a Claude SDK 429 once and records the second attempt', async () => {
     const rateLimit = Object.assign(new Error('rate limited'), { status: 429 })
     mocks.create.mockRejectedValueOnce(rateLimit).mockResolvedValueOnce({
@@ -74,6 +86,7 @@ describe('A1 adapter parsing of the sanitized provider captures', () => {
     expect(result.model).toBe('gpt-4o-2024-08-06')
     expect(result.citations).toEqual(['https://sanitized.example/source'])
     expect(result.tool_events).toMatchObject({ protocol: 'openai_web_search_preview', search_requests: 1, tool_errors: [] })
+    expect(result).toMatchObject({ cited_urls: ['https://sanitized.example/source'], retrieved_urls: [], engine_issued_queries: ['sanitized generic web-search query'], citation_attachment: 'resolved' })
     expect(classifyEngineResponse({ ...result, answer: padded }, { engine: 'openai', webSearch: true }).status).toBe('ok_grounded')
   })
 
@@ -82,12 +95,20 @@ describe('A1 adapter parsing of the sanitized provider captures', () => {
     const grounded = await queryEngine('perplexity', 'q')
     expect(grounded.model).toBe('sonar')
     expect(grounded.citations).toHaveLength(2)
+    expect(grounded).toMatchObject({ retrieved_urls: ['https://sanitized.example/source-a'], cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [], stop_reason: 'stop' })
     expect(classifyEngineResponse({ ...grounded, answer: padded }, { engine: 'perplexity', webSearch: true }).status).toBe('ok_grounded')
 
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => '', json: async () => fixture('perplexity-no-citations.json') })))
     const anomaly = await queryEngine('perplexity', 'q')
     expect(anomaly.ok).toBe(true)
     expect(anomaly.citations).toHaveLength(0)
+    expect(anomaly.cited_urls).toBeNull()
+    expect(anomaly.citation_attachment).toBe('unresolved')
     expect(classifyEngineResponse({ ...anomaly, answer: padded }, { engine: 'perplexity', webSearch: true })).toMatchObject({ status: 'ok_no_citations', reason: 'protocol_anomaly_no_citations' })
+  })
+
+  it('hashes the same raw response identically and changes when the payload changes', () => {
+    expect(rawResponseSha256({ b: 2, a: ['x'] })).toBe(rawResponseSha256({ a: ['x'], b: 2 }))
+    expect(rawResponseSha256({ a: 1 })).not.toBe(rawResponseSha256({ a: 2 }))
   })
 })

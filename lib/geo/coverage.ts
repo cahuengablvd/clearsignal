@@ -10,7 +10,9 @@ export type EngineCoverage = { engine: string; configured_queries: number; expec
 export type CoverageGate = { passed: boolean; reasons: string[]; thresholds: { min_queries_per_engine_ratio: number; min_overall_success_ratio: number; min_valid_core_slots: number }; evaluated_at: string }
 export const COVERAGE_THRESHOLDS = { MIN_QUERIES_PER_ENGINE_RATIO: 2 / 3, MIN_OVERALL_SUCCESS_RATIO: .75, MIN_VALID_CORE_SLOTS: 5 }
 export const MIN_ANSWER_CHARS = 200
-export const ANSWER_TEXT_LIMIT = 6000
+// Provider configurations can return substantially more than the old excerpt-oriented
+// cap. Preserve the measurement text; rendering continues to use answer_excerpt.
+export const ANSWER_TEXT_LIMIT = 24_000
 export const DIAGNOSTIC_TEXT_LIMIT = 2000
 export const TOOL_FAILURE_NARRATION = [/\brate limit/i, /unable to (?:search|browse|access the web|perform (?:a |the )?search)/i, /(?:couldn'?t|could not|can'?t|cannot) (?:perform|run|complete|use) (?:a |the )?(?:web )?search/i, /based on my training (?:data|knowledge)/i, /web search (?:tool )?(?:is |was )?(?:not available|unavailable|failed|failing|hitting)/i, /search (?:tool|results?) (?:returned|came back) (?:empty|nothing|no results)/i]
 export const TOOL_NARRATION_PREAMBLE = [/^I (?:now )?(?:already )?have enough (?:information|rich data|from)/i, /^Let me compile/i, /^Based on the search results already retrieved/i, /^It seems the web search tool/i, /^Great question!?/i]

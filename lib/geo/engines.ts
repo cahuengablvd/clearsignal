@@ -11,6 +11,7 @@
  * existing ANTHROPIC_API_KEY and is the always-on baseline.
  */
 import Anthropic from '@anthropic-ai/sdk'
+import { createHash } from 'node:crypto'
 import { anthropicUsageEvent, type CostEvent } from '../cost-tracker'
 import { logAnthropicCall, type AnthropicRequestMeta } from '../ai-observability'
 import { FULL_AUDIT_ENGINES } from '../engine-scope'
@@ -31,6 +32,27 @@ export interface EngineResponse {
   http_status?: number
   attempts: number
   tool_events?: ToolEvents
+  /** Acquisition-only provenance. These never replace legacy `citations`. */
+  retrieved_urls?: string[]
+  retrieved_meta?: Array<{ url: string; page_age?: string | null }>
+  cited_urls?: string[] | null
+  citation_attachment?: 'resolved' | 'unresolved' | 'unsupported'
+  engine_issued_queries?: string[]
+  stop_reason?: string | null
+  raw_response_sha256?: string | null
+  started_at?: string
+  finished_at?: string
+}
+
+/** Stable, secret-free-to-persist fingerprint of an in-memory provider payload. */
+export function rawResponseSha256(value: unknown): string {
+  const stable = (input: unknown): string => {
+    if (input === null || typeof input !== 'object') return JSON.stringify(input)
+    if (Array.isArray(input)) return `[${input.map(stable).join(',')}]`
+    const record = input as Record<string, unknown>
+    return `{${Object.keys(record).sort().filter((key) => record[key] !== undefined).map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(',')}}`
+  }
+  return createHash('sha256').update(stable(value)).digest('hex')
 }
 
 const ENGINE_TIMEOUT_MS = 45_000
@@ -148,27 +170,40 @@ async function queryClaude(
     })
 
     let answer = ''
+    // Preserve legacy `citations` exactly: it historically combines text-cited
+    // and search-result URLs. RD-00 records the two meanings separately below.
     const citations: string[] = []
+    const retrievedUrls: string[] = []
+    const citedUrls: string[] = []
+    const issuedQueries: string[] = []
+    const retrievedMeta: Array<{ url: string; page_age?: string | null }> = []
 
     const tool_events: ToolEvents = { search_requests: 0, search_results: 0, tool_errors: [], protocol: 'claude_web_search' }
     for (const block of res.content ?? []) {
       if (block.type === 'text') {
         answer += block.text
         for (const c of block.citations ?? []) {
-          if (c?.url) citations.push(c.url)
+          if (c?.url) { citations.push(c.url); citedUrls.push(c.url) }
         }
       } else if (block.type === 'web_search_tool_result') {
         const inner = block.content
         if (Array.isArray(inner)) {
           if (inner.length) tool_events.search_results++
-          for (const r of inner) if (r?.url) citations.push(r.url)
+          for (const r of inner) if (r?.url) {
+            citations.push(r.url); retrievedUrls.push(r.url)
+            retrievedMeta.push({ url: r.url, ...(typeof r.page_age === 'string' ? { page_age: r.page_age } : {}) })
+          }
         } else if (inner?.type === 'web_search_tool_result_error') tool_events.tool_errors.push(String(inner.error_code || 'tool_error'))
       } else if (block.type === 'server_tool_use') {
         tool_events.search_requests++
+        const query = block?.input?.query
+        if (typeof query === 'string') issuedQueries.push(query)
       }
     }
 
-    return { engine: 'claude', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: res.model, attempts: 1, tool_events }
+    return { engine: 'claude', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: res.model, attempts: 1, tool_events,
+      retrieved_urls: uniqueUrls(retrievedUrls), retrieved_meta: retrievedMeta, cited_urls: uniqueUrls(citedUrls), citation_attachment: 'resolved', engine_issued_queries: issuedQueries,
+      stop_reason: typeof res.stop_reason === 'string' ? res.stop_reason : null, raw_response_sha256: rawResponseSha256(res) }
   } catch (err) {
     const model = opts.webSearch === false ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
     await logAnthropicCall({
@@ -226,7 +261,13 @@ async function queryPerplexity(
     })
     const answer: string = data?.choices?.[0]?.message?.content ?? ''
     const citations: string[] = data?.citations ?? data?.search_results?.map((s: any) => s?.url) ?? []
-    return { engine: 'perplexity', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events: { search_requests: 1, search_results: citations.length, tool_errors: [], protocol: 'perplexity_sonar' } }
+    // Sonar returns a provider source list, but the current chat-completions
+    // payload does not establish which list entry attaches to answer text.
+    const retrievedUrls = data?.search_results?.map((s: any) => s?.url) ?? data?.citations ?? []
+    const retrievedMeta = (data?.search_results ?? []).filter((s: any) => s?.url).map((s: any) => ({ url: s.url, ...(typeof (s.date ?? s.last_updated) === 'string' ? { page_age: s.date ?? s.last_updated } : {}) }))
+    return { engine: 'perplexity', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events: { search_requests: 1, search_results: citations.length, tool_errors: [], protocol: 'perplexity_sonar' },
+      retrieved_urls: uniqueUrls(retrievedUrls), retrieved_meta: retrievedMeta, cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [],
+      stop_reason: typeof data?.choices?.[0]?.finish_reason === 'string' ? data.choices[0].finish_reason : null, raw_response_sha256: rawResponseSha256(data) }
   } catch (err) {
     return {
       engine: 'perplexity',
@@ -274,9 +315,15 @@ async function queryOpenAI(
 
     let answer = ''
     const citations: string[] = []
+    const issuedQueries: string[] = []
     const tool_events: ToolEvents = { search_requests: 0, search_results: 0, tool_errors: [], protocol: 'openai_web_search_preview' }
     for (const item of data?.output ?? []) {
-      if (item?.type === 'web_search_call') { tool_events.search_requests++; if (item.status && item.status !== 'completed') tool_events.tool_errors.push(String(item.status)) }
+      if (item?.type === 'web_search_call') {
+        tool_events.search_requests++; if (item.status && item.status !== 'completed') tool_events.tool_errors.push(String(item.status))
+        const action = item.action ?? {}
+        if (typeof action.query === 'string') issuedQueries.push(action.query)
+        if (Array.isArray(action.queries)) for (const query of action.queries) if (typeof query === 'string') issuedQueries.push(query)
+      }
       if (item?.type === 'message') {
         for (const c of item.content ?? []) {
           if (c?.type === 'output_text') {
@@ -292,7 +339,11 @@ async function queryOpenAI(
     if (!answer && typeof data?.output_text === 'string') answer = data.output_text
 
     tool_events.search_results = citations.length
-    return { engine: 'openai', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events }
+    const incompleteReason = typeof data?.incomplete_details?.reason === 'string' ? data.incomplete_details.reason : null
+    const responseStatus = typeof data?.status === 'string' ? data.status : null
+    return { engine: 'openai', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events,
+      retrieved_urls: [], retrieved_meta: [], cited_urls: uniqueUrls(citations), citation_attachment: 'resolved', engine_issued_queries: [...new Set(issuedQueries)],
+      stop_reason: incompleteReason ?? responseStatus, raw_response_sha256: rawResponseSha256(data) }
   } catch (err) {
     return {
       engine: 'openai',
@@ -329,6 +380,7 @@ export async function queryEngine(
   question: string,
   opts: { webSearch?: boolean; onUsage?: (event: CostEvent) => void; purpose?: string; meta?: AnthropicRequestMeta } = {}
 ): Promise<EngineResponse> {
+  const observationStartedAt = new Date().toISOString()
   const timeout = opts.webSearch === false
     ? FAST_ENGINE_TIMEOUT_MS
     : engine === 'claude'
@@ -367,7 +419,11 @@ export async function queryEngine(
       result = { engine, ok: false, answer: '', citations: [], error: err instanceof Error ? err.message : String(err), attempts: attempt, latency_ms: Date.now() - started }
     }
     const retryable = !result.ok && (result.http_status === 429 || [500, 502, 503, 504].includes(result.http_status || 0) || /fetch failed|ECONNRESET|timed out/i.test(result.error || ''))
-    if (!retryable || attempt === 2) return { ...result, attempts: attempt }
+    if (!retryable || attempt === 2) {
+      const completed = { ...result, attempts: attempt, started_at: observationStartedAt, finished_at: new Date().toISOString() }
+      console.info(`[geo-provider] provider=${engine} attempt=${attempt} status=${completed.http_status ?? (completed.ok ? 'ok' : 'error')} category=${completed.http_status === 429 ? 'rate_limited' : completed.ok ? 'succeeded' : 'provider_error'}`)
+      return completed
+    }
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.floor(Math.random() * 2001)))
   }
   throw new Error('unreachable')

@@ -12,6 +12,7 @@
  * Every number in the result is reproducible from the saved `evidence`.
  */
 import { callClaudeJSON } from '../anthropic'
+import { createHash } from 'node:crypto'
 import type { CostEvent } from '../cost-tracker'
 import type { AnthropicRequestMeta } from '../ai-observability'
 import {
@@ -34,6 +35,7 @@ import {
   geoAnalysisUserPrompt,
 } from '../prompts'
 import { availableEngines, queryEngine, type EngineId } from './engines'
+import { createProviderLimiter, providerConcurrency } from './provider-limiter'
 import { ANSWER_TEXT_LIMIT, DIAGNOSTIC_TEXT_LIMIT, SUCCESSFUL_STATUSES, buildEngineCoverage, classifyEngineResponse, deriveExcerpt, evaluateCoverageGate, type LedgerRow } from './coverage'
 import { analyzeCitedSources } from './sources'
 import { buildQueryAnalysis, classifyQueryIntent, intentForSlot, QUERY_SLOTS, type QuerySlot } from './query-taxonomy'
@@ -331,26 +333,28 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const queries = executions.map((p) => p.query)
   const provenanceById = new Map(provenance.map((p) => [p.query_id, p]))
   const coreQueries = provenance.filter((p) => p.scope === 'core' && p.state === 'valid')
+  const acquisition_protocol = acquisitionProtocol(engines, webSearch, provenance)
 
-  // 2. Fan out: every query against every engine, in parallel.
+  // 2. Fan out across providers while bounding each provider independently.
+  const limitProvider = createProviderLimiter()
   const settled = await Promise.all(
     executions.flatMap((plan) =>
       engines.map(async (engine) => ({
         engine,
         plan,
-        res: await queryEngine(engine, plan.query, {
+        res: await limitProvider(engine, () => queryEngine(engine, plan.query, {
           webSearch,
           onUsage: opts.onUsage,
           purpose: `geo:${engine}`,
           meta: opts.meta ? { ...opts.meta, stage: `geo_engine:${engine}` } : undefined,
-        }),
+        })),
       }))
     )
   )
-  const observed = new Date().toISOString()
   // `settled` is ordered query-major (queries.flatMap(engines)), so the query index is
   // positional - duplicate query strings cannot select the wrong ledger row.
-  const ledger: LedgerRow[] = settled.map((s) => { const classified = classifyEngineResponse(s.res, { engine: s.engine, webSearch }); return { query_id: s.plan.query_id, query: s.plan.query, engine: s.engine, sample_index: 1, status: classified.status, status_reason: classified.reason, tool_events: s.res.tool_events, attempts: s.res.attempts, model: s.res.model, http_status: s.res.http_status, answer_length: s.res.answer.length, citations_count: s.res.citations.length, latency_ms: s.res.latency_ms, observed_at: observed, diagnostic_answer_text: SUCCESSFUL_STATUSES.includes(classified.status) ? undefined : s.res.answer.slice(0, DIAGNOSTIC_TEXT_LIMIT) } })
+  const observed = new Date().toISOString()
+  const ledger: LedgerRow[] = settled.map((s) => { const classified = classifyEngineResponse(s.res, { engine: s.engine, webSearch }); return { query_id: s.plan.query_id, query: s.plan.query, engine: s.engine, sample_index: 1, status: classified.status, status_reason: classified.reason, tool_events: s.res.tool_events, attempts: s.res.attempts, model: s.res.model, http_status: s.res.http_status, answer_length: s.res.answer.length, citations_count: s.res.citations.length, latency_ms: s.res.latency_ms, observed_at: s.res.finished_at || observed, diagnostic_answer_text: SUCCESSFUL_STATUSES.includes(classified.status) ? undefined : s.res.answer.slice(0, DIAGNOSTIC_TEXT_LIMIT) } })
   const successfulIndexes = ledger.map((row, i) => (SUCCESSFUL_STATUSES.includes(row.status) ? i : -1)).filter((i) => i >= 0)
   const coreLedger = ledger.filter((row) => provenanceById.get(row.query_id)?.scope !== 'supplemental')
   const coreSuccessfulIndexes = successfulIndexes.filter((index) => provenanceById.get(ledger[index].query_id)?.scope !== 'supplemental')
@@ -370,7 +374,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       ...emptyResult(brand, brandDomain, queries.length, engines, testCounts),
       citation_rate: null,
       summary: buildGeoSummary({ brand, test_counts: testCounts, mention_rate: 0, citation_rate: null, ai_visibility_score: 0, mentionedCombinations: 0, engines: [], coverageGate: coverage_gate }),
-      ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed,
+      ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed, acquisition_protocol,
     })
   }
 
@@ -449,6 +453,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       brand_position = 1 + competitorIdxs.filter((i) => i < brandIdx).length
     }
 
+    const storageTruncatedAt = r.answer.length > ANSWER_TEXT_LIMIT ? ANSWER_TEXT_LIMIT : null
     const answer_text = r.answer.slice(0, ANSWER_TEXT_LIMIT); const excerpt = deriveExcerpt(answer_text)
     const row = ledger[r.ledgerIndex]
     row.evidence_id = `GEO-QUERY-${String(i + 1).padStart(3, '0')}`
@@ -458,6 +463,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       query: r.query,
       answer_excerpt: excerpt.excerpt,
       answer_text, excerpt_offset: excerpt.offset, status: row.status, grounding: row.status === 'ok_grounded' ? 'grounded' : 'no_citations', tool_events: r.res.tool_events, sample_index: 1, query_id: row.query_id, combination_id: `${row.query_id}-${r.engine}`, model: r.res.model, observed_at: row.observed_at,
+      retrieved_urls: r.res.retrieved_urls ?? [], retrieved_meta: r.res.retrieved_meta ?? [], cited_urls: r.res.cited_urls ?? null, citation_attachment: r.res.citation_attachment ?? 'unsupported', engine_issued_queries: r.res.engine_issued_queries ?? [], stop_reason: r.res.stop_reason ?? null, truncated_at: storageTruncatedAt, raw_response_sha256: r.res.raw_response_sha256 ?? null, started_at: r.res.started_at, finished_at: r.res.finished_at,
       citations: r.citations,
       brand_mentioned,
       brand_cited,
@@ -642,6 +648,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     source_gap_analysis,
     query_analysis: buildQueryAnalysis(coreEvidence),
     ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed,
+    acquisition_protocol,
   }
 
   return GeoResultSchema.parse(result)
@@ -655,6 +662,26 @@ function pct(n: number, total: number): number {
 function round(n: number, dp: number): number {
   const f = 10 ** dp
   return Math.round(n * f) / f
+}
+function queryPlanHash(provenance: QueryProvenance[]): string {
+  return createHash('sha256').update(JSON.stringify(provenance.map(({ query_id, query, scope, state }) => ({ query_id, query, scope, state })))).digest('hex')
+}
+function acquisitionProtocol(engines: EngineId[], webSearch: boolean, provenance: QueryProvenance[]) {
+  return {
+    version: 'rd-00',
+    engines: engines.map((engine) => ({
+      engine,
+      model_requested: engine === 'claude' ? (webSearch ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001') : engine === 'openai' ? 'gpt-4o' : 'sonar',
+      tool_type_version: engine === 'claude' ? (webSearch ? 'web_search_20260209' : 'none') : engine === 'openai' ? 'web_search_preview' : 'sonar',
+      max_uses: engine === 'claude' && webSearch ? 2 : null,
+      max_tokens: engine === 'claude' ? (webSearch ? 1500 : 700) : null,
+      web_search_mode: webSearch ? 'provider_default' : 'disabled',
+      concurrency: providerConcurrency(engine),
+    })),
+    user_location: null,
+    samples_per_combination: 1 as const,
+    query_plan_hash: queryPlanHash(provenance),
+  }
 }
 function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n).trimEnd() + '...' : s

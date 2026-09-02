@@ -234,14 +234,14 @@ export default async function ScoreResultPage({
             </div>
           </section>
 
-          <section className={`rounded-2xl border p-6 shadow-[0_22px_70px_rgba(78,49,27,0.10)] ${geo ? visBg(geo.ai_visibility_score) : scoreBg(avg)}`}>
+          <section className={`rounded-2xl border p-6 shadow-[0_22px_70px_rgba(78,49,27,0.10)] ${geo ? visBg(geo.ai_visibility_score ?? 0) : scoreBg(avg)}`}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-medium text-[#6E5A50]">
                   {geo ? 'AI Visibility Score' : 'Overall messaging score'}
                 </div>
-                <div className={`text-7xl font-bold tracking-tight mt-2 ${geo ? visColor(geo.ai_visibility_score) : scoreColor(avg)}`}>
-                  {geo ? geo.ai_visibility_score : avg}
+                <div className={`text-7xl font-bold tracking-tight mt-2 ${geo ? visColor(geo.ai_visibility_score ?? 0) : scoreColor(avg)}`}>
+                  {geo ? geo.ai_visibility_score ?? 'n/a' : avg}
                 </div>
                 <div className="mt-1 text-sm text-[#6E5A50]">
                   {geo ? 'out of 100' : 'out of 10'}
@@ -257,7 +257,7 @@ export default async function ScoreResultPage({
             {geo ? (
               <div className="grid grid-cols-3 gap-3 mt-6">
                 <Metric label="Mention rate" value={`${Math.round(geo.mention_rate)}%`} />
-                <Metric label="Share of voice" value={`${Math.round(geo.share_of_voice)}%`} />
+                <Metric label="Share of voice" value={geo.share_of_voice == null ? 'n/a' : `${Math.round(geo.share_of_voice)}%`} />
                 <Metric
                   label="Successful combinations"
                   value={String(geo.test_counts?.successful_combinations ?? geo.evidence.length)}

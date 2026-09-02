@@ -51,13 +51,13 @@ export function computeDelta(
       alerts: [
         {
           level: 'info',
-          message: `Baseline established: AI visibility ${current.ai_visibility_score}/100.`,
+          message: `Baseline established: AI visibility ${current.ai_visibility_score ?? 'n/a'}/100.`,
         },
       ],
     }
   }
 
-  const dScore = current.ai_visibility_score - previous.ai_visibility_score
+  const dScore = (current.ai_visibility_score ?? 0) - (previous.ai_visibility_score ?? 0)
   const prevCompetitors = new Set(previous.competitor_visibility.map((c) => c.name.toLowerCase()))
   const newCompetitors = current.competitor_visibility
     .filter((c) => !prevCompetitors.has(c.name.toLowerCase()))
@@ -76,7 +76,7 @@ export function computeDelta(
     is_first_run: false,
     ai_visibility_score: dScore,
     mention_rate: round(current.mention_rate - previous.mention_rate),
-    share_of_voice: round(current.share_of_voice - previous.share_of_voice),
+    share_of_voice: round((current.share_of_voice ?? 0) - (previous.share_of_voice ?? 0)),
     citation_rate: round((current.citation_rate ?? 0) - (previous.citation_rate ?? 0)),
     new_competitors: newCompetitors,
     new_cited_domains: newCitedDomains,

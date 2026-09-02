@@ -100,11 +100,11 @@ export function ScorePdfView({
           <p className="mt-2 break-all text-sm text-[#756257]">{url}</p>
 
           <div className="mt-6 grid grid-cols-[0.9fr_1.1fr] gap-5">
-            <div className={`rounded-2xl border p-6 ${geo ? visBg(geo.ai_visibility_score) : scoreBg(average)}`}>
+            <div className={`rounded-2xl border p-6 ${geo ? visBg(geo.ai_visibility_score ?? 0) : scoreBg(average)}`}>
               <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#756257]">
                 {geo ? 'AI visibility score' : 'Messaging score'}
               </div>
-              <div className={`mt-2 text-7xl font-bold ${geo ? visColor(geo.ai_visibility_score) : scoreColor(average)}`}>
+              <div className={`mt-2 text-7xl font-bold ${geo ? visColor(geo.ai_visibility_score ?? 0) : scoreColor(average)}`}>
                 {scoreValue}
                 <span className="ml-1 text-xl font-semibold text-[#8D7B6B]">/{scoreScale}</span>
               </div>
@@ -118,7 +118,7 @@ export function ScorePdfView({
               {geo && (
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <PdfMetric label="Mention rate" value={`${Math.round(geo.mention_rate)}%`} />
-                  <PdfMetric label="Share of voice" value={`${Math.round(geo.share_of_voice)}%`} />
+                  <PdfMetric label="Share of voice" value={geo.share_of_voice == null ? 'n/a' : `${Math.round(geo.share_of_voice)}%`} />
                   <PdfMetric
                     label="Engine results"
                     value={String(geo.test_counts?.successful_combinations ?? geo.evidence.length)}

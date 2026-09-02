@@ -477,7 +477,7 @@ export default async function AuditPage({
             {!gatePresentationFailed ? <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-3xl font-bold">{report.geo.ai_visibility_score}</div>
+                  <div className="text-3xl font-bold">{report.geo.ai_visibility_score ?? 'n/a'}</div>
                   <div className="text-xs text-muted-foreground mt-1">AI Visibility / 100</div>
                 </CardContent>
               </Card>
@@ -489,7 +489,7 @@ export default async function AuditPage({
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-3xl font-bold">{Math.round(report.geo.share_of_voice)}%</div>
+                  <div className="text-3xl font-bold">{report.geo.share_of_voice == null ? 'n/a' : `${Math.round(report.geo.share_of_voice)}%`}</div>
                   <div className="text-xs text-muted-foreground mt-1">Share of voice</div>
                 </CardContent>
               </Card>
@@ -536,8 +536,10 @@ export default async function AuditPage({
                     .
                   </p>
                 )}
+                {report.geo.score_breakdown.unavailable_reason && <p className="text-xs text-muted-foreground mt-1">{report.geo.score_breakdown.unavailable_reason}</p>}
               </CardContent>
             </Card>
+            {report.geo.measurement_methodology && <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">What was measured</h3><div className="space-y-1 text-sm text-muted-foreground"><p>Market: {report.geo.measurement_methodology.market || 'Not specified'}.</p><p>Languages tested: {report.geo.measurement_methodology.languages_tested.join(', ') || 'Not recorded'}.</p><p>Core queries: {report.geo.measurement_methodology.core_queries}; supplemental queries: {report.geo.measurement_methodology.supplemental_queries}.</p><p>Providers: {report.geo.measurement_methodology.providers.map((item) => `${engineDisplayName(item.engine)}${item.model ? ` (${item.model})` : ''}`).join(', ')}.</p><p>Samples per query-provider combination: {report.geo.measurement_methodology.samples_per_combination}. {report.geo.measurement_methodology.location_behavior}</p></div></CardContent></Card>}
             {report.geo.engine_coverage?.length ? <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">Measurement coverage by engine</h3><div className="space-y-1 text-sm text-muted-foreground">{report.geo.engine_coverage.map((engine) => <p key={engine.engine}>{engineDisplayName(engine.engine)}: {engine.successful_samples}/{engine.expected_samples} answers received; {engine.grounded_samples} grounded; {engine.no_citation_samples} without citations; {engine.tool_failure_samples + engine.provider_error_samples + engine.timeout_samples} failed.</p>)}</div>{report.geo.observed_at && <p className="mt-2 text-xs text-muted-foreground">Evidence observed {report.geo.observed_at.slice(0, 10)}.</p>}</CardContent></Card> : null}
 
             {!gatePresentationFailed && report.geo.query_analysis && report.geo.query_analysis.coverage.length > 0 && (

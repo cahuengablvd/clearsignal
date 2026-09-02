@@ -39,7 +39,7 @@ import {
 } from './prompts'
 import { deliverAuditEmail } from './email-delivery'
 import { buildGeoSummary, generateValidatedQueryPlan, runGeoScan, validateSavedQueryPlan } from './geo'
-import { buildVariants, citationsInclude, textMentions, firstMentionIndex, sld } from './geo/detect'
+import { buildVariants, citationsInclude, citedDomains, textMentions, firstMentionIndex, sld } from './geo/detect'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
 import { buildGeoActionEvidenceCatalog } from './geo/action-evidence'
 import { checkTechnicalEligibility } from './geo/eligibility'
@@ -203,7 +203,11 @@ export function recomputeReusedGeoEvidence(
     // must do the same whenever A1 stored it; legacy records only have an excerpt.
     const answer = e.answer_text || e.answer_excerpt || ''
     const brand_mentioned = textMentions(answer, brandVariants.tokens)
-    const brand_cited = citationsInclude(e.citations || [], brandVariants.domain)
+    const resolvedCitation = e.citation_attachment === 'resolved'
+    const legacyCitation = e.citation_attachment === undefined
+    const citationUrls = resolvedCitation ? (e.cited_urls || []) : (legacyCitation ? (e.citations || []) : [])
+    const citation_evaluable = resolvedCitation || legacyCitation
+    const brand_cited = citation_evaluable && citationsInclude(citationUrls, brandVariants.domain)
     const positions: { name: string; index: number; isBrand: boolean }[] = []
     const brandIndex = firstMentionIndex(answer, brandVariants.tokens)
     if (brandIndex >= 0) positions.push({ name: brand, index: brandIndex, isBrand: true })
@@ -219,6 +223,10 @@ export function recomputeReusedGeoEvidence(
       ...e,
       brand_mentioned,
       brand_cited,
+      citation_evaluable,
+      citation_semantics: resolvedCitation ? 'resolved' as const : legacyCitation ? 'mixed_legacy' as const : e.citation_attachment,
+      cited_domains: citedDomains(citationUrls),
+      absence_observation: brand_mentioned ? 'not_applicable' as const : (e.stop_reason === 'max_tokens' || e.truncated_at != null ? 'censored' as const : 'observed' as const),
       brand_position,
       competitors_mentioned: positions.filter((p) => !p.isBrand).map((p) => p.name),
     }
@@ -229,15 +237,17 @@ export function recomputeReusedGeoEvidence(
   const measurementEvidence = evidence.filter((item) => item.scope !== 'supplemental')
   const total = measurementEvidence.length
   const brandMentions = measurementEvidence.filter((e) => e.brand_mentioned).length
-  const brandCitations = measurementEvidence.filter((e) => e.brand_cited).length
+  const citationEvidence = measurementEvidence.filter((e) => e.citation_evaluable !== false)
+  const brandCitations = citationEvidence.filter((e) => e.brand_cited).length
   const competitorMentionsTotal = measurementEvidence.reduce((sum, e) => sum + e.competitors_mentioned.length, 0)
   const mentionPositions = measurementEvidence
     .filter((e) => e.brand_position != null)
     .map((e) => e.brand_position as number)
-  const avg_position = mentionPositions.length
+  const competitorComparisonAvailable = acceptedCompetitors.length > 0
+  const avg_position = competitorComparisonAvailable && mentionPositions.length
     ? round(mentionPositions.reduce((a, b) => a + b, 0) / mentionPositions.length, 2)
     : null
-  const positionScore01 = mentionPositions.length
+  const positionScore01 = competitorComparisonAvailable && mentionPositions.length
     ? mentionPositions.reduce((sum, p) => sum + Math.max(0, 1 - (p - 1) / 5), 0) / mentionPositions.length
     : 0
   // A1 ledger for the reuse path. A stored A1 ledger is reused as-is; legacy evidence
@@ -253,12 +263,12 @@ export function recomputeReusedGeoEvidence(
   const mention_rate = pct(brandMentions, total)
   // Same A1 denominators as a fresh scan: mentions over successful samples, citations over
   // grounded samples only; `null` when nothing was grounded.
-  const citation_rate = groundedSamples > 0 ? pct(brandCitations, groundedSamples) : null
-  const share_of_voice = brandMentions + competitorMentionsTotal > 0
+  const citation_rate = citationEvidence.length > 0 ? pct(brandCitations, citationEvidence.length) : null
+  const share_of_voice = competitorComparisonAvailable && brandMentions + competitorMentionsTotal > 0
     ? round((brandMentions / (brandMentions + competitorMentionsTotal)) * 100, 1)
-    : 0
-  const position_score = round(positionScore01 * 100, 1)
-  const ai_visibility_score = Math.round(
+    : competitorComparisonAvailable ? 0 : null
+  const position_score = competitorComparisonAvailable ? round(positionScore01 * 100, 1) : null
+  const ai_visibility_score = citation_rate == null || position_score == null || share_of_voice == null ? null : Math.round(
     100 *
     (REUSED_GEO_WEIGHTS.mention * (mention_rate / 100) +
       REUSED_GEO_WEIGHTS.citation * ((citation_rate ?? 0) / 100) +
@@ -272,6 +282,14 @@ export function recomputeReusedGeoEvidence(
     }))
     .filter((c) => c.mention_rate > 0)
     .sort((a, b) => b.mention_rate - a.mention_rate)
+    .slice(0, 10)
+  const domainCounts = new Map<string, number>()
+  for (const item of measurementEvidence) {
+    for (const domain of item.cited_domains) domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1)
+  }
+  const cited_domains_ranked = [...domainCounts.entries()]
+    .map(([domain, count]) => ({ domain, count }))
+    .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
   // Coverage from the full ledger (legacy rows included - a missing `observed_at` must not
@@ -316,19 +334,33 @@ export function recomputeReusedGeoEvidence(
     share_of_voice,
     avg_position,
     competitor_visibility,
+    cited_domains_ranked,
     entity_resolution: { version: process.env.GEO_ENTITY_PIPELINE === 'legacy' ? 'legacy' : 'v1', entities: resolution.entities },
     channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: 'directory', mention_rate: pct(measurementEvidence.filter((item) => (resolution.observationsByAnswer[geo.evidence.indexOf(item)] || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
     score_breakdown: {
       mention_rate,
-      citation_rate: citation_rate ?? 0,
+      citation_rate,
       position_score,
       share_of_voice,
+      unavailable_reason: ai_visibility_score == null ? 'required comparison or citation component unavailable; weights were not renormalized' : undefined,
       weights: REUSED_GEO_WEIGHTS,
     },
     query_analysis: buildQueryAnalysis(evidenceWithProvenance.filter((e) => e.scope !== 'supplemental')),
     query_provenance: provenance,
     query_plan: geo.query_plan || { valid_core_slots: validCoreSlots, review_required: validCoreSlots < 6, primary_language: 'unknown', markets: [] },
     ledger, engine_coverage, coverage_gate,
+    computation_version: 'rd-01-06',
+    computed_by: { version: 'rd-01-06', at: new Date().toISOString(), source: 'reused' },
+    measurement_methodology: {
+      market: geo.query_plan?.markets?.length ? geo.query_plan.markets.join(', ') : null,
+      languages_tested: [...new Set(provenance.filter((item) => item.scope === 'core').map((item) => item.language).filter((language) => language !== 'unknown'))],
+      core_queries: provenance.filter((item) => item.scope === 'core' && item.state === 'valid').length,
+      supplemental_queries: provenance.filter((item) => item.scope === 'supplemental' && item.state === 'valid').length,
+      providers: configuredEngines.map((engine) => ({ engine, model: evidence.find((item) => item.engine === engine)?.model || null })),
+      samples_per_combination: geo.acquisition_protocol?.samples_per_combination || 1,
+      user_location: null,
+      location_behavior: 'Provider default; no explicit user location was set.',
+    },
   }
 }
 

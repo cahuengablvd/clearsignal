@@ -76,7 +76,8 @@ export function buildQueryAnalysis(evidenceInput: GeoEvidence[]): GeoQueryAnalys
     const rows = evidence.filter((item) => item.query_intent === intent)
     const queryCount = [...queries.values()].filter((value) => value.intent === intent).length
     const mentioned = rows.filter((item) => item.brand_mentioned).length
-    const cited = rows.filter((item) => item.brand_cited).length
+    const citationRows = rows.filter((item) => item.citation_evaluable !== false)
+    const cited = citationRows.filter((item) => item.brand_cited).length
     return {
       intent,
       query_count: queryCount,
@@ -84,7 +85,7 @@ export function buildQueryAnalysis(evidenceInput: GeoEvidence[]): GeoQueryAnalys
       mentioned_combinations: mentioned,
       cited_combinations: cited,
       mention_rate: rate(mentioned, rows.length),
-      citation_rate: rate(cited, rows.length),
+      citation_rate: rate(cited, citationRows.length),
     }
   }).filter((item) => item.query_count > 0)
 

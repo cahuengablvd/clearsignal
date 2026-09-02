@@ -1590,8 +1590,9 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
   // A1 coverage structures must agree with each other wherever the data exists. Legacy
   // reports (no ledger / coverage / sample counts) are not held to checks their data
   // cannot support; fresh reports with inconsistent coverage must not pass silently.
-  if (counts.grounded_samples !== undefined && (geo.citation_rate === null) !== (counts.grounded_samples === 0)) {
-    errors.push('geo_counts: citation_rate must be null exactly when there are no grounded samples')
+  const citationEvaluable = coreEvidence.filter((item) => item.citation_evaluable !== false)
+  if ((geo.citation_rate === null) !== (citationEvaluable.length === 0)) {
+    errors.push('geo_counts: citation_rate must be null exactly when there are no citation-evaluable samples')
   }
   const ledger = Array.isArray(geo.ledger) ? geo.ledger : null
   if (ledger && counts.successful_samples !== undefined) {

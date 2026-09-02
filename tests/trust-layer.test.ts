@@ -830,7 +830,8 @@ describe('sample-bounded GEO wording', () => {
     expect(rebuilt.evidence[0].brand_cited).toBe(true)
     expect(rebuilt.evidence[0].brand_position).toBe(1)
     expect(rebuilt.mention_rate).toBe(100)
-    expect(rebuilt.ai_visibility_score).toBeGreaterThan(0)
+    expect(rebuilt.ai_visibility_score).toBeNull()
+    expect(rebuilt.score_breakdown.unavailable_reason).toMatch(/not renormalized/)
     expect(rebuilt.summary).toContain('1 of 1 successfully tested engine-query combinations')
   })
 

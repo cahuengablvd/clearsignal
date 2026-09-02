@@ -82,7 +82,7 @@ export function buildGeoSummary(input: {
   test_counts: GeoTestCounts
   mention_rate: number
   citation_rate: number | null
-  ai_visibility_score: number
+  ai_visibility_score: number | null
   mentionedCombinations?: number
   engines?: string[]
   evidenceReused?: boolean
@@ -108,7 +108,10 @@ export function buildGeoSummary(input: {
     ? 'citation rate was not measurable (no grounded answers)'
     : `citation rate was ${input.citation_rate}%`
 
-  return `${input.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations${engineText}. The measured AI visibility score was ${input.ai_visibility_score}/100; mention rate was ${input.mention_rate}% and ${citationText}.${reuseDisclosure}`
+  const scoreText = input.ai_visibility_score == null
+    ? 'The composite AI visibility score was unavailable because a required comparison component was not defined.'
+    : `The measured AI visibility score was ${input.ai_visibility_score}/100;`
+  return `${input.brand} was named in ${mentioned} of ${successful} successfully tested engine-query combinations${engineText}. ${scoreText} mention rate was ${input.mention_rate}% and ${citationText}.${reuseDisclosure}`
 }
 
 function listValidator<T extends string>(key: string) {
@@ -439,7 +442,11 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   // 4. Deterministic detection per (engine, query).
   const evidence: GeoEvidence[] = raw.map((r, i) => {
     const brand_mentioned = textMentions(r.answer, brandVariants.tokens)
-    const brand_cited = citationsInclude(r.citations, brandVariants.domain)
+    const resolvedCitation = r.res.citation_attachment === 'resolved'
+    const legacyCitation = r.res.citation_attachment === undefined
+    const citationUrls = resolvedCitation ? (r.res.cited_urls || []) : (legacyCitation ? r.citations : [])
+    const citation_evaluable = resolvedCitation || legacyCitation
+    const brand_cited = citation_evaluable && citationsInclude(citationUrls, brandVariants.domain)
 
     const competitors_mentioned = acceptedCompetitors
       .filter((c) => textMentions(r.answer, c.variants.tokens))
@@ -467,14 +474,17 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       answer_text, excerpt_offset: excerpt.offset, status: row.status, grounding: row.status === 'ok_grounded' ? 'grounded' : 'no_citations', tool_events: r.res.tool_events, sample_index: 1, query_id: row.query_id, combination_id: `${row.query_id}-${r.engine}`, model: r.res.model, observed_at: row.observed_at,
       retrieved_urls: r.res.retrieved_urls ?? null, retrieval_capture: r.res.retrieval_capture ?? 'unsupported', retrieved_meta: r.res.retrieved_meta ?? [], cited_urls: r.res.cited_urls ?? null, citation_attachment: r.res.citation_attachment ?? 'unsupported', engine_issued_queries: r.res.engine_issued_queries ?? [], stop_reason: r.res.stop_reason ?? null, truncated_at: storageTruncatedAt, raw_response_sha256: r.res.raw_response_sha256 ?? null, started_at: r.res.started_at, finished_at: r.res.finished_at,
       citations: r.citations,
+      citation_evaluable,
+      citation_semantics: resolvedCitation ? 'resolved' : legacyCitation ? 'mixed_legacy' : r.res.citation_attachment,
       brand_mentioned,
       brand_cited,
       brand_position,
       competitors_mentioned,
-      cited_domains: citedDomains(r.citations),
+      cited_domains: citedDomains(citationUrls),
       query_intent: r.plan.intent || classifyQueryIntent(r.query),
       scope: r.plan.scope,
       entity_observations: resolution.observationsByAnswer[i],
+      absence_observation: brand_mentioned ? 'not_applicable' : (r.res.stop_reason === 'max_tokens' || storageTruncatedAt != null ? 'censored' : 'observed'),
     }
   })
 
@@ -482,32 +492,31 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const coreEvidence = evidence.filter((e) => e.scope !== 'supplemental')
   const total = coreEvidence.length
   const brandMentions = coreEvidence.filter((e) => e.brand_mentioned).length
-  const brandCitations = coreEvidence.filter((e) => e.brand_cited).length
+  const citationEvidence = coreEvidence.filter((e) => e.citation_evaluable !== false)
+  const brandCitations = citationEvidence.filter((e) => e.brand_cited).length
   const competitorMentionsTotal = coreEvidence.reduce((sum, e) => sum + e.competitors_mentioned.length, 0)
 
   const mentionPositions = coreEvidence
     .filter((e) => e.brand_position != null)
     .map((e) => e.brand_position as number)
-  const avg_position =
-    mentionPositions.length > 0
+  const competitorComparisonAvailable = acceptedCompetitors.length > 0
+  const avg_position = competitorComparisonAvailable && mentionPositions.length > 0
       ? round(mentionPositions.reduce((a, b) => a + b, 0) / mentionPositions.length, 2)
       : null
 
   // position_score: 1.0 if named first, decaying to 0 by position 6.
-  const positionScore01 =
-    mentionPositions.length > 0
+  const positionScore01 = competitorComparisonAvailable && mentionPositions.length > 0
       ? mentionPositions.reduce((a, p) => a + Math.max(0, 1 - (p - 1) / 5), 0) / mentionPositions.length
       : 0
 
   const mention_rate = pct(brandMentions, total)
-  const citation_rate = testCounts.grounded_samples ? pct(brandCitations, testCounts.grounded_samples) : null
-  const share_of_voice =
-    brandMentions + competitorMentionsTotal > 0
+  const citation_rate = citationEvidence.length ? pct(brandCitations, citationEvidence.length) : null
+  const share_of_voice = competitorComparisonAvailable && brandMentions + competitorMentionsTotal > 0
       ? round((brandMentions / (brandMentions + competitorMentionsTotal)) * 100, 1)
-      : 0
-  const position_score = round(positionScore01 * 100, 1)
+      : competitorComparisonAvailable ? 0 : null
+  const position_score = competitorComparisonAvailable ? round(positionScore01 * 100, 1) : null
 
-  const ai_visibility_score = Math.round(
+  const ai_visibility_score = citation_rate == null || position_score == null || share_of_voice == null ? null : Math.round(
     100 *
       (SCORE_WEIGHTS.mention * (mention_rate / 100) +
         SCORE_WEIGHTS.citation * ((citation_rate ?? 0) / 100) +
@@ -542,7 +551,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     ai_visibility_score,
     test_counts: testCounts,
     mention_rate,
-    citation_rate: citation_rate ?? 0,
+    citation_rate,
     mentionedCombinations: brandMentions,
     engines: enginesTested,
     cited_domains_ranked,
@@ -557,7 +566,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         user: geoAnalysisUserPrompt(
           brand,
           brandDomain,
-          { ai_visibility_score, mention_rate, citation_rate: citation_rate ?? 0, share_of_voice },
+          { ai_visibility_score: ai_visibility_score ?? 0, mention_rate, citation_rate: citation_rate ?? 0, share_of_voice: share_of_voice ?? 0 },
           coreEvidence.map((e) => ({
             engine: e.engine,
             query: e.query,
@@ -628,9 +637,10 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     avg_position,
     score_breakdown: {
       mention_rate,
-      citation_rate: citation_rate ?? 0,
+    citation_rate,
       position_score,
       share_of_voice,
+      unavailable_reason: ai_visibility_score == null ? 'required comparison or citation component unavailable; weights were not renormalized' : undefined,
       weights: {
         mention: SCORE_WEIGHTS.mention,
         citation: SCORE_WEIGHTS.citation,
@@ -651,6 +661,9 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     query_analysis: buildQueryAnalysis(coreEvidence),
     ledger, engine_coverage, coverage_gate, observed_at: observationWindow.observed_at, observed_until: observationWindow.observed_until,
     acquisition_protocol, acquisition_operational,
+    computation_version: 'rd-01-06',
+    computed_by: { version: 'rd-01-06', at: new Date().toISOString(), source: 'fresh' },
+    measurement_methodology: buildMeasurementMethodology(provenance, evidence, engines),
   }
 
   return GeoResultSchema.parse(result)
@@ -682,6 +695,23 @@ function acquisitionProtocol(engines: EngineId[], webSearch: boolean, provenance
     user_location: null,
     samples_per_combination: 1 as const,
     query_plan_hash: queryPlanHash(provenance),
+  }
+}
+
+function buildMeasurementMethodology(provenance: QueryProvenance[], evidence: GeoEvidence[], engines: EngineId[]) {
+  const core = provenance.filter((item) => item.scope === 'core' && item.state === 'valid')
+  const supplemental = provenance.filter((item) => item.scope === 'supplemental' && item.state === 'valid')
+  const languages = [...new Set(core.map((item) => item.language).filter((language) => language && language !== 'unknown'))]
+  const markets = [...new Set(core.map((item) => item.market).filter((market): market is string => !!market))]
+  return {
+    market: markets.length === 1 ? markets[0] : markets.length ? markets.join(', ') : null,
+    languages_tested: languages,
+    core_queries: core.length,
+    supplemental_queries: supplemental.length,
+    providers: engines.map((engine) => ({ engine, model: evidence.find((item) => item.engine === engine)?.model || null })),
+    samples_per_combination: 1,
+    user_location: null,
+    location_behavior: 'Provider default; no explicit user location was set.',
   }
 }
 function acquisitionOperational(engines: EngineId[]) {
@@ -736,10 +766,10 @@ function deterministicNarrative({
 }: {
   brand: string
   brandDomain: string
-  ai_visibility_score: number
+  ai_visibility_score: number | null
   test_counts: GeoTestCounts
   mention_rate: number
-  citation_rate: number
+  citation_rate: number | null
   mentionedCombinations: number
   engines: string[]
   cited_domains_ranked: { domain: string; count: number }[]

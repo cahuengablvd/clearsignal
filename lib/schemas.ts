@@ -302,9 +302,15 @@ export const GeoEvidenceSchema = z.object({
   retrieved_meta: z.array(z.object({ url: z.string(), page_age: z.string().nullable().optional() })).optional(),
   cited_urls: z.array(z.string()).nullable().optional(),
   citation_attachment: z.enum(['resolved', 'unresolved', 'unsupported']).optional(),
+  /** Whether this sample can be included in a citation-rate denominator. */
+  citation_evaluable: z.boolean().optional(),
+  /** RD-02 disclosure: resolved RD-00 attachment or a non-authoritative legacy state. */
+  citation_semantics: z.enum(['resolved', 'mixed_legacy', 'unresolved', 'unsupported']).optional(),
   engine_issued_queries: z.array(z.string()).optional(),
   stop_reason: z.string().nullable().optional(),
   truncated_at: z.number().int().nonnegative().nullable().optional(),
+  /** A missing brand observation is indeterminate when the provider stopped or storage clipped it. */
+  absence_observation: z.enum(['observed', 'censored', 'not_applicable']).optional(),
   raw_response_sha256: z.string().nullable().optional(),
   started_at: z.string().optional(), finished_at: z.string().optional(),
   scope: z.enum(['core', 'supplemental']).optional(),
@@ -316,15 +322,16 @@ export type GeoEvidence = z.infer<typeof GeoEvidenceSchema>
 /** Reproducible breakdown of how ai_visibility_score was computed. */
 export const GeoScoreBreakdownSchema = z.object({
   mention_rate: z.number(), // 0-100
-  citation_rate: z.number(), // 0-100
-  position_score: z.number(), // 0-100, higher = named earlier
-  share_of_voice: z.number(), // 0-100
+  citation_rate: z.number().nullable(), // 0-100
+  position_score: z.number().nullable(), // 0-100, higher = named earlier
+  share_of_voice: z.number().nullable(), // 0-100
   weights: z.object({
     mention: z.number(),
     citation: z.number(),
     position: z.number(),
     share_of_voice: z.number(),
   }),
+  unavailable_reason: z.string().optional(),
 })
 
 /** The LLM's narrative layer - explanation only, never the underlying facts. */
@@ -536,10 +543,10 @@ export const GeoResultSchema = z.object({
   engines_tested: z.array(z.string()),
   test_counts: GeoTestCountsSchema.optional(),
   // Deterministic metrics
-  ai_visibility_score: z.number().min(0).max(100),
+  ai_visibility_score: z.number().min(0).max(100).nullable(),
   mention_rate: z.number().min(0).max(100),
   citation_rate: z.number().min(0).max(100).nullable(),
-  share_of_voice: z.number().min(0).max(100),
+  share_of_voice: z.number().min(0).max(100).nullable(),
   avg_position: z.number().nullable(),
   score_breakdown: GeoScoreBreakdownSchema,
   evidence: z.array(GeoEvidenceSchema),
@@ -570,6 +577,10 @@ export const GeoResultSchema = z.object({
   supplemental_probes: z.array(z.object({ query_id: z.string(), slot: z.string(), language: z.string(), query: z.string(), per_engine: z.array(z.object({ engine: z.string(), successful: z.number(), mentioned: z.number(), cited: z.number() })) })).optional(),
   acquisition_protocol: z.object({ version: z.string(), engines: z.array(z.object({ engine: z.string(), model_requested: z.string(), tool_type_version: z.string(), max_uses: z.number().nullable(), max_tokens: z.number().nullable(), web_search_mode: z.string() })), user_location: z.null(), samples_per_combination: z.literal(1), query_plan_hash: z.string() }).optional(),
   acquisition_operational: z.object({ provider_concurrency: z.array(z.object({ engine: z.string(), concurrency: z.number() })) }).optional(),
+  /** Computation identity, deliberately separate from immutable acquisition facts. */
+  computation_version: z.string().optional(),
+  computed_by: z.object({ version: z.string(), at: z.string(), source: z.enum(['fresh', 'reused', 'rerender']) }).optional(),
+  measurement_methodology: z.object({ market: z.string().nullable(), languages_tested: z.array(z.string()), core_queries: z.number(), supplemental_queries: z.number(), providers: z.array(z.object({ engine: z.string(), model: z.string().nullable() })), samples_per_combination: z.number(), user_location: z.null(), location_behavior: z.string() }).optional(),
 })
 
 export type GeoResult = z.infer<typeof GeoResultSchema>

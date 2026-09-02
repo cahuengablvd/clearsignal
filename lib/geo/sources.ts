@@ -55,7 +55,8 @@ function topCitedUrls(evidence: GeoEvidence[], maxSources: number, brandDomain: 
   const urlCount = new Map<string, number>()
 
   for (const e of evidence) {
-    for (const url of e.citations) {
+    const urls = e.citation_attachment === 'resolved' ? (e.cited_urls || []) : e.citation_attachment === undefined ? e.citations : []
+    for (const url of urls) {
       const dom = registrableDomain(url)
       if (!dom || dom === brandDomain) continue // skip the brand's own pages
       urlCount.set(url, (urlCount.get(url) || 0) + 1)

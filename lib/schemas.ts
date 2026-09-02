@@ -297,7 +297,8 @@ export const GeoEvidenceSchema = z.object({
   sample_index: z.number().int().positive().optional(),
   query_id: z.string().optional(), combination_id: z.string().optional(), model: z.string().optional(), observed_at: z.string().optional(),
   answer_text: z.string().optional(), excerpt_offset: z.number().int().nonnegative().optional(),
-  retrieved_urls: z.array(z.string()).optional(),
+  retrieved_urls: z.array(z.string()).nullable().optional(),
+  retrieval_capture: z.enum(['resolved', 'unsupported']).optional(),
   retrieved_meta: z.array(z.object({ url: z.string(), page_age: z.string().nullable().optional() })).optional(),
   cited_urls: z.array(z.string()).nullable().optional(),
   citation_attachment: z.enum(['resolved', 'unresolved', 'unsupported']).optional(),
@@ -567,7 +568,8 @@ export const GeoResultSchema = z.object({
   query_provenance: z.array(QueryProvenanceSchema).optional(),
   query_plan: z.object({ valid_core_slots: z.number(), review_required: z.boolean(), primary_language: z.string(), markets: z.array(z.string()), warnings: z.array(z.string()).optional() }).optional(),
   supplemental_probes: z.array(z.object({ query_id: z.string(), slot: z.string(), language: z.string(), query: z.string(), per_engine: z.array(z.object({ engine: z.string(), successful: z.number(), mentioned: z.number(), cited: z.number() })) })).optional(),
-  acquisition_protocol: z.object({ version: z.string(), engines: z.array(z.object({ engine: z.string(), model_requested: z.string(), tool_type_version: z.string(), max_uses: z.number().nullable(), max_tokens: z.number().nullable(), web_search_mode: z.string(), concurrency: z.number() })), user_location: z.null(), samples_per_combination: z.literal(1), query_plan_hash: z.string() }).optional(),
+  acquisition_protocol: z.object({ version: z.string(), engines: z.array(z.object({ engine: z.string(), model_requested: z.string(), tool_type_version: z.string(), max_uses: z.number().nullable(), max_tokens: z.number().nullable(), web_search_mode: z.string() })), user_location: z.null(), samples_per_combination: z.literal(1), query_plan_hash: z.string() }).optional(),
+  acquisition_operational: z.object({ provider_concurrency: z.array(z.object({ engine: z.string(), concurrency: z.number() })) }).optional(),
 })
 
 export type GeoResult = z.infer<typeof GeoResultSchema>

@@ -33,7 +33,8 @@ export interface EngineResponse {
   attempts: number
   tool_events?: ToolEvents
   /** Acquisition-only provenance. These never replace legacy `citations`. */
-  retrieved_urls?: string[]
+  retrieved_urls?: string[] | null
+  retrieval_capture?: 'resolved' | 'unsupported'
   retrieved_meta?: Array<{ url: string; page_age?: string | null }>
   cited_urls?: string[] | null
   citation_attachment?: 'resolved' | 'unresolved' | 'unsupported'
@@ -202,7 +203,7 @@ async function queryClaude(
     }
 
     return { engine: 'claude', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: res.model, attempts: 1, tool_events,
-      retrieved_urls: uniqueUrls(retrievedUrls), retrieved_meta: retrievedMeta, cited_urls: uniqueUrls(citedUrls), citation_attachment: 'resolved', engine_issued_queries: issuedQueries,
+      retrieved_urls: uniqueUrls(retrievedUrls), retrieval_capture: 'resolved', retrieved_meta: retrievedMeta, cited_urls: uniqueUrls(citedUrls), citation_attachment: 'resolved', engine_issued_queries: issuedQueries,
       stop_reason: typeof res.stop_reason === 'string' ? res.stop_reason : null, raw_response_sha256: rawResponseSha256(res) }
   } catch (err) {
     const model = opts.webSearch === false ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
@@ -263,10 +264,15 @@ async function queryPerplexity(
     const citations: string[] = data?.citations ?? data?.search_results?.map((s: any) => s?.url) ?? []
     // Sonar returns a provider source list, but the current chat-completions
     // payload does not establish which list entry attaches to answer text.
-    const retrievedUrls = data?.search_results?.map((s: any) => s?.url) ?? data?.citations ?? []
+    // Both fields are provider retrieval evidence. Neither establishes an
+    // attachment to answer text, so keep this separate from cited_urls.
+    const retrievedUrls = [
+      ...(Array.isArray(data?.search_results) ? data.search_results.map((s: any) => s?.url) : []),
+      ...(Array.isArray(data?.citations) ? data.citations : []),
+    ]
     const retrievedMeta = (data?.search_results ?? []).filter((s: any) => s?.url).map((s: any) => ({ url: s.url, ...(typeof (s.date ?? s.last_updated) === 'string' ? { page_age: s.date ?? s.last_updated } : {}) }))
     return { engine: 'perplexity', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events: { search_requests: 1, search_results: citations.length, tool_errors: [], protocol: 'perplexity_sonar' },
-      retrieved_urls: uniqueUrls(retrievedUrls), retrieved_meta: retrievedMeta, cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [],
+      retrieved_urls: uniqueUrls(retrievedUrls), retrieval_capture: 'resolved', retrieved_meta: retrievedMeta, cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [],
       stop_reason: typeof data?.choices?.[0]?.finish_reason === 'string' ? data.choices[0].finish_reason : null, raw_response_sha256: rawResponseSha256(data) }
   } catch (err) {
     return {
@@ -342,7 +348,9 @@ async function queryOpenAI(
     const incompleteReason = typeof data?.incomplete_details?.reason === 'string' ? data.incomplete_details.reason : null
     const responseStatus = typeof data?.status === 'string' ? data.status : null
     return { engine: 'openai', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events,
-      retrieved_urls: [], retrieved_meta: [], cited_urls: uniqueUrls(citations), citation_attachment: 'resolved', engine_issued_queries: [...new Set(issuedQueries)],
+      // web_search_preview does not expose a complete consulted-source list in
+      // this response shape. Citations are not a substitute for retrieval data.
+      retrieved_urls: null, retrieval_capture: 'unsupported', retrieved_meta: [], cited_urls: uniqueUrls(citations), citation_attachment: 'resolved', engine_issued_queries: [...new Set(issuedQueries)],
       stop_reason: incompleteReason ?? responseStatus, raw_response_sha256: rawResponseSha256(data) }
   } catch (err) {
     return {

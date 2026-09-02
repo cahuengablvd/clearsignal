@@ -310,6 +310,8 @@ const RAW_STRING_KEYS = new Set([
 const RAW_PATH_PREFIXES = [
   'meta.',
   'geo.evidence.',
+  'geo.acquisition_protocol.',
+  'geo.acquisition_operational.',
   'technical_findings.',
 ]
 

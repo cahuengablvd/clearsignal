@@ -1,6 +1,7 @@
 import type { EngineId } from './engines'
 
-const DEFAULT_CONCURRENCY: Record<EngineId, number> = { claude: 2, perplexity: 2, openai: 2 }
+// Conservative initial operational defaults; not a claim of scientific optimality.
+const DEFAULT_CONCURRENCY: Record<EngineId, number> = { claude: 3, perplexity: 2, openai: 3 }
 
 function configured(engine: EngineId): number {
   const name = `GEO_PROVIDER_CONCURRENCY_${engine.toUpperCase()}`

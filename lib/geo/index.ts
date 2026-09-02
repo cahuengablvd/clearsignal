@@ -334,6 +334,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const provenanceById = new Map(provenance.map((p) => [p.query_id, p]))
   const coreQueries = provenance.filter((p) => p.scope === 'core' && p.state === 'valid')
   const acquisition_protocol = acquisitionProtocol(engines, webSearch, provenance)
+  const acquisition_operational = acquisitionOperational(engines)
 
   // 2. Fan out across providers while bounding each provider independently.
   const limitProvider = createProviderLimiter()
@@ -355,6 +356,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   // positional - duplicate query strings cannot select the wrong ledger row.
   const observed = new Date().toISOString()
   const ledger: LedgerRow[] = settled.map((s) => { const classified = classifyEngineResponse(s.res, { engine: s.engine, webSearch }); return { query_id: s.plan.query_id, query: s.plan.query, engine: s.engine, sample_index: 1, status: classified.status, status_reason: classified.reason, tool_events: s.res.tool_events, attempts: s.res.attempts, model: s.res.model, http_status: s.res.http_status, answer_length: s.res.answer.length, citations_count: s.res.citations.length, latency_ms: s.res.latency_ms, observed_at: s.res.finished_at || observed, diagnostic_answer_text: SUCCESSFUL_STATUSES.includes(classified.status) ? undefined : s.res.answer.slice(0, DIAGNOSTIC_TEXT_LIMIT) } })
+  const observationWindow = aggregateObservationWindow(settled.map((item) => item.res), observed)
   const successfulIndexes = ledger.map((row, i) => (SUCCESSFUL_STATUSES.includes(row.status) ? i : -1)).filter((i) => i >= 0)
   const coreLedger = ledger.filter((row) => provenanceById.get(row.query_id)?.scope !== 'supplemental')
   const coreSuccessfulIndexes = successfulIndexes.filter((index) => provenanceById.get(ledger[index].query_id)?.scope !== 'supplemental')
@@ -374,7 +376,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       ...emptyResult(brand, brandDomain, queries.length, engines, testCounts),
       citation_rate: null,
       summary: buildGeoSummary({ brand, test_counts: testCounts, mention_rate: 0, citation_rate: null, ai_visibility_score: 0, mentionedCombinations: 0, engines: [], coverageGate: coverage_gate }),
-      ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed, acquisition_protocol,
+      ledger, engine_coverage, coverage_gate, observed_at: observationWindow.observed_at, observed_until: observationWindow.observed_until, acquisition_protocol, acquisition_operational,
     })
   }
 
@@ -463,7 +465,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       query: r.query,
       answer_excerpt: excerpt.excerpt,
       answer_text, excerpt_offset: excerpt.offset, status: row.status, grounding: row.status === 'ok_grounded' ? 'grounded' : 'no_citations', tool_events: r.res.tool_events, sample_index: 1, query_id: row.query_id, combination_id: `${row.query_id}-${r.engine}`, model: r.res.model, observed_at: row.observed_at,
-      retrieved_urls: r.res.retrieved_urls ?? [], retrieved_meta: r.res.retrieved_meta ?? [], cited_urls: r.res.cited_urls ?? null, citation_attachment: r.res.citation_attachment ?? 'unsupported', engine_issued_queries: r.res.engine_issued_queries ?? [], stop_reason: r.res.stop_reason ?? null, truncated_at: storageTruncatedAt, raw_response_sha256: r.res.raw_response_sha256 ?? null, started_at: r.res.started_at, finished_at: r.res.finished_at,
+      retrieved_urls: r.res.retrieved_urls ?? null, retrieval_capture: r.res.retrieval_capture ?? 'unsupported', retrieved_meta: r.res.retrieved_meta ?? [], cited_urls: r.res.cited_urls ?? null, citation_attachment: r.res.citation_attachment ?? 'unsupported', engine_issued_queries: r.res.engine_issued_queries ?? [], stop_reason: r.res.stop_reason ?? null, truncated_at: storageTruncatedAt, raw_response_sha256: r.res.raw_response_sha256 ?? null, started_at: r.res.started_at, finished_at: r.res.finished_at,
       citations: r.citations,
       brand_mentioned,
       brand_cited,
@@ -647,8 +649,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     supplemental_probes: provenance.filter((p) => p.scope === 'supplemental' && p.state === 'valid').map((p) => ({ query_id: p.query_id, slot: p.slot, language: p.language, query: p.query, per_engine: engines.map((engine) => { const rows = evidence.filter((e) => e.query_id === p.query_id && e.engine === engine); return { engine, successful: rows.length, mentioned: rows.filter((e) => e.brand_mentioned).length, cited: rows.filter((e) => e.brand_cited).length } }) })),
     source_gap_analysis,
     query_analysis: buildQueryAnalysis(coreEvidence),
-    ledger, engine_coverage, coverage_gate, observed_at: observed, observed_until: observed,
-    acquisition_protocol,
+    ledger, engine_coverage, coverage_gate, observed_at: observationWindow.observed_at, observed_until: observationWindow.observed_until,
+    acquisition_protocol, acquisition_operational,
   }
 
   return GeoResultSchema.parse(result)
@@ -676,11 +678,22 @@ function acquisitionProtocol(engines: EngineId[], webSearch: boolean, provenance
       max_uses: engine === 'claude' && webSearch ? 2 : null,
       max_tokens: engine === 'claude' ? (webSearch ? 1500 : 700) : null,
       web_search_mode: webSearch ? 'provider_default' : 'disabled',
-      concurrency: providerConcurrency(engine),
     })),
     user_location: null,
     samples_per_combination: 1 as const,
     query_plan_hash: queryPlanHash(provenance),
+  }
+}
+function acquisitionOperational(engines: EngineId[]) {
+  return { provider_concurrency: engines.map((engine) => ({ engine, concurrency: providerConcurrency(engine) })) }
+}
+function aggregateObservationWindow(rows: Array<{ started_at?: string; finished_at?: string }>, fallback: string) {
+  const validTime = (value: string | undefined) => value && Number.isFinite(Date.parse(value)) ? value : undefined
+  const starts = rows.map((row) => validTime(row.started_at) || validTime(row.finished_at)).filter((value): value is string => Boolean(value))
+  const finishes = rows.map((row) => validTime(row.finished_at) || validTime(row.started_at)).filter((value): value is string => Boolean(value))
+  return {
+    observed_at: starts.length ? starts.reduce((earliest, value) => Date.parse(value) < Date.parse(earliest) ? value : earliest) : fallback,
+    observed_until: finishes.length ? finishes.reduce((latest, value) => Date.parse(value) > Date.parse(latest) ? value : latest) : fallback,
   }
 }
 function truncate(s: string, n: number): string {

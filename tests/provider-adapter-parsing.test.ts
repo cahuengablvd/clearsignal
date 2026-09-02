@@ -86,7 +86,7 @@ describe('A1 adapter parsing of the sanitized provider captures', () => {
     expect(result.model).toBe('gpt-4o-2024-08-06')
     expect(result.citations).toEqual(['https://sanitized.example/source'])
     expect(result.tool_events).toMatchObject({ protocol: 'openai_web_search_preview', search_requests: 1, tool_errors: [] })
-    expect(result).toMatchObject({ cited_urls: ['https://sanitized.example/source'], retrieved_urls: [], engine_issued_queries: ['sanitized generic web-search query'], citation_attachment: 'resolved' })
+    expect(result).toMatchObject({ cited_urls: ['https://sanitized.example/source'], retrieved_urls: null, retrieval_capture: 'unsupported', engine_issued_queries: ['sanitized generic web-search query'], citation_attachment: 'resolved' })
     expect(classifyEngineResponse({ ...result, answer: padded }, { engine: 'openai', webSearch: true }).status).toBe('ok_grounded')
   })
 
@@ -95,7 +95,7 @@ describe('A1 adapter parsing of the sanitized provider captures', () => {
     const grounded = await queryEngine('perplexity', 'q')
     expect(grounded.model).toBe('sonar')
     expect(grounded.citations).toHaveLength(2)
-    expect(grounded).toMatchObject({ retrieved_urls: ['https://sanitized.example/source-a'], cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [], stop_reason: 'stop' })
+    expect(grounded).toMatchObject({ retrieved_urls: ['https://sanitized.example/source-a', 'https://sanitized.example/source-b'], retrieval_capture: 'resolved', cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [], stop_reason: 'stop' })
     expect(classifyEngineResponse({ ...grounded, answer: padded }, { engine: 'perplexity', webSearch: true }).status).toBe('ok_grounded')
 
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => '', json: async () => fixture('perplexity-no-citations.json') })))

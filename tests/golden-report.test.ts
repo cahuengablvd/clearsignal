@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { validateReport } from '../lib/report-validator'
+import { isRawPath, validateReport } from '../lib/report-validator'
 import { sanitizeGeneratedReportValue } from '../lib/sanitize'
 import { reusableGeoFromAudit } from '../lib/audit-runner'
 import { buildGeoSummary } from '../lib/geo'
@@ -59,8 +59,11 @@ function clientSafeFixture(
   return validation.report
 }
 
-function clientText(report: ClearSignalReport): string {
-  return JSON.stringify(report)
+function clientText(value: unknown, path: string[] = []): string {
+  if (typeof value === 'string') return isRawPath(path, path.at(-1)) ? '' : value
+  if (Array.isArray(value)) return value.map((item, index) => clientText(item, [...path, String(index)])).join('\n')
+  if (value && typeof value === 'object') return Object.entries(value).map(([key, item]) => clientText(item, [...path, key])).join('\n')
+  return ''
 }
 
 function stableClientSnapshot(report: ClearSignalReport) {
@@ -134,7 +137,7 @@ describe('golden-report regression test', () => {
   })
 
   fixtureIt('no client artifacts or verification phrases in publishable text', () => {
-    const text = JSON.stringify(clientSafeGoldenReport())
+    const text = clientText(clientSafeGoldenReport())
 
     expect(text).not.toMatch(/before publishing this wording/i)
     expect(text).not.toMatch(/should be confirmed with the business/i)

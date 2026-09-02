@@ -56,6 +56,24 @@ beforeEach(() => {
 afterEach(() => { delete process.env.GEO_ENTITY_PIPELINE })
 
 describe('A3 completion verification', () => {
+  it('keeps multi-paragraph acquired answers byte-identical through validation and preserves their spans', async () => {
+    const answer = `${'Opening paragraph about the buyer situation. '.repeat(6)}\n\nParagraph Rival is a competitor named after this paragraph boundary.\n\n${'Closing paragraph with useful buyer context. '.repeat(6)}`
+    const testPlan = plan(['buyer one', 'buyer two', 'buyer three', 'buyer four', 'buyer five', 'buyer six'])
+    queryEngine.mockResolvedValue({ ok: true, answer, citations: [], attempts: 1 })
+    callClaudeJSON.mockResolvedValue({ candidates: [{ name: 'Paragraph Rival', role_guess: 'competitor', quote: 'Paragraph Rival', answer_index: 0 }] })
+
+    const geo = await runGeoScan({ brand: 'Target', url: 'https://target.example', engines: ['openai'], queryPlan: testPlan, analyzeSources: false, narrative: false })
+    const before = geo.evidence[0].answer_text
+    const entity = geo.entity_resolution!.entities.find((item) => item.display_name === 'Paragraph Rival')!
+    const observation = geo.evidence[0].entity_observations!.find((item) => item.entity_id === entity.entity_id)!
+    const validated = validateReport({ ...freshReport(), geo } as ClearSignalReport)
+
+    expect(validated.errors.filter((error) => error.startsWith('a3: invalid entity span'))).toEqual([])
+    expect(validated.report.geo!.evidence[0].answer_text).toBe(before)
+    expect(before).toBe(answer)
+    expect(before!.slice(observation.span_start, observation.span_end)).toBe('Paragraph Rival')
+  })
+
   it('keeps duplicate A4 query identities and supplemental entities outside core A3 metrics', async () => {
     queryEngine.mockImplementation(async (_engine: string, query: string) => ({ ok: true, answer: (query.startsWith('supplemental') ? 'Target and Supplemental Only are listed. ' : 'Target and Real Rival are listed. ').repeat(8), citations: [], attempts: 1 }))
     callClaudeJSON.mockResolvedValue({ candidates: [{ name: 'Real Rival', role_guess: 'competitor', quote: 'Real Rival', answer_index: 0 }, { name: 'Supplemental Only', role_guess: 'competitor', quote: 'Supplemental Only', answer_index: 2 }] })

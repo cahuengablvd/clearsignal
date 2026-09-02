@@ -129,6 +129,22 @@ describe('admin audit regeneration route', () => {
     expect(mocks.enqueueAudit).not.toHaveBeenCalled()
   })
 
+  it('preserves completed stage executions only when explicitly requested', async () => {
+    const res = await POST(request({ audit_id: 'audit-1', preserve_stage_cache: true }) as never)
+
+    expect(res.status).toBe(200)
+    expect(mocks.from).not.toHaveBeenCalledWith('audit_stage_executions')
+    expect(mocks.stageDelete).not.toHaveBeenCalled()
+    expect(mocks.enqueueAudit).toHaveBeenCalledWith('audit-1', expect.objectContaining({
+      trigger: 'admin_regenerate',
+      reuseGeoEvidence: false,
+    }))
+    expect(mocks.auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      admin_notes: expect.stringContaining('Requeued from cached stages.'),
+    }))
+    expect(await res.json()).toEqual(expect.objectContaining({ preserve_stage_cache: true }))
+  })
+
   it('warns only for old reused evidence and accepts explicit confirmation', async () => {
     mocks.audit = { id: 'audit-1', audit_status: 'awaiting_review', admin_notes: null, report: { geo: { observed_at: new Date(Date.now() - 15 * 86400000).toISOString() } } }
     setupSupabase()

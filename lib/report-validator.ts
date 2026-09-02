@@ -1720,8 +1720,10 @@ type Repair = (text: string, path: string[]) => string
 function mapProse(value: unknown, repair: Repair, path: string[] = []): unknown {
   if (typeof value === 'string') {
     const key = path[path.length - 1]
-    const normalized = normalizeEncodingArtifacts(value)
-    return isRawPath(path, key) ? normalized : repair(normalized, path)
+    // Evidence spans are calculated against acquired text. Raw fields therefore
+    // must pass through byte-for-byte, before any display-prose normalization.
+    if (isRawPath(path, key)) return value
+    return repair(normalizeEncodingArtifacts(value), path)
   }
   if (Array.isArray(value)) {
     return value.map((v, i) => mapProse(v, repair, [...path, String(i)]))

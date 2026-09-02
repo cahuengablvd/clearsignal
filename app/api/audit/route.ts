@@ -8,7 +8,7 @@ import { DETERMINISTIC_FAILURE_OVERRIDE_MARKER, claimAuditRecovery, isDeterminis
 export async function POST(req: NextRequest) {
   if (!isValidAdminCookie(req.cookies.get(ADMIN_COOKIE)?.value)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    const { audit_id, reuse_geo_evidence = false, confirm_reuse_age = false, override_deterministic_failure = false } = await req.json()
+    const { audit_id, reuse_geo_evidence = false, confirm_reuse_age = false, override_deterministic_failure = false, preserve_stage_cache = false } = await req.json()
     if (!audit_id) return NextResponse.json({ error: 'audit_id required' }, { status: 400 })
     const { data: audit, error } = await supabaseAdmin.from('audits').select('id, audit_status, admin_notes, report').eq('id', audit_id).single()
     if (error || !audit) return NextResponse.json({ error: 'Audit not found' }, { status: 404 })
@@ -24,11 +24,13 @@ export async function POST(req: NextRequest) {
 
     const claim = await claimAuditRecovery({ kind: 'manual', auditId: audit_id, observedStatus: audit.audit_status })
     if (!claim) return NextResponse.json({ error: 'Audit changed before recovery could be claimed' }, { status: 409 })
-    const { error: clearStageCacheError } = await supabaseAdmin.from('audit_stage_executions').delete().eq('audit_id', audit_id)
-    if (clearStageCacheError) {
-      await releaseAuditRecoveryClaim(claim)
-      console.error('Failed to clear audit stage cache before regeneration:', clearStageCacheError)
-      return NextResponse.json({ error: 'Failed to clear cached audit stages' }, { status: 500 })
+    if (!preserve_stage_cache) {
+      const { error: clearStageCacheError } = await supabaseAdmin.from('audit_stage_executions').delete().eq('audit_id', audit_id)
+      if (clearStageCacheError) {
+        await releaseAuditRecoveryClaim(claim)
+        console.error('Failed to clear audit stage cache before regeneration:', clearStageCacheError)
+        return NextResponse.json({ error: 'Failed to clear cached audit stages' }, { status: 500 })
+      }
     }
     try {
       await enqueueAudit(audit_id, { reuseGeoEvidence: Boolean(reuse_geo_evidence), trigger: 'admin_regenerate', endpoint: '/api/audit' })
@@ -39,13 +41,14 @@ export async function POST(req: NextRequest) {
 
     // The CAS claim resets recovery_attempts only after ownership is proven:
     // an operator-requested regeneration starts a new bounded recovery cycle.
+    const cacheNote = preserve_stage_cache ? ' Requeued from cached stages.' : ''
     const note = override_deterministic_failure
-      ? `[${claim.claimedAt}] ${DETERMINISTIC_FAILURE_OVERRIDE_MARKER} by admin operator. Claimed for regeneration. Previous status: ${audit.audit_status}.`
-      : `[${claim.claimedAt}] Claimed for regeneration. Previous status: ${audit.audit_status}.`
+      ? `[${claim.claimedAt}] ${DETERMINISTIC_FAILURE_OVERRIDE_MARKER} by admin operator. Claimed for regeneration. Previous status: ${audit.audit_status}.${cacheNote}`
+      : `[${claim.claimedAt}] Claimed for regeneration. Previous status: ${audit.audit_status}.${cacheNote}`
     const { error: noteError } = await supabaseAdmin.from('audits').update({ admin_notes: appendAdminNote((audit as { admin_notes?: string | null }).admin_notes, note) })
       .eq('id', audit_id).eq('audit_status', 'processing').eq('processing_started_at', claim.claimedAt)
     if (noteError) console.error('Failed to append audit recovery note:', noteError)
-    return NextResponse.json({ success: true, audit_id, reuse_geo_evidence: Boolean(reuse_geo_evidence), evidence_age_days: ageDays, deterministic_failure_overridden: Boolean(override_deterministic_failure) })
+    return NextResponse.json({ success: true, audit_id, reuse_geo_evidence: Boolean(reuse_geo_evidence), preserve_stage_cache: Boolean(preserve_stage_cache), evidence_age_days: ageDays, deterministic_failure_overridden: Boolean(override_deterministic_failure) })
   } catch (err) {
     console.error('Manual audit trigger error:', err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to run audit' }, { status: 500 })

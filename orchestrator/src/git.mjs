@@ -30,7 +30,7 @@ export async function prepareWorktree(repo, root, branch, baseCommit, taskKey, r
     await git(repo, args);
   }
   const runtime = await prepareDependencyRuntime({ repository: path, ...runtimeOptions });
-  attachRuntimeToWorktree(path, runtime.runtimePath);
+  await attachRuntimeToWorktree(path, runtime.runtimePath);
   return { path, runtime };
 }
 

@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { runProcess } from './process.mjs';
@@ -60,8 +60,12 @@ export async function prepareDependencyRuntime({ repository, runtimeRoot, npmCli
   }
 }
 
-export function attachRuntimeToWorktree(worktree, runtimePath) {
+export async function attachRuntimeToWorktree(worktree, runtimePath, run = runProcess) {
   const target = join(worktree, 'node_modules');
-  if (!existsSync(target)) symlinkSync(join(runtimePath, 'node_modules'), target, 'junction');
+  try { lstatSync(target); return target; } catch { /* create below */ }
+  // Node's junction API produced a reparse point Node 24 could not traverse in a Git worktree.
+  // PowerShell creates the native directory junction; both operands are internal absolute paths.
+  const result = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'New-Item -ItemType Junction -Path $args[0] -Target $args[1] -ErrorAction Stop | Out-Null', target, join(runtimePath, 'node_modules')], { cwd: worktree, timeoutMs: 30000 });
+  if (result.exitCode !== 0) throw new RuntimePreparationError(`Could not attach dependency runtime: ${(result.stderr || result.stdout).slice(-500)}`);
   return target;
 }

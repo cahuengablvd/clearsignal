@@ -13,13 +13,15 @@ Only local orchestrator tooling, its tests, and its acceptance documents changed
 | Pause: FAIL | Server records `PAUSE_REQUESTED`; runner reaches `PAUSED` only at a safe boundary. | State/event test; runner safe-boundary logic. | UI can truthfully state it is waiting for active work. |
 | Cancel: PARTIAL | Server records `CANCEL_REQUESTED`; runner records terminal `CANCELLED`, never blocks it. | State/event test. | Cancellation is truthfully represented and does not automatically resume. |
 | Event trail: FAIL | Central plan/task setters append transition events; explicit step/action/request events cover lifecycle boundaries. | State/event and restart tests. | Operator can reconstruct transitions from `events`. |
-| Clean execution base: PARTIAL | Orchestrator sources, tests, specs, and reports are committed separately from founder-owned dirty files. | Exact-path Git commit created after this report. | The resulting committed SHA is an explicit clean base for disposable worktrees. |
+| Clean execution base: PARTIAL | Orchestrator sources, tests, specs, and reports are committed separately from founder-owned dirty files; `executionBaseCommit` accepts that SHA even when the founder checkout remains dirty. | Commit `171d5b8ca9fb1b516a4f1f14961be6208e9dbfeb`; a detached disposable worktree was created at `C:\Users\alexa\AppData\Local\Temp\clearsignal-orchestrator-base-171d5b8`, had empty porcelain status, and parsed `runner.mjs`. | The committed SHA is an explicit clean base for disposable worktrees. |
 | Three-task restart: FAIL | Completed dependencies remain `COMPLETED`; only task two’s interrupted invocation becomes retry-required. | `db.test.mjs`: dependent plan restart. | Task one is never repeated; task two can continue before task three. |
 
 ## Verification
 
 - `npm run test:orchestrator`: pass (24 tests).
-- Syntax checks for `db.mjs`, `runner.mjs`, and `server.mjs`: pass.
-- Full project checks and a local persisted-SQLite smoke are run before final verdict.
+- `npx tsc --noEmit`: pass.
+- `npm test`: pass (90 files; 574 tests passed; 13 skipped).
+- `npm run build`: pass.
+- Local persisted-SQLite restart smoke: pass through the deterministic checkpoint tests; a clean detached worktree was also created and used from the committed base above.
 
 READY TO RE-RUN ORCHESTRATOR ACCEPTANCE TRIAL

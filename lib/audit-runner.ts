@@ -174,9 +174,13 @@ export function recomputeReusedGeoEvidence(
     url: geo.brand_domain,
     alternatives: opts.alternativeBrandForms,
   })
+  const operatorCompetitorNames = explicitCompetitorNames(opts.explicitCompetitors)
   const competitorNames = [
     ...geo.competitor_visibility.map((c) => c.name),
     ...geo.evidence.flatMap((e) => e.competitors_mentioned),
+    // Explicit names seed candidates only. The evidence pass below still
+    // requires a literal answer mention before it records an observation.
+    ...operatorCompetitorNames,
   ].filter(Boolean)
   const explicitCompetitorKeys = new Set(
     (opts.explicitCompetitors || []).flatMap((value) => {
@@ -192,7 +196,7 @@ export function recomputeReusedGeoEvidence(
     .map((name) => ({ name, variants: buildVariants({ name }) }))
 
   const resolution = resolveEntities({
-    brandVariants: [brand, ...(opts.alternativeBrandForms || [])], operatorCompetitors: opts.explicitCompetitors,
+    brandVariants: [brand, ...(opts.alternativeBrandForms || [])], operatorCompetitors: operatorCompetitorNames,
     candidates: competitorNames.map((name) => ({ name, role_guess: 'competitor', quote: name, answer_index: 0 })),
     answers: geo.evidence.map((item) => ({ answer_text: item.answer_text, answer_excerpt: item.answer_excerpt, query_id: item.query_id, engine: item.engine, citedDomains: item.cited_domains })),
   })
@@ -398,6 +402,14 @@ function searchModeDisclosure(protocol: GeoResult['acquisition_protocol']): stri
 
 function competitorIdentityKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+/** URLs are intake metadata, not inferred brand aliases. Only literal operator
+ * name forms may seed candidate resolution during a stored-evidence reuse. */
+function explicitCompetitorNames(values: string[] | undefined): string[] {
+  return (values || [])
+    .map((value) => value.trim())
+    .filter((value) => Boolean(value) && !/[/:]/.test(value) && !/\.[a-z]{2,}(?:\s|$)/i.test(value))
 }
 
 export function rebuildReusedGeoNarrative(

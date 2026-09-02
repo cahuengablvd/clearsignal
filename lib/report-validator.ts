@@ -1645,8 +1645,13 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
 function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void): void {
   const geo = report.geo
   if (!geo?.test_counts) return
-  const mentioned = geo.evidence.filter((e) => e.brand_mentioned).length
-  const cited = geo.evidence.filter((e) => e.brand_cited).length
+  const measurementEvidence = geo.evidence.filter((e) => e.scope !== 'supplemental')
+  const mentioned = measurementEvidence.filter((e) => e.brand_mentioned).length
+  const cited = measurementEvidence.filter((e) => e.brand_cited).length
+  // An unresolved citation attachment is neither a citation nor a negative
+  // citation observation, so it cannot enter this deterministic denominator.
+  const citationEvaluable = measurementEvidence.filter((e) => e.citation_evaluable !== false).length
+  const citationUnresolved = measurementEvidence.length - citationEvaluable
   const engines = geo.engines_tested.length ? geo.engines_tested : [...new Set(geo.evidence.map((e) => e.engine))]
   const reused = /reused|previous completed scan/i.test(geo.summary || '')
   const expected = buildGeoSummary({
@@ -1670,9 +1675,10 @@ function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void)
     mentioned === 0
       ? `${geo.brand} was not mentioned in the successfully tested engine-query combinations.`
       : `${geo.brand} was mentioned in part of the successfully tested engine-query sample.`,
-    cited === 0
-      ? `${geo.brand_domain} was not cited in the successfully tested responses.`
-      : `${geo.brand_domain} was cited in part of the successfully tested responses.`,
+    `Among ${citationEvaluable} responses where citation attachment could be evaluated, ${geo.brand_domain} was cited in ${cited}.`,
+    ...(citationUnresolved > 0
+      ? [`Citation attachment could not be resolved for ${citationUnresolved} additional successful responses.`]
+      : []),
   ]
 }
 
@@ -1699,7 +1705,9 @@ function dropNarrativeMetricCounts(report: ClearSignalReport, warn: (m: string) 
 
   if (report.geo) {
     if (Array.isArray(report.geo.missing_signals)) {
-      report.geo.missing_signals = report.geo.missing_signals.map(clean).filter(Boolean)
+      // These statements were rebuilt above from the stored evidence. Preserve
+      // their deterministic denominators rather than treating them as model prose.
+      report.geo.missing_signals = report.geo.missing_signals.filter(Boolean)
     }
     if (Array.isArray(report.geo.recommendations)) {
       report.geo.recommendations = report.geo.recommendations.map(clean).filter(Boolean)

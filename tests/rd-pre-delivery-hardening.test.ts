@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { recomputeReusedGeoEvidence, rebuildReusedGeoNarrative } from '../lib/audit-runner'
-import type { GeoResult } from '../lib/schemas'
+import { sanitizeGeneratedReportValue } from '../lib/sanitize'
+import { validateReport } from '../lib/report-validator'
+import type { ClearSignalReport, GeoResult } from '../lib/schemas'
 
 function geo(evidence: Record<string, unknown>[]): GeoResult {
   return {
@@ -70,5 +74,42 @@ describe('RD pre-delivery hardening', () => {
     expect(result.source_gap_analysis).toEqual([])
     expect(result.missing_signals.join(' ')).toContain('Among 6 responses where citation attachment could be evaluated')
     expect(result.missing_signals.join(' ')).toContain('6 additional successful responses could not be evaluated')
+  })
+
+  it('keeps the reuse citation denominator through sanitize and final validation', () => {
+    const saved = geo([
+      ...Array.from({ length: 12 }, () => row({ citation_attachment: 'resolved', cited_urls: ['https://other.example/page'] })),
+      ...Array.from({ length: 6 }, () => row({ engine: 'perplexity', citation_attachment: 'unresolved', cited_urls: null })),
+    ])
+    saved.test_counts = { configured_queries: 9, configured_engines: 2, expected_combinations: 18, successful_combinations: 18, failed_combinations: 0, skipped_combinations: 0 }
+    const rebuilt = rebuildReusedGeoNarrative(saved)
+    const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+    report.geo = rebuilt
+    const sanitized = sanitizeGeneratedReportValue(report, 0, 18)
+    const final = validateReport(sanitized)
+    const wording = final.report.geo?.missing_signals.join(' ') || ''
+    expect(wording).toContain('Among 12 responses where citation attachment could be evaluated, target.example was cited in 0.')
+    expect(wording).toContain('Citation attachment could not be resolved for 6 additional successful responses.')
+    expect(wording).not.toContain('not cited in the successfully tested responses')
+    expect(final.errors.filter((error) => error.startsWith('geo_'))).toEqual([])
+  })
+
+  it('seeds name-form operator competitors on reuse without inventing absent mentions', () => {
+    const saved = geo([
+      row({ engine: 'claude', answer_text: 'Al Rajhi Bank is an option.', answer_excerpt: 'Al Rajhi Bank is an option.' }),
+      row({ engine: 'perplexity', answer_text: 'Riyad Bank is also an option.', answer_excerpt: 'Riyad Bank is also an option.' }),
+    ])
+    const raw = JSON.stringify(saved.evidence)
+    const result = recomputeReusedGeoEvidence(saved, {
+      explicitCompetitors: ['Al Rajhi Bank', 'Riyad Bank', 'Saudi Awwal Bank'],
+    })
+    expect(result.competitor_visibility).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'Al Rajhi Bank', mention_rate: 50 }),
+      expect.objectContaining({ name: 'Riyad Bank', mention_rate: 50 }),
+    ]))
+    expect(result.competitor_visibility.map((item) => item.name)).not.toContain('Saudi Awwal Bank')
+    expect(result.evidence[0]?.competitors_mentioned).toEqual(['Al Rajhi Bank'])
+    expect(result.evidence[1]?.competitors_mentioned).toEqual(['Riyad Bank'])
+    expect(JSON.stringify(saved.evidence)).toBe(raw)
   })
 })

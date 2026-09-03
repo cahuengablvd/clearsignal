@@ -19,6 +19,7 @@ import { buildClientReport, validateClientReportProjection } from '@/lib/client-
 import { buildClientEntityPresentation, ENTITY_DISCLOSURE } from '@/lib/entity-presentation'
 import { AUDIT_PROCESS_LABEL, AUDIT_PRODUCT_LABEL } from '@/lib/audit-label'
 import { ReviewerNote } from '@/components/reviewer-note'
+import { citationAttachmentCounts, hasSuggestedRewrite } from '@/lib/report-presentation'
 import { Download, ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -540,7 +541,7 @@ export default async function AuditPage({
               </CardContent>
             </Card>
             {report.geo.measurement_methodology && <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">What was measured</h3><div className="space-y-1 text-sm text-muted-foreground"><p>Market: {report.geo.measurement_methodology.market || 'Not specified'}.</p><p>Languages tested: {report.geo.measurement_methodology.languages_tested.join(', ') || 'Not recorded'}.</p>{report.geo.measurement_methodology.untested_languages_disclosure && <p>{report.geo.measurement_methodology.untested_languages_disclosure}</p>}<p>Core queries: {report.geo.measurement_methodology.core_queries}; supplemental queries: {report.geo.measurement_methodology.supplemental_queries}.</p><p>Providers: {report.geo.measurement_methodology.providers.map((item) => `${engineDisplayName(item.engine)}${item.model ? ` (${item.model})` : ''}`).join(', ')}.</p><p>Samples per query-provider combination: {report.geo.measurement_methodology.samples_per_combination}. {report.geo.measurement_methodology.location_behavior}</p>{report.geo.measurement_methodology.search_mode_disclosure && <p>{report.geo.measurement_methodology.search_mode_disclosure}</p>}</div></CardContent></Card>}
-            {report.geo.engine_coverage?.length ? <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">Measurement coverage by engine</h3><div className="space-y-1 text-sm text-muted-foreground">{report.geo.engine_coverage.map((engine) => <p key={engine.engine}>{engineDisplayName(engine.engine)}: {engine.successful_samples}/{engine.expected_samples} answers received; {engine.grounded_samples} grounded; {engine.no_citation_samples} without citations; {engine.tool_failure_samples + engine.provider_error_samples + engine.timeout_samples} failed.</p>)}</div>{report.geo.observed_at && <p className="mt-2 text-xs text-muted-foreground">Evidence observed {report.geo.observed_at.slice(0, 10)}.</p>}</CardContent></Card> : null}
+            {report.geo.engine_coverage?.length ? <Card className="mb-6"><CardContent className="p-5"><h3 className="font-semibold mb-2">Measurement coverage by engine</h3><div className="space-y-1 text-sm text-muted-foreground">{report.geo.engine_coverage.map((engine) => { const attachment = citationAttachmentCounts(report.geo?.evidence, engine.engine); return <p key={engine.engine}>{engineDisplayName(engine.engine)}: {engine.successful_samples}/{engine.expected_samples} answers received; {attachment.resolved} citation attachment resolved; {attachment.unresolved} unresolved; {engine.tool_failure_samples + engine.provider_error_samples + engine.timeout_samples} failed.</p> })}</div>{report.geo.observed_at && <p className="mt-2 text-xs text-muted-foreground">Evidence observed {report.geo.observed_at.slice(0, 10)}.</p>}</CardContent></Card> : null}
 
             {!gatePresentationFailed && report.geo.query_analysis && report.geo.query_analysis.coverage.length > 0 && (
               <Card className="mb-6">
@@ -808,7 +809,7 @@ export default async function AuditPage({
               <p className="text-sm text-muted-foreground mb-3">{report.clarity.headline.finding}</p>
               <div className="bg-muted rounded p-3 space-y-2 text-sm">
                 <div><span className="font-medium">Current:</span> {report.clarity.headline.current_headline}</div>
-                <div><span className="font-medium text-green-700">Suggested:</span> {report.clarity.headline.suggested_rewrite}</div>
+                {hasSuggestedRewrite(report.clarity.headline.suggested_rewrite) && <div><span className="font-medium text-green-700">Suggested:</span> {report.clarity.headline.suggested_rewrite}</div>}
               </div>
             </CardContent>
           </Card>
@@ -824,9 +825,9 @@ export default async function AuditPage({
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-3">{report.clarity.cta.finding}</p>
-              <div className="bg-muted rounded p-3 text-sm">
+              {hasSuggestedRewrite(report.clarity.cta.suggested_rewrite) && <div className="bg-muted rounded p-3 text-sm">
                 <span className="font-medium text-green-700">Suggested:</span> {report.clarity.cta.suggested_rewrite}
-              </div>
+              </div>}
             </CardContent>
           </Card>
 

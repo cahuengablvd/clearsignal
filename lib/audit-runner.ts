@@ -433,12 +433,16 @@ export function rebuildReusedGeoNarrative(
   const citationUnresolved = total - citationEvaluable
   const engines = geo.engines_tested.length ? geo.engines_tested : [...new Set(geo.evidence.map((e) => e.engine))]
   const citedDomains = geo.cited_domains_ranked.slice(0, 3).map((d) => d.domain)
+  const separatelyReportedDomains = citedDomains.filter((domain) => domain.toLowerCase() !== geo.brand_domain.toLowerCase())
   const competitorNames = geo.competitor_visibility.slice(0, 3).map((c) => c.name)
 
   const missingSignals = [
     `${geo.brand} was not mentioned in ${mentioned === 0 ? 'any' : `${total - mentioned} of ${total}`} successfully tested engine-query combinations.`,
     `Among ${citationEvaluable} responses where citation attachment could be evaluated, ${geo.brand_domain} was cited in ${cited}.`,
     ...(citationUnresolved > 0 ? [`${citationUnresolved} additional successful responses could not be evaluated for citation attachment.`] : []),
+    ...(cited === 0 && separatelyReportedDomains.length
+      ? [`The citation rate above is calculated for the audited domain ${geo.brand_domain}. Other cited domains, including ${separatelyReportedDomains.join(', ')}, are reported separately.`]
+      : []),
     citedDomains.length
       ? `Cited sources surfaced in the tested responses included ${citedDomains.join(', ')}.`
       : 'No cited-source pattern was available in the reused evidence.',

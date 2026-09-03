@@ -99,6 +99,50 @@ describe('RD pre-delivery hardening', () => {
     expect(final.errors.filter((error) => error.startsWith('geo_'))).toEqual([])
   })
 
+  it('keeps a partial use-case result distinct from a zero-percent trust result in the executive summary', () => {
+    const saved = geo([
+      row({ query_id: 'Q1', query: 'trusted service', query_intent: 'trust', brand_mentioned: false, citation_attachment: 'resolved' }),
+      row({ query_id: 'Q2', query: 'service for teams', query_intent: 'use_case', brand_mentioned: true, citation_attachment: 'resolved' }),
+      row({ query_id: 'Q2', query: 'service for teams', query_intent: 'use_case', brand_mentioned: false, citation_attachment: 'resolved' }),
+    ])
+    saved.test_counts = { configured_queries: 1, configured_engines: 3, expected_combinations: 3, successful_combinations: 3, failed_combinations: 0, skipped_combinations: 0 }
+    const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+    report.geo = saved
+    report.meta.canonical_brand = 'Target'
+    report.action.executive_summary = 'Target was not found in tested trust and use-case queries across the engine combinations tested. The report identifies practical improvements. Review the evidence before publishing. Start with the first fix.'
+    const final = validateReport(report)
+    expect(final.report.action.executive_summary).toContain('absent from the tested trust/risk query')
+    expect(final.report.action.executive_summary).toContain('part of the tested use-case responses')
+    expect(final.report.action.executive_summary).not.toMatch(/not found[^.]*trust[^.]*use-case/i)
+  })
+
+  it('reports other cited domains separately without changing the audited-domain citation metric', () => {
+    const saved = geo([row({ citation_attachment: 'resolved', cited_urls: ['https://related.example/page'] })])
+    saved.brand_domain = 'audited.example'
+    const result = rebuildReusedGeoNarrative(saved)
+    expect(result.citation_rate).toBe(0)
+    expect(result.missing_signals.join(' ')).toContain('audited domain audited.example')
+    expect(result.missing_signals.join(' ')).toContain('related.example')
+  })
+
+  it('removes unsupported institutional superlatives while retaining a verified entity-name rewrite', () => {
+    const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+    report.meta.canonical_brand = 'Saudi National Bank'
+    report.clarity.headline.suggested_rewrite = "Bank with Saudi Arabia's national bank — accounts and cards."
+    report.clarity.trust_proof.finding = "SNB's status as Saudi Arabia's largest bank by assets supports trust."
+    const final = validateReport(report)
+    expect(final.report.clarity.headline.suggested_rewrite).toContain('Saudi National Bank')
+    expect(final.report.clarity.headline.suggested_rewrite).not.toContain("Saudi Arabia's national bank")
+    expect(final.report.clarity.trust_proof.finding).not.toMatch(/largest bank by assets/i)
+  })
+
+  it('retains an institutional claim when it is explicitly operator-verified', () => {
+    const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+    report.meta.business_context = { verified_facts: 'Saudi National Bank is the largest bank by assets.' } as any
+    report.clarity.trust_proof.finding = 'Saudi National Bank is the largest bank by assets.'
+    expect(validateReport(report).report.clarity.trust_proof.finding).toContain('largest bank by assets')
+  })
+
   it('seeds name-form operator competitors on reuse without inventing absent mentions', () => {
     const saved = geo([
       row({ engine: 'claude', answer_text: 'Al Rajhi Bank is an option.', answer_excerpt: 'Al Rajhi Bank is an option.' }),

@@ -204,7 +204,11 @@ export async function checkTechnicalEligibility(input: {
   )
 
   const canonical = canonicalFromHtml(input.renderedHtml)
-  const targetComparable = normalizedComparableUrl(input.url)
+  // Compare the canonical against the page actually reached after redirects,
+  // rather than the URL originally requested. A root URL commonly redirects to
+  // a locale or landing page whose canonical is correctly self-referential.
+  const finalAuditedUrl = targetResponse?.url || input.url
+  const targetComparable = normalizedComparableUrl(finalAuditedUrl)
   const canonicalComparable = canonical ? normalizedComparableUrl(canonical, input.url) : null
   checks.push(
     !hasCapturedHead
@@ -227,7 +231,7 @@ export async function checkTechnicalEligibility(input: {
             status: canonicalComparable === targetComparable ? 'eligible' : 'warning',
             detail: canonicalComparable === targetComparable
               ? 'The canonical URL points to the audited page.'
-              : 'The canonical URL points to a different page; verify that this is intentional.',
+              : `The canonical URL points to a different page; verify that this is intentional. Audited/final URL: ${finalAuditedUrl} Canonical URL: ${canonical}`,
             evidence: canonical,
           }
   )

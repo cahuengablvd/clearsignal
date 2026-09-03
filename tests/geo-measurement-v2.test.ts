@@ -66,6 +66,31 @@ describe('technical AI eligibility', () => {
     expect(result.checks.find((item) => item.id === 'ELIG-CANONICAL-001')?.status).toBe('eligible')
   })
 
+  it('compares the canonical with the final redirected page, not only the requested root URL', async () => {
+    // Use a response-like object to model Fetch's final URL after a followed redirect.
+    const fetcher = (async (url: string) => url.endsWith('/robots.txt')
+      ? new Response('', { status: 404 })
+      : ({ status: 200, ok: true, url: 'https://example.com/en/personal-banking', headers: new Headers(), text: async () => '' } as Response)) as typeof fetch
+    const result = await checkTechnicalEligibility({
+      url: 'https://example.com/',
+      renderedHtml: '<html><head><link rel="canonical" href="https://example.com/en/personal-banking/"></head><body>' + 'Text '.repeat(60) + '</body></html>',
+      markdown: 'Text '.repeat(60), fetcher,
+    })
+    expect(result.checks.find((item) => item.id === 'ELIG-CANONICAL-001')?.status).toBe('eligible')
+  })
+
+  it('keeps a genuinely different canonical as a warning and names both URLs', async () => {
+    const result = await checkTechnicalEligibility({
+      url: 'https://example.com/current',
+      renderedHtml: '<html><head><link rel="canonical" href="https://example.com/other"></head><body>' + 'Text '.repeat(60) + '</body></html>',
+      markdown: 'Text '.repeat(60), fetcher: fetcherFor({ robotsStatus: 404 }),
+    })
+    const canonical = result.checks.find((item) => item.id === 'ELIG-CANONICAL-001')
+    expect(canonical?.status).toBe('warning')
+    expect(canonical?.detail).toContain('Audited/final URL: https://example.com/current')
+    expect(canonical?.detail).toContain('Canonical URL: https://example.com/other')
+  })
+
   it('marks head-level eligibility checks unknown when the crawl did not capture a head', async () => {
     const result = await checkTechnicalEligibility({
       url: 'https://example.com/',

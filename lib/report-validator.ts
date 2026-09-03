@@ -697,6 +697,11 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
         out = claimSafe
       }
     }
+    const institutionalSafe = repairUnsupportedInstitutionalClaims(out, report)
+    if (institutionalSafe !== out) {
+      warn(`claim_safety: repaired unsupported institutional claim at ${path.join('.') || '<root>'}`)
+      out = institutionalSafe
+    }
     out = cleanupClientPhrasing(out)
     out = repairBrokenSentenceFragments(out, path)
     out = repairWrongDomainMentions(out, domain)
@@ -766,6 +771,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   validateGeoCounts(walked, errors)
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
+  reconcileExecutiveSummaryIntent(walked, warn)
   ensureExecutiveSummary(walked, warn)
   reconcileFirstAction(walked, warn)
   normalizeOutreachChannels(walked, warn)
@@ -1652,6 +1658,9 @@ function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void)
   // citation observation, so it cannot enter this deterministic denominator.
   const citationEvaluable = measurementEvidence.filter((e) => e.citation_evaluable !== false).length
   const citationUnresolved = measurementEvidence.length - citationEvaluable
+  const separatelyReportedDomains = geo.cited_domains_ranked
+    .map((item) => item.domain)
+    .filter((domain) => domain.toLowerCase() !== geo.brand_domain.toLowerCase())
   const engines = geo.engines_tested.length ? geo.engines_tested : [...new Set(geo.evidence.map((e) => e.engine))]
   const reused = /reused|previous completed scan/i.test(geo.summary || '')
   const expected = buildGeoSummary({
@@ -1679,7 +1688,50 @@ function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void)
     ...(citationUnresolved > 0
       ? [`Citation attachment could not be resolved for ${citationUnresolved} additional successful responses.`]
       : []),
+    ...(cited === 0 && separatelyReportedDomains.length
+      ? [`The citation rate above is calculated for the audited domain ${geo.brand_domain}. Other cited domains, including ${separatelyReportedDomains.join(', ')}, are reported separately.`]
+      : []),
   ]
+}
+
+/** Deterministic intent facts take precedence over stale model summary prose. */
+function reconcileExecutiveSummaryIntent(report: ClearSignalReport, warn: (m: string) => void): void {
+  const coverage = report.geo?.query_analysis?.coverage || []
+  const trust = coverage.find((item) => item.intent === 'trust')
+  const useCase = coverage.find((item) => item.intent === 'use_case')
+  if (!trust || !useCase || trust.mention_rate !== 0 || useCase.mention_rate <= 0 || useCase.mention_rate >= 100) return
+
+  const brand = report.meta.canonical_brand || report.geo?.brand || 'The brand'
+  const deterministic = `${brand} was absent from the tested trust/risk query and appeared in only part of the tested use-case responses.`
+  const summary = report.action?.executive_summary || ''
+  // Replace only a sentence that jointly claims absence for the two distinct
+  // intents. This retains useful model synthesis while preventing it from
+  // overriding measured intent-level evidence.
+  const next = splitExecutiveSummary(summary)
+    .map((sentence) => /(?:not found|absent)[^.?!]*(?:trust|risk)[^.?!]*(?:use[- ]case|use case)/i.test(sentence) ? deterministic : sentence)
+    .join(' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+  if (next !== summary) {
+    report.action.executive_summary = next
+    warn('executive_summary: replaced stale cross-intent absence claim with deterministic intent evidence')
+  }
+}
+
+function repairUnsupportedInstitutionalClaims(text: string, report: ClearSignalReport): string {
+  const facts = report.meta.verified_facts_layer || []
+  const hasSupport = factAllowed(facts, /\b(?:largest|leading|#1|official|government-backed|highest-rated|market leader|biggest)\b/i, 'ready_copy')
+  let out = text
+  const entityName = (report.meta.canonical_brand || report.geo?.brand || '').trim()
+  if (entityName) out = out.replace(/\b(?:[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})'s\s+national bank\b/g, entityName)
+  if (!hasSupport && /\b(?:largest|leading|#1|official|government-backed|highest-rated|market leader|biggest)(?:\s+bank)?(?:\s+by\s+assets)?\b/i.test(out)) {
+    out = splitSentences(out)
+      .map((sentence) => /\b(?:largest|leading|#1|official|government-backed|highest-rated|market leader|biggest)(?:\s+bank)?(?:\s+by\s+assets)?\b/i.test(sentence)
+        ? 'This comparative or institutional claim was not verified in this audit.'
+        : sentence)
+      .join('')
+  }
+  return out.replace(/\s{2,}/g, ' ').trim()
 }
 
 function dropMetricCountSentences(text: string): string {

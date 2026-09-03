@@ -8,8 +8,11 @@ The three scoped hardening objectives are complete. No acceptance trial, deploy,
 
 - Expected starting base: `d5d5a367aff06f39eadde10c8ca4c22e4abe3235`.
 - Implementation commit / clean smoke base: `621d065d206475aab35e13a77a94f9016ca11068`.
+- Exact clean committed base for the next acceptance run: `000f8cfda6db9878efd09145f988317d244ef7c3`.
 
 `d5d5a36` was verified to descend from `9a78ce5`, `f73baef`, and the recovered orchestrator commit. All task commits were new commits; no amend, reset, rebase, force-push, or deploy was used.
+
+After the implementation smoke, the founder created `6cc69da` on top of the implementation commit. The documentation commit used an immediate expected-HEAD guard against that observed commit and created the new commit above it; it did not amend, rewrite, or absorb a divergent repository state.
 
 ## Windows isolated runtime
 

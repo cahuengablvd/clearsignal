@@ -21,9 +21,12 @@ function row(overrides: Record<string, unknown> = {}) {
 }
 
 describe('RD pre-delivery hardening', () => {
-  it('does not turn zero accepted competitors into 100% SOV or a renormalized composite', () => {
-    const result = recomputeReusedGeoEvidence(geo([row()]))
+  it('does not let an unobserved explicit competitor make comparison metrics available', () => {
+    const result = recomputeReusedGeoEvidence(geo([row()]), {
+      explicitCompetitors: ['Nonexistent Bank Zed'],
+    })
     expect(result.share_of_voice).toBeNull()
+    expect(result.avg_position).toBeNull()
     expect(result.score_breakdown.position_score).toBeNull()
     expect(result.ai_visibility_score).toBeNull()
     expect(result.score_breakdown.unavailable_reason).toMatch(/not renormalized/)
@@ -81,6 +84,8 @@ describe('RD pre-delivery hardening', () => {
       ...Array.from({ length: 12 }, () => row({ citation_attachment: 'resolved', cited_urls: ['https://other.example/page'] })),
       ...Array.from({ length: 6 }, () => row({ engine: 'perplexity', citation_attachment: 'unresolved', cited_urls: null })),
     ])
+    saved.brand = 'Alahli'
+    saved.brand_domain = 'alahli.com'
     saved.test_counts = { configured_queries: 9, configured_engines: 2, expected_combinations: 18, successful_combinations: 18, failed_combinations: 0, skipped_combinations: 0 }
     const rebuilt = rebuildReusedGeoNarrative(saved)
     const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
@@ -88,7 +93,7 @@ describe('RD pre-delivery hardening', () => {
     const sanitized = sanitizeGeneratedReportValue(report, 0, 18)
     const final = validateReport(sanitized)
     const wording = final.report.geo?.missing_signals.join(' ') || ''
-    expect(wording).toContain('Among 12 responses where citation attachment could be evaluated, target.example was cited in 0.')
+    expect(wording).toContain('Among 12 responses where citation attachment could be evaluated, alahli.com was cited in 0.')
     expect(wording).toContain('Citation attachment could not be resolved for 6 additional successful responses.')
     expect(wording).not.toContain('not cited in the successfully tested responses')
     expect(final.errors.filter((error) => error.startsWith('geo_'))).toEqual([])
@@ -110,6 +115,70 @@ describe('RD pre-delivery hardening', () => {
     expect(result.competitor_visibility.map((item) => item.name)).not.toContain('Saudi Awwal Bank')
     expect(result.evidence[0]?.competitors_mentioned).toEqual(['Al Rajhi Bank'])
     expect(result.evidence[1]?.competitors_mentioned).toEqual(['Riyad Bank'])
+    expect(result.share_of_voice).toBe(0)
+    expect(result.score_breakdown.position_score).toBe(0)
+    expect(result.ai_visibility_score).toBe(0)
     expect(JSON.stringify(saved.evidence)).toBe(raw)
+  })
+
+  it('preserves the saved Alahli production-path measurements for observed name-form competitors', () => {
+    const competitors = ['Al Rajhi Bank', 'Riyad Bank', 'Saudi Awwal Bank']
+    const saved = geo([
+      ...Array.from({ length: 4 }, (_, index) => row({
+        query_id: `Q${index + 1}`,
+        answer_text: `Alahli is recommended. Al Rajhi Bank and Riyad Bank are alternatives${index === 0 ? '; Saudi Awwal Bank is another option' : ''}.`,
+        answer_excerpt: 'saved', citation_attachment: 'resolved', cited_urls: ['https://other.example/page'],
+      })),
+      ...Array.from({ length: 3 }, (_, index) => row({
+        query_id: `Q${index + 5}`,
+        answer_text: 'Al Rajhi Bank is recommended. Alahli is also an option.', answer_excerpt: 'saved',
+        citation_attachment: 'resolved', cited_urls: ['https://other.example/page'],
+      })),
+      ...Array.from({ length: 3 }, (_, index) => row({
+        query_id: `Q${index + 8}`,
+        answer_text: 'Riyad Bank is recommended. Alahli is also an option.', answer_excerpt: 'saved',
+        citation_attachment: 'resolved', cited_urls: ['https://other.example/page'],
+      })),
+      ...Array.from({ length: 2 }, (_, index) => row({
+        query_id: `Q${index + 11}`,
+        answer_text: 'Al Rajhi Bank is an option.', answer_excerpt: 'saved',
+        citation_attachment: 'resolved', cited_urls: ['https://other.example/page'],
+      })),
+      ...Array.from({ length: 2 }, (_, index) => row({
+        engine: 'perplexity', query_id: `Q${index + 13}`,
+        answer_text: 'Al Rajhi Bank is an option.', answer_excerpt: 'saved',
+        citation_attachment: 'unresolved', cited_urls: null,
+      })),
+      ...Array.from({ length: 3 }, (_, index) => row({
+        engine: 'perplexity', query_id: `Q${index + 15}`,
+        answer_text: 'Riyad Bank is an option.', answer_excerpt: 'saved',
+        citation_attachment: 'unresolved', cited_urls: null,
+      })),
+      row({ engine: 'perplexity', query_id: 'Q18', answer_text: 'A different option is available.', answer_excerpt: 'saved', citation_attachment: 'unresolved', cited_urls: null }),
+    ])
+    saved.brand = 'Alahli'
+    saved.brand_domain = 'alahli.com'
+    saved.test_counts = { configured_queries: 18, configured_engines: 1, expected_combinations: 18, successful_combinations: 18, failed_combinations: 0, skipped_combinations: 0 }
+
+    const result = recomputeReusedGeoEvidence(saved, { explicitCompetitors: competitors })
+
+    expect(result.mention_rate).toBe(55.6)
+    expect(result.entity_resolution?.entities.filter((item) => item.role === 'competitor' && item.state === 'accepted').map((item) => item.display_name)).toEqual(competitors)
+    expect(Object.fromEntries(competitors.map((name) => [
+      name,
+      result.evidence.filter((item) => item.competitors_mentioned.includes(name)).length,
+    ]))).toEqual({ 'Al Rajhi Bank': 11, 'Riyad Bank': 10, 'Saudi Awwal Bank': 1 })
+    expect(result.competitor_visibility).toEqual([
+      { name: 'Al Rajhi Bank', mention_rate: 61.1 },
+      { name: 'Riyad Bank', mention_rate: 55.6 },
+      { name: 'Saudi Awwal Bank', mention_rate: 5.6 },
+    ])
+    expect(result.share_of_voice).toBe(31.3)
+    expect(result.avg_position).toBe(1.6)
+    expect(result.score_breakdown.position_score).toBe(88)
+    expect(result.ai_visibility_score).toBe(45)
+    expect(result.citation_rate).toBe(0)
+    expect(result.evidence.filter((item) => item.citation_evaluable).length).toBe(12)
+    expect(result.evidence.filter((item) => item.citation_evaluable === false).length).toBe(6)
   })
 })

@@ -248,7 +248,11 @@ export function recomputeReusedGeoEvidence(
   const mentionPositions = measurementEvidence
     .filter((e) => e.brand_position != null)
     .map((e) => e.brand_position as number)
-  const competitorComparisonAvailable = acceptedCompetitors.length > 0
+  // Operator input may seed entity resolution, but comparison metrics need an
+  // accepted competitor actually observed in the recomputed stored evidence.
+  const competitorComparisonAvailable = acceptedCompetitors.some((competitor) =>
+    evidence.some((item) => item.competitors_mentioned.includes(competitor.name))
+  )
   const avg_position = competitorComparisonAvailable && mentionPositions.length
     ? round(mentionPositions.reduce((a, b) => a + b, 0) / mentionPositions.length, 2)
     : null

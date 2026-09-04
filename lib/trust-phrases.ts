@@ -17,6 +17,7 @@ export const INTERNAL_CLIENT_ARTIFACTS: Array<[RegExp, string]> = [
   [/\bTakes under\s*[.?!]/i, 'CTA timing claim without a duration'],
   [/\bYes\.Ask\b/i, 'missing space / broken yes+ask sentence'],
   [/[a-z0-9]\.Ask\b/i, 'missing space before Ask sentence'],
+  [/\bThis comparative or institutional claim was not verified in this audit\b/i, 'internal institutional-claim placeholder leaked into client copy'],
 ]
 
 export const ASTROTURFING_PATTERNS: Array<[RegExp, string]> = [

@@ -293,6 +293,12 @@ function removeUnsupportedMovingClaimSentences(text: string, ctx?: BusinessConte
 
 function cleanupClientPhrasing(text: string): string {
   return normalizeEncodingArtifacts(text)
+    // Older stored reports can contain the temporary sentence emitted when an
+    // unsupported institutional claim was removed. It is internal safety
+    // repair prose, not an observed finding, so omit the whole sentence at
+    // the final client-projection boundary. Consume adjoining whitespace so
+    // a historic "audit.No" join is restored to normal sentence spacing.
+    .replace(/\s*This comparative or institutional claim was not verified in this audit\.?\s*/gi, ' ')
     .replace(
       /\bSeed brand mentions in high-traffic Reddit and Facebook communities\b/gi,
       'Participate transparently in relevant communities where the business can provide genuinely useful expertise'

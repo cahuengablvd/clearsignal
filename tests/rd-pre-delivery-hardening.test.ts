@@ -154,6 +154,26 @@ describe('RD pre-delivery hardening', () => {
     expect(validateReport(report).report.clarity.trust_proof.finding).toBe('Supported observation remains.')
   })
 
+  it('removes stale institutional-claim placeholders without rewriting supported trust-proof prose', () => {
+    const placeholder = 'This comparative or institutional claim was not verified in this audit.'
+    const cases = [
+      { input: `${placeholder} Supported observation remains.`, expected: 'Supported observation remains.' },
+      { input: `First supported observation. ${placeholder} Second supported observation.`, expected: 'First supported observation. Second supported observation.' },
+      { input: `Supported observation remains. ${placeholder}`, expected: 'Supported observation remains.' },
+    ]
+    for (const { input, expected } of cases) {
+      const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+      report.clarity.trust_proof.finding = input
+      const final = validateReport(report)
+      expect(final.report.clarity.trust_proof.finding).toBe(expected)
+      expect(final.errors).toEqual([])
+    }
+
+    const clean = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+    clean.clarity.trust_proof.finding = 'Supported observation remains.'
+    expect(validateReport(clean).report.clarity.trust_proof.finding).toBe(clean.clarity.trust_proof.finding)
+  })
+
   it('retains an institutional claim when it is explicitly operator-verified', () => {
     const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
     report.meta.business_context = { verified_facts: 'Saudi National Bank is the largest bank by assets.' } as any

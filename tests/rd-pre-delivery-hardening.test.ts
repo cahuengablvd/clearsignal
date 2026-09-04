@@ -136,6 +136,24 @@ describe('RD pre-delivery hardening', () => {
     expect(final.report.clarity.trust_proof.finding).not.toMatch(/largest bank by assets/i)
   })
 
+  it('removes unsupported institutional sentences cleanly without a client-facing safeguard placeholder', () => {
+    const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+    report.clarity.trust_proof.finding = 'The crawled content shows no supervision mention. Saudi National Bank is the largest bank by assets. No customer figures appear in the crawled text.'
+    const final = validateReport(report)
+    const finding = final.report.clarity.trust_proof.finding
+    expect(finding).toBe('The crawled content shows no supervision mention. No customer figures appear in the crawled text.')
+    expect(finding).not.toContain('audit.No')
+    expect(finding).not.toContain('This comparative or institutional claim was not verified in this audit.')
+  })
+
+  it('removes unsupported institutional sentences cleanly at prose boundaries', () => {
+    const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
+    report.clarity.trust_proof.finding = 'Saudi National Bank is the largest bank by assets. Supported observation remains.'
+    expect(validateReport(report).report.clarity.trust_proof.finding).toBe('Supported observation remains.')
+    report.clarity.trust_proof.finding = 'Supported observation remains. Saudi National Bank is the largest bank by assets.'
+    expect(validateReport(report).report.clarity.trust_proof.finding).toBe('Supported observation remains.')
+  })
+
   it('retains an institutional claim when it is explicitly operator-verified', () => {
     const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')) as ClearSignalReport
     report.meta.business_context = { verified_facts: 'Saudi National Bank is the largest bank by assets.' } as any

@@ -10,6 +10,7 @@ import { requireSupabaseWrite } from './supabase-write'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import type { BusinessContext, ClearSignalReport } from './schemas'
 import { mergeBrandAliases } from './brand'
+import { reconcileStoredCanonicalEligibility } from './geo/eligibility'
 
 export async function rerenderStoredAuditReport(auditId: string): Promise<{
   validation_warnings: string[]
@@ -46,7 +47,13 @@ export async function rerenderStoredAuditReport(auditId: string): Promise<{
     explicitCompetitors: [audit.competitor_1, audit.competitor_2, audit.competitor_3].filter((value): value is string => Boolean(value)),
     requestedMarketsLanguages: businessContext.target_markets_languages,
   }) : null
-  const technicalEligibility = existing.technical_eligibility || rebuiltGeo?.technical_eligibility
+  // Historic reports retain canonical target and final HTTP URL as evidence.
+  // Reconcile them here so a stale pre-fix warning cannot survive a zero-call
+  // re-render merely because the stored eligibility object was reused verbatim.
+  const storedEligibility = existing.technical_eligibility || rebuiltGeo?.technical_eligibility
+  const technicalEligibility = storedEligibility
+    ? reconcileStoredCanonicalEligibility(storedEligibility, existing.meta.url)
+    : null
   const geo = rebuiltGeo ? {
     ...rebuiltGeo,
     technical_eligibility: technicalEligibility || rebuiltGeo.technical_eligibility,

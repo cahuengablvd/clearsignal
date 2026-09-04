@@ -1726,9 +1726,7 @@ function repairUnsupportedInstitutionalClaims(text: string, report: ClearSignalR
   if (entityName) out = out.replace(/\b(?:[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})'s\s+national bank\b/g, entityName)
   if (!hasSupport && /\b(?:largest|leading|#1|official|government-backed|highest-rated|market leader|biggest)(?:\s+bank)?(?:\s+by\s+assets)?\b/i.test(out)) {
     out = splitSentences(out)
-      .map((sentence) => /\b(?:largest|leading|#1|official|government-backed|highest-rated|market leader|biggest)(?:\s+bank)?(?:\s+by\s+assets)?\b/i.test(sentence)
-        ? 'This comparative or institutional claim was not verified in this audit.'
-        : sentence)
+      .filter((sentence) => !/\b(?:largest|leading|#1|official|government-backed|highest-rated|market leader|biggest)(?:\s+bank)?(?:\s+by\s+assets)?\b/i.test(sentence))
       .join('')
   }
   return out.replace(/\s{2,}/g, ' ').trim()

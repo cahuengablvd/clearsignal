@@ -94,6 +94,39 @@ function normalizedComparableUrl(value: string, base?: string): string | null {
   }
 }
 
+/**
+ * Reconcile a saved canonical observation when a report is re-rendered.  The
+ * original direct HTTP check preserves the final followed-redirect URL in its
+ * evidence and the canonical check preserves the canonical target.  Those two
+ * observations are sufficient to correct legacy wording without another crawl.
+ */
+export function reconcileStoredCanonicalEligibility(
+  eligibility: TechnicalEligibility,
+  requestedUrl: string
+): TechnicalEligibility {
+  const canonicalCheck = eligibility.checks.find((check) => check.id === 'ELIG-CANONICAL-001')
+  if (!canonicalCheck?.evidence) return eligibility
+
+  const httpCheck = eligibility.checks.find((check) => check.id === 'ELIG-HTTP-001')
+  const finalAuditedUrl = httpCheck?.evidence || requestedUrl
+  const canonicalComparable = normalizedComparableUrl(canonicalCheck.evidence, finalAuditedUrl)
+  const finalComparable = normalizedComparableUrl(finalAuditedUrl)
+  if (!canonicalComparable || !finalComparable) return eligibility
+
+  const matchesFinal = canonicalComparable === finalComparable
+  const detail = matchesFinal
+    ? 'The canonical URL points to the audited page.'
+    : `The canonical URL points to a different page; verify that this is intentional. Audited/final URL: ${finalAuditedUrl} Canonical URL: ${canonicalCheck.evidence}`
+  if (canonicalCheck.status === (matchesFinal ? 'eligible' : 'warning') && canonicalCheck.detail === detail) return eligibility
+
+  return {
+    ...eligibility,
+    checks: eligibility.checks.map((check) => check.id === 'ELIG-CANONICAL-001'
+      ? { ...check, status: matchesFinal ? 'eligible' : 'warning', detail }
+      : check),
+  }
+}
+
 async function safeFetch(fetcher: Fetcher, url: string, init?: RequestInit): Promise<Response | null> {
   try {
     return await fetcher(url, {
@@ -209,7 +242,7 @@ export async function checkTechnicalEligibility(input: {
   // a locale or landing page whose canonical is correctly self-referential.
   const finalAuditedUrl = targetResponse?.url || input.url
   const targetComparable = normalizedComparableUrl(finalAuditedUrl)
-  const canonicalComparable = canonical ? normalizedComparableUrl(canonical, input.url) : null
+  const canonicalComparable = canonical ? normalizedComparableUrl(canonical, finalAuditedUrl) : null
   checks.push(
     !hasCapturedHead
       ? {
@@ -302,4 +335,4 @@ export async function checkTechnicalEligibility(input: {
   }
 }
 
-export const eligibilityInternals = { parseRobots, crawlerAllowed }
+export const eligibilityInternals = { parseRobots, crawlerAllowed, normalizedComparableUrl }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { buildGeoSummary } from '../lib/geo'
-import { checkTechnicalEligibility, eligibilityInternals } from '../lib/geo/eligibility'
+import { checkTechnicalEligibility, eligibilityInternals, reconcileStoredCanonicalEligibility } from '../lib/geo/eligibility'
 import { buildQueryAnalysis, classifyQueryIntent } from '../lib/geo/query-taxonomy'
 import {
   attachActionRecommendationStages,
@@ -88,6 +88,37 @@ describe('technical AI eligibility', () => {
     const canonical = result.checks.find((item) => item.id === 'ELIG-CANONICAL-001')
     expect(canonical?.status).toBe('warning')
     expect(canonical?.detail).toContain('Audited/final URL: https://example.com/current')
+    expect(canonical?.detail).toContain('Canonical URL: https://example.com/other')
+  })
+
+  it('reconciles stale saved canonical warnings from preserved final-URL evidence without a new fetch', () => {
+    const saved = {
+      overall_status: 'eligible' as const,
+      checked_at: '2026-09-04T00:00:00.000Z',
+      checks: [
+        { id: 'ELIG-HTTP-001', label: 'Public HTTP access', status: 'eligible' as const, detail: 'ok', evidence: 'https://example.com/en/personal-banking' },
+        { id: 'ELIG-CANONICAL-001', label: 'Canonical target', status: 'warning' as const, detail: 'The canonical URL points to a different page; verify that this is intentional.', evidence: 'https://example.com/en/personal-banking/' },
+      ],
+      crawler_access: [],
+    }
+    const result = reconcileStoredCanonicalEligibility(saved, 'https://example.com/')
+    const canonical = result.checks.find((check) => check.id === 'ELIG-CANONICAL-001')
+    expect(canonical).toMatchObject({ status: 'eligible', detail: 'The canonical URL points to the audited page.' })
+  })
+
+  it('keeps a saved true canonical mismatch and its final/canonical context', () => {
+    const saved = {
+      overall_status: 'eligible' as const,
+      checked_at: '2026-09-04T00:00:00.000Z',
+      checks: [
+        { id: 'ELIG-HTTP-001', label: 'Public HTTP access', status: 'eligible' as const, detail: 'ok', evidence: 'https://example.com/final' },
+        { id: 'ELIG-CANONICAL-001', label: 'Canonical target', status: 'eligible' as const, detail: 'stale', evidence: 'https://example.com/other' },
+      ],
+      crawler_access: [],
+    }
+    const canonical = reconcileStoredCanonicalEligibility(saved, 'https://example.com/').checks.find((check) => check.id === 'ELIG-CANONICAL-001')
+    expect(canonical).toMatchObject({ status: 'warning' })
+    expect(canonical?.detail).toContain('Audited/final URL: https://example.com/final')
     expect(canonical?.detail).toContain('Canonical URL: https://example.com/other')
   })
 

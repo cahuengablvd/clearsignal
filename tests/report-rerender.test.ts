@@ -93,4 +93,23 @@ describe('stored report re-render validation', () => {
       expect.objectContaining({ explicitCompetitors: [] })
     )
   })
+
+  it('does not let a stale saved canonical warning override preserved final URL evidence', async () => {
+    state.report = {
+      ...state.report,
+      meta: { ...state.report.meta, url: 'https://example.com/' },
+      technical_eligibility: {
+        overall_status: 'eligible', checked_at: '2026-09-04T00:00:00.000Z', crawler_access: [],
+        checks: [
+          { id: 'ELIG-HTTP-001', label: 'Public HTTP access', status: 'eligible', detail: 'ok', evidence: 'https://example.com/final' },
+          { id: 'ELIG-CANONICAL-001', label: 'Canonical target', status: 'warning', detail: 'stale warning', evidence: 'https://example.com/final/' },
+        ],
+      },
+    } as unknown as typeof state.report
+    await rerenderStoredAuditReport('legacy-audit')
+    const report = state.updates.find((update) => 'report' in update)?.report as any
+    expect(report.technical_eligibility.checks.find((check: any) => check.id === 'ELIG-CANONICAL-001')).toMatchObject({
+      status: 'eligible', detail: 'The canonical URL points to the audited page.',
+    })
+  })
 })

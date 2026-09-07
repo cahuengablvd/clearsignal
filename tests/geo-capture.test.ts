@@ -27,20 +27,51 @@ describe('RD-00 persisted GEO capture', () => {
   it('marks only application storage truncation at the defensive ceiling', async () => {
     mocks.queryEngine.mockResolvedValue({ ...base, answer: longAnswer(900), stop_reason: 'max_tokens' })
     const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
-    expect(result.evidence[0]).toMatchObject({ truncated_at: 24000, stop_reason: 'max_tokens' })
+    expect(result.evidence[0]).toMatchObject({ truncated_at: 24000, stop_reason: 'max_tokens', evidence_completeness: 'storage_censored', measured_text_length: 24000 })
     expect(result.evidence[0]!.answer_text).toHaveLength(24000)
   })
 
   it('records storage truncation even when the provider completed its turn', async () => {
     mocks.queryEngine.mockResolvedValue({ ...base, answer: longAnswer(900), stop_reason: 'end_turn' })
     const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
-    expect(result.evidence[0]).toMatchObject({ truncated_at: 24000, stop_reason: 'end_turn' })
+    expect(result.evidence[0]).toMatchObject({ truncated_at: 24000, stop_reason: 'end_turn', evidence_completeness: 'storage_censored' })
   })
 
   it('does not label a provider token stop as storage truncation when the stored text fits', async () => {
     mocks.queryEngine.mockResolvedValue({ ...base, answer: longAnswer(300), stop_reason: 'max_tokens' })
     const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
-    expect(result.evidence[0]).toMatchObject({ truncated_at: null, stop_reason: 'max_tokens' })
+    expect(result.evidence[0]).toMatchObject({ truncated_at: null, stop_reason: 'max_tokens', evidence_completeness: 'complete', measured_text_length: result.evidence[0]!.answer_text!.length })
+  })
+
+  it('measures and retains only the shared ceiling, excluding late evidence', async () => {
+    const answer = 'x'.repeat(24000) + ' Target and Late Rival are mentioned here.'
+    mocks.queryEngine.mockResolvedValue({ ...base, answer, stop_reason: 'end_turn' })
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', competitors: ['Late Rival'], providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
+    expect(result.evidence[0]).toMatchObject({ brand_mentioned: false, competitors_mentioned: [], evidence_completeness: 'storage_censored', measured_text_length: 24000, truncated_at: 24000, absence_observation: 'censored' })
+    expect(result.acquisition_protocol?.measurement_text_limit).toBe(24000)
+  })
+
+  it('counts a mention just inside the ceiling when the total response fits', async () => {
+    const answer = 'x'.repeat(23980) + ' Target'
+    mocks.queryEngine.mockResolvedValue({ ...base, answer, stop_reason: 'end_turn' })
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
+    expect(result.evidence[0]).toMatchObject({ brand_mentioned: true, evidence_completeness: 'complete', truncated_at: null, measured_text_length: answer.length })
+  })
+
+  it('keeps an inside-ceiling positive censored when the full response exceeds the ceiling', async () => {
+    const answer = 'Target is mentioned first. ' + 'x'.repeat(24000)
+    mocks.queryEngine.mockResolvedValue({ ...base, answer, stop_reason: 'end_turn' })
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
+    expect(result.evidence[0]).toMatchObject({ brand_mentioned: true, evidence_completeness: 'storage_censored', truncated_at: 24000 })
+    expect(result.evidence[0]!.evidence_completeness).not.toBe('complete')
+  })
+
+  it('validates an n=1 report with eighteen retained 24k answers', async () => {
+    const answer = 'x'.repeat(24000)
+    mocks.queryEngine.mockResolvedValue({ ...base, answer, stop_reason: 'end_turn' })
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
+    const expanded = { ...result, evidence: Array.from({ length: 18 }, (_, index) => ({ ...result.evidence[0]!, evidence_id: `GEO-QUERY-${String(index + 1).padStart(3, '0')}` })) }
+    expect(GeoResultSchema.safeParse(expanded).success).toBe(true)
   })
 
   it('derives the aggregate observation window from the row timestamps', async () => {

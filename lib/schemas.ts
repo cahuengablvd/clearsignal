@@ -309,6 +309,8 @@ export const GeoEvidenceSchema = z.object({
   engine_issued_queries: z.array(z.string()).optional(),
   stop_reason: z.string().nullable().optional(),
   truncated_at: z.number().int().nonnegative().nullable().optional(),
+  evidence_completeness: z.enum(['complete', 'storage_censored', 'legacy_excerpt', 'not_retained']).optional(),
+  measured_text_length: z.number().int().nonnegative().optional(),
   /** A missing brand observation is indeterminate when the provider stopped or storage clipped it. */
   absence_observation: z.enum(['observed', 'censored', 'not_applicable']).optional(),
   raw_response_sha256: z.string().nullable().optional(),
@@ -575,7 +577,7 @@ export const GeoResultSchema = z.object({
   query_provenance: z.array(QueryProvenanceSchema).optional(),
   query_plan: z.object({ valid_core_slots: z.number(), review_required: z.boolean(), primary_language: z.string(), markets: z.array(z.string()), warnings: z.array(z.string()).optional() }).optional(),
   supplemental_probes: z.array(z.object({ query_id: z.string(), slot: z.string(), language: z.string(), query: z.string(), per_engine: z.array(z.object({ engine: z.string(), successful: z.number(), mentioned: z.number(), cited: z.number() })) })).optional(),
-  acquisition_protocol: z.object({ version: z.string(), engines: z.array(z.object({ engine: z.string(), model_requested: z.string(), tool_type_version: z.string(), max_uses: z.number().nullable(), max_tokens: z.number().nullable(), web_search_mode: z.string() })), user_location: z.null(), samples_per_combination: z.literal(1), query_plan_hash: z.string() }).optional(),
+  acquisition_protocol: z.object({ version: z.string(), engines: z.array(z.object({ engine: z.string(), model_requested: z.string(), tool_type_version: z.string(), max_uses: z.number().nullable(), max_tokens: z.number().nullable(), web_search_mode: z.string() })), user_location: z.null(), samples_per_combination: z.literal(1), query_plan_hash: z.string(), measurement_text_limit: z.number().int().positive().optional() }).optional(),
   acquisition_operational: z.object({ provider_concurrency: z.array(z.object({ engine: z.string(), concurrency: z.number() })) }).optional(),
   /** Computation identity, deliberately separate from immutable acquisition facts. */
   computation_version: z.string().optional(),

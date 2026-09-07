@@ -36,7 +36,7 @@ import {
 } from '../prompts'
 import { availableEngines, queryEngine, type EngineId } from './engines'
 import { createProviderLimiter, providerConcurrency } from './provider-limiter'
-import { ANSWER_TEXT_LIMIT, DIAGNOSTIC_TEXT_LIMIT, SUCCESSFUL_STATUSES, buildEngineCoverage, classifyEngineResponse, deriveExcerpt, evaluateCoverageGate, type LedgerRow } from './coverage'
+import { MEASUREMENT_TEXT_LIMIT, DIAGNOSTIC_TEXT_LIMIT, SUCCESSFUL_STATUSES, buildEngineCoverage, classifyEngineResponse, deriveExcerpt, evaluateCoverageGate, type LedgerRow } from './coverage'
 import { analyzeCitedSources } from './sources'
 import { buildQueryAnalysis, classifyQueryIntent, intentForSlot, QUERY_SLOTS, type QuerySlot } from './query-taxonomy'
 import { detectLanguage, parseMarketsLanguages } from './language'
@@ -395,7 +395,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       const extracted = await callClaudeJSON<{ candidates?: EntityCandidate[]; competitors?: string[] }>({
         model: MODEL_GEO_QUERIES,
         system: GEO_COMPETITORS_SYSTEM,
-        user: geoCompetitorsUserPrompt(brand, raw.map((r) => ({ query: r.query, answer: r.answer }))),
+        user: geoCompetitorsUserPrompt(brand, raw.map((r) => ({ query: r.query, answer: r.answer.slice(0, MEASUREMENT_TEXT_LIMIT) }))),
         validate: (d) => {
           const value = d as { candidates?: unknown; competitors?: unknown }
           if (Array.isArray(value.candidates)) return { candidates: value.candidates as EntityCandidate[] }
@@ -431,7 +431,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const resolution = resolveEntities({
     brandVariants: [brand, ...(opts.brandAliases || [])], operatorCompetitors: competitors,
     candidates: [...competitors.map((name) => ({ name, role_guess: 'competitor' as const, quote: name, answer_index: 0 })), ...extractedCandidates],
-    answers: raw.map((r) => ({ answer_text: r.answer.slice(0, ANSWER_TEXT_LIMIT), answer_excerpt: deriveExcerpt(r.answer.slice(0, ANSWER_TEXT_LIMIT)).excerpt, query_id: r.plan.query_id, engine: r.engine, citedDomains: citedDomains(r.citations) })),
+    answers: raw.map((r) => { const answerText = r.answer.slice(0, MEASUREMENT_TEXT_LIMIT); return { answer_text: answerText, answer_excerpt: deriveExcerpt(answerText).excerpt, query_id: r.plan.query_id, engine: r.engine, citedDomains: citedDomains(r.citations) } }),
     businessModel: opts.businessModel,
   })
   const acceptedNames = new Set(resolution.entities.filter((entity) => entity.state === 'accepted' && entity.role === 'competitor').map((entity) => entity.display_name))
@@ -441,7 +441,8 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
 
   // 4. Deterministic detection per (engine, query).
   const evidence: GeoEvidence[] = raw.map((r, i) => {
-    const brand_mentioned = textMentions(r.answer, brandVariants.tokens)
+    const answer_text = r.answer.slice(0, MEASUREMENT_TEXT_LIMIT)
+    const brand_mentioned = textMentions(answer_text, brandVariants.tokens)
     const resolvedCitation = r.res.citation_attachment === 'resolved'
     const legacyCitation = r.res.citation_attachment === undefined
     const citationUrls = resolvedCitation ? (r.res.cited_urls || []) : (legacyCitation ? r.citations : [])
@@ -449,21 +450,21 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     const brand_cited = citation_evaluable && citationsInclude(citationUrls, brandVariants.domain)
 
     const competitors_mentioned = acceptedCompetitors
-      .filter((c) => textMentions(r.answer, c.variants.tokens))
+      .filter((c) => textMentions(answer_text, c.variants.tokens))
       .map((c) => c.name)
 
     // Position: rank brand's first mention vs competitors mentioned in THIS answer.
     let brand_position: number | null = null
     if (brand_mentioned) {
-      const brandIdx = firstMentionIndex(r.answer, brandVariants.tokens)
+      const brandIdx = firstMentionIndex(answer_text, brandVariants.tokens)
       const competitorIdxs = acceptedCompetitors
-        .map((c) => firstMentionIndex(r.answer, c.variants.tokens))
+        .map((c) => firstMentionIndex(answer_text, c.variants.tokens))
         .filter((i) => i >= 0)
       brand_position = 1 + competitorIdxs.filter((i) => i < brandIdx).length
     }
 
-    const storageTruncatedAt = r.answer.length > ANSWER_TEXT_LIMIT ? ANSWER_TEXT_LIMIT : null
-    const answer_text = r.answer.slice(0, ANSWER_TEXT_LIMIT); const excerpt = deriveExcerpt(answer_text)
+    const storageTruncatedAt = r.answer.length > MEASUREMENT_TEXT_LIMIT ? MEASUREMENT_TEXT_LIMIT : null
+    const excerpt = deriveExcerpt(answer_text)
     const row = ledger[r.ledgerIndex]
     row.evidence_id = `GEO-QUERY-${String(i + 1).padStart(3, '0')}`
     return {
@@ -472,7 +473,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
       query: r.query,
       answer_excerpt: excerpt.excerpt,
       answer_text, excerpt_offset: excerpt.offset, status: row.status, grounding: row.status === 'ok_grounded' ? 'grounded' : 'no_citations', tool_events: r.res.tool_events, sample_index: 1, query_id: row.query_id, combination_id: `${row.query_id}-${r.engine}`, model: r.res.model, observed_at: row.observed_at,
-      retrieved_urls: r.res.retrieved_urls ?? null, retrieval_capture: r.res.retrieval_capture ?? 'unsupported', retrieved_meta: r.res.retrieved_meta ?? [], cited_urls: r.res.cited_urls ?? null, citation_attachment: r.res.citation_attachment ?? 'unsupported', engine_issued_queries: r.res.engine_issued_queries ?? [], stop_reason: r.res.stop_reason ?? null, truncated_at: storageTruncatedAt, raw_response_sha256: r.res.raw_response_sha256 ?? null, started_at: r.res.started_at, finished_at: r.res.finished_at,
+      retrieved_urls: r.res.retrieved_urls ?? null, retrieval_capture: r.res.retrieval_capture ?? 'unsupported', retrieved_meta: r.res.retrieved_meta ?? [], cited_urls: r.res.cited_urls ?? null, citation_attachment: r.res.citation_attachment ?? 'unsupported', engine_issued_queries: r.res.engine_issued_queries ?? [], stop_reason: r.res.stop_reason ?? null, truncated_at: storageTruncatedAt, evidence_completeness: storageTruncatedAt == null ? 'complete' : 'storage_censored', measured_text_length: answer_text.length, raw_response_sha256: r.res.raw_response_sha256 ?? null, started_at: r.res.started_at, finished_at: r.res.finished_at,
       citations: r.citations,
       citation_evaluable,
       citation_semantics: resolvedCitation ? 'resolved' : legacyCitation ? 'mixed_legacy' : r.res.citation_attachment,
@@ -695,6 +696,7 @@ function acquisitionProtocol(engines: EngineId[], webSearch: boolean, provenance
     user_location: null,
     samples_per_combination: 1 as const,
     query_plan_hash: queryPlanHash(provenance),
+    measurement_text_limit: MEASUREMENT_TEXT_LIMIT,
   }
 }
 

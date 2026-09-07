@@ -58,7 +58,7 @@ import { qualityCriticEnabled, runQualityCritic } from './quality/critic'
 import { reconcileAuditAiCost } from './ai-observability'
 import { isAnswerEngineCompetitorName } from './engine-scope'
 import { isDeterministicAuditFailure } from './audit-recovery'
-import { buildEngineCoverage, evaluateCoverageGate, SUCCESSFUL_STATUSES, type LedgerRow } from './geo/coverage'
+import { buildEngineCoverage, evaluateCoverageGate, MEASUREMENT_TEXT_LIMIT, SUCCESSFUL_STATUSES, type LedgerRow } from './geo/coverage'
 import { resolveEntities } from './geo/entities'
 
 export type RunFullAuditOptions = {
@@ -204,8 +204,13 @@ export function recomputeReusedGeoEvidence(
   const acceptedCompetitors = process.env.GEO_ENTITY_PIPELINE === 'legacy' ? competitorList : competitorList.filter((item) => acceptedNames.has(item.name))
 
   const evidence = geo.evidence.map((e) => {
-    // Fresh scans derive every deterministic text signal from the full answer. Reuse
-    // must do the same whenever A1 stored it; legacy records only have an excerpt.
+    const hasMetadata = e.evidence_completeness !== undefined || e.measured_text_length !== undefined
+    const recordedLength = e.measured_text_length
+    const availableLength = e.answer_text?.length ?? 0
+    const notRetained = e.evidence_completeness === 'not_retained' || (recordedLength !== undefined && recordedLength > availableLength)
+    if (notRetained) return { ...e, evidence_completeness: 'not_retained' as const }
+    // Fresh scans and PX-1 rows derive every deterministic text signal from the
+    // retained measurement text. Reports without metadata are excerpt-only legacy.
     const answer = e.answer_text || e.answer_excerpt || ''
     const brand_mentioned = textMentions(answer, brandVariants.tokens)
     const resolvedCitation = e.citation_attachment === 'resolved'
@@ -226,6 +231,8 @@ export function recomputeReusedGeoEvidence(
       : null
     return {
       ...e,
+      evidence_completeness: hasMetadata ? (e.evidence_completeness || 'complete') : 'legacy_excerpt' as const,
+      ...(hasMetadata ? { measured_text_length: e.measured_text_length ?? answer.length } : {}),
       brand_mentioned,
       brand_cited,
       citation_evaluable,
@@ -325,7 +332,9 @@ export function recomputeReusedGeoEvidence(
   const evidenceWithProvenance = evidence.map((item, index) => {
     const itemProvenance = item.query_id ? provenanceById.get(item.query_id) : legacyProvenanceByQuery?.get(item.query)
     const observations = resolution.observationsByAnswer[index]
-    const enriched = { ...item, ...(observations?.length ? { entity_observations: observations } : {}) }
+    const enriched = item.evidence_completeness === 'not_retained'
+      ? item
+      : { ...item, ...(observations?.length ? { entity_observations: observations } : {}) }
     return itemProvenance ? { ...enriched, query_id: item.query_id || itemProvenance.query_id, query_intent: item.query_intent || itemProvenance.intent, scope: item.scope || itemProvenance.scope } : enriched
   })
   const validCoreSlots = provenance.filter((p) => p.scope === 'core' && p.state === 'valid').length
@@ -366,6 +375,7 @@ export function recomputeReusedGeoEvidence(
     query_provenance: provenance,
     query_plan: geo.query_plan || { valid_core_slots: validCoreSlots, review_required: validCoreSlots < 6, primary_language: 'unknown', markets: [] },
     ledger, engine_coverage, coverage_gate,
+    acquisition_protocol: geo.acquisition_protocol ? { ...geo.acquisition_protocol, measurement_text_limit: geo.acquisition_protocol.measurement_text_limit ?? MEASUREMENT_TEXT_LIMIT } : geo.acquisition_protocol,
     computation_version: 'rd-01-06',
     computed_by: { version: 'rd-01-06', at: new Date().toISOString(), source: 'reused' },
     measurement_methodology: {

@@ -775,6 +775,7 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   rebuildGeoMeasurementV2(walked, warn)
   validateEntityPrecision(walked, errors, warn)
   validateGeoCounts(walked, errors)
+  validateEvidenceRetention(walked, errors, warn)
   rebuildGeoSummary(walked, warn)
   dropNarrativeMetricCounts(walked, warn)
   reconcileExecutiveSummaryIntent(walked, warn)
@@ -1651,6 +1652,31 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
   }
   if (cited > counts.successful_combinations) {
     errors.push('geo_counts: cited combinations exceed successful combinations')
+  }
+}
+
+function validateEvidenceRetention(report: ClearSignalReport, errors: string[], warn: (message: string) => void): void {
+  const geo = report.geo
+  if (!geo || !Array.isArray(geo.evidence)) return
+  const limit = geo.acquisition_protocol?.measurement_text_limit
+  for (const evidence of geo.evidence) {
+    const label = evidence.evidence_id || `${evidence.engine}/${evidence.query}`
+    const hasMetadata = evidence.evidence_completeness !== undefined || evidence.measured_text_length !== undefined
+    if (!hasMetadata) continue
+    if (evidence.measured_text_length !== undefined && evidence.answer_text !== undefined && evidence.measured_text_length !== evidence.answer_text.length) {
+      errors.push(`geo_retention: ${label} measured_text_length does not equal answer_text.length`)
+    }
+    if (evidence.evidence_completeness === 'storage_censored') {
+      if (limit === undefined) errors.push(`geo_retention: ${label} storage_censored row has no measurement_text_limit`)
+      else if (evidence.truncated_at !== limit) errors.push(`geo_retention: ${label} truncated_at does not equal measurement_text_limit`)
+      if (evidence.measured_text_length !== undefined && evidence.measured_text_length !== limit) errors.push(`geo_retention: ${label} storage_censored row has inconsistent measured_text_length`)
+    }
+    if (evidence.evidence_completeness === 'complete' && evidence.truncated_at != null) {
+      errors.push(`geo_retention: ${label} complete row is application-storage truncated`)
+    }
+    if (evidence.evidence_completeness === 'not_retained') {
+      warn(`geo_retention: ${label} not_retained; stored deterministic measurements were preserved and not recomputed`)
+    }
   }
 }
 

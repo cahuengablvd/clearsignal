@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { recomputeReusedGeoEvidence } from '../lib/audit-runner'
+import { validateReport } from '../lib/report-validator'
 import type { GeoResult } from '../lib/schemas'
 
 const golden = () => JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8')).geo as GeoResult
@@ -29,5 +30,18 @@ describe('A3 reuse entity parity', () => {
     const after = recomputeReusedGeoEvidence(geo)
     expect(after.entity_resolution?.entities.find((item) => item.display_name === 'Bark')).toMatchObject({ state: 'channel', occurrences: 0 })
     expect(after.competitor_visibility).toEqual([])
+  })
+
+  it('preserves stored derived values and warns through validation when evidence is not retained', () => {
+    const geo = golden()
+    const original = geo.evidence[0]!
+    geo.evidence = [{ ...original, answer_text: 'short retained text', measured_text_length: 24000, evidence_completeness: 'storage_censored', brand_mentioned: true, competitors_mentioned: ['Stored Rival'], brand_position: 2 }]
+    geo.competitor_visibility = [{ name: 'Stored Rival', mention_rate: 100 }]
+    const after = recomputeReusedGeoEvidence(geo)
+    expect(after.evidence[0]).toMatchObject({ answer_text: 'short retained text', brand_mentioned: true, competitors_mentioned: ['Stored Rival'], brand_position: 2, evidence_completeness: 'not_retained' })
+    const report = JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/golden-report-rozie.json'), 'utf8'))
+    report.geo = after
+    const validation = validateReport(report)
+    expect(validation.warnings.some((warning) => warning.includes('not_retained'))).toBe(true)
   })
 })

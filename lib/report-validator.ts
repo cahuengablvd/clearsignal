@@ -1663,6 +1663,9 @@ function validateEvidenceRetention(report: ClearSignalReport, errors: string[], 
     const label = evidence.evidence_id || `${evidence.engine}/${evidence.query}`
     const hasMetadata = evidence.evidence_completeness !== undefined || evidence.measured_text_length !== undefined
     if (!hasMetadata) continue
+    if ((evidence.evidence_completeness === 'complete' || evidence.evidence_completeness === 'storage_censored') && evidence.answer_text === undefined) {
+      errors.push(`geo_retention: ${label} ${evidence.evidence_completeness} row is missing answer_text`)
+    }
     if (evidence.measured_text_length !== undefined && evidence.answer_text !== undefined && evidence.measured_text_length !== evidence.answer_text.length) {
       errors.push(`geo_retention: ${label} measured_text_length does not equal answer_text.length`)
     }

@@ -5,7 +5,22 @@ vi.mock('../lib/anthropic', () => ({ callClaudeJSON: mocks.callClaudeJSON }))
 vi.mock('../lib/geo/engines', () => ({ availableEngines: () => ['claude'], queryEngine: mocks.queryEngine }))
 
 import { runGeoScan } from '../lib/geo'
+import { recomputeReusedGeoEvidence } from '../lib/audit-runner'
 import { GeoResultSchema } from '../lib/schemas'
+import type { GeoEvidence, GeoResult } from '../lib/schemas'
+
+const retentionMeasurement = ({ brand_mentioned, brand_position, competitors_mentioned, entity_observations, evidence_completeness, measured_text_length, truncated_at, absence_observation }: GeoEvidence) => ({
+  brand_mentioned, brand_position, competitors_mentioned, entity_observations, evidence_completeness, measured_text_length, truncated_at, absence_observation,
+})
+function expectStoredRecomputeParity(fresh: GeoResult) {
+  const stored = JSON.parse(JSON.stringify(fresh)) as GeoResult
+  mocks.queryEngine.mockClear()
+  mocks.callClaudeJSON.mockClear()
+  const recomputed = recomputeReusedGeoEvidence(stored)
+  expect(recomputed.evidence.map(retentionMeasurement)).toEqual(fresh.evidence.map(retentionMeasurement))
+  expect(mocks.queryEngine).not.toHaveBeenCalled()
+  expect(mocks.callClaudeJSON).not.toHaveBeenCalled()
+}
 
 const longAnswer = (n: number) => 'Target is an appropriate option. '.repeat(n)
 const base = { engine: 'claude', ok: true, attempts: 1, citations: ['https://target.example/page'], tool_events: { search_requests: 1, search_results: 1, tool_errors: [], protocol: 'claude_web_search' as const }, retrieved_urls: ['https://retrieved.example'], cited_urls: ['https://target.example/page'], citation_attachment: 'resolved' as const, engine_issued_queries: ['provider query'], stop_reason: 'end_turn', raw_response_sha256: 'a'.repeat(64), started_at: '2026-09-02T10:00:00.000Z', finished_at: '2026-09-02T10:00:01.000Z' }
@@ -46,9 +61,10 @@ describe('RD-00 persisted GEO capture', () => {
   it('measures and retains only the shared ceiling, excluding late evidence', async () => {
     const answer = 'x'.repeat(24000) + ' Target and Late Rival are mentioned here.'
     mocks.queryEngine.mockResolvedValue({ ...base, answer, stop_reason: 'end_turn' })
-    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', competitors: ['Late Rival'], providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
+    const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
     expect(result.evidence[0]).toMatchObject({ brand_mentioned: false, competitors_mentioned: [], evidence_completeness: 'storage_censored', measured_text_length: 24000, truncated_at: 24000, absence_observation: 'censored' })
     expect(result.acquisition_protocol?.measurement_text_limit).toBe(24000)
+    expectStoredRecomputeParity(result)
   })
 
   it('counts a mention just inside the ceiling when the total response fits', async () => {
@@ -56,6 +72,7 @@ describe('RD-00 persisted GEO capture', () => {
     mocks.queryEngine.mockResolvedValue({ ...base, answer, stop_reason: 'end_turn' })
     const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
     expect(result.evidence[0]).toMatchObject({ brand_mentioned: true, evidence_completeness: 'complete', truncated_at: null, measured_text_length: answer.length })
+    expectStoredRecomputeParity(result)
   })
 
   it('keeps an inside-ceiling positive censored when the full response exceeds the ceiling', async () => {
@@ -64,6 +81,7 @@ describe('RD-00 persisted GEO capture', () => {
     const result = await runGeoScan({ brand: 'Target', url: 'https://target.example', providedQueries: ['best option'], engines: ['claude'], analyzeSources: false, narrative: false })
     expect(result.evidence[0]).toMatchObject({ brand_mentioned: true, evidence_completeness: 'storage_censored', truncated_at: 24000 })
     expect(result.evidence[0]!.evidence_completeness).not.toBe('complete')
+    expectStoredRecomputeParity(result)
   })
 
   it('validates an n=1 report with eighteen retained 24k answers', async () => {

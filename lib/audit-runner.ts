@@ -207,11 +207,17 @@ export function recomputeReusedGeoEvidence(
     const hasMetadata = e.evidence_completeness !== undefined || e.measured_text_length !== undefined
     const recordedLength = e.measured_text_length
     const availableLength = e.answer_text?.length ?? 0
-    const notRetained = e.evidence_completeness === 'not_retained' || (recordedLength !== undefined && recordedLength > availableLength)
+    const missingDeclaredAnswer = e.answer_text === undefined &&
+      (e.evidence_completeness === 'complete' || e.evidence_completeness === 'storage_censored')
+    // Legacy excerpt lengths do not describe a retained full answer. In particular,
+    // repeated recomputes must not turn an excerpt-only row into retention failure.
+    const legacyExcerptOnly = e.evidence_completeness === 'legacy_excerpt' && e.answer_text === undefined
+    const notRetained = e.evidence_completeness === 'not_retained' || missingDeclaredAnswer ||
+      (!legacyExcerptOnly && recordedLength !== undefined && recordedLength > availableLength)
     if (notRetained) return { ...e, evidence_completeness: 'not_retained' as const }
     // Fresh scans and PX-1 rows derive every deterministic text signal from the
     // retained measurement text. Reports without metadata are excerpt-only legacy.
-    const answer = e.answer_text || e.answer_excerpt || ''
+    const answer = e.answer_text ?? e.answer_excerpt ?? ''
     const brand_mentioned = textMentions(answer, brandVariants.tokens)
     const resolvedCitation = e.citation_attachment === 'resolved'
     const legacyCitation = e.citation_attachment === undefined
@@ -232,7 +238,7 @@ export function recomputeReusedGeoEvidence(
     return {
       ...e,
       evidence_completeness: hasMetadata ? (e.evidence_completeness || 'complete') : 'legacy_excerpt' as const,
-      ...(hasMetadata ? { measured_text_length: e.measured_text_length ?? answer.length } : {}),
+      ...(hasMetadata && e.answer_text !== undefined ? { measured_text_length: e.measured_text_length ?? e.answer_text.length } : {}),
       brand_mentioned,
       brand_cited,
       citation_evaluable,

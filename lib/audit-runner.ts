@@ -338,9 +338,13 @@ export function recomputeReusedGeoEvidence(
   const evidenceWithProvenance = evidence.map((item, index) => {
     const itemProvenance = item.query_id ? provenanceById.get(item.query_id) : legacyProvenanceByQuery?.get(item.query)
     const observations = resolution.observationsByAnswer[index]
+    // A row which was safely recomputed must exactly reflect this resolution,
+    // including the meaningful empty inventory. PX-1's not_retained rows are
+    // deliberately excluded because their stored derived values are unsafe to
+    // recompute from incomplete evidence.
     const enriched = item.evidence_completeness === 'not_retained'
       ? item
-      : { ...item, ...(observations?.length ? { entity_observations: observations } : {}) }
+      : { ...item, entity_observations: observations || [] }
     return itemProvenance ? { ...enriched, query_id: item.query_id || itemProvenance.query_id, query_intent: item.query_intent || itemProvenance.intent, scope: item.scope || itemProvenance.scope } : enriched
   })
   const validCoreSlots = provenance.filter((p) => p.scope === 'core' && p.state === 'valid').length

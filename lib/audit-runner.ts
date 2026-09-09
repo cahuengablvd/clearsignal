@@ -178,6 +178,15 @@ export function recomputeReusedGeoEvidence(
     alternatives: opts.alternativeBrandForms,
   })
   const operatorCompetitorNames = explicitCompetitorNames(opts.explicitCompetitors)
+  // The persisted resolver inventory is candidate lineage, not a prior verdict.
+  // Feed every stored alias back through the unchanged resolver so current retained
+  // evidence determines the next role/state. Client-facing measurement candidates
+  // remain derived only from accepted resolution below.
+  const storedLineageCandidates = (geo.entity_resolution?.entities || []).flatMap((entity) =>
+    [...new Set([entity.display_name, ...entity.aliases])]
+      .filter(Boolean)
+      .map((name) => ({ name, role_guess: entity.role, quote: name, answer_index: 0 }))
+  )
   const competitorNames = [
     ...geo.competitor_visibility.map((c) => c.name),
     ...geo.evidence.flatMap((e) => e.competitors_mentioned),
@@ -200,7 +209,10 @@ export function recomputeReusedGeoEvidence(
 
   const resolution = resolveEntities({
     brandVariants: [brand, ...(opts.alternativeBrandForms || [])], operatorCompetitors: operatorCompetitorNames,
-    candidates: competitorNames.map((name) => ({ name, role_guess: 'competitor', quote: name, answer_index: 0 })),
+    candidates: [
+      ...storedLineageCandidates,
+      ...competitorNames.map((name) => ({ name, role_guess: 'competitor' as const, quote: name, answer_index: 0 })),
+    ],
     answers: geo.evidence.map((item) => ({ answer_text: item.answer_text, answer_excerpt: item.answer_excerpt, query_id: item.query_id, engine: item.engine, citedDomains: item.cited_domains })),
   })
   const acceptedEntities = resolution.entities.filter((entity) => entity.role === 'competitor' && entity.state === 'accepted')
@@ -415,12 +427,12 @@ function competitorIdentityKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
-/** URLs are intake metadata, not inferred brand aliases. Only literal operator
- * name forms may seed candidate resolution during a stored-evidence reuse. */
+/** Operator competitor input is candidate lineage supplied by the current audit
+ * context. The resolver remains the sole authority for URL/domain identity. */
 function explicitCompetitorNames(values: string[] | undefined): string[] {
   return (values || [])
     .map((value) => value.trim())
-    .filter((value) => Boolean(value) && !/[/:]/.test(value) && !/\.[a-z]{2,}(?:\s|$)/i.test(value))
+    .filter(Boolean)
 }
 
 export function rebuildReusedGeoNarrative(

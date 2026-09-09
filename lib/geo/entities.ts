@@ -22,7 +22,7 @@ export function normalizeEntityName(value: string): string {
   return base.toLowerCase().replace(LEGAL, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim()
 }
 /** Equivalence key for the deliberately narrow space/hyphen/concatenation rule. */
-function aliasEquivalenceKey(value: string): string {
+export function entityEquivalenceKey(value: string): string {
   return normalizeEntityName(value).replace(/[\s-]+/g, '')
 }
 export function isGenericEntityName(value: string): boolean {
@@ -75,10 +75,10 @@ export function resolveEntities(input: { brandVariants: string[]; operatorCompet
     if (!group.aliases.includes(name)) group.aliases.push(name)
     grouped.set(key, group)
   }
-  for (const name of input.operatorCompetitors || []) add(aliasEquivalenceKey(name), name, undefined, true)
+  for (const name of input.operatorCompetitors || []) add(entityEquivalenceKey(name), name, undefined, true)
   for (const candidate of input.candidates) {
-    const key = aliasEquivalenceKey(candidate.name)
-    if (!key || input.brandVariants.some((brand) => aliasEquivalenceKey(brand) === key)) continue
+    const key = entityEquivalenceKey(candidate.name)
+    if (!key || input.brandVariants.some((brand) => entityEquivalenceKey(brand) === key)) continue
     add(key, candidate.name, candidate)
   }
   // A cited first-party registrable domain may only join candidates whose own

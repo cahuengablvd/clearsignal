@@ -203,8 +203,17 @@ export function recomputeReusedGeoEvidence(
     candidates: competitorNames.map((name) => ({ name, role_guess: 'competitor', quote: name, answer_index: 0 })),
     answers: geo.evidence.map((item) => ({ answer_text: item.answer_text, answer_excerpt: item.answer_excerpt, query_id: item.query_id, engine: item.engine, citedDomains: item.cited_domains })),
   })
-  const acceptedNames = new Set(resolution.entities.filter((entity) => entity.role === 'competitor' && entity.state === 'accepted').map((entity) => entity.display_name))
-  const acceptedCompetitors = process.env.GEO_ENTITY_PIPELINE === 'legacy' ? competitorList : competitorList.filter((item) => acceptedNames.has(item.name))
+  const acceptedEntities = resolution.entities.filter((entity) => entity.role === 'competitor' && entity.state === 'accepted')
+  const acceptedByName = new Map(acceptedEntities.map((entity) => [entity.display_name, entity]))
+  const acceptedCompetitors = process.env.GEO_ENTITY_PIPELINE === 'legacy'
+    ? competitorList
+    : [...competitorList.reduce((selected, competitor) => {
+        const entity = acceptedByName.get(competitor.name)
+        if (entity && !selected.has(entity.entity_id)) {
+          selected.set(entity.entity_id, { name: entity.display_name, variants: { domain: null, tokens: entity.aliases } })
+        }
+        return selected
+      }, new Map<string, { name: string; variants: ReturnType<typeof buildVariants> }>()).values()]
 
   const evidence = geo.evidence.map((e) => {
     const hasMetadata = e.evidence_completeness !== undefined || e.measured_text_length !== undefined
@@ -267,7 +276,7 @@ export function recomputeReusedGeoEvidence(
   // Operator input may seed entity resolution, but comparison metrics need an
   // accepted competitor actually observed in the recomputed stored evidence.
   const competitorComparisonAvailable = acceptedCompetitors.some((competitor) =>
-    evidence.some((item) => item.competitors_mentioned.includes(competitor.name))
+    measurementEvidence.some((item) => item.competitors_mentioned.includes(competitor.name))
   )
   const avg_position = competitorComparisonAvailable && mentionPositions.length
     ? round(mentionPositions.reduce((a, b) => a + b, 0) / mentionPositions.length, 2)

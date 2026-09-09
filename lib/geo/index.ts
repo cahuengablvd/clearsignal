@@ -55,7 +55,7 @@ import {
   registrableDomain,
   sld,
 } from './detect'
-import { normalizeEntityName, resolveEntities, type EntityCandidate } from './entities'
+import { entityEquivalenceKey, resolveEntities, type EntityCandidate } from './entities'
 import { buildMeasurementMethodology } from './methodology'
 
 const SCORE_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
@@ -63,11 +63,6 @@ const ANSWER_EXCERPT_LIMIT = 700
 
 function competitorKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
-}
-
-/** Resolver identity for operator names and their supported URL/domain form. */
-function operatorCompetitorIdentityKey(value: string): string {
-  return normalizeEntityName(sld(value))
 }
 
 export function formatEngineList(engines: string[]): string {
@@ -134,6 +129,7 @@ function listValidator<T extends string>(key: string) {
 interface Competitor {
   name: string
   variants: { domain: string | null; tokens: string[] }
+  resolver_identity: string
 }
 
 export interface RunGeoOptions {
@@ -393,7 +389,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   // 3. Build the competitor set: user-provided + (optionally) discovered names.
   const competitorList: Competitor[] = competitors
     .filter(Boolean)
-    .map((c) => ({ name: prettyName(c), variants: buildVariants({ url: c, name: prettyName(c) }) }))
+    .map((c) => ({ name: prettyName(c), variants: buildVariants({ url: c, name: prettyName(c) }), resolver_identity: entityEquivalenceKey(c) }))
     .filter((competitor) => !textMentions(competitor.name, brandVariants.tokens))
 
   const extractedCandidates: EntityCandidate[] = []
@@ -427,7 +423,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
         // Explicit operator input wins. Only inferred names are filtered.
         if (isAnswerEngineCompetitorName(name)) continue
         if (competitorList.some((c) => sld(c.name) === key || competitorKey(c.name) === competitorKey(name))) continue
-        competitorList.push({ name, variants: buildVariants({ name }) })
+        competitorList.push({ name, variants: buildVariants({ name }), resolver_identity: entityEquivalenceKey(name) })
         extractedCandidates.push(candidate)
       }
     } catch (err) {
@@ -442,20 +438,35 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     businessModel: opts.businessModel,
   })
   // `competitorList` is presentation-oriented (`prettyName` makes URL input readable),
-  // while the resolver preserves the operator's identity form. Compare through the
-  // resolver's established canonical identity, then retain its display name so the
-  // fresh result has the same identity as a stored-evidence recompute.
-  const acceptedNames = new Map(
-    resolution.entities
-      .filter((entity) => entity.state === 'accepted' && entity.role === 'competitor')
-      .map((entity) => [operatorCompetitorIdentityKey(entity.display_name), entity.display_name])
-  )
+  // but resolution owns identity. Index every resolver alias with its exact equivalence
+  // key; a non-unique lookup fails closed instead of overwriting an accepted entity.
+  const acceptedEntities = resolution.entities.filter((entity) => entity.state === 'accepted' && entity.role === 'competitor')
+  const acceptedByIdentity = new Map<string, Set<string>>()
+  for (const entity of acceptedEntities) {
+    for (const alias of [entity.display_name, ...entity.aliases]) {
+      const identity = entityEquivalenceKey(alias)
+      if (!identity) continue
+      const entityIds = acceptedByIdentity.get(identity) || new Set<string>()
+      entityIds.add(entity.entity_id)
+      acceptedByIdentity.set(identity, entityIds)
+    }
+  }
+  const acceptedById = new Map(acceptedEntities.map((entity) => [entity.entity_id, entity]))
   const acceptedCompetitors = process.env.GEO_ENTITY_PIPELINE === 'legacy'
     ? competitorList
-    : competitorList.flatMap((competitor) => {
-        const displayName = acceptedNames.get(operatorCompetitorIdentityKey(competitor.name))
-        return displayName ? [{ ...competitor, name: displayName }] : []
-      })
+    : [...competitorList.reduce((selected, competitor) => {
+        const entityIds = acceptedByIdentity.get(competitor.resolver_identity)
+        if (entityIds?.size !== 1) return selected
+        const entity = acceptedById.get([...entityIds][0])
+        if (entity && !selected.has(entity.entity_id)) {
+          selected.set(entity.entity_id, {
+            ...competitor,
+            name: entity.display_name,
+            variants: { domain: null, tokens: entity.aliases },
+          })
+        }
+        return selected
+      }, new Map<string, Competitor>()).values()]
 
   // 4. Deterministic detection per (engine, query).
   const evidence: GeoEvidence[] = raw.map((r, i) => {
@@ -518,7 +529,11 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
   const mentionPositions = coreEvidence
     .filter((e) => e.brand_position != null)
     .map((e) => e.brand_position as number)
-  const competitorComparisonAvailable = acceptedCompetitors.length > 0
+  // Configuration alone is not a comparison denominator: an accepted competitor
+  // must be observed in current core evidence, matching reused-evidence semantics.
+  const competitorComparisonAvailable = acceptedCompetitors.some((competitor) =>
+    coreEvidence.some((item) => item.competitors_mentioned.includes(competitor.name))
+  )
   const avg_position = competitorComparisonAvailable && mentionPositions.length > 0
       ? round(mentionPositions.reduce((a, b) => a + b, 0) / mentionPositions.length, 2)
       : null

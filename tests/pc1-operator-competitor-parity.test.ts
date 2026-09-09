@@ -26,6 +26,7 @@ const response = (answer: string) => ({
 const accepted = (geo: GeoResult) => geo.entity_resolution?.entities
   .filter((entity) => entity.role === 'competitor' && entity.state === 'accepted')
   .map((entity) => ({ entity_id: entity.entity_id, display_name: entity.display_name, state: entity.state }))
+  .sort((left, right) => left.entity_id.localeCompare(right.entity_id))
 
 function parityProjection(geo: GeoResult) {
   return {
@@ -41,11 +42,11 @@ function parityProjection(geo: GeoResult) {
   }
 }
 
-async function freshThenRecompute(competitor: string) {
+async function freshThenRecompute(competitors: string[]) {
   const fresh = await runGeoScan({
     brand: 'Target',
     url: 'https://target.example',
-    competitors: [competitor],
+    competitors,
     providedQueries: ['first buyer question', 'second buyer question'],
     engines: ['openai'],
     discoverCompetitors: false,
@@ -55,7 +56,7 @@ async function freshThenRecompute(competitor: string) {
   const freshCalls = mocks.queryEngine.mock.calls.length
   mocks.queryEngine.mockClear()
   mocks.callClaudeJSON.mockClear()
-  const recomputed = recomputeReusedGeoEvidence(clone(fresh), { explicitCompetitors: [competitor] })
+  const recomputed = recomputeReusedGeoEvidence(clone(fresh), { explicitCompetitors: competitors })
   expect(mocks.queryEngine).not.toHaveBeenCalled()
   expect(mocks.callClaudeJSON).not.toHaveBeenCalled()
   expect(freshCalls).toBe(2)
@@ -76,7 +77,7 @@ afterEach(() => {
 
 describe('PC-1 operator competitor identity parity', () => {
   it('keeps a name-form operator competitor identical through fresh storage and repeated zero-call recompute', async () => {
-    const { fresh, recomputed } = await freshThenRecompute('al rajhi bank')
+    const { fresh, recomputed } = await freshThenRecompute(['al rajhi bank'])
     expect(accepted(fresh)).toEqual([{ entity_id: 'entity-alrajhibank', display_name: 'al rajhi bank', state: 'accepted' }])
     expect(fresh.evidence.flatMap((item) => item.competitors_mentioned)).toEqual(['al rajhi bank', 'al rajhi bank'])
     const twice = recomputeReusedGeoEvidence(clone(recomputed), { explicitCompetitors: ['al rajhi bank'] })
@@ -87,9 +88,36 @@ describe('PC-1 operator competitor identity parity', () => {
 
   it('preserves the supported domain-form operator competitor path', async () => {
     mocks.queryEngine.mockResolvedValue(response('url-rival.test appears before Target in this comparison.'))
-    const { fresh } = await freshThenRecompute('url-rival.test')
+    const { fresh } = await freshThenRecompute(['url-rival.test'])
     expect(accepted(fresh)?.[0]).toMatchObject({ display_name: 'url-rival.test', state: 'accepted' })
     expect(fresh.competitor_visibility).toEqual([{ name: 'url-rival.test', mention_rate: 100 }])
+  })
+
+  it('leaves comparison metrics unavailable when an accepted operator competitor is absent from core evidence', async () => {
+    mocks.queryEngine.mockResolvedValue(response('Target is listed here without a competing brand.'))
+    const { fresh, recomputed } = await freshThenRecompute(['al rajhi bank'])
+    expect(accepted(fresh)).toEqual([{ entity_id: 'entity-alrajhibank', display_name: 'al rajhi bank', state: 'accepted' }])
+    expect(fresh.evidence.map((item) => item.competitors_mentioned)).toEqual([[], []])
+    expect(fresh.competitor_visibility).toEqual([])
+    expect(fresh.share_of_voice).toBeNull()
+    expect(fresh.avg_position).toBeNull()
+    expect(fresh.score_breakdown.position_score).toBeNull()
+    expect(fresh.score_breakdown.unavailable_reason).toBe('required comparison or citation component unavailable; weights were not renormalized')
+    expect(fresh.ai_visibility_score).toBeNull()
+    expect(parityProjection(recomputed)).toEqual(parityProjection(fresh))
+  })
+
+  it('keeps URL-form and name-form operator entities distinct when their old SLD lookup keys collide', async () => {
+    const urlInput = 'https://url-rival.test/pricing'
+    mocks.queryEngine.mockResolvedValue(response(`${urlInput} appears before Target in this comparison.`))
+    const { fresh, recomputed } = await freshThenRecompute([urlInput, 'URL Rival'])
+    expect(accepted(fresh)).toEqual([
+      { entity_id: 'entity-urlrival', display_name: 'URL Rival', state: 'accepted' },
+      { entity_id: 'entity-urlrivaltest', display_name: urlInput, state: 'accepted' },
+    ])
+    expect(fresh.evidence.map((item) => item.competitors_mentioned)).toEqual([[urlInput], [urlInput]])
+    expect(fresh.competitor_visibility).toEqual([{ name: urlInput, mention_rate: 100 }])
+    expect(parityProjection(recomputed)).toEqual(parityProjection(fresh))
   })
 
   it('does not surface the audited brand alias as a competitor', async () => {

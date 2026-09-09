@@ -60,6 +60,7 @@ import { isAnswerEngineCompetitorName } from './engine-scope'
 import { isDeterministicAuditFailure } from './audit-recovery'
 import { buildEngineCoverage, evaluateCoverageGate, MEASUREMENT_TEXT_LIMIT, SUCCESSFUL_STATUSES, type LedgerRow } from './geo/coverage'
 import { resolveEntities } from './geo/entities'
+import { buildMeasurementMethodology } from './geo/methodology'
 
 export type RunFullAuditOptions = {
   reuseGeoEvidence?: boolean
@@ -119,6 +120,7 @@ export function buildDataLimitations(
 
 export function reusableGeoFromAudit(audit: {
   report?: unknown
+  business_context?: unknown
   competitor_1?: string | null
   competitor_2?: string | null
   competitor_3?: string | null
@@ -132,6 +134,7 @@ export function reusableGeoFromAudit(audit: {
     alternativeBrandForms: currentBrand?.alternativeBrandForms || maybeReport.meta?.alternative_brand_forms,
     explicitCompetitors: [audit.competitor_1, audit.competitor_2, audit.competitor_3]
       .filter((value): value is string => Boolean(value)),
+    requestedMarketsLanguages: normalizeBusinessContext(audit.business_context).target_markets_languages,
   })
 }
 
@@ -388,40 +391,15 @@ export function recomputeReusedGeoEvidence(
     acquisition_protocol: geo.acquisition_protocol ? { ...geo.acquisition_protocol, measurement_text_limit: geo.acquisition_protocol.measurement_text_limit ?? MEASUREMENT_TEXT_LIMIT } : geo.acquisition_protocol,
     computation_version: 'rd-01-06',
     computed_by: { version: 'rd-01-06', at: new Date().toISOString(), source: 'reused' },
-    measurement_methodology: {
-      market: measuredMarkets(provenance, geo.query_plan?.markets),
-      languages_tested: measuredLanguages(provenance),
-      core_queries: provenance.filter((item) => item.scope === 'core' && item.state === 'valid').length,
-      supplemental_queries: provenance.filter((item) => item.scope === 'supplemental' && item.state === 'valid').length,
-      providers: configuredEngines.map((engine) => ({ engine, model: evidence.find((item) => item.engine === engine)?.model || null })),
-      samples_per_combination: geo.acquisition_protocol?.samples_per_combination || 1,
-      user_location: null,
-      location_behavior: 'Provider default; no explicit user location was set.',
-      untested_languages_disclosure: untestedLanguageDisclosure(opts.requestedMarketsLanguages, measuredLanguages(provenance)),
-      search_mode_disclosure: searchModeDisclosure(geo.acquisition_protocol),
-    },
+    measurement_methodology: buildMeasurementMethodology({
+      provenance,
+      evidence,
+      engines: configuredEngines,
+      acquisitionProtocol: geo.acquisition_protocol,
+      requestedMarketsLanguages: opts.requestedMarketsLanguages,
+      executedPlanMarkets: geo.query_plan?.markets,
+    }),
   }
-}
-
-const LANGUAGE_NAMES: Record<string, string> = { en: 'English', lv: 'Latvian', ru: 'Russian', ar: 'Arabic' }
-function languageName(value: string): string { return LANGUAGE_NAMES[value.trim().toLowerCase()] || value }
-function measuredLanguages(provenance: NonNullable<GeoResult['query_provenance']>): string[] {
-  return [...new Set(provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => languageName(item.language)).filter((language) => language !== 'unknown'))]
-}
-function measuredMarkets(provenance: NonNullable<GeoResult['query_provenance']>, executedPlanMarkets?: string[]): string | null {
-  const markets = [...new Set(provenance.filter((item) => item.scope === 'core' && item.state === 'valid').map((item) => item.market).filter((item): item is string => Boolean(item)))]
-  return markets.length ? markets.join(', ') : executedPlanMarkets?.length ? executedPlanMarkets.join(', ') : null
-}
-function untestedLanguageDisclosure(requested: string | undefined, tested: string[]): string | undefined {
-  if (!requested) return undefined
-  const requestedNames = Object.entries(LANGUAGE_NAMES).filter(([code, name]) => new RegExp(`\\b(${code}|${name})\\b`, 'i').test(requested)).map(([, name]) => name)
-  const missing = requestedNames.filter((name) => !tested.includes(name))
-  return missing.length ? `Only the languages listed above were tested. ${missing.join(' and ')} buyer questions were not tested in this audit.` : undefined
-}
-function searchModeDisclosure(protocol: GeoResult['acquisition_protocol']): string | undefined {
-  if (!protocol?.engines.length) return undefined
-  const modes = protocol.engines.map((item) => `${item.engine}: ${item.web_search_mode === 'disabled' ? 'web search disabled' : 'provider web-search mode'}`)
-  return `Tool/search mode: ${modes.join('; ')}. This measures provider API responses, not literal consumer ChatGPT UI observations.`
 }
 
 function competitorIdentityKey(value: string): string {
@@ -832,6 +810,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
             targetMarkdown,
             brandAliases: brandEntity.alternative_brand_forms,
             businessModel: businessContext.business_model,
+            requestedMarketsLanguages: businessContext.target_markets_languages,
             onUsage: (event) => cost.add(event),
             meta: {
               auditId,

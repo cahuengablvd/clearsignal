@@ -56,6 +56,7 @@ import {
   sld,
 } from './detect'
 import { resolveEntities, type EntityCandidate } from './entities'
+import { buildMeasurementMethodology } from './methodology'
 
 const SCORE_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
 const ANSWER_EXCERPT_LIMIT = 700
@@ -152,6 +153,7 @@ export interface RunGeoOptions {
   narrative?: boolean
   /** Use grounded web-search answers. Disable for timeout-sensitive free scans. */
   webSearch?: boolean
+  requestedMarketsLanguages?: string
   /** Target page markdown (reused to avoid re-scraping). Scraped if omitted. */
   targetMarkdown?: string
   /** Explicit query set (e.g. user-confirmed). Skips query generation when set. */
@@ -664,7 +666,14 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     acquisition_protocol, acquisition_operational,
     computation_version: 'rd-01-06',
     computed_by: { version: 'rd-01-06', at: new Date().toISOString(), source: 'fresh' },
-    measurement_methodology: buildMeasurementMethodology(provenance, evidence, engines),
+    measurement_methodology: buildMeasurementMethodology({
+      provenance,
+      evidence,
+      engines,
+      acquisitionProtocol: acquisition_protocol,
+      requestedMarketsLanguages: opts.requestedMarketsLanguages,
+      executedPlanMarkets: queryPlan?.markets,
+    }),
   }
 
   return GeoResultSchema.parse(result)
@@ -700,22 +709,6 @@ function acquisitionProtocol(engines: EngineId[], webSearch: boolean, provenance
   }
 }
 
-function buildMeasurementMethodology(provenance: QueryProvenance[], evidence: GeoEvidence[], engines: EngineId[]) {
-  const core = provenance.filter((item) => item.scope === 'core' && item.state === 'valid')
-  const supplemental = provenance.filter((item) => item.scope === 'supplemental' && item.state === 'valid')
-  const languages = [...new Set(core.map((item) => item.language).filter((language) => language && language !== 'unknown'))]
-  const markets = [...new Set(core.map((item) => item.market).filter((market): market is string => !!market))]
-  return {
-    market: markets.length === 1 ? markets[0] : markets.length ? markets.join(', ') : null,
-    languages_tested: languages,
-    core_queries: core.length,
-    supplemental_queries: supplemental.length,
-    providers: engines.map((engine) => ({ engine, model: evidence.find((item) => item.engine === engine)?.model || null })),
-    samples_per_combination: 1,
-    user_location: null,
-    location_behavior: 'Provider default; no explicit user location was set.',
-  }
-}
 function acquisitionOperational(engines: EngineId[]) {
   return { provider_concurrency: engines.map((engine) => ({ engine, concurrency: providerConcurrency(engine) })) }
 }

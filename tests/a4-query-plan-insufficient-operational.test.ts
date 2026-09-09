@@ -83,7 +83,12 @@ describe('query_plan_insufficient paid-audit operation', () => {
     try {
       await expect(runFullAudit('a4-insufficient', { trigger: 'recovery', endpoint: 'test' })).rejects.toBeInstanceOf(Error)
       expect(mocks.generateValidatedQueryPlan).not.toHaveBeenCalled()
-      expect(mocks.runGeoScan).toHaveBeenCalledWith(expect.objectContaining({ queryCount: 6, queryPlan: undefined, providedQueries: undefined }))
+      expect(mocks.runGeoScan).toHaveBeenCalledWith(expect.objectContaining({
+        queryCount: 6,
+        queryPlan: undefined,
+        providedQueries: undefined,
+        requestedMarketsLanguages: 'Latvia, Riga - Latvian and Russian',
+      }))
     } finally {
       if (previous === undefined) delete process.env.GEO_QUERY_PLAN_MODE
       else process.env.GEO_QUERY_PLAN_MODE = previous

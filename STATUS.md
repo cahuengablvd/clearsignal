@@ -12,14 +12,6 @@ at the end of a working session.
 
 **Last updated:** 2026-08-31. A3 production verification is formally closed; no customer delivery occurred.
 
-## PX-1 correction handoff - 2026-09-07
-
-- Branch `pre-a2-px1-evidence-retention`, follow-up to `507b056e1fcc9c1b9f6b88d402a952cfbec8f6b2`, ready for Fable re-review.
-- Rozie (13 rows) and AZ Moving (15 rows): three persisted recomputes retain `legacy_excerpt`, no length backfill or retention diagnostics, stable measurements. Missing/short retained answers preserve stored measurements as `not_retained`; missing declared answers produce hard validator errors.
-- Fresh/stored/recompute parity passes all three ceiling cases with zero provider calls on recompute. Focused: 8 files / 206 tests pass; TypeScript and build pass.
-- Full `npx vitest run`: 583 pass, 13 skip; exactly the same eight orchestrator discovery failures (`db`, `dependency-runtime`, `git`, `plan-parser`, `policy`, `process`, `redact`, `schemas`) and messages as Fable's baseline. No new failure.
-- No provider call, production DB access, migration or deploy. PX-2/PX-3/A2 remain unstarted; known observation/name-form competitor and acquisition-identity backlog untouched. Fable approval is still required before PX-2.
-
 ## Deploys
 
 - **Vercel** — production `/api/health` reports **`f905c41`**.

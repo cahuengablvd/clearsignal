@@ -1,7 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { recomputeReusedGeoEvidence, rebuildReusedGeoNarrative } from '../lib/audit-runner'
 import { buildMeasurementMethodology } from '../lib/geo/methodology'
 import type { GeoResult } from '../lib/schemas'
+
+const mocks = vi.hoisted(() => ({ queryEngine: vi.fn() }))
+vi.mock('../lib/geo/engines', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../lib/geo/engines')>(),
+  queryEngine: mocks.queryEngine,
+}))
+
+import { runGeoScan } from '../lib/geo'
 
 const protocol: NonNullable<GeoResult['acquisition_protocol']> = {
   version: 'rd-00',
@@ -38,17 +46,40 @@ function freshMethodology(requestedMarketsLanguages?: string, language = 'en') {
   })
 }
 
+function englishOnlyPlan() {
+  return {
+    core: [{ query: 'best service', slot: 'category_discovery' as const, language: 'en', geo_scope: 'none' as const, rationale: '' }],
+    supplemental: [],
+    provenance: provenance(),
+    valid_core_slots: 1,
+    review_required: true,
+    primary_language: 'en',
+    markets: ['Saudi Arabia'],
+  }
+}
+
 describe('PX-3 methodology disclosure parity', () => {
-  it('keeps Arabic requested with English-only measurement identical across fresh, reuse, and rerender', () => {
+  it('keeps Arabic requested with English-only measurement identical across the real fresh scan, reuse, and rerender', async () => {
     const requested = 'Saudi Arabia, Arabic and English'
-    const fresh = freshMethodology(requested)
-    const reuse = recomputeReusedGeoEvidence(savedGeo(), { requestedMarketsLanguages: requested }).measurement_methodology
-    const rerender = rebuildReusedGeoNarrative(savedGeo(), { requestedMarketsLanguages: requested }).measurement_methodology
+    mocks.queryEngine.mockResolvedValue({
+      engine: 'claude', ok: true, answer: 'Target appears here as a suitable service option for this buyer question. '.repeat(4), citations: [], model: 'claude-sonnet-4-6', attempts: 1,
+      tool_events: { search_requests: 1, search_results: 0, tool_errors: [], protocol: 'claude_web_search' },
+      retrieved_urls: [], cited_urls: [], citation_attachment: 'resolved', stop_reason: 'end_turn', raw_response_sha256: 'a'.repeat(64),
+    })
+    const freshGeo = await runGeoScan({
+      brand: 'Target', url: 'https://target.example', engines: ['claude'], queryPlan: englishOnlyPlan(),
+      requestedMarketsLanguages: requested, discoverCompetitors: false, analyzeSources: false, narrative: false,
+    })
+    const fresh = freshGeo.measurement_methodology!
+    mocks.queryEngine.mockClear()
+    const reuse = recomputeReusedGeoEvidence(freshGeo, { requestedMarketsLanguages: requested }).measurement_methodology
+    const rerender = rebuildReusedGeoNarrative(freshGeo, { requestedMarketsLanguages: requested }).measurement_methodology
 
     expect(reuse).toEqual(fresh)
     expect(rerender).toEqual(fresh)
-    expect(fresh).toMatchObject({ languages_tested: ['English'], untested_languages_disclosure: 'Only the languages listed above were tested. Arabic buyer questions were not tested in this audit.' })
-    expect(fresh?.search_mode_disclosure).toContain('provider API responses')
+    expect(fresh).toMatchObject({ market: 'Saudi Arabia', languages_tested: ['English'], untested_languages_disclosure: 'Only the languages listed above were tested. Arabic buyer questions were not tested in this audit.' })
+    expect(fresh.search_mode_disclosure).toContain('provider API responses')
+    expect(mocks.queryEngine).not.toHaveBeenCalled()
   })
 
   it('does not invent an untested-language disclosure when requested and tested scopes match', () => {

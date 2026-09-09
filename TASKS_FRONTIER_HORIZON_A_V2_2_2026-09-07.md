@@ -15,6 +15,14 @@ PX-0 for the residual row-level confirmation; PX-1 retention architecture decide
 measurement/retention ceiling, §5); U-2 and U-4 marked non-blocking for PX-1; U-3 split into resolved and
 experiment-preparation unknowns. The execution sequence is unchanged.
 
+**Amendment 2 (2026-09-09, architect, pre-control):** two pre-control blockers inserted between PX-3 and
+PX-5 — **PC-1** name-form / URL-form operator-competitor fresh↔recompute parity, and **PC-2** candidate
+lineage / channel preservation on recompute (a channel discovered by a fresh scan disappeared from the
+client-visible `channels_observed` on the first zero-call recompute). **PAR-3b** reuse-threading guard added
+to GATE-A as test-only; PAR-1 extended and REC-1 added. PX-1, PX-2 and PX-3 remain APPROVED and unchanged;
+A3 remains DONE; A2 remains NOT STARTED; E1/E2/E3 semantics, the A2 contract and the parallel Report IA
+track are unchanged. Decision log D-16, D-17.
+
 ## Authority order (applies to every section)
 
 1. `STATUS.md` — current operational truth (what is deployed, verified, blocked).
@@ -98,7 +106,7 @@ A2 is not started until an explicit decision record (§12) is frozen.
 | Phase 0 baseline | **DONE / BASELINE** | `evals/golden/*`, `evals/labels/*.v0.json`, `evals/baseline/BASELINE_2026-08-21.md` | Human calibration of labels is separate → §6 (27 entity labels) and §16 |
 | A1 measurement integrity | **DONE / BASELINE** | production-verified `bcdbba5a`; status taxonomy, ledger, coverage gate, `answer_text`, approve 409 | none; do not reopen |
 | A4 query provenance | **DONE / BASELINE** | production-verified `d1d99664`; core/supplemental separation, validators, `query_provenance` | none; do not reopen |
-| A3 entity precision (product behaviour) | **DONE / BASELINE** | production-verified `d8945b66`; entity states, spans, strict merges, mention-not-recommendation wording | none as product behaviour. Two bounded exceptions handled elsewhere: stale-observation reuse defect (§5 PX-2), same-pair repetition test (§6). **Human precision evaluation is not complete and belongs to A5a; that does not make A3 incomplete.** |
+| A3 entity precision (product behaviour) | **DONE / BASELINE** | production-verified `d8945b66`; entity states, spans, strict merges, mention-not-recommendation wording | none as product behaviour. Four bounded exceptions handled elsewhere, none of which changes acceptance rules: stale-observation reuse defect (§5 PX-2), name-form operator-competitor fresh parity (§5 PC-1), recompute candidate lineage (§5 PC-2), same-pair repetition test (§6). **Human precision evaluation is not complete and belongs to A5a; that does not make A3 incomplete.** |
 | RD-00 acquisition capture | **DONE, one retention exception** | Alahli `1e9122fe` fields verified: `retrieved_urls`, `cited_urls`, `citation_attachment`, `engine_issued_queries`, `stop_reason`, `truncated_at`, `raw_response_sha256`, per-row timestamps, `acquisition_protocol`, `acquisition_operational` | Retention exception = RD-04 row below (§5 PX-1) |
 | RD-01 composite guards | **DONE** | `ai_visibility_score: null` + `score_breakdown.unavailable_reason` when comparison/citation components undefined; no renormalisation (`lib/audit-runner.ts:362`; `rd-pre-delivery-hardening` tests) | none |
 | RD-02 citation semantics | **DONE for current capture** | `citation_attachment: resolved / unresolved / unsupported`; unresolved rows outside the citation denominator; retrieval separate; legacy evidence explicitly `mixed_legacy` | Legacy stays legacy; never recomputed into `cited` |
@@ -301,6 +309,45 @@ experiments).
   a fixture with no requested languages produces none on all paths.
 - **Deploy.** Trigger + Vercel.
 
+### PC-1 — Name-form / URL-form operator-competitor fresh↔recompute parity (Amendment 2, BLOCKER BEFORE PX-5)
+
+- **Defect (pre-existing at base, verified 2026-09-08).** A name-form operator competitor is accepted by
+  `resolveEntities` but excluded from `acceptedCompetitors` in fresh `runGeoScan` because the fresh
+  competitor list is keyed by `prettyName(c)` while acceptance is keyed by `display_name`. Fresh and
+  stored-evidence recompute therefore disagree for that input class on `competitors_mentioned`,
+  `brand_position`, `share_of_voice` and comparison availability. Alahli-style operator competitors were
+  supplied by name. Not a reopening of A3.
+- **Contract.** Identical accepted operator-competitor set on fresh and recompute; name-form and
+  URL/domain-form inputs both covered; the fix is confined to fresh-path identity normalisation / the
+  fresh competitor-list path; no fuzzy merge expansion; no A3 acceptance-rule change; no recommendation
+  wording change; deterministic parity regression through the real `runGeoScan` → stored evidence →
+  `recomputeReusedGeoEvidence` for both input forms; zero provider calls in tests.
+- **Why before PX-5.** PX-5 is the complete pre-experiment integrity deploy and the fresh control must run on
+  the SHA PX-5 verified; landing PC-1 later forces a second deploy and a second zero-call check. GATE-A's
+  PAR-1 already requires this parity.
+- **Deploy.** Trigger (fresh path) + Vercel.
+
+### PC-2 — Candidate lineage / channel preservation on recompute (Amendment 2, BLOCKER BEFORE PX-5)
+
+- **Defect (verified 2026-09-09 on the approved PX-1..PX-3 tree).** Recompute seeds entity resolution only
+  from `competitors_mentioned`, `competitor_visibility` and operator input, so candidates that fresh discovery
+  produced but did not accept are never re-seeded. Observed: a fresh scan with a discovered channel reported
+  `channels_observed: ["Facebook"]`; the first zero-call recompute reported `[]`. Legacy goldens lose their
+  unconfirmed/rejected inventory between pass 1 and pass 2 (Rozie 8 → 2 entities with observations, AZ Moving
+  6 → 1). Accepted competitors and every metric are stable; the client-visible "Channels and directories AI
+  mentioned" block is not.
+- **Contract.** Recompute seeds resolution from the stored `entity_resolution.entities` inventory across all
+  relevant states (accepted, channel, unconfirmed, rejected) plus operator competitors; channel, unconfirmed
+  and rejected candidate lineage is preserved where the retained evidence supports it; fresh → recompute →
+  recompute is idempotent for `channels_observed`, `entity_resolution` states and `entity_observations`.
+  Legacy original → pass 1 may legitimately change because discovery cannot be re-run; pass 1 → pass 2+
+  must be stable. No A3 acceptance-rule change: given the same candidates and the same retained text,
+  recompute reaches the same states as fresh.
+- **Why before PX-5.** Every pre-delivery re-render of a fresh paid report silently removes a client-facing
+  block, and the fresh control's recompute-parity acceptance (§8) would fail the moment any channel is
+  discovered. Experiment adjudication is unaffected (the harness stores its own candidate inventory).
+- **Deploy.** Vercel + Trigger (recompute runs on both).
+
 ### PX-4 — 27 entity labels approved by the owner (no code)
 
 `evals/labels/entities.v0.json`: each row's `human` block filled by the owner with
@@ -308,9 +355,10 @@ experiments).
 copied. Required before any entity-sensitive experimental conclusion (E1 competitor sets, E2
 competitor-change metrics). Query and sample labels are not required before raw acquisition starts.
 
-### PX-5 — Deploy and zero-call baseline check (operator, after PX-1..3)
+### PX-5 — Deploy and zero-call baseline check (operator, after PX-1..3, PC-1 and PC-2)
 
-Trigger deploy from `C:\csdeploy` at the merged SHA, Vercel at the same SHA. Then one stored-evidence
+Trigger deploy from `C:\csdeploy` at the merged SHA, Vercel at the same SHA; the SHA must contain the
+approved PX-1, PX-2, PX-3, PC-1 and PC-2 (Amendment 2). Then one stored-evidence
 re-render of a controlled audit (not a customer deliverable): zero provider calls, deterministic
 measurements identical to the previous render except where PX-2 legitimately empties observations, and
 `STATUS.md` updated with both versions. This is the "baseline preflight" before paying for experiments.
@@ -332,14 +380,16 @@ deterministic vitest tests over fixtures or the approved-label runner; none call
 | MT-5 | Censoring and storage overflow | (a) `stop_reason: max_tokens` with no mention → `absence_observation: censored`, client caption present, index does not rise. (b) Application-storage overflow: valid answer whose relevant mention lies beyond the measurement/retention ceiling → identical fresh, stored and recomputed results (`brand_mentioned=false`, `evidence_completeness='storage_censored'`, `absence_observation='censored'`, caption rendered); a mention just inside the ceiling is counted on all paths (PX-1 regressions). **Rewritten:** truncation need not make every composite monotonically decrease. | partial (`geo-capture` covers the flag only) |
 | MT-6 | Zero accepted comparison universe | Filter out every accepted competitor: `share_of_voice: null`, `avg_position: null`, `position_score: null`, `ai_visibility_score: null` with `unavailable_reason`; weights unchanged; **no renormalisation** (the V2.1/G2 "renormalised index" expectation is deleted). Card hidden, caption present. | exists (`rd-pre-delivery-hardening` first test) — confirm it asserts `null` composite and no renormalised value |
 | MT-15 | Bounded concurrency and retry | Fake timers, per-provider limit 2: never more than 2 in flight per provider; independent providers parallel; retry increments `attempts` without changing terminal status semantics; planned cells all reach a terminal outcome. | partial (`provider-limiter` 2 tests; `engine-retry`); combined burst + retry test missing |
-| PAR-1 | Fresh/reuse parity, n=1 | Same raw answers through `runGeoScan`'s deterministic step and `recomputeReusedGeoEvidence`: identical `brand_mentioned`, `brand_cited`, `brand_position`, `competitors_mentioned`, `entity_observations`, `citation_evaluable`, coverage, gate. Includes PX-1 late-mention fixture. | partial (`a3-reuse-parity`, `a4-legacy-reuse-parity`) |
+| PAR-1 | Fresh/reuse parity, n=1 | Same raw answers through `runGeoScan`'s deterministic step and `recomputeReusedGeoEvidence`: identical `brand_mentioned`, `brand_cited`, `brand_position`, `competitors_mentioned`, `entity_observations`, `citation_evaluable`, coverage, gate. Includes PX-1 late-mention fixture. **Amendment 2:** explicitly includes name-form and URL/domain-form operator-competitor fixtures (PC-1) — identical accepted operator-competitor set, `competitors_mentioned` and `brand_position` fresh vs recompute. | partial (`a3-reuse-parity`, `a4-legacy-reuse-parity`, `geo-capture` parity helper); name/URL-form fixtures missing |
 | PAR-2 | Empty resolution replaces stale observations | PX-2 regressions (i)–(iii). | missing |
-| PAR-3 | Disclosure parity | PX-3 regression. | missing |
+| PAR-3 | Disclosure parity | PX-3 regression. | exists (`px3-methodology-parity`, real `runGeoScan` arm) |
+| PAR-3b | Reuse threading guards (Amendment 2, test-only) | Audit row with `target_markets_languages` → `reusableGeoFromAudit` → shared methodology builder → `untested_languages_disclosure` present; sibling guard for `rerenderStoredAuditReport`. Mutation expectation: removing either threading path must fail the test. Test-only unless it exposes a defect. | missing (mutation-verified gap, 2026-09-09) |
+| REC-1 | Persisted recompute idempotence (Amendment 2) | JSON-persisted recompute over at least one fresh-shaped fixture containing a discovered channel, `golden-report-rozie.json` and `golden-report-az-moving.json`: `channels_observed`, `entity_resolution` state inventory and `entity_observations` stable from the first valid recompute onward (legacy original → pass 1 may change; pass 1 → pass 2+ must not). Accepted competitors and metrics stable throughout. | missing (PC-2 regression) |
 | RES-1 | Same-pair repetition invariant at resolver level | Three repeated answers of one (query_id, engine) pair naming a candidate: `distinct_queries = 1`, `distinct_engines = 1`, state `unconfirmed` unless operator-provided or `domain_corroborated`. Operator and domain-corroboration paths are excluded from the negative assertion. | missing |
 | AD-1 | Perplexity without `[n]` markers | **Rewritten:** `citation_attachment: unresolved`, `cited_urls: null`, row outside the citation denominator, `retrieved_urls` retained. The G2 expectation `cited = retrieved` is deleted. | partial (`rd-pre-delivery-hardening`); assert explicitly |
 | LBL-1 | Approved-label entity precision runner | Minimal runner (`evals/run.ts` or a vitest file) that loads only `human.status === 'approved'` rows, runs `resolveEntities` over the golden evidence, and prints numerator, denominator, unknowns and fixture limitations. Threshold `entity_precision_min 0.90` on the 27 labels blocks experiment adjudication; it is **not** presented as broad production precision. | missing |
 
-**Exit criteria for GATE-A:** all rows above green on `main`; PX-1..PX-3 merged and deployed (PX-5 done);
+**Exit criteria for GATE-A:** all rows above green on `main`; PX-1..PX-3, PC-1 and PC-2 merged and deployed (PX-5 done);
 PX-4 labels approved; LBL-1 printed with numerator/denominator; `STATUS.md` records the gate as passed
 with the commit SHA. Historical excerpt-only golden records cannot validate current complete-answer capture;
 the runner must say so in its output.
@@ -758,9 +808,13 @@ These observations govern later investment (Report IA priorities, A5b targets, H
 
 ```
 BASELINE (Phase 0, A1, A4, A3, RD-00..06 as implemented)
-  → PRE-EXPERIMENT INTEGRITY FIXES: PX-0 audit-identity verification (owner, in parallel, before any provider call),
-    PX-1, PX-2, PX-3 (Codex), PX-4 labels (owner), PX-5 deploy + zero-call check
-  → GATE-A (A5a pre-experiment suites + LBL-1 runner)
+  → PRE-EXPERIMENT INTEGRITY FIXES: PX-1, PX-2, PX-3 (Codex, APPROVED)
+  → PC-1 name-form / URL-form operator-competitor parity (Codex)          [Amendment 2]
+  → PC-2 candidate lineage / channel preservation on recompute (Codex)    [Amendment 2]
+  → PX-0 audit-identity disposition recorded (owner; in parallel, complete before PX-5)
+  → PX-5 deploy at one SHA containing PX-1..PX-3, PC-1, PC-2 + zero-call check
+  → GATE-A (A5a pre-experiment suites incl. PAR-1 name/URL-form fixtures, REC-1, PAR-3b + LBL-1 runner);
+    PX-4 labels (owner, parallel) required before entity-sensitive experiment adjudication
   → EXPERIMENT HARNESS (Codex, non-production) + MANIFEST (Fable drafts, owner approves budget)
   → FRESH CONTROL as integrated reference block (operator)
   → E1 screening block + E3 schedule blocks (can overlap; counterbalanced; never confounded)
@@ -793,6 +847,8 @@ Cells may be shared between E1/E2/E3 only under §7.4's identity rule; otherwise
 - Any experiment call before the manifest, GATE-A and PX-5 are done.
 - Counting the R39 regeneration of `63bfd278`, or any customer-audit regeneration or recovery, as an
   experiment cell or control unless the manifest pre-declared it (PX-0 rule 4).
+- The PX-5 deploy, and any provider-calling experiment step, until PC-1 and PC-2 are approved
+  (Amendment 2).
 
 ## 24. Superseded V2.1 / G2 requirements
 
@@ -850,6 +906,8 @@ Conflicts resolved (rule → outcome):
 | D-13 | Packet filename `CLEARSIGNAL_FRONTIER_REVIEW_G2_20260902.md` vs repo `…_2026-09-02.md` | Same content (packet copies differ from local only by CRLF line endings; sizes match exactly after accounting for them). Repo filename is canonical. |
 | D-14 | G2 addendum #9 ("measure on the full text and store the full text; the 24k ceiling is protective") vs Amendment 1 ("measurement uses only evidence that can later be deterministically recovered") | Amendment wins (operator direction above G2). Unified ceiling (PX-1): the full-text goal is kept up to the ceiling; measuring beyond retained text is removed; a ceiling hit is a disclosed censored state. Referenced overflow storage is deferred with an evidence trigger. |
 | D-15 | `STATUS.md` "R39 PRODUCTION VERIFICATION PENDING" on `63bfd278` vs `1e9122fe` evidence (operator alias set, named 10 of 18, no alias as competitor) | Repository evidence says the verification purpose is met on `1e9122fe`; `STATUS.md` stays authority until the operator records the disposition → PX-0. |
+| D-16 | Name-form operator competitor accepted by `resolveEntities` but excluded from fresh `acceptedCompetitors` (`prettyName` vs `display_name`), present at base; fresh and recompute disagree on `competitors_mentioned`, `brand_position`, SOV | Bounded pre-control fresh/recompute parity defect, not a reopening of A3 (acceptance rules untouched). PC-1 before PX-5 so one deploy carries the whole pre-experiment baseline; required by GATE-A PAR-1 and by the fresh control's recompute-parity acceptance. |
+| D-17 | Recompute candidate seeding from `competitors_mentioned` / `competitor_visibility` only; a fresh discovered channel disappears from `channels_observed` on the first zero-call recompute; legacy unconfirmed inventory shrinks pass 1 → pass 2 | Promoted from backlog to pre-control blocker because the drift changes a client-visible block and violates invariant 3 for a stored field; accepted competitors and metrics are stable. PC-2 before PX-5; seed from stored `entity_resolution.entities`; no acceptance-rule change. |
 
 Open items after Amendment 1 (none blocks PX-1):
 
@@ -909,13 +967,27 @@ One step = one session (Codex) unless marked owner/operator.
 3. **PX-3 Disclosure parity** · identical methodology on fresh/reuse/regenerate · none · shared builder,
    thread `requestedMarketsLanguages` through `runFullAudit`/`runGeoScan`/Trigger payload; parity test with
    an Arabic-requested fixture · verify the three paths call one builder; verify Alahli-equivalent output
-   · tests green · **4**
+   · tests green (APPROVED 2026-09-09) · **3a**
+3a. **PC-1 Name-form / URL-form operator-competitor parity** (Amendment 2) · identical accepted
+   operator-competitor set on fresh and recompute · 3 approved · fresh-path identity normalisation in
+   `runGeoScan`'s competitor list only; parity regression through real `runGeoScan` → stored evidence →
+   `recomputeReusedGeoEvidence` for a name-form and a URL-form operator competitor, zero provider calls ·
+   confirm no A3 acceptance-rule, merge-rule or wording change; confirm recompute path untouched except
+   tests; mutation-check the parity test · tsc, build, vitest green; both parity fixtures present · **3b**
+3b. **PC-2 Candidate lineage / channel preservation on recompute** (Amendment 2) · fresh → recompute →
+   recompute idempotent for `channels_observed`, `entity_resolution` states, `entity_observations` · 3a
+   approved · recompute seeds resolution from stored `entity_resolution.entities` (all states) plus operator
+   competitors; REC-1 regression over a fresh-shaped fixture with a discovered channel plus both legacy
+   goldens (JSON-persisted, ≥2 passes) · confirm acceptance rules untouched; confirm PX-1 `not_retained`
+   guard and PX-2 wholesale replacement unchanged; confirm accepted competitors and metrics identical
+   before/after · tsc, build, vitest green; REC-1 present · **4**
 4. **PX-5 Deploy + zero-call baseline check** (operator) · put fixes live and prove recompute parity ·
-   0 done; 1–3 merged · none · none · Vercel and Trigger at the same SHA; one stored-evidence re-render of a
+   0 done; 1–3, 3a, 3b merged and approved · none · none · Vercel and Trigger at the same SHA; one stored-evidence re-render of a
    controlled audit with zero provider calls; `STATUS.md` updated · **5** (and **PX-4** labels in parallel)
 5. **GATE-A suites + LBL-1 runner** · pre-experiment integrity checks · 4 · rewrite MT-6/AD-1
    expectations; add MT-1 population preservation, MT-3 unresolved-never-promoted, MT-5 overflow,
-   MT-15 burst+retry, PAR-1/2/3, RES-1; minimal approved-label runner printing numerator/denominator/
+   MT-15 burst+retry, PAR-1 (with name/URL-form fixtures), PAR-2/3, PAR-3b threading guards, REC-1
+   idempotence, RES-1; minimal approved-label runner printing numerator/denominator/
    unknowns · confirm no test enforces a rejected semantic; confirm the runner reads only `approved` rows ·
    all §6 rows green; runner output recorded; PX-4 labels approved · **6**
 6. **Experiment harness** · isolated executor/recorder for E1/E2/E3 · 5 · non-production script under

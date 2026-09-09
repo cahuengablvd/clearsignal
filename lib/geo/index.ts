@@ -55,7 +55,7 @@ import {
   registrableDomain,
   sld,
 } from './detect'
-import { resolveEntities, type EntityCandidate } from './entities'
+import { normalizeEntityName, resolveEntities, type EntityCandidate } from './entities'
 import { buildMeasurementMethodology } from './methodology'
 
 const SCORE_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
@@ -63,6 +63,11 @@ const ANSWER_EXCERPT_LIMIT = 700
 
 function competitorKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+/** Resolver identity for operator names and their supported URL/domain form. */
+function operatorCompetitorIdentityKey(value: string): string {
+  return normalizeEntityName(sld(value))
 }
 
 export function formatEngineList(engines: string[]): string {
@@ -436,10 +441,21 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     answers: raw.map((r) => { const answerText = r.answer.slice(0, MEASUREMENT_TEXT_LIMIT); return { answer_text: answerText, answer_excerpt: deriveExcerpt(answerText).excerpt, query_id: r.plan.query_id, engine: r.engine, citedDomains: citedDomains(r.citations) } }),
     businessModel: opts.businessModel,
   })
-  const acceptedNames = new Set(resolution.entities.filter((entity) => entity.state === 'accepted' && entity.role === 'competitor').map((entity) => entity.display_name))
+  // `competitorList` is presentation-oriented (`prettyName` makes URL input readable),
+  // while the resolver preserves the operator's identity form. Compare through the
+  // resolver's established canonical identity, then retain its display name so the
+  // fresh result has the same identity as a stored-evidence recompute.
+  const acceptedNames = new Map(
+    resolution.entities
+      .filter((entity) => entity.state === 'accepted' && entity.role === 'competitor')
+      .map((entity) => [operatorCompetitorIdentityKey(entity.display_name), entity.display_name])
+  )
   const acceptedCompetitors = process.env.GEO_ENTITY_PIPELINE === 'legacy'
     ? competitorList
-    : competitorList.filter((competitor) => acceptedNames.has(competitor.name))
+    : competitorList.flatMap((competitor) => {
+        const displayName = acceptedNames.get(operatorCompetitorIdentityKey(competitor.name))
+        return displayName ? [{ ...competitor, name: displayName }] : []
+      })
 
   // 4. Deterministic detection per (engine, query).
   const evidence: GeoEvidence[] = raw.map((r, i) => {

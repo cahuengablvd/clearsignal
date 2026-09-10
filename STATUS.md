@@ -10,14 +10,13 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-08-31. A3 production verification is formally closed; no customer delivery occurred.
+**Last updated:** 2026-09-10. PX-0 read-only row verification resolved the Alahli audit identity and R39 disposition; no production write, provider call, audit operation, or deploy occurred. Alahli's 30-page PDF at Vercel `319851d` / Trigger `20260904.5` passed the Fable review and is approved for delivery once the owner has read the four reviewer notes below. Report design lab: Round 1 done on branch `report-design-lab` (defective), Round 2 spec `TASKS_REPORT_DESIGN_LAB_R2.md` ready for Codex.
 
 ## Deploys
 
-- **Vercel** — production `/api/health` reports **`f905c41`**.
-- **Trigger.dev** — current/deployed version **`20260831.1`**, deployed from the clean no-space
-  checkout at **`f905c41ef6bdaa23e7cb7808d2e4d81b9ad4ced3`**; runtime `node-22` / Node `22.16.0`,
-  `git.dirty: false`, 5 tasks.
+- **Vercel** — production `/api/health` reports **`319851d`**.
+- **Trigger.dev** — current/deployed version **`20260904.5`**, deployed from the clean no-space
+  checkout at **`319851ddcc3cda49a8aa13fef4d0f79e3705bd87`**; configured runtime `node-22`, `git.dirty: false`, 5 tasks.
 - **Supabase** — migration `014_daily_ai_spend_guard.sql` applied 2026-08-21 with RLS enabled.
   Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
   prompts needs a Trigger deploy or it is not live.
@@ -71,9 +70,55 @@ a handler is written. Three or more agencies raising it means a positioning prob
 
 ## Verification standing
 
-- **R39 PRODUCTION VERIFICATION PENDING.** Set `Saudi National Bank; SNB; SNB AlAhli` on paid audit
-  `63bfd278`, then run one full regeneration (fresh engines, early in the day and within the spend cap).
-  Confirm the named count rises from 1/15 and no alias appears as a competitor before customer delivery.
+- **Alahli final trust-proof patch — READY FOR HUMAN PDF REVIEW, do not deliver yet.** Paid audit
+  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` was stored-evidence re-rendered at
+  `2026-09-04T12:48:58Z` after Vercel reached `319851d` and Trigger `20260904.5` was deployed
+  from the same clean SHA on its configured `node-22` runtime. The 16 historic AI-call records,
+  `$1.05` acquisition cost, completed stage ledger, observation time, competitors, and metrics
+  remain unchanged; no GEO call, payment, delivery, or new stage execution occurred. Validator
+  blocking errors are zero and status is `awaiting_review`. `clarity.trust_proof.finding` is now
+  the approved three-sentence observed-content prose; the placeholder, `audit.No` artifact,
+  largest-bank claim, and false canonical warning are absent. Protected PDF download succeeded:
+  1,853,085 bytes, 30 pages. Fable inspected that exact PDF page by page on 2026-09-04: all
+  metrics, the 0-of-12 + 6-unresolved wording, the Arabic disclosure and the provenance footer are
+  correct; zero AI/provider calls since 2026-09-03. Four reviewer notes before sending, none needing
+  code: (1) `alahli.com.sa` appears as a cited source while the headline says `alahli.com` was cited
+  in 0, consider a one-line note that it is the client's own domain; (2) SAB/SABB/Saudi British Bank
+  is undercounted by the precision rule (Q1 and Q6 OpenAI answers name it but it is not listed), and
+  the executive summary says "SAB" while the competitor card says "Saudi Awwal Bank"; (3) query
+  cards print `Language: en`; (4) "Ship first" lists five items but the Action Plan numbers four.
+
+- **Alahli RD-01 re-render — superseded by 2026-09-04 final check.** Paid audit
+  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` was re-rendered once from its preserved RD-00 evidence
+  on 2026-09-03 after the operator competitors were set to Al Rajhi Bank, Riyad Bank, and Saudi
+  Awwal Bank. Trigger `20260903.2` was deployed from `6cc69da` on `node-22` first. The final
+  stored report is `awaiting_review`, validator errors are zero, raw evidence/protocol/timestamps
+  are unchanged, and no new provider log was written. Final metrics: 45, 55.6%, 31.3%, 1.6,
+  position 88, citation 0% of 12 evaluable with 6 unresolved. Do not deliver: the protected
+  production PDF still needs an authenticated operator token/session to fetch and inspect.
+
+- **Alahli RD-00 cached-stage recovery SUCCESSFUL — awaiting review, no delivery.** Same paid audit
+  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` recovered on Trigger `20260902.4` / commit `24fcccf`
+  (2026-09-02 12:22:04Z–12:22:49Z). The existing completed
+  `geo_scan` cache (153,794 bytes) was preserved and reused: zero new GEO/provider calls, zero
+  incremental API cost, and total prior acquisition cost remains `$1.048264`. Report JSON is
+  195,250 bytes, validator has zero errors, authenticated production PDF returned 200 (1,881,812
+  bytes), and raw answer text stayed byte-identical through validation. Coverage Claude/OpenAI/
+  Perplexity is 6/6 each; RD-00 persisted fields, `3/3/2` concurrency, timestamps/window, protocol
+  and operational metadata were verified. The earlier A3 span failure is absent.
+
+- **PX-0 COMPLETE (2026-09-10) — Alahli identity / R39 disposition.** Read-only Supabase rows confirm
+  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` as canonical client evidence: created
+  2026-08-31, `paid` / `awaiting_review`, no Stripe session, never delivered, 16 AI-call-log
+  records all on 2026-09-02, cached-stage recovery and re-renders thereafter zero-call, final
+  re-render 2026-09-04 12:48:58Z. Its alias is `Saudi National Bank (SNB)`, narrower than the
+  historical R39 string `Saudi National Bank; SNB; SNB AlAhli`. Historical/superseded
+  `63bfd278-6a46-4518-aa52-f5592490f65c` was created 2026-08-25, is `paid` /
+  `awaiting_review`, has no Stripe session, no aliases, no re-render or delivery, and 15
+  AI-call-log records only on 2026-08-25. R39 is materially satisfied on the canonical audit;
+  do not regenerate the historical audit. Neither customer audit, nor any recovery, re-render, or
+  regeneration, counts as a fresh control or E1/E2/E3 cell unless a prior experiment manifest
+  pre-declared matching plan hash, condition, schedule, and protocol identity; no post-hoc reuse.
 
 - **A3 PRODUCTION VERIFIED — READY FOR A2.** Final production source
   `f905c41ef6bdaa23e7cb7808d2e4d81b9ad4ced3`; Trigger `20260831.1`, runtime `node-22` / Node `22.16.0`,
@@ -127,8 +172,27 @@ Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
 `R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22`, `R30` and `R38` remain open. They wait for real customers
 to set their priority. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
 
+## Report design lab (visual only, no product semantics)
+
+- **Round 1 — done, not merged.** Branch `report-design-lab` @ `75a0a3f`, worktree
+  `C:\Claude Code\clearsignal-report-design-lab`, artefacts in its `artifacts/report-design/`.
+  Spec: `TASKS_REPORT_DESIGN_LAB.md`. Outcome: C (editorial) and D (enterprise data) are the
+  useful directions, A is a decent consulting skeleton, B adds nothing. Known defects: all four
+  directions share one `ReportBase.tsx` and differ only by theme; every capture shows the Next
+  dev "1 error" overlay; fixture sanitisation broke domains (`Meridian Bank.com`,
+  `https://www.example/ Bank.com/`); the cover prints `geo.summary` twice; clarity keys render raw.
+- **Round 2 — spec ready, not started.** `TASKS_REPORT_DESIGN_LAB_R2.md`: fix the foundation
+  first, then two hybrids on `/design-lab/h1` (Editorial Intelligence, base C) and `/design-lab/h2`
+  (Modern Consulting, base A). Deliverables go to `artifacts/report-design-r2/` plus
+  `REPORT_DESIGN_LAB_R2_REPORT.md`. New session, one task.
+- Fixture source for the lab is `tmp/design-fixture-source.json` (current alahli report,
+  untracked, never commit; `tmp/` is not yet gitignored on `main`).
+
 ## Deferred follow-up
 
+- Reuse path keeps stale per-row `entity_observations` when the new resolution finds nothing, so
+  a Re-render with empty or URL-form competitor fields fails A3 validation (fail-closed). Replace
+  observations wholesale on recompute. Trigger Regenerate path still lacks the Arabic disclosure.
 - Free-score (`/score/[id]`) gate/display behavior was deliberately left unchanged during the paid
   A1 final pass. Assess and scope it separately; do not treat the paid-report `report_only` rollback
   as a free-score fix.

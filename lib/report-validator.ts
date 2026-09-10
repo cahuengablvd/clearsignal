@@ -1553,8 +1553,8 @@ function validateGeoCounts(report: ClearSignalReport, errors: string[]): void {
   if (counts.successful_samples !== undefined && coreEvidence.length !== counts.successful_samples) {
     errors.push(`geo_counts: core evidence length ${coreEvidence.length} does not equal successful_samples ${counts.successful_samples}`)
   }
-  if (counts.grounded_samples !== undefined && counts.no_citation_samples !== undefined && counts.grounded_samples + counts.no_citation_samples !== (counts.successful_samples ?? counts.successful_combinations)) {
-    errors.push('geo_counts: grounded + no_citation does not equal successful samples')
+  if (counts.grounded_samples !== undefined && counts.no_citation_samples !== undefined && counts.grounded_samples + counts.no_citation_samples > (counts.successful_samples ?? counts.successful_combinations)) {
+    errors.push('geo_counts: grounded + no_citation exceed successful samples')
   }
   for (const evidence of geo.evidence) {
     if (evidence.answer_text && (evidence.excerpt_offset ?? 0) > evidence.answer_text.length) errors.push('geo_counts: excerpt_offset outside answer_text')

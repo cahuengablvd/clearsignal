@@ -302,9 +302,15 @@ export function recomputeReusedGeoEvidence(
   // not a coverage concern), and no per-engine failures are invented.
   const existingLedger = geo.ledger as LedgerRow[] | undefined
   const uniqueQueries = [...new Set(geo.evidence.map((x) => x.query))]
+  const provenance = geo.query_provenance || uniqueQueries.map((query, index) => ({ query_id: `Q${index + 1}`, query, slot: ['category_discovery', 'problem_need', 'comparison_alternatives', 'icp_use_case', 'trust_or_pricing', 'local_or_second_decision'][Math.min(index, 5)] as import('./geo/query-taxonomy').QuerySlot, intent: evidence.find((e) => e.query === query)?.query_intent || 'other', language: 'unknown', language_source: 'legacy' as const, geo_scope: 'none' as const, scope: 'core' as const, source: 'legacy' as const, rationale: '', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' as const }))
+  const provenanceById = new Map(provenance.map((item) => [item.query_id, item]))
   const ledger: LedgerRow[] = existingLedger || evidence.map((e) => ({ query_id: e.query_id || `Q${uniqueQueries.indexOf(e.query) + 1}`, query: e.query, engine: e.engine, sample_index: e.sample_index || 1, status: e.status || (e.citations.length ? 'ok_grounded' : 'ok_no_citations'), attempts: 1, answer_length: (e.answer_text || e.answer_excerpt).length, citations_count: e.citations.length, observed_at: e.observed_at || '' }))
-  const groundedSamples = ledger.filter((r) => r.status === 'ok_grounded').length
-  const noCitationSamples = ledger.filter((r) => r.status === 'ok_no_citations').length
+  // The durable query provenance defines the measurement population. Supplemental
+  // rows stay stored for their own accounting, but never enter core metrics,
+  // coverage, or the coverage gate during a deterministic reuse recomputation.
+  const coreLedger = ledger.filter((row) => provenanceById.get(row.query_id)?.scope === 'core')
+  const groundedSamples = coreLedger.filter((r) => r.status === 'ok_grounded').length
+  const noCitationSamples = coreLedger.filter((r) => r.status === 'ok_no_citations').length
 
   const mention_rate = pct(brandMentions, total)
   // Same A1 denominators as a fresh scan: mentions over successful samples, citations over
@@ -345,17 +351,15 @@ export function recomputeReusedGeoEvidence(
     return authoritativeCitedDomains.has(domain)
   })
 
-  // Coverage from the full ledger (legacy rows included - a missing `observed_at` must not
+  // Coverage from the provenance-scoped core ledger (legacy rows included - a missing `observed_at` must not
   // drop a row). Expected samples come from the configured query count, not from how many
   // legacy rows survived. A configured engine with no stored evidence cannot be named, so
   // the gate only reports the count.
   const configuredEngines = geo.engines_tested.length ? geo.engines_tested : [...new Set(evidence.map((e) => e.engine))]
   const configuredQueries = geo.test_counts?.configured_queries ?? geo.queries_tested
-  const engine_coverage = buildEngineCoverage(ledger, configuredQueries, configuredEngines)
-  const provenance = geo.query_provenance || uniqueQueries.map((query, index) => ({ query_id: `Q${index + 1}`, query, slot: ['category_discovery', 'problem_need', 'comparison_alternatives', 'icp_use_case', 'trust_or_pricing', 'local_or_second_decision'][Math.min(index, 5)] as import('./geo/query-taxonomy').QuerySlot, intent: evidence.find((e) => e.query === query)?.query_intent || 'other', language: 'unknown', language_source: 'legacy' as const, geo_scope: 'none' as const, scope: 'core' as const, source: 'legacy' as const, rationale: '', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' as const }))
+  const engine_coverage = buildEngineCoverage(coreLedger, configuredQueries, configuredEngines)
   // Legacy evidence has no A4 identity. Add only the matching provenance fields;
   // stored intent and all historic measurement fields remain untouched.
-  const provenanceById = new Map(provenance.map((item) => [item.query_id, item]))
   const legacyProvenanceByQuery = provenance.every((item) => item.source === 'legacy')
     ? new Map(provenance.map((item) => [item.query, item]))
     : undefined

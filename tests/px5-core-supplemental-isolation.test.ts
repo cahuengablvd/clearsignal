@@ -13,8 +13,9 @@ const load = () => JSON.parse(readFileSync(join(process.cwd(), 'tests/fixtures/g
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 
 type FixtureShape = { core: { claude: number; perplexity: number; openai: number }; supplemental: number }
+type FixtureOptions = { firstCoreCitationAttachment?: 'resolved' | 'unresolved' | 'unsupported' }
 
-function storedEvidenceFixture(shape: FixtureShape): ClearSignalReport {
+function storedEvidenceFixture(shape: FixtureShape, options: FixtureOptions = {}): ClearSignalReport {
   const report = load()
   const source = report.geo!.evidence[0]!
   const slots = ['category_discovery', 'problem_need', 'comparison_alternatives', 'icp_use_case', 'trust_or_pricing', 'local_or_second_decision'] as const
@@ -40,6 +41,9 @@ function storedEvidenceFixture(shape: FixtureShape): ClearSignalReport {
       const query_id = `Q${index + 1}`
       const grounded = coreIndex++ % 2 === 0
       const evidence = evidenceFor(query_id, engine, 'core', grounded)
+      if (coreIndex === 1 && options.firstCoreCitationAttachment) {
+        evidence.citation_attachment = options.firstCoreCitationAttachment
+      }
       coreRows.push(evidence)
       ledger.push({ query_id, query: evidence.query, engine, sample_index: 1, status: grounded ? 'ok_grounded' : 'ok_no_citations', attempts: 1, answer_length: evidence.answer_text!.length, citations_count: evidence.citations.length, observed_at: '2026-09-10T00:00:00.000Z' })
     }
@@ -92,14 +96,23 @@ describe('PX-5 reused core and supplemental population isolation', () => {
     expect(geoErrors(report)).toEqual([])
   })
 
-  it('does not force unresolved or unsupported citation rows into citation counts', () => {
-    const report = storedEvidenceFixture({ core: { claude: 1, perplexity: 0, openai: 0 }, supplemental: 0 })
+  it('keeps unsupported citation attachment orthogonal to successful ledger accounting', () => {
+    const report = storedEvidenceFixture(
+      { core: { claude: 1, perplexity: 0, openai: 0 }, supplemental: 0 },
+      { firstCoreCitationAttachment: 'unsupported' },
+    )
     const geo = report.geo!
-    geo.evidence[0] = { ...geo.evidence[0]!, citation_attachment: 'unsupported', citation_evaluable: false }
-    geo.test_counts = { ...geo.test_counts!, grounded_samples: 0, no_citation_samples: 0 }
-    geo.engine_coverage = geo.engine_coverage!.map((row) => row.engine === 'claude' ? { ...row, grounded_samples: 0, no_citation_samples: 0 } : row)
-    geo.citation_rate = null
-    geo.score_breakdown = { ...geo.score_breakdown, citation_rate: null }
+    expect(geo.ledger![0].status).toBe('ok_grounded')
+    expect(geo.evidence[0]).toMatchObject({ citation_attachment: 'unsupported', citation_evaluable: false })
+    expect(geo.test_counts).toMatchObject({ successful_samples: 1, grounded_samples: 1, no_citation_samples: 0 })
+    expect(geo.citation_rate).toBeNull()
+    expect(geo.score_breakdown.citation_rate).toBeNull()
     expect(geoErrors(report)).toEqual([])
+  })
+
+  it('rejects successful samples omitted from grounded and no-citation accounting', () => {
+    const report = storedEvidenceFixture({ core: { claude: 3, perplexity: 0, openai: 0 }, supplemental: 0 })
+    report.geo!.test_counts = { ...report.geo!.test_counts!, grounded_samples: 1, no_citation_samples: 1 }
+    expect(geoErrors(report)).toContain('geo_counts: grounded + no_citation does not equal successful samples')
   })
 })

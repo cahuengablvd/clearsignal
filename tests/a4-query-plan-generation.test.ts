@@ -161,6 +161,32 @@ describe('A4 paid query-plan generation', () => {
     expect(repairPrompt).toContain('Do not mention ChatGPT, Claude, Perplexity, or OpenAI')
   })
 
+  it('regenerates Atelier Frame-like local pricing and Russian supplemental queries until both retain Marbella market scope', async () => {
+    const core: GeneratedQuery[] = [
+      ['best made to measure curtains in Marbella', 'category_discovery'],
+      ['how to choose made to measure curtains in Marbella', 'problem_need'],
+      ['compare curtain installers in Marbella Costa del Sol', 'comparison_alternatives'],
+      ['made to measure curtains for villas in Marbella', 'icp_use_case'],
+      ['how much do professional made to measure curtains cost including installation', 'trust_or_pricing'],
+      ['local curtain installation consultation in Marbella', 'local_or_second_decision'],
+    ].map(([query, slot]) => ({ query, slot: slot as GeneratedQuery['slot'], language: 'en', market: 'Marbella and Costa del Sol', geo_scope: 'explicit', rationale: 'Buyer situation in the target market.', ...(slot === 'trust_or_pricing' ? { intent_choice: 'pricing' as const } : {}) }))
+    const supplemental: GeneratedQuery[] = [
+      { query: '\u043a\u0430\u043a\u0438\u0435 \u0436\u0430\u043b\u044e\u0437\u0438 \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0441 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439', slot: 'category_discovery', language: 'ru', market: 'Marbella and Costa del Sol', geo_scope: 'explicit', rationale: '\u041f\u0440\u043e\u0431\u0430 \u043d\u0430 \u0440\u0443\u0441\u0441\u043a\u043e\u043c \u044f\u0437\u044b\u043a\u0435.' },
+      { query: '\u043a\u0430\u043a\u0430\u044f \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0445 \u0436\u0430\u043b\u044e\u0437\u0438 \u0432 \u041c\u0430\u0440\u0431\u0435\u043b\u044c\u0435', slot: 'trust_or_pricing', language: 'ru', market: 'Marbella and Costa del Sol', geo_scope: 'explicit', rationale: '\u041f\u0440\u043e\u0431\u0430 \u043d\u0430 \u0440\u0443\u0441\u0441\u043a\u043e\u043c \u044f\u0437\u044b\u043a\u0435.', intent_choice: 'pricing' },
+    ]
+    const repairedPricing = { ...core[4], query: 'how much do professional made to measure curtains cost in Marbella including installation' }
+    const repairedRussian = { ...supplemental[0], query: '\u043a\u0430\u043a\u0438\u0435 \u0436\u0430\u043b\u044e\u0437\u0438 \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0441 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439 \u0432 \u041c\u0430\u0440\u0431\u0435\u043b\u044c\u0435' }
+    mocks.callClaudeJSON.mockResolvedValueOnce(response([...core, ...supplemental])).mockResolvedValueOnce(response([repairedPricing, repairedRussian]))
+
+    const plan = await generateValidatedQueryPlan({ brand: 'Atelier Frame', category: 'Made to measure curtains and automated blinds', targetMarketsLanguages: 'Marbella and Costa del Sol, Spain - English, Russian and Spanish' })
+
+    expect(mocks.callClaudeJSON).toHaveBeenCalledTimes(2)
+    expect(plan.provenance.find((item) => item.query_id === 'Q5')).toMatchObject({ query: repairedPricing.query, state: 'valid', validation: { regenerated: true } })
+    expect(plan.provenance.find((item) => item.query_id === 'S1')).toMatchObject({ query: repairedRussian.query, state: 'valid', validation: { regenerated: true } })
+    expect(plan.core.find((item) => item.slot === 'trust_or_pricing')?.query).toMatch(/Marbella/i)
+    expect(plan.supplemental.find((item) => item.language === 'ru')?.query).toMatch(/\u041c\u0430\u0440\u0431\u0435\u043b\u044c\u0435/)
+  })
+
   it('normalizes language-name metadata before matching planned Latvia/Riga rows and preserves the declaration', async () => {
     const declaredNames = [...lvQueries, ...ruQueries].map((query) => ({
       ...query,

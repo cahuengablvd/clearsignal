@@ -161,6 +161,8 @@ export interface RunGeoOptions {
   providedQueries?: string[]
   /** A4 validated plan. It takes precedence over legacy string queries. */
   queryPlan?: QueryPlan
+  /** Original local-market/language intake, used only for measurement disclosure. */
+  requestedMarketsLanguages?: string
   /** Optional cost/usage hook for audit-level cost tracking. */
   onUsage?: (event: CostEvent) => void
   /** Structured metadata for Anthropic request attribution. */
@@ -251,7 +253,8 @@ export async function generateValidatedQueryPlan(opts: { brand: string; category
   try { generated = await request(requested) } catch { generated = [] }
   const bySlot = new Map(generated.map((q) => [`${q.slot}:${q.language}`, q]))
   const validations = new Map<string, ReturnType<typeof validateGeneratedQuery>>()
-  const validateAll = (items: GeneratedQuery[]) => items.map((q) => { const v = validateGeneratedQuery(q, { brandAliases: opts.brandAliases || [opts.brand], markets: parsed.markets, language: q.language, engineNames: ['ChatGPT', 'Claude', 'Perplexity', 'OpenAI'], siblings: items.filter((x) => x !== q), categoryTerms: (opts.category || '').split(/\W+/).filter((x) => x.length > 3).slice(0, 8) }); validations.set(`${q.slot}:${q.language}`, v); return q })
+  const requestedScope = new Map(requested.map((item) => [`${item.slot}:${item.language}`, item.scope as 'core' | 'supplemental']))
+  const validateAll = (items: GeneratedQuery[]) => items.map((q) => { const v = validateGeneratedQuery(q, { brandAliases: opts.brandAliases || [opts.brand], markets: parsed.markets, language: q.language, engineNames: ['ChatGPT', 'Claude', 'Perplexity', 'OpenAI'], siblings: items.filter((x) => x !== q), categoryTerms: (opts.category || '').split(/\W+/).filter((x) => x.length > 3).slice(0, 8), scope: requestedScope.get(`${q.slot}:${q.language}`) }); validations.set(`${q.slot}:${q.language}`, v); return q })
   validateAll(generated)
   const invalid = requested.filter((wanted) => { const q = bySlot.get(`${wanted.slot}:${wanted.language}`); return !q || !validations.get(`${wanted.slot}:${wanted.language}`)?.passed }).map((wanted) => ({ ...wanted, errors: validations.get(`${wanted.slot}:${wanted.language}`)?.errors || ['missing_slot'] }))
   if (invalid.length) {

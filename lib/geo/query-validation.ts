@@ -11,7 +11,7 @@ const normalize = (value: string) => value.toLowerCase().normalize('NFKD').repla
 const tokens = (value: string) => new Set(normalize(value).split(' ').filter(Boolean))
 function overlap(a: string, b: string) { const x = tokens(a); const y = tokens(b); const shared = [...x].filter((t) => y.has(t)).length; return shared / Math.max(1, x.size + y.size - shared) }
 
-export function validateGeneratedQuery(q: GeneratedQuery, ctx: { brandAliases: string[]; markets: string[]; language: string; engineNames: string[]; siblings: GeneratedQuery[]; categoryTerms?: string[] }): QueryValidation {
+export function validateGeneratedQuery(q: GeneratedQuery, ctx: { brandAliases: string[]; markets: string[]; language: string; engineNames: string[]; siblings: GeneratedQuery[]; categoryTerms?: string[]; scope?: 'core' | 'supplemental' }): QueryValidation {
   const errors: string[] = []; const warnings: string[] = []
   const wordCount = (q.query.match(/[\p{L}\p{N}]+/gu) || []).length
   if (wordCount < 4 || wordCount > 18) errors.push('length_words')
@@ -23,7 +23,12 @@ export function validateGeneratedQuery(q: GeneratedQuery, ctx: { brandAliases: s
   else if (detected.lang !== q.language && detected.confidence >= 0.6) errors.push('language_mismatch')
   const forms = [...ctx.markets.flatMap((market) => [market, ...Object.entries(marketForms as Record<string, string[]>).filter(([key]) => normalize(market).includes(key)).flatMap(([, values]) => values)])]
   const hasMarket = forms.some((form) => normalize(form) && n.includes(normalize(form)))
-  const geoRequired = q.slot === 'category_discovery' || q.slot === 'icp_use_case' || (q.slot === 'local_or_second_decision' && q.intent_choice === 'local')
+  // A local pricing question and every supplemental-language probe must retain
+  // the buyer situation's market. Language is not a license to change geography.
+  const geoRequired = q.slot === 'category_discovery' || q.slot === 'icp_use_case' ||
+    (q.slot === 'local_or_second_decision' && q.intent_choice === 'local') ||
+    (q.slot === 'trust_or_pricing' && q.intent_choice === 'pricing') ||
+    ctx.scope === 'supplemental'
   if (ctx.markets.length && !hasMarket && geoRequired) errors.push('geo_scope_missing')
   else if (ctx.markets.length && !hasMarket && q.slot === 'problem_need') warnings.push('geo_scope_missing')
   if (META.test(q.query)) errors.push('meta_words')

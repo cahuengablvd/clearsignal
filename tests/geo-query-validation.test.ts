@@ -20,4 +20,10 @@ describe('A4 deterministic query validation', () => {
     expect(validateGeneratedQuery({ ...base, query: '\u043a\u0430\u043a \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u043b\u0443\u0447\u0448\u0438\u0439 \u0441\u0435\u0440\u0432\u0438\u0441 \u0432 \u0420\u0438\u0433\u0435', language: 'en' }, context).errors).toContain('language_mismatch')
     expect(validateGeneratedQuery({ ...base, query: 'compare cleaning services in Riga for families' }, context).warnings).toContain('slot_mismatch')
   })
+  it('requires local market scope for pricing and supplemental-language probes', () => {
+    expect(validateGeneratedQuery({ ...base, query: 'what does professional cleaning installation cost', slot: 'trust_or_pricing', intent_choice: 'pricing' }, context).errors).toContain('geo_scope_missing')
+    const marbella = { ...context, markets: ['Marbella and Costa del Sol', 'Spain'] }
+    expect(validateGeneratedQuery({ ...base, query: '\u043a\u0430\u043a\u0430\u044f \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u0436\u0430\u043b\u044e\u0437\u0438 \u0441 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439 \u0432 \u041c\u0430\u0440\u0431\u0435\u043b\u044c\u0435', language: 'ru', slot: 'trust_or_pricing', intent_choice: 'pricing' }, { ...marbella, scope: 'supplemental' }).passed).toBe(true)
+    expect(validateGeneratedQuery({ ...base, query: '\u043a\u0430\u043a\u0430\u044f \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u0436\u0430\u043b\u044e\u0437\u0438 \u0441 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439', language: 'ru', slot: 'trust_or_pricing', intent_choice: 'pricing' }, { ...marbella, scope: 'supplemental' }).errors).toContain('geo_scope_missing')
+  })
 })

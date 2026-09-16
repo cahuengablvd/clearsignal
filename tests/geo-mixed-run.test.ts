@@ -162,6 +162,7 @@ describe('A1 mixed-status run', () => {
     expect(result.ai_visibility_score).toBeNull()
     expect(result.share_of_voice).toBeNull()
     expect(result.test_counts).toMatchObject({ successful_combinations: 6, supplemental_successful_combinations: 1 })
+    expect(result.measurement_methodology).toMatchObject({ languages_tested: ['English'], supplemental_languages_tested: ['Russian'] })
     expect(result.engine_coverage?.[0]).toMatchObject({ expected_samples: 6, successful_samples: 6 })
     expect(result.query_analysis?.queries.some((item) => item.query.startsWith('secondary'))).toBe(false)
     expect(result.query_analysis?.coverage.reduce((sum, item) => sum + item.successful_combinations, 0)).toBe(6)

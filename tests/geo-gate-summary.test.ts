@@ -127,6 +127,7 @@ describe('A1 gate-failed reports keep the insufficient-coverage semantics everyw
       query_provenance: provenance,
       query_plan: { valid_core_slots: 5, review_required: true, primary_language: 'lv', markets: ['Latvia', 'Riga'] },
       supplemental_probes: [{ query_id: 'S1', slot: 'category_discovery', language: 'ru', query: 'стоматолог Рига', per_engine: [{ engine: 'openai', successful: 1, mentioned: 1, cited: 0 }] }],
+      measurement_methodology: { market: 'Marbella and Costa del Sol, Spain', languages_tested: ['English'], supplemental_languages_tested: ['Russian'], core_queries: 6, supplemental_queries: 1, providers: [], samples_per_combination: 1, user_location: null, location_behavior: 'Provider default; no explicit user location was set.', untested_languages_disclosure: 'Spanish buyer questions were not tested in this audit.' },
       coverage_gate: { ...geo.coverage_gate!, passed: true, reasons: [] },
     }
     const markup = await render({ ...report, geo: a4 })
@@ -136,6 +137,10 @@ describe('A1 gate-failed reports keep the insufficient-coverage semantics everyw
     expect(markup).toContain('Riga')
     expect(markup).toContain('1 of 6 buyer situations could not be tested validly.')
     expect(markup).toContain('Secondary-language probe — not included in the index')
+    expect(markup).toContain('Core language(s) tested: English.')
+    expect(markup).toContain('Supplemental language probe(s): Russian.')
+    expect(markup).toContain('Not tested: Spanish buyer questions were not tested in this audit.')
+    expect(markup).not.toContain('Russian buyer questions were not tested')
     expect(markup).toContain('1 named, 0 cited in 1 answers')
     expect(markup).not.toContain('Buyer situation: Other')
     expect(markup).not.toMatch(/query_plan_insufficient|unavailable_reason|slot_mismatch/)

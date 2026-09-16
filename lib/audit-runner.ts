@@ -426,7 +426,6 @@ export function recomputeReusedGeoEvidence(
     }),
   }
 }
-
 function competitorIdentityKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
@@ -828,6 +827,7 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
             queryCount: 6,
             // Use operator-confirmed queries when present (from the confirmation screen).
             queryPlan: savedPlan || queryPlan,
+            requestedMarketsLanguages: businessContext.target_markets_languages,
             providedQueries: savedPlan ? undefined : (audit.geo_queries as string[] | null) || undefined,
             // Paid audit: also scrape the most-cited sources and explain why they win.
             analyzeSources: true,

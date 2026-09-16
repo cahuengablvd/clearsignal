@@ -62,8 +62,25 @@ describe('RD pre-delivery hardening', () => {
     saved.acquisition_protocol = { version: 'rd-00', engines: [{ engine: 'claude', model_requested: 'claude-sonnet-4-6', tool_type_version: 'v1', max_uses: 2, max_tokens: 1500, web_search_mode: 'provider_default' }], user_location: null, samples_per_combination: 1, query_plan_hash: 'a'.repeat(64) }
     const result = recomputeReusedGeoEvidence(saved, { requestedMarketsLanguages: 'Saudi Arabia, Arabic and English' })
     expect(result.measurement_methodology).toMatchObject({ market: 'Saudi Arabia', languages_tested: ['English'], core_queries: 1, supplemental_queries: 0, samples_per_combination: 1, user_location: null })
-    expect(result.measurement_methodology?.untested_languages_disclosure).toBe('Only the languages listed above were tested. Arabic buyer questions were not tested in this audit.')
+    expect(result.measurement_methodology?.untested_languages_disclosure).toBe('Arabic buyer questions were not tested in this audit.')
     expect(result.measurement_methodology?.search_mode_disclosure).toContain('not literal consumer ChatGPT UI')
+  })
+
+  it('retains an Atelier Frame-like Russian probe in reuse disclosure without changing core metrics', () => {
+    const saved = geo([
+      row({ query_id: 'Q1', scope: 'core', query: 'how much do made to measure curtains cost in Marbella Spain', answer_text: 'Another provider appears here.' }),
+      row({ query_id: 'S1', scope: 'supplemental', query: '\u043a\u0430\u043a\u0430\u044f \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u0436\u0430\u043b\u044e\u0437\u0438 \u0432 \u041c\u0430\u0440\u0431\u0435\u043b\u044c\u0435', answer_text: 'Target appears here.' }),
+    ])
+    saved.query_plan = { valid_core_slots: 1, review_required: true, primary_language: 'en', markets: ['Marbella and Costa del Sol', 'Spain'] }
+    saved.query_provenance = [
+      { query_id: 'Q1', query: 'how much do made to measure curtains cost in Marbella Spain', slot: 'trust_or_pricing', intent: 'pricing', language: 'en', language_source: 'intake', market: 'Marbella and Costa del Sol', geo_scope: 'explicit', scope: 'core', source: 'generator', rationale: '', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' },
+      { query_id: 'S1', query: '\u043a\u0430\u043a\u0430\u044f \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u0436\u0430\u043b\u044e\u0437\u0438 \u0432 \u041c\u0430\u0440\u0431\u0435\u043b\u044c\u0435', slot: 'trust_or_pricing', intent: 'pricing', language: 'ru', language_source: 'intake', market: 'Marbella and Costa del Sol', geo_scope: 'explicit', scope: 'supplemental', source: 'generator', rationale: '', validation: { passed: true, errors: [], warnings: [], regenerated: false }, state: 'valid' },
+    ]
+    const result = recomputeReusedGeoEvidence(saved, { requestedMarketsLanguages: 'Marbella and Costa del Sol, Spain - English, Russian and Spanish' })
+    expect(result.mention_rate).toBe(0)
+    expect(result.test_counts?.successful_samples).toBe(1)
+    expect(result.measurement_methodology).toMatchObject({ languages_tested: ['English'], supplemental_languages_tested: ['Russian'], supplemental_queries: 1 })
+    expect(result.measurement_methodology?.untested_languages_disclosure).toBe('Spanish buyer questions were not tested in this audit.')
   })
 
   it('drops stale retrieved-only source analysis and uses citation-evaluable reuse denominators', () => {

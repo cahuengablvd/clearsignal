@@ -95,7 +95,7 @@ describe('A1 adapter parsing of the sanitized provider captures', () => {
     const grounded = await queryEngine('perplexity', 'q')
     expect(grounded.model).toBe('sonar')
     expect(grounded.citations).toHaveLength(2)
-    expect(grounded).toMatchObject({ retrieved_urls: ['https://sanitized.example/source-a', 'https://sanitized.example/source-b'], retrieval_capture: 'resolved', cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [], stop_reason: 'stop' })
+    expect(grounded).toMatchObject({ retrieved_urls: ['https://sanitized.example/source-a', 'https://sanitized.example/source-b'], retrieval_capture: 'resolved', cited_urls: ['https://sanitized.example/source-a', 'https://sanitized.example/source-b'], citation_attachment: 'resolved', engine_issued_queries: [], stop_reason: 'stop' })
     expect(classifyEngineResponse({ ...grounded, answer: padded }, { engine: 'perplexity', webSearch: true }).status).toBe('ok_grounded')
 
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => '', json: async () => fixture('perplexity-no-citations.json') })))
@@ -105,6 +105,16 @@ describe('A1 adapter parsing of the sanitized provider captures', () => {
     expect(anomaly.cited_urls).toBeNull()
     expect(anomaly.citation_attachment).toBe('unresolved')
     expect(classifyEngineResponse({ ...anomaly, answer: padded }, { engine: 'perplexity', webSearch: true })).toMatchObject({ status: 'ok_no_citations', reason: 'protocol_anomaly_no_citations' })
+  })
+
+  it('resolves only actual Perplexity URLs, including search_results-only responses', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => '', json: async () => fixture('perplexity-search-results-only.json') })))
+    const result = await queryEngine('perplexity', 'q')
+    expect(result).toMatchObject({
+      citations: ['https://sanitized.example/search-result'],
+      cited_urls: ['https://sanitized.example/search-result'],
+      citation_attachment: 'resolved',
+    })
   })
 
   it('hashes the same raw response identically and changes when the payload changes', () => {

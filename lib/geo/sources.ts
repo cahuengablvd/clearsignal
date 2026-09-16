@@ -92,18 +92,29 @@ export async function analyzeCitedSources(
     const urls = topCitedUrls(evidence, maxSources, registrableDomain(targetUrl))
     if (urls.length === 0) return null
 
-    // Scrape cited sources in parallel; skip any that fail.
-    const scraped = (
-      await Promise.all(
-        urls.map(async (url) => {
-          const raw = await scrapeUrl(url)
-          onUsage?.({ provider: 'firecrawl', purpose: 'geo:cited_source_scrape', scrape_count: 1 })
-          return raw ? { url, markdown: normalizeMarkdown(raw) } : null
-        })
-      )
-    ).filter((s): s is { url: string; markdown: string } => !!s)
+    // Scrape cited sources in parallel. An unavailable third-party page is a
+    // limitation about that page, never evidence of a target-site access flaw.
+    const attempted = await Promise.all(
+      urls.map(async (url) => {
+        const raw = await scrapeUrl(url)
+        onUsage?.({ provider: 'firecrawl', purpose: 'geo:cited_source_scrape', scrape_count: 1 })
+        return raw ? { url, markdown: normalizeMarkdown(raw) } : { url, markdown: null }
+      })
+    )
+    const unavailable = attempted
+      .filter((source): source is { url: string; markdown: null } => source.markdown === null)
+      .map((source): GeoSourceGap => ({
+        cited_source: registrableDomain(source.url) || source.url,
+        signals_found: [],
+        target_missing_signals: [],
+        why_this_source_gets_cited: 'This cited source could not be retrieved for assessment; its characteristics were not assessed.',
+        recommended_fix: '',
+      }))
+    const scraped = attempted
+      .filter((source): source is { url: string; markdown: string } => typeof source.markdown === 'string')
+      .map((source) => ({ url: source.url, markdown: source.markdown }))
 
-    if (scraped.length === 0) return null
+    if (scraped.length === 0) return unavailable
 
     const llm = await callClaudeJSON({
       model: MODEL_GEO_ANALYSIS,
@@ -120,7 +131,7 @@ export async function analyzeCitedSources(
 
     // Deterministic gap: comparable first-party signals the source HAS that the target LACKS.
     // Source independence is context, not something a brand's own page can or should reproduce.
-    return llm.sources.map((s): GeoSourceGap => {
+    return [...llm.sources.map((s): GeoSourceGap => {
       const missing = GEO_SIGNAL_KEYS
         .filter((k) => k !== 'third_party_authority' && s.signals[k] && !targetSignals[k])
         .map((k) => GEO_SIGNAL_LABELS[k])
@@ -131,7 +142,7 @@ export async function analyzeCitedSources(
         why_this_source_gets_cited: s.why_cited,
         recommended_fix: s.recommended_fix,
       }
-    })
+    }), ...unavailable]
   } catch (err) {
     console.warn('Cited-source analysis failed (continuing without it):', err)
     return null

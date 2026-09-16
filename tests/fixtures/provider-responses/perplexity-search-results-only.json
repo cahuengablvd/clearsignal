@@ -1,0 +1,1 @@
+{"object":"chat.completion","model":"sonar","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"Sanitized answer from the supported search_results-only response shape."}}],"search_results":[{"title":"Sanitized source","url":"https://sanitized.example/search-result","snippet":"Sanitized source snippet."}]}

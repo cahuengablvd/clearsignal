@@ -1,1 +1,1 @@
-{"model":"sonar","choices":[{"message":{"content":"A sufficiently detailed answer explains the observed option and limitations, while preserving the protocol anomaly that no citation array was returned in this HTTP-success payload."}}],"citations":[]}
+{"model":"sonar","choices":[{"message":{"content":"A sufficiently detailed answer cites markers [1][4][12], but this sanitized HTTP-success payload contains no provider-supplied citation URL."}}],"citations":[]}

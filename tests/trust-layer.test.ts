@@ -997,6 +997,14 @@ describe('sample-bounded GEO wording', () => {
     expect(out).toContain('certificates of authenticity')
     expect(out).toContain('international shipping')
   })
+  it('neutralizes unsupported free wording while retaining a verified consultation duration', () => {
+    const unsupported = BusinessContextSchema.parse({ verified_facts: 'A 45-minute home consultation is available. A 5-year warranty is available.' })
+    expect(sanitizeUnsupportedCommercialClaims('Book Your Free 45-Minute Home Consultation.', unsupported)).toBe('Book Your 45-Minute Home Consultation.')
+    expect(sanitizeUnsupportedCommercialClaims('Includes a 5-year warranty.', unsupported)).toBe('Includes a 5-year warranty.')
+
+    const supported = BusinessContextSchema.parse({ verified_facts: 'A free 45-minute home consultation and a 5-year warranty are available.' })
+    expect(sanitizeUnsupportedCommercialClaims('Book Your Free 45-Minute Home Consultation.', supported)).toBe('Book Your Free 45-Minute Home Consultation.')
+  })
 })
 
 describe('recursive report sanitizer', () => {

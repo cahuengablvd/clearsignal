@@ -152,6 +152,16 @@ function unsupportedCommercialClaimLabels(sentence: string, context: BusinessCon
     add('third-party recognition')
   }
 
+  // Publishable commercial terms require explicit operator verification.
+  const verified = context.verified_facts || ''
+  if (/\bfree\b/i.test(sentence) && !/\bfree\b/i.test(verified)) add('free offer')
+  if (/\b(?:discount|sale|%\s*off)\b/i.test(sentence) && !/\b(?:discount|sale|%\s*off)\b/i.test(verified)) add('discount or sale')
+  if (/\b(?:\$|\u20ac|\u00a3)\s*\d|\b\d+(?:\.\d{2})?\s*(?:USD|EUR|GBP)\b/i.test(sentence) && !/\b(?:\$|\u20ac|\u00a3)\s*\d|\b\d+(?:\.\d{2})?\s*(?:USD|EUR|GBP)\b/i.test(verified)) add('specific price')
+  if (/\b\d+[- ]year warranty\b/i.test(sentence) && !/\b\d+[- ]year warranty\b/i.test(verified)) add('warranty duration')
+  if (/\b(?:turnaround|delivery)\s+(?:in|within)\s+\d+\s*(?:business\s+days?|days?|weeks?)\b/i.test(sentence) && !/\b(?:turnaround|delivery)\s+(?:in|within)\s+\d+\s*(?:business\s+days?|days?|weeks?)\b/i.test(verified)) add('turnaround or delivery duration')
+  if (/\b(?:guaranteed availability|always available)\b/i.test(sentence) && !/\b(?:guaranteed availability|always available)\b/i.test(verified)) add('guaranteed availability')
+  if (/\b(?:guarantee[ds]?|guaranteed results?)\b/i.test(sentence) && !/\b(?:guarantee[ds]?|guaranteed results?)\b/i.test(verified)) add('guarantee')
+
   return labels
 }
 
@@ -162,6 +172,9 @@ export function sanitizeUnsupportedCommercialClaims(text: string, context?: Busi
       if (/^\s+$/.test(part)) return part
       const labels = unsupportedCommercialClaimLabels(part, context)
       if (labels.length === 0) return part
+      // Retain useful, separately-supported wording where a narrow neutralization is possible.
+      if (labels.length === 1 && labels[0] === 'free offer') return part.replace(/\bfree\s+/gi, '')
+      if (labels.length === 1 && labels[0] === 'warranty duration') return part.replace(/\b\d+[- ]year\s+/gi, '')
       if (labels.length === 1 && labels[0] === 'pricing') return 'Pricing was not confirmed in this audit.'
       return `Ask the business about ${joinLabels(labels)}.`
     })

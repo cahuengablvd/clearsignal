@@ -196,6 +196,21 @@ const CLIPPED_ROLE: Record<string, string> = {
 }
 
 const NO_DIRECT_EVIDENCE = 'Based on audit synthesis; no single direct evidence item.'
+
+function compatibleActionEvidenceIds(fix: { title?: string; description?: string; category?: string }, ids: string[]): string[] {
+  const text = `${fix.title || ''} ${fix.description || ''}`.toLowerCase()
+  // Keep synthesis rather than a superficially-grounded but incompatible ID.
+  // GEO-SOURCE is permitted only for proof/FAQ work because it is a cited-source
+  // observation, not target CTA/H1/schema evidence.
+  let allowed: RegExp | null = null
+  if (/\b(proof|testimonials?|reviews?|social proof|logos?|case stud|g2|capterra|clutch|designrush)\b/.test(text)) allowed = /^(?:OBS-PROOF-001|GEO-SOURCE-\d+)$/
+  else if (/\b(faq|question|answer|q&a)\b/.test(text)) allowed = /^(?:OBS-FAQ-001|GEO-SOURCE-\d+)$/
+  else if (/\b(headline|h1|tagline|hero title)\b/.test(text)) allowed = /^OBS-H1-001$/
+  else if (/\b(schema|json-ld|structured data)\b/.test(text)) allowed = /^OBS-SCHEMA-001$/
+  else if (/\b(cta|call[- ]to[- ]action|button|demo)\b/.test(text)) allowed = /^OBS-CTA-001$/
+  else if (/\b(http status|http\s*200|crawl(?:ability|able| access)?|robots?\.txt|crawler|noindex|indexability|canonical|browser-verification|waf)\b/.test(text)) allowed = /^ELIG-/
+  return allowed ? ids.filter((id) => allowed!.test(id)) : ids
+}
 const BLOCKED_CLIENT_REPAIR_PHRASES = [
   ...CLIENT_VISIBLE_REPLACEMENT_SENTENCES,
   'Potential business impact should be treated as a hypothesis until verified with analytics or operator data.',
@@ -795,6 +810,13 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
       let ids = Array.isArray(fix.evidence_ids) ? [...fix.evidence_ids] : []
       let mutatedIds = false
 
+      const compatibleIds = compatibleActionEvidenceIds(fix, ids)
+      if (JSON.stringify(compatibleIds) !== JSON.stringify(ids)) {
+        ids = compatibleIds
+        mutatedIds = true
+        warn(`evidence: removed incompatible direct evidence ids from fix (#${fix.id})`)
+      }
+
       if (fix.category === 'ai_search') {
         const relevantIds = geoActionCatalog ? filterGeoActionEvidenceIds(fix, geoActionCatalog) : []
         if (JSON.stringify(relevantIds) !== JSON.stringify(ids)) {
@@ -839,6 +861,23 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
 
       return { ...fix, evidence_ids: ids, evidence_basis }
     })
+  }
+
+  // A cited third-party source that could not be crawled says nothing about
+  // the audited site's HTTP/crawlability. Preserve the limitation, but remove
+  // an access remedy unless target eligibility independently blocks access.
+  const eligibility = walked.technical_eligibility || walked.geo?.technical_eligibility
+  const targetAccessBlocked = Boolean(eligibility && eligibility.overall_status !== 'eligible' && [
+    ...(eligibility.checks || []),
+    ...(eligibility.crawler_access || []),
+  ].some((item) => item.status === 'blocked'))
+  if (!targetAccessBlocked && Array.isArray(walked.geo?.source_gap_analysis)) {
+    for (const source of walked.geo.source_gap_analysis) {
+      if (/could not be retrieved for assessment/i.test(source.why_this_source_gets_cited) && /\b(?:http\s*200|http status|crawl(?:ability|able| access)?|robots?\.txt|crawler|noindex)\b/i.test(source.recommended_fix)) {
+        source.recommended_fix = ''
+        warn(`source_gap: removed target access remediation derived only from unavailable cited source (${source.cited_source})`)
+      }
+    }
   }
 
   // Structural usability (never throws; caller decides).

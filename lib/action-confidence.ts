@@ -222,13 +222,16 @@ function evidenceForFix(
   }
 
   let ids: string[] = []
-  if (/\b(cta|call[- ]to[- ]action|button|demo)\b/.test(text)) ids = idFor('cta_present')
-  else if (/\b(schema|json-ld|structured data)\b/.test(text)) ids = idFor('json_ld')
-  else if (/\b(faq|question|answer|q&a)\b/.test(text)) ids = idFor('faq_structure')
-  else if (/\b(meta description|meta title|title tag)\b/.test(text)) ids = idFor('meta_description')
-  else if (/\b(proof|testimonial|review|logo|case stud|g2|capterra|clutch|designrush)\b/.test(text))
+  // A recommendation can mention a CTA while asking for proof. Select the
+  // recommendation's substantive family first; a CTA observation cannot prove
+  // that testimonials or reviews are missing.
+  if (/\b(proof|testimonials?|reviews?|logos?|case stud|g2|capterra|clutch|designrush)\b/.test(text))
     ids = idFor('social_proof')
+  else if (/\b(faq|question|answer|q&a)\b/.test(text)) ids = idFor('faq_structure')
   else if (fix.category === 'copy' && /\b(headline|h1|tagline|hero title)\b/.test(text)) ids = idFor('h1_present')
+  else if (/\b(schema|json-ld|structured data)\b/.test(text)) ids = idFor('json_ld')
+  else if (/\b(cta|call[- ]to[- ]action|button|demo)\b/.test(text)) ids = idFor('cta_present')
+  else if (/\b(meta description|meta title|title tag)\b/.test(text)) ids = idFor('meta_description')
   else if (fix.category === 'copy') ids = []
 
   if (ids.length > 0) return { evidence_ids: ids, evidence_basis: `Based on: ${ids.join(', ')}` }

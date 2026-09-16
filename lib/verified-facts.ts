@@ -61,6 +61,9 @@ export function buildVerifiedFactsLayer(args: {
       ['USER-RESPONSE-TIME-001', /\b(same[- ]day|within\s+\d+\s+(?:minutes?|hours?|business days?))\b/i, 'Response time is operator-verified.'],
       ['USER-PRICE-001', /\b(no hidden fees|price|pricing|cost|free quote)\b/i, 'Pricing/quote wording is operator-verified.'],
       ['USER-CONDO-001', /\b(condo|elevator|building management)\b/i, 'Condo/elevator coordination details are operator-verified.'],
+      ['USER-FREE-001', /\bfree\b/i, 'Free offer wording is operator-verified.'],
+      ['USER-WARRANTY-001', /\b\d+[- ]year warranty\b/i, 'Warranty duration is operator-verified.'],
+      ['USER-COMMERCIAL-TERMS-001', /\b(?:discount|sale|\$|\u20ac|\u00a3|turnaround|delivery|guarantee)\b/i, 'Commercial terms are operator-verified.'],
     ] as const) {
       if (re.test(verified)) facts.push(userFact(id, claim))
     }

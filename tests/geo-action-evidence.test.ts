@@ -187,6 +187,35 @@ describe('compact GEO evidence for the action stage', () => {
     )
   })
 
+  it('removes incompatible direct evidence instead of making a testimonial action appear CTA-grounded', () => {
+    const action = actionFixture()
+    action.top_fixes[0] = {
+      ...action.top_fixes[0], category: 'proof', title: 'Add named client testimonials',
+      description: 'The existing CTA should sit beside named client testimonials and reviews.',
+      evidence_ids: ['OBS-CTA-001'], evidence_basis: 'Based on: OBS-CTA-001',
+    }
+    const result = validateReport({
+      meta: { url: 'https://acme.example', generated_at: '', icp_description: '', competitors: [], tier: 'automated' },
+      clarity: {}, gap: { competitor_analysis: [] }, action,
+    } as any)
+    expect(result.report.action.top_fixes[0].evidence_ids).toEqual([])
+    expect(result.report.action.top_fixes[0].evidence_basis).toBe('Based on audit synthesis; no single direct evidence item.')
+    expect(result.warnings).toContain('evidence: removed incompatible direct evidence ids from fix (#1)')
+  })
+
+  it('selects proof evidence before CTA evidence when a recommendation mentions both', () => {
+    const action = actionFixture()
+    action.top_fixes[0] = {
+      ...action.top_fixes[0], category: 'proof', title: 'Add named testimonials',
+      description: 'Place client testimonials near the CTA.',
+    }
+    const enriched = attachActionConfidence(action, [
+      { id: 'cta_present', evidence_id: 'OBS-CTA-001' },
+      { id: 'social_proof', evidence_id: 'OBS-PROOF-001' },
+    ] as any, null)
+    expect(enriched.top_fixes[0].evidence_ids).toEqual(['OBS-PROOF-001'])
+  })
+
   it('rejects an AI-visibility fix that does not separate claim levels', () => {
     const action = actionFixture()
     const incomplete = {

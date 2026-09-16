@@ -95,6 +95,19 @@ function uniqueUrls(urls: (string | undefined | null)[]): string[] {
   return [...seen]
 }
 
+/** Provider URLs are evidence only when the payload actually supplies http(s) URLs. */
+function providerUrls(values: unknown[]): string[] {
+  return uniqueUrls(values.flatMap((value) => {
+    if (typeof value !== 'string') return []
+    try {
+      const url = new URL(value)
+      return /^https?:$/.test(url.protocol) ? [value] : []
+    } catch {
+      return []
+    }
+  }))
+}
+
 // --- Claude (web search) -----------------------------------------------------
 
 let _anthropic: Anthropic | null = null
@@ -261,18 +274,16 @@ async function queryPerplexity(
       output_tokens: Number(data?.usage?.completion_tokens ?? 0),
     })
     const answer: string = data?.choices?.[0]?.message?.content ?? ''
-    const citations: string[] = data?.citations ?? data?.search_results?.map((s: any) => s?.url) ?? []
-    // Sonar returns a provider source list, but the current chat-completions
-    // payload does not establish which list entry attaches to answer text.
-    // Both fields are provider retrieval evidence. Neither establishes an
-    // attachment to answer text, so keep this separate from cited_urls.
-    const retrievedUrls = [
-      ...(Array.isArray(data?.search_results) ? data.search_results.map((s: any) => s?.url) : []),
-      ...(Array.isArray(data?.citations) ? data.citations : []),
-    ]
+    // Sonar exposes source URLs in `citations` and, in another supported
+    // response shape, `search_results[].url`. Prose markers alone are never
+    // evidence; only URLs physically supplied in those fields are attached.
+    const citationUrls = providerUrls(Array.isArray(data?.citations) ? data.citations : [])
+    const searchResultUrls = providerUrls(Array.isArray(data?.search_results) ? data.search_results.map((s: any) => s?.url) : [])
+    const citations = uniqueUrls([...citationUrls, ...searchResultUrls])
+    const retrievedUrls = citations
     const retrievedMeta = (data?.search_results ?? []).filter((s: any) => s?.url).map((s: any) => ({ url: s.url, ...(typeof (s.date ?? s.last_updated) === 'string' ? { page_age: s.date ?? s.last_updated } : {}) }))
-    return { engine: 'perplexity', ok: true, answer: answer.trim(), citations: uniqueUrls(citations), model: data?.model, attempts: 1, tool_events: { search_requests: 1, search_results: citations.length, tool_errors: [], protocol: 'perplexity_sonar' },
-      retrieved_urls: uniqueUrls(retrievedUrls), retrieval_capture: 'resolved', retrieved_meta: retrievedMeta, cited_urls: null, citation_attachment: 'unresolved', engine_issued_queries: [],
+    return { engine: 'perplexity', ok: true, answer: answer.trim(), citations, model: data?.model, attempts: 1, tool_events: { search_requests: 1, search_results: citations.length, tool_errors: [], protocol: 'perplexity_sonar' },
+      retrieved_urls: retrievedUrls, retrieval_capture: 'resolved', retrieved_meta: retrievedMeta, cited_urls: citations.length ? citations : null, citation_attachment: citations.length ? 'resolved' : 'unresolved', engine_issued_queries: [],
       stop_reason: typeof data?.choices?.[0]?.finish_reason === 'string' ? data.choices[0].finish_reason : null, raw_response_sha256: rawResponseSha256(data) }
   } catch (err) {
     return {

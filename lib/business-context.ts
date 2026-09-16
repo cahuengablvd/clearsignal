@@ -199,12 +199,47 @@ function observedOfferCatalogName(markdown: string, html: string): string | unde
     .find((heading) => Boolean(heading && /\b(?:compare|browse|view)\b.{0,100}\b(?:offers?|listings?|providers?)\b/i.test(heading)))
 }
 
+function targetPageMetaAndJsonLd(html: string): { text: string; types: string[] } {
+  const meta = Array.from(
+    html.matchAll(/<meta\b[^>]*(?:name|property)\s*=\s*(?:"(?:description|og:description)"|'(?:description|og:description)'|(?:description|og:description))[^>]*>/gi),
+    (match) => htmlAttribute(match[0], 'content') || ''
+  )
+  const types: string[] = []
+  for (const match of html.matchAll(/<script\b[^>]*type\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json'|application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const visit = (value: unknown) => {
+        if (Array.isArray(value)) return value.forEach(visit)
+        if (!value || typeof value !== 'object') return
+        const record = value as Record<string, unknown>
+        for (const type of (Array.isArray(record['@type']) ? record['@type'] : [record['@type']])) {
+          if (typeof type === 'string' && /^[A-Za-z][A-Za-z0-9]+$/.test(type)) types.push(type)
+        }
+        Object.values(record).forEach(visit)
+      }
+      visit(JSON.parse(match[1].trim()))
+    } catch {
+      continue
+    }
+  }
+  return { text: meta.join(' '), types: Array.from(new Set(types)) }
+}
+
 export function inferObservedBusinessContext(args: {
   url: string
   markdown: string
   html?: string
 }): ObservedBusinessContext {
   const text = `${args.url} ${args.markdown} ${args.html || ''}`.replace(/\s+/g, ' ')
+  // Literal target-page signals only; checkout intake never participates here.
+  const targetSignals = targetPageMetaAndJsonLd(args.html || '')
+  const directText = `${targetSignals.text} ${args.markdown}`.replace(/\s+/g, ' ')
+  const observedLocations = ['Marbella', 'Costa del Sol'].filter((value) => new RegExp(`\\b${value.replace(/ /g, '\\s+')}\\b`, 'i').test(directText))
+  const observedServices = ([
+    ['Curtains', /\bcustom\s+curtains?\b/i], ['Blinds', /\bblinds?\b/i],
+    ['ZIP screens', /\bzip\s+screens?\b/i], ['Pergolas', /\bpergolas?\b/i],
+  ] as Array<[string, RegExp]>).filter(([, pattern]) => pattern.test(directText)).map(([label]) => label)
+  const observedBusinessType = targetSignals.types.find((type) => type === 'HomeAndConstructionBusiness')
+    || targetSignals.types.find((type) => type === 'LocalBusiness')
   const quoteCta = /\b(get|request|book)\s+(?:a\s+)?(?:free\s+)?quote\b|\bquote request\b|\bget quote\b/i.test(text)
   const bookingCta = /\bbook(?:ing)?\b/i.test(text)
   const observedList = marketplaceListFromJsonLd(args.html || '')
@@ -219,7 +254,10 @@ export function inferObservedBusinessContext(args: {
     : undefined
 
   return {
+    ...(observedBusinessType ? { inferred_business_type: observedBusinessType } : {}),
     observed_primary_cta: quoteCta ? 'Quote request' : bookingCta ? 'Booking/contact request' : undefined,
+    ...(observedServices.length ? { observed_service_category: 'Window coverings and shading services', observed_services: observedServices } : {}),
+    ...(observedLocations.length ? { observed_location: observedLocations } : {}),
     observed_marketplace_structure: observedMarketplaceStructure,
   }
 }

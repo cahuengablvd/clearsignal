@@ -36,4 +36,11 @@ describe('report print and delivery guidance', () => {
     expect(page).toContain('{b.acceptance_criteria.length > 0 && (')
     expect(page).toContain('Acceptance criteria')
   })
+
+  it('uses the shared report projection to disclose withheld generic draft copy in web and PDF output', () => {
+    const page = source('app/audit/[id]/page.tsx')
+
+    expect(page).toContain("warning.startsWith('ready_materials: withheld generic fallback')")
+    expect(page).toContain('Draft copy was withheld because business-specific copy could not be generated safely from the available evidence.')
+  })
 })

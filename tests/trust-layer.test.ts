@@ -3193,6 +3193,28 @@ describe('stored validation_warnings never re-trigger the artifact detector', ()
 })
 
 describe('pre-beta polish regressions', () => {
+  it('derives Atelier Frame context only from explicit target-page meta, text, and JSON-LD', () => {
+    const observed = inferObservedBusinessContext({
+      url: 'https://atelierframe.eu',
+      markdown: 'Custom curtains, blinds, ZIP screens and pergolas designed, made and installed across Marbella and the Costa del Sol.',
+      html: '<meta name="description" content="Custom curtains, blinds, ZIP screens and pergolas designed, made and installed across Marbella and the Costa del Sol."><script type="application/ld+json">{"@type":["HomeAndConstructionBusiness","LocalBusiness"]}</script>',
+    })
+
+    expect(observed).toMatchObject({
+      inferred_business_type: 'HomeAndConstructionBusiness',
+      observed_service_category: 'Window coverings and shading services',
+      observed_location: ['Marbella', 'Costa del Sol'],
+      observed_services: ['Curtains', 'Blinds', 'ZIP screens', 'Pergolas'],
+    })
+  })
+
+  it('does not relabel operator-provided facts as observed without target-page evidence', () => {
+    const observed = inferObservedBusinessContext({ url: 'https://example.test', markdown: 'Welcome to our website.', html: '' })
+    expect(observed.observed_location).toBeUndefined()
+    expect(observed.observed_services).toBeUndefined()
+    expect(observed.inferred_business_type).toBeUndefined()
+  })
+
   it('does not infer moving context from the real ClearSignal landing-page example', () => {
     const observed = inferObservedBusinessContext({
       url: 'https://getclearsignal.io',

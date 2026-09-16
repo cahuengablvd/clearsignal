@@ -239,6 +239,15 @@ function neutralGenericMaterials(
   }
 }
 
+/** Identifies the deterministic safety fallback so it is never client-ready copy. */
+export function isNeutralGenericMaterials(materials: ReadyMaterials | ReadyMaterialsLlm | null | undefined): boolean {
+  if (!materials) return false
+  const questions = (materials.faq || []).map((item) => item.question || '').join(' ')
+  return /\bhow do i contact\b/i.test(questions) &&
+    /\bwhat information should i share\b/i.test(questions) &&
+    (materials.cta_variants || []).some((item) => /^contact the business$/i.test(item.trim()))
+}
+
 function stripUnsupportedPublishableClaims(text: string): string {
   return text
     .replace(/\b(?:same[- ]day|last[- ]minute)\b[^.?!]*/gi, 'availability')

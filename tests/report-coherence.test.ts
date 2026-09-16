@@ -57,6 +57,48 @@ function report(overrides: Partial<ClearSignalReport> = {}): ClearSignalReport {
 }
 
 describe('report section coherence', () => {
+  it('keeps internal action ids stable while projecting contiguous actions and no dangling handoffs', () => {
+    const input = report()
+    input.action.top_fixes = [
+      { id: 1, title: 'First surviving action', description: 'Do the first safe action.', impact: 'high', effort: 'easy', category: 'structure' },
+      { id: 2, title: 'Removed action', description: '', impact: 'medium', effort: 'easy', category: 'cta' },
+      { id: 3, title: 'Second surviving action', description: 'Do the second safe action.', impact: 'medium', effort: 'easy', category: 'cta' },
+      { id: 4, title: 'Third surviving action', description: 'Do the third safe action.', impact: 'medium', effort: 'easy', category: 'copy' },
+      { id: 5, title: 'Fourth surviving action', description: 'Do the fourth safe action.', impact: 'low', effort: 'medium', category: 'proof' },
+    ] as any
+    input.action.ship_first = ['First surviving action', 'Removed action', 'Fourth surviving action']
+    input.implementation_briefs = [
+      { fix_title: 'First surviving action', steps: ['Do it.'], acceptance_criteria: [] },
+      { fix_title: 'Removed action', steps: ['Do not show it.'], acceptance_criteria: [] },
+    ]
+
+    const result = validateReport(input)
+
+    expect(result.report.action.top_fixes.map((fix) => fix.id)).toEqual([1, 3, 4, 5])
+    expect(result.report.action.ship_first).toEqual(['First surviving action', 'Fourth surviving action'])
+    expect(result.report.implementation_briefs?.map((brief) => brief.fix_title)).toEqual(['First surviving action'])
+    expect(result.warnings).toContain('action_coherence: removed Ship first references to filtered actions')
+  })
+
+  it('withholds stored neutral fallback materials and retains a reviewer-visible warning', () => {
+    const input = report()
+    input.ready_materials = {
+      meta_title: 'Example | Official Website',
+      meta_description: 'Example - contact the team to discuss options.',
+      faq: [
+        { question: 'How do I contact Example?', answer: 'Use the contact options on Example\'s website to discuss your needs and next steps.' },
+        { question: 'What information should I share with Example?', answer: 'Share the relevant project details.' },
+      ],
+      cta_variants: ['Contact the business', 'Contact Example'],
+      json_ld: '{}',
+    }
+
+    const result = validateReport(input)
+
+    expect(result.report.ready_materials).toBeNull()
+    expect(result.warnings).toContain('ready_materials: withheld generic fallback; business-specific copy could not be generated safely from the available evidence')
+  })
+
   it('uses top_fixes[0] as the first action in the summary and ship-first list', () => {
     const result = validateReport(report())
 

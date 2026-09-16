@@ -10,7 +10,7 @@
  * Pure + deterministic: no LLM, fully unit-testable.
  */
 import { sanitizeGeneratedProse, sanitizeUnsupportedCommercialClaims } from './sanitize'
-import { assembleMaterials, materialCategoryForContext } from './materials'
+import { assembleMaterials, isNeutralGenericMaterials, materialCategoryForContext } from './materials'
 import { repairUnsupportedMovingClaimSentence, unsupportedMovingClaims } from './industry-profiles/moving'
 import { allowedSchemaTypes } from './industry-profiles/schema-allowlist'
 import { ASTROTURFING_PATTERNS, BROKEN_TEXT_REPAIRS, INTERNAL_CLIENT_ARTIFACTS } from './trust-phrases'
@@ -783,8 +783,12 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
   rebuildReadyMaterials(walked, warn)
   dropReplacementOnlyBriefSteps(walked, warn)
   validateFaqSanity(walked, errors, warnings, businessContext)
+  const actionTitlesBeforeFiltering = new Set(
+    (walked.action?.top_fixes || []).map((fix) => String(fix.title || '').trim()).filter((title) => Boolean(title) && !isBareLabel(title))
+  )
   dropEmptyNarrativeArrayItems(walked, warn)
   dropEmptyActionItems(walked, warn)
+  reconcileClientActionProjection(walked, warn, actionTitlesBeforeFiltering)
   validateEmptyClientFields(walked, errors)
   validatePublishableFacts(walked, errors)
   rebuildGeoMeasurementV2(walked, warn)
@@ -1006,6 +1010,11 @@ function reconcileFirstAction(report: ClearSignalReport, warn: (m: string) => vo
 
 function rebuildReadyMaterials(report: ClearSignalReport, warn: (m: string) => void): void {
   if (!report.ready_materials) return
+  if (isNeutralGenericMaterials(report.ready_materials)) {
+    report.ready_materials = null
+    warn('ready_materials: withheld generic fallback; business-specific copy could not be generated safely from the available evidence')
+    return
+  }
   const brand = report.meta.canonical_brand || report.geo?.brand || ''
   const url = report.meta.url || ''
   const businessContext = report.meta.business_context
@@ -1766,6 +1775,26 @@ function rebuildGeoSummary(report: ClearSignalReport, warn: (m: string) => void)
       ? [`The citation rate above is calculated for the audited domain ${geo.brand_domain}. Other cited domains, including ${separatelyReportedDomains.join(', ')}, are reported separately.`]
       : []),
   ]
+}
+
+function reconcileClientActionProjection(report: ClearSignalReport, warn: (m: string) => void, actionTitlesBeforeFiltering: Set<string>): void {
+  const titles = new Set((report.action?.top_fixes || []).map((fix) => String(fix.title || '').trim()).filter(Boolean))
+  const shipFirst = Array.isArray(report.action?.ship_first) ? report.action.ship_first : []
+  const beforeShipFirst = shipFirst.length
+  report.action.ship_first = shipFirst.filter((item) => {
+    const title = String(item || '').trim()
+    return !actionTitlesBeforeFiltering.has(title) || titles.has(title)
+  })
+  if (report.action.ship_first.length !== beforeShipFirst) warn('action_coherence: removed Ship first references to filtered actions')
+
+  if (Array.isArray(report.implementation_briefs)) {
+    const beforeBriefs = report.implementation_briefs.length
+    report.implementation_briefs = report.implementation_briefs.filter((brief) => {
+      const title = String(brief.fix_title || '').trim()
+      return !actionTitlesBeforeFiltering.has(title) || titles.has(title)
+    })
+    if (report.implementation_briefs.length !== beforeBriefs) warn('action_coherence: removed implementation briefs for filtered actions')
+  }
 }
 
 /** Deterministic intent facts take precedence over stale model summary prose. */

@@ -954,14 +954,14 @@ export default async function AuditPage({
 
         {/* Top Fixes */}
         <div className="space-y-3 mb-8">
-          {report.action.top_fixes.map((fix) => {
+          {report.action.top_fixes.map((fix, visibleIndex) => {
             const priority = priorityForFix(fix)
             return (
               <Card key={fix.id}>
                 <CardContent className="p-5">
                   <div className="mb-2">
                     <div className="flex items-start gap-2 min-w-0">
-                      <span className="text-sm font-mono text-muted-foreground w-6 shrink-0">#{fix.id}</span>
+                      <span className="text-sm font-mono text-muted-foreground w-6 shrink-0">#{visibleIndex + 1}</span>
                       <h3 className="font-semibold leading-snug min-w-0 break-words">{fix.title}</h3>
                     </div>
                     <div className="mt-2 ml-8 flex flex-wrap items-center gap-2">
@@ -1174,6 +1174,13 @@ export default async function AuditPage({
               </Card>
             </div>
           </>
+        )}
+        {!report.ready_materials && report.validation_warnings?.some((warning) => warning.startsWith('ready_materials: withheld generic fallback')) && (
+          <Card className="mb-10">
+            <CardContent className="p-5 text-sm text-muted-foreground">
+              Draft copy was withheld because business-specific copy could not be generated safely from the available evidence.
+            </CardContent>
+          </Card>
         )}
 
         {!isPdf && (

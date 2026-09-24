@@ -835,7 +835,6 @@ export async function runFullAudit(auditId: string, opts: RunFullAuditOptions = 
             targetMarkdown,
             brandAliases: brandEntity.alternative_brand_forms,
             businessModel: businessContext.business_model,
-            requestedMarketsLanguages: businessContext.target_markets_languages,
             onUsage: (event) => cost.add(event),
             meta: {
               auditId,

@@ -1,14 +1,14 @@
 import type { GeoEvidence, GeoResult, QueryProvenance } from '../schemas'
 
-const LANGUAGE_NAMES: Record<string, string> = { en: 'English', lv: 'Latvian', ru: 'Russian', ar: 'Arabic' }
+const LANGUAGE_NAMES: Record<string, string> = { en: 'English', lv: 'Latvian', ru: 'Russian', es: 'Spanish', de: 'German', fr: 'French', it: 'Italian', pl: 'Polish', et: 'Estonian', lt: 'Lithuanian', ar: 'Arabic' }
 
 function languageName(value: string): string {
   return LANGUAGE_NAMES[value.trim().toLowerCase()] || value
 }
 
-function measuredLanguages(provenance: QueryProvenance[]): string[] {
+function measuredLanguages(provenance: QueryProvenance[], scope?: 'core' | 'supplemental'): string[] {
   return [...new Set(provenance
-    .filter((item) => item.scope === 'core' && item.state === 'valid')
+    .filter((item) => item.state === 'valid' && (!scope || item.scope === scope))
     .map((item) => languageName(item.language))
     .filter((language) => language !== 'unknown'))]
 }
@@ -27,7 +27,7 @@ function untestedLanguageDisclosure(requested: string | undefined, tested: strin
     .filter(([code, name]) => new RegExp(`\\b(${code}|${name})\\b`, 'i').test(requested))
     .map(([, name]) => name)
   const missing = requestedNames.filter((name) => !tested.includes(name))
-  return missing.length ? `Only the languages listed above were tested. ${missing.join(' and ')} buyer questions were not tested in this audit.` : undefined
+  return missing.length ? `${missing.join(' and ')} buyer questions were not tested in this audit.` : undefined
 }
 
 function searchModeDisclosure(protocol: GeoResult['acquisition_protocol']): string | undefined {
@@ -47,17 +47,19 @@ export function buildMeasurementMethodology(input: {
 }) {
   const core = input.provenance.filter((item) => item.scope === 'core' && item.state === 'valid')
   const supplemental = input.provenance.filter((item) => item.scope === 'supplemental' && item.state === 'valid')
-  const languages = measuredLanguages(input.provenance)
+  const languages = measuredLanguages(input.provenance, 'core')
+  const supplementalLanguages = measuredLanguages(input.provenance, 'supplemental')
   return {
     market: measuredMarket(input.provenance, input.executedPlanMarkets),
     languages_tested: languages,
+    supplemental_languages_tested: supplementalLanguages,
     core_queries: core.length,
     supplemental_queries: supplemental.length,
     providers: input.engines.map((engine) => ({ engine, model: input.evidence.find((item) => item.engine === engine)?.model || null })),
     samples_per_combination: input.acquisitionProtocol?.samples_per_combination || 1,
     user_location: null,
     location_behavior: 'Provider default; no explicit user location was set.',
-    untested_languages_disclosure: untestedLanguageDisclosure(input.requestedMarketsLanguages, languages),
+    untested_languages_disclosure: untestedLanguageDisclosure(input.requestedMarketsLanguages, [...languages, ...supplementalLanguages]),
     search_mode_disclosure: searchModeDisclosure(input.acquisitionProtocol),
   }
 }

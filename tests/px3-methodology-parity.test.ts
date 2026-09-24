@@ -77,7 +77,7 @@ describe('PX-3 methodology disclosure parity', () => {
 
     expect(reuse).toEqual(fresh)
     expect(rerender).toEqual(fresh)
-    expect(fresh).toMatchObject({ market: 'Saudi Arabia', languages_tested: ['English'], untested_languages_disclosure: 'Only the languages listed above were tested. Arabic buyer questions were not tested in this audit.' })
+    expect(fresh).toMatchObject({ market: 'Saudi Arabia', languages_tested: ['English'], untested_languages_disclosure: 'Arabic buyer questions were not tested in this audit.' })
     expect(fresh.search_mode_disclosure).toContain('provider API responses')
     expect(mocks.queryEngine).not.toHaveBeenCalled()
   })

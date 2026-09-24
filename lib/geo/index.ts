@@ -154,7 +154,6 @@ export interface RunGeoOptions {
   narrative?: boolean
   /** Use grounded web-search answers. Disable for timeout-sensitive free scans. */
   webSearch?: boolean
-  requestedMarketsLanguages?: string
   /** Target page markdown (reused to avoid re-scraping). Scraped if omitted. */
   targetMarkdown?: string
   /** Explicit query set (e.g. user-confirmed). Skips query generation when set. */

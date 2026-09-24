@@ -154,27 +154,11 @@
   },
   "implementation_briefs": [
     {
-      "fix_title": "Rewrite the H1 headline to lead with Toronto/GTA and a specific differentiator",
-      "acceptance_criteria": [
-        "Done when the rendered homepage HTML contains exactly one H1 tag and its text includes a Toronto or GTA geographic reference.",
-        "Done when the H1 text references at least one specific, factually accurate differentiator (e.g., a named credential or rating platform) that appears elsewhere on the page.",
-        "Done when a browser view-source check confirms the H1 is a native H1 element, not a CSS-styled div or span."
-      ]
-    },
-    {
       "fix_title": "Add LocalBusiness and Service schema markup to the homepage",
       "acceptance_criteria": [
         "Done when Google's Rich Results Test parses the homepage and returns a valid LocalBusiness entity with no critical errors.",
         "Done when the JSON-LD block is present in the rendered HTML source and includes all required fields: name, address, telephone, url, and areaServed.",
         "Use MovingCompany, Service, FAQPage, Organization schema unless verified review-source data is supplied."
-      ]
-    },
-    {
-      "fix_title": "Make trust credentials visible as text, not only as image elements",
-      "acceptance_criteria": [
-        "Done when a browser view-source of the live homepage shows a plain-text block near the credentials section naming each credential without requiring image rendering.",
-        "Done when each credential logo image has a non-empty, descriptive alt attribute visible in the HTML source.",
-        "Done when the text block is visible in a browser with images disabled or with lazy-loading blocked."
       ]
     },
     {

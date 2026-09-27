@@ -23,6 +23,52 @@ Quick reminders that matter most when implementing:
 - **`STATUS.md` is the handoff.** Read it before starting; update it at the end of a session when
   external state changed (a Trigger deploy, a verification outcome, work handed to someone else).
   Nothing is emailed or copied between machines — `git pull` carries it.
+- **Every meaningful completed stage needs the Russian owner status report.** The full canonical
+  rule is in `CLAUDE.md` under "Owner status after every meaningful stage"; the required ending is
+  mirrored below so a fresh Codex session receives it even before reading that file. Keep the two
+  copies synchronized. This report is not required after each minor command.
+
+  First, output one short copyable block, always in Russian:
+
+  ```text
+  [СТАТУС]
+  ЭТАП: <короткое название этапа>
+  РЕЗУЛЬТАТ: <ГОТОВО / ПРОЙДЕНО / ЗАБЛОКИРОВАНО / НУЖНЫ ИЗМЕНЕНИЯ / ОШИБКА>
+
+  [x] <что реально завершено>
+  [x] <что реально проверено>
+  [ ] <что ещё не сделано>
+  [ ] <следующий крупный незавершённый пункт>
+
+  ВЕТКА: <branch или N/A>
+  КОММИТ: <SHA или N/A>
+  ТЕСТЫ: <короткий фактический результат или N/A>
+  БЛОКЕР: <нет или конкретный blocker>
+  СЛЕДУЮЩИЙ ЭТАП: <одна короткая строка>
+  ```
+
+  If a finite plan is known, `ПРОГРЕСС: этап X из Y` may be added. Never invent percentages,
+  evidence, tests, or commits; `[x]` means actually completed or verified, never merely planned.
+
+  Immediately follow it with this plain-Russian owner summary:
+
+  ```text
+  Где мы сейчас:
+  <1–3 предложения о состоянии всего проекта, не только текущей технической задачи.>
+
+  Что это значит:
+  <Всё ли нормально, есть ли блокировка и сколько крупных шагов осталось до большой цели.>
+
+  Что делать дальше:
+  1. <Конкретное действие; логичный следующий вариант пометить "— рекомендую".>
+  2. <Необязательная альтернатива.>
+  3. <Необязательная альтернатива.>
+  ```
+
+  Give one to three actions. Use these two parts for successful outcomes and for `FAILED`,
+  `BLOCKED`, `NOT YET SAFE`, `CHANGES REQUIRED`, or `OPERATOR ACTION REQUIRED`, even if the prompt
+  was in English. Alexander is not a developer: never end with technical shorthand alone. Do not
+  weaken any Git safety, testing, deployment, secrets, preflight, acceptance, or routing rule.
 
 ## Cost discipline (read this before starting anything)
 

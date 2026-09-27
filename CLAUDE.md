@@ -69,6 +69,62 @@ generates → admin human-review gate (/admin) → Resend delivers web report + 
 - When reviewing or planning, be direct about risks (payment, data-loss, false claims) and separate
   must-do-before-first-sale from nice-to-have.
 
+## Owner status after every meaningful stage
+
+Alexander is not a developer. After **every meaningful completed stage**, end the response with the
+following two parts so he can immediately understand what finished, whether it succeeded, where the
+whole project stands, what remains, and what he should do next. Do not add this report after every
+minor command; use it when a meaningful stage has reached an outcome, including a blocked or failed
+outcome.
+
+The two parts below must always be in Russian, even when the technical prompt or the rest of the
+response is in English. They are mandatory for successful results and also for `FAILED`, `BLOCKED`,
+`NOT YET SAFE`, `CHANGES REQUIRED`, or `OPERATOR ACTION REQUIRED`. Do not weaken or replace any
+existing Git safety, testing, deployment, secrets, preflight, acceptance, or agent-routing rule.
+
+First, output one short, copyable status block using this exact structure:
+
+```text
+[СТАТУС]
+ЭТАП: <короткое название этапа>
+РЕЗУЛЬТАТ: <ГОТОВО / ПРОЙДЕНО / ЗАБЛОКИРОВАНО / НУЖНЫ ИЗМЕНЕНИЯ / ОШИБКА>
+
+[x] <что реально завершено>
+[x] <что реально проверено>
+[ ] <что ещё не сделано>
+[ ] <следующий крупный незавершённый пункт>
+
+ВЕТКА: <branch или N/A>
+КОММИТ: <SHA или N/A>
+ТЕСТЫ: <короткий фактический результат или N/A>
+БЛОКЕР: <нет или конкретный blocker>
+СЛЕДУЮЩИЙ ЭТАП: <одна короткая строка>
+```
+
+If a finite stage plan is known in advance, the block may also include `ПРОГРЕСС: этап X из Y`.
+Never invent a completion percentage. Never mark `[x]` for planned work. Never invent test results,
+commits, evidence, or any other completion claim. Use only facts established in the current work or
+reliably present in project state.
+
+Second, immediately after the block, write this plain-Russian owner summary:
+
+```text
+Где мы сейчас:
+<1–3 предложения о состоянии всего проекта, не только текущей технической задачи.>
+
+Что это значит:
+<Всё ли нормально, есть ли блокировка и сколько крупных шагов осталось до большой цели.>
+
+Что делать дальше:
+1. <Конкретное действие; логичный следующий вариант пометить "— рекомендую".>
+2. <Необязательная альтернатива.>
+3. <Необязательная альтернатива.>
+```
+
+Offer one to three concrete next actions. Do not end with technical shorthand alone such as
+`107/107 passed`, `commit abc123`, or `ready for handoff`; translate the outcome and next decision
+into language Alexander can act on.
+
 ## Key docs
 
 - `STATUS.md` — external state git cannot know (deployed Trigger version, what is blocked on the

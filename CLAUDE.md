@@ -82,41 +82,66 @@ response is in English. They are mandatory for successful results and also for `
 `NOT YET SAFE`, `CHANGES REQUIRED`, or `OPERATOR ACTION REQUIRED`. Do not weaken or replace any
 existing Git safety, testing, deployment, secrets, preflight, acceptance, or agent-routing rule.
 
-First, output one short, copyable status block using this exact structure:
+First, output one short, copyable status block using this exact structure. It must explicitly
+separate the outcome of the current task from the state of the whole ClearSignal project:
 
 ```text
 [СТАТУС]
-ЭТАП: <короткое название этапа>
-РЕЗУЛЬТАТ: <ГОТОВО / ПРОЙДЕНО / ЗАБЛОКИРОВАНО / НУЖНЫ ИЗМЕНЕНИЯ / ОШИБКА>
+
+ТЕКУЩАЯ ЗАДАЧА:
+<название>
+
+РЕЗУЛЬТАТ ЗАДАЧИ:
+<ГОТОВО / ПРОЙДЕНО / ЧАСТИЧНО ГОТОВО / ЗАБЛОКИРОВАНО / НУЖНЫ ИЗМЕНЕНИЯ / ОШИБКА>
 
 [x] <что реально завершено>
 [x] <что реально проверено>
-[ ] <что ещё не сделано>
-[ ] <следующий крупный незавершённый пункт>
+[ ] <что осталось именно в этой задаче>
+
+СТАТУС ПРОЕКТА:
+<ACTIVE / BLOCKED / READY FOR NEXT STAGE / PAUSED / COMPLETE>
+
+ТЕКУЩИЙ ЭТАП ПРОЕКТА:
+<где сейчас находится весь ClearSignal>
+
+СЛЕДУЮЩИЙ КРУПНЫЙ ЭТАП ПРОЕКТА:
+<реальный следующий milestone проекта>
+
+БЛОКЕР ЗАДАЧИ:
+<нет или blocker только текущей задачи>
+
+БЛОКЕР ПРОЕКТА:
+<нет или blocker, который реально мешает всему проекту двигаться дальше>
 
 ВЕТКА: <branch или N/A>
 КОММИТ: <SHA или N/A>
 ТЕСТЫ: <короткий фактический результат или N/A>
-БЛОКЕР: <нет или конкретный blocker>
-СЛЕДУЮЩИЙ ЭТАП: <одна короткая строка>
 ```
 
-If a finite stage plan is known in advance, the block may also include `ПРОГРЕСС: этап X из Y`.
-Never invent a completion percentage. Never mark `[x]` for planned work. Never invent test results,
-commits, evidence, or any other completion claim. Use only facts established in the current work or
-reliably present in project state.
+Never label the whole project `BLOCKED` merely because an optional check, documentation step, or
+individual micro-task is blocked. `СЛЕДУЮЩИЙ КРУПНЫЙ ЭТАП ПРОЕКТА` always comes from the project's
+actual roadmap or goal, not automatically from the next action in the current task. Never carry
+old blockers, tasks, or decisions into the current status without verifying that they still apply.
+If current Git state, files, or evidence contradict an older `STATUS.md` or handoff, use the current
+facts and explicitly note the discrepancy. Never infer overall project progress from the result of
+one task. Never mark `[x]` for planned work or invent test results, commits, evidence, progress, or
+any other completion claim. Use only facts established in the current work or reliably present in
+the current project state.
 
 Second, immediately after the block, write this plain-Russian owner summary:
 
 ```text
 Где мы сейчас:
-<1–3 предложения о состоянии всего проекта, не только текущей технической задачи.>
+<состояние всего проекта>
 
-Что это значит:
-<Всё ли нормально, есть ли блокировка и сколько крупных шагов осталось до большой цели.>
+Что закончилось сейчас:
+<результат только что выполненной задачи>
+
+Что ещё отделяет нас от текущей большой цели:
+<главные оставшиеся этапы>
 
 Что делать дальше:
-1. <Конкретное действие; логичный следующий вариант пометить "— рекомендую".>
+1. <Конкретное действие; основной вариант пометить "— рекомендую".>
 2. <Необязательная альтернатива.>
 3. <Необязательная альтернатива.>
 ```

@@ -28,39 +28,64 @@ Quick reminders that matter most when implementing:
   mirrored below so a fresh Codex session receives it even before reading that file. Keep the two
   copies synchronized. This report is not required after each minor command.
 
-  First, output one short copyable block, always in Russian:
+  First, output one short copyable block, always in Russian. It must explicitly separate the
+  current task from the whole ClearSignal project:
 
   ```text
   [СТАТУС]
-  ЭТАП: <короткое название этапа>
-  РЕЗУЛЬТАТ: <ГОТОВО / ПРОЙДЕНО / ЗАБЛОКИРОВАНО / НУЖНЫ ИЗМЕНЕНИЯ / ОШИБКА>
+
+  ТЕКУЩАЯ ЗАДАЧА:
+  <название>
+
+  РЕЗУЛЬТАТ ЗАДАЧИ:
+  <ГОТОВО / ПРОЙДЕНО / ЧАСТИЧНО ГОТОВО / ЗАБЛОКИРОВАНО / НУЖНЫ ИЗМЕНЕНИЯ / ОШИБКА>
 
   [x] <что реально завершено>
   [x] <что реально проверено>
-  [ ] <что ещё не сделано>
-  [ ] <следующий крупный незавершённый пункт>
+  [ ] <что осталось именно в этой задаче>
+
+  СТАТУС ПРОЕКТА:
+  <ACTIVE / BLOCKED / READY FOR NEXT STAGE / PAUSED / COMPLETE>
+
+  ТЕКУЩИЙ ЭТАП ПРОЕКТА:
+  <где сейчас находится весь ClearSignal>
+
+  СЛЕДУЮЩИЙ КРУПНЫЙ ЭТАП ПРОЕКТА:
+  <реальный следующий milestone проекта>
+
+  БЛОКЕР ЗАДАЧИ:
+  <нет или blocker только текущей задачи>
+
+  БЛОКЕР ПРОЕКТА:
+  <нет или blocker, который реально мешает всему проекту двигаться дальше>
 
   ВЕТКА: <branch или N/A>
   КОММИТ: <SHA или N/A>
   ТЕСТЫ: <короткий фактический результат или N/A>
-  БЛОКЕР: <нет или конкретный blocker>
-  СЛЕДУЮЩИЙ ЭТАП: <одна короткая строка>
   ```
 
-  If a finite plan is known, `ПРОГРЕСС: этап X из Y` may be added. Never invent percentages,
-  evidence, tests, or commits; `[x]` means actually completed or verified, never merely planned.
+  Never call the whole project `BLOCKED` merely because an optional check, documentation step, or
+  micro-task is blocked. The next project stage must come from the real project roadmap, not from
+  the next action in the current task. Verify old blockers, tasks, and decisions before carrying
+  them forward. If current Git state, files, or evidence contradict an older `STATUS.md` or handoff,
+  use the current facts and explicitly note the discrepancy. Never infer overall project progress
+  from one task. Never invent progress, evidence, tests, or commits; `[x]` means actually completed
+  or verified, never merely planned.
 
   Immediately follow it with this plain-Russian owner summary:
 
   ```text
   Где мы сейчас:
-  <1–3 предложения о состоянии всего проекта, не только текущей технической задачи.>
+  <состояние всего проекта>
 
-  Что это значит:
-  <Всё ли нормально, есть ли блокировка и сколько крупных шагов осталось до большой цели.>
+  Что закончилось сейчас:
+  <результат только что выполненной задачи>
+
+  Что ещё отделяет нас от текущей большой цели:
+  <главные оставшиеся этапы>
 
   Что делать дальше:
-  1. <Конкретное действие; логичный следующий вариант пометить "— рекомендую".>
+  1. <Конкретное действие; основной вариант пометить "— рекомендую".>
   2. <Необязательная альтернатива.>
   3. <Необязательная альтернатива.>
   ```

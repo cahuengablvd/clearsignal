@@ -174,7 +174,7 @@ function PriorityBadge({ bucket }: { bucket: string }) {
 }
 
 function ConfidenceBadge({ level }: { level?: string }) {
-  const label = level ? `${level} evidence` : 'expert hypothesis'
+  const label = level ? `${level} evidence` : 'hypothesis, not measured'
   const colors: Record<string, string> = {
     high: 'bg-green-100 text-green-800 border-green-200',
     medium: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -991,7 +991,7 @@ export default async function AuditPage({
                   )}
                   <p className="mt-2 ml-8 text-xs text-muted-foreground">
                     Priority score: <span className="font-mono">{priority.score}</span> ({priority.formula}
-                    {typeof fix.confidence === 'number' ? `; evidence confidence ${fix.confidence}%` : '; expert hypothesis'}).
+                    {typeof fix.confidence === 'number' ? `; evidence confidence ${fix.confidence}%` : '; hypothesis, not measured'}).
                     {fix.control && ` Control: ${fix.control}.`}
                     {fix.probability && ` Probability: ${fix.probability}.`}
                   </p>

@@ -13,7 +13,7 @@ describe('recommendation-led positioning copy', () => {
     const home = source('app/page.tsx')
 
     expect(home).toContain(
-      'ClearSignal tests real buyer questions across ChatGPT, Claude and Perplexity, shows which brands appear in the tested answers, and compares the cited sources and website evidence surrounding those results. Alexander Kalinko reviews the evidence, factual claims and recommendations before each full report is sent.'
+      'ClearSignal tests real buyer questions across ChatGPT, Claude and Perplexity, shows which brands appear in the tested answers, and compares the cited sources and website evidence surrounding those results. A person reviews the evidence, factual claims and recommendations before each full report is sent.'
     )
     expect(home).toContain(
       'SEO helps pages become discoverable in search. ClearSignal examines a different, complementary question:'
@@ -31,6 +31,21 @@ describe('recommendation-led positioning copy', () => {
     ]) {
       const publicSurface = source(path)
       expect(publicSurface, path).not.toMatch(/recommendation visibility/i)
+    }
+  })
+})
+
+describe('public review wording', () => {
+  it('does not restore expert-review language or the founder name to public copy', () => {
+    for (const path of [
+      'app/page.tsx',
+      'app/sample/page.tsx',
+      'app/score/[id]/score-pdf-view.tsx',
+      'app/audit/[id]/page.tsx',
+      'lib/audit-label.ts',
+      'lib/resend.ts',
+    ]) {
+      expect(source(path), path).not.toMatch(/expert-review|expert review|expert hypothesis|Kalinko/i)
     }
   })
 })

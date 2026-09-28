@@ -107,11 +107,11 @@ const MOBILE_PRICING_AUDIT = PRICING_AUDIT.filter((item) =>
 const FAQS = [
   {
     q: 'How is ClearSignal different from asking ChatGPT to audit my website?',
-    a: "A single ChatGPT conversation gives you one model's general opinion. ClearSignal runs a structured set of buyer-intent questions across ChatGPT, Claude and Perplexity, compares which businesses and sources appear, stores the evidence, identifies website and citation gaps, and turns the findings into an implementation plan reviewed by Alexander Kalinko.",
+    a: "A single ChatGPT conversation gives you one model's general opinion. ClearSignal runs a structured set of buyer-intent questions across ChatGPT, Claude and Perplexity, compares which businesses and sources appear, stores the evidence, identifies website and citation gaps, and turns the findings into an implementation plan reviewed by a person.",
   },
   {
     q: 'What happens after the free score?',
-    a: 'The free check gives you an initial visibility snapshot. The full audit adds a structured multi-engine query set, competitor and citation evidence, website clarity gaps, prioritized recommendations, draft implementation materials and expert review before delivery.',
+    a: 'The free check gives you an initial visibility snapshot. The full audit adds a structured multi-engine query set, competitor and citation evidence, website clarity gaps, prioritized recommendations, draft implementation materials and a review by a person before delivery.',
   },
   {
     q: 'Is this just an SEO audit?',
@@ -119,7 +119,7 @@ const FAQS = [
   },
   {
     q: 'Is this fully automated?',
-    a: 'The free score is automated. Alexander Kalinko reviews the full founding audit before delivery to catch factual issues, unsupported claims and unclear recommendations. No Google Analytics or Search Console access is required for the first audit.',
+    a: 'The free score is automated. Every full audit is reviewed by a person before delivery, to catch factual issues, unsupported claims and unclear recommendations. No Google Analytics or Search Console access is required for the first audit.',
   },
   {
     q: 'What happens if my business is not mentioned by AI at all?',
@@ -693,7 +693,7 @@ function ProductShowcase() {
         </div>
 
         <div id="what-you-get" className="mx-auto mt-5 flex max-w-[1120px] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center text-[11px] font-medium text-[#D7C5B4] sm:mt-6 sm:text-[12.5px]">
-          <span>Web dashboard + PDF report</span><span className="text-[#E9A96B]">·</span><span>Real AI evidence</span><span className="text-[#E9A96B]">·</span><span>Reviewed by Alexander Kalinko before delivery</span>
+          <span>Web dashboard + PDF report</span><span className="text-[#E9A96B]">·</span><span>Real AI evidence</span><span className="text-[#E9A96B]">·</span><span>Reviewed by a person before delivery</span>
         </div>
       </div>
     </section>
@@ -766,7 +766,7 @@ export default function LandingPage() {
               When buyers ask AI who to choose, does it recommend you, or your <span style={{ color: COPPER }}>competitor</span>?
             </h1>
             <p className="mx-auto mt-5 hidden max-w-md text-[15px] leading-relaxed text-[#6E5A50] sm:block lg:mx-0">
-              ClearSignal tests real buyer questions across ChatGPT, Claude and Perplexity, shows which brands appear in the tested answers, and compares the cited sources and website evidence surrounding those results. Alexander Kalinko reviews the evidence, factual claims and recommendations before each full report is sent.
+              ClearSignal tests real buyer questions across ChatGPT, Claude and Perplexity, shows which brands appear in the tested answers, and compares the cited sources and website evidence surrounding those results. A person reviews the evidence, factual claims and recommendations before each full report is sent.
             </p>
             <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row sm:flex-wrap sm:gap-3 lg:mt-7 lg:justify-start">
               <Link href="/score" className="inline-flex w-full max-w-[290px] items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[13.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:w-auto sm:max-w-none sm:px-6 sm:text-sm" style={{ backgroundColor: ESPRESSO }}>
@@ -1061,12 +1061,12 @@ export default function LandingPage() {
         <div className="relative z-10 mx-auto max-w-6xl px-5 py-14 sm:px-6 sm:py-24">
           <Reveal className="mx-auto max-w-2xl text-center">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#9E6238' }}>Founding offer</div>
-            <h2 className="mt-4 text-[clamp(1.8rem,3.7vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">One expert-reviewed audit. No subscription required.</h2>
+            <h2 className="mt-4 text-[clamp(1.8rem,3.7vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">One audit, reviewed by a person. No subscription required.</h2>
             <p className="mx-auto mt-4 hidden max-w-xl text-[15px] leading-relaxed text-[#6E5A50] sm:block">
               Get the evidence, priorities and implementation materials your team needs before deciding whether ongoing monitoring is worthwhile.
             </p>
             <p className="mx-auto mt-3 max-w-xl text-[13px] leading-relaxed text-[#6E5A50]">
-              Alexander Kalinko reviews the evidence, factual claims and recommendations before every full audit is delivered.
+              A person reviews the evidence, factual claims and recommendations before every full audit is delivered.
             </p>
           </Reveal>
 
@@ -1076,11 +1076,11 @@ export default function LandingPage() {
               <div className="flex items-start justify-between gap-3 sm:gap-6">
                 <div>
                   <div className="text-[17px] font-semibold leading-snug" style={{ color: ESPRESSO }}>AI Visibility Audit</div>
-                  <div className="mt-1 hidden max-w-sm text-[13px] leading-relaxed text-[#8D7B6B] sm:block">Expert-reviewed AI visibility and citation-readiness audit.</div>
+                  <div className="mt-1 hidden max-w-sm text-[13px] leading-relaxed text-[#8D7B6B] sm:block">AI visibility and citation-readiness audit, reviewed by a person.</div>
                 </div>
                 <span className="shrink-0 rounded-full border px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wider sm:px-3 sm:text-[10.5px]" style={{ borderColor: 'rgba(169,83,31,0.35)', color: COPPER, backgroundColor: 'rgba(169,83,31,0.06)' }}>Founding offer &middot; first 20</span>
               </div>
-              <div className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-[#8D7B6B] sm:hidden">Expert-reviewed AI visibility and citation-readiness audit.</div>
+              <div className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-[#8D7B6B] sm:hidden">AI visibility and citation-readiness audit, reviewed by a person.</div>
 
               <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1 sm:mt-7 sm:gap-x-4">
                 <span className="text-[52px] font-semibold leading-none tracking-[-0.03em] sm:text-[64px]" style={{ color: ESPRESSO }}>&euro;149</span>
@@ -1099,7 +1099,7 @@ export default function LandingPage() {
                   <li key={b} className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: COPPER }} strokeWidth={2.5} /><span className="text-[#5C5148]">{b}</span></li>
                 ))}
               </ul>
-              <p className="mt-4 text-[12.5px] leading-relaxed text-[#6E5A50]">Reviewed before delivery by Alexander Kalinko.</p>
+              <p className="mt-4 text-[12.5px] leading-relaxed text-[#6E5A50]">Reviewed by a person before delivery.</p>
 
               <Link href="/checkout" className="mt-5 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-opacity duration-200 hover:opacity-90 sm:mt-8 sm:text-[15px]" style={{ backgroundColor: ESPRESSO }}>
                 Order the full audit &middot; &euro;149 <ArrowRight className="h-4 w-4" />
@@ -1116,14 +1116,6 @@ export default function LandingPage() {
             </p>
           </Reveal>
 
-        </div>
-      </section>
-
-      <section className="border-t border-[#EDE5D9] bg-[#FBF6EE]">
-        <div className="mx-auto max-w-[780px] px-6 py-16 text-center">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: '#9E6238' }}>Who built this</div>
-          <h2 className="mt-4 text-[clamp(1.8rem,3.7vw,2.5rem)] font-semibold leading-[1.08] tracking-[-0.025em]">Alexander Kalinko</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-[#6E5A50]">Alexander built ClearSignal to make AI visibility evidence practical for teams deciding what to improve. He reviews each full audit before delivery, checking the evidence, factual claims and recommendations for clarity. The final report is meant to support informed implementation decisions, not promise a particular outcome.</p>
         </div>
       </section>
 
@@ -1178,7 +1170,7 @@ export default function LandingPage() {
             </nav>
           </div>
           <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t pt-6 text-center text-[12px] leading-relaxed text-[#A08D77] md:flex-row md:text-left" style={{ borderColor: 'rgba(233,169,107,0.14)' }}>
-            <span>AI visibility audits reviewed by Alexander Kalinko for teams that want to be found, cited and recommended.</span>
+            <span>AI visibility audits, reviewed by a person, for teams that want to be found, cited and recommended.</span>
             <span className="text-[#8C7862]">ClearSignal measures a tested query set. Results may vary as AI systems and source data change.</span>
           </div>
           <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[12px] text-[#A08D77] md:justify-start">

@@ -6,10 +6,12 @@ changes.
 
 ## What ClearSignal is
 
-An **expert-reviewed AI Visibility Audit**, sold as a one-time product (not a subscription, not a
+An **AI Visibility Audit, reviewed by a person**, sold as a one-time product (not a subscription, not a
 monitoring dashboard). It tests how ChatGPT, Claude and Perplexity answer buyer-intent questions
 about a business, shows who appears instead of them, and turns the evidence into a prioritized,
 stage-aware implementation plan. A person reviews every report before delivery.
+
+Never write "expert-reviewed". The founder's name appears only on `/terms` and `/privacy`.
 
 - **Positioning:** "Deeper than a scanner. Cheaper than an agency." The empty slot between $29–99/mo
   monitoring tools (Otterly, Peec, Semrush, Ahrefs) and $3–10k/mo agencies.

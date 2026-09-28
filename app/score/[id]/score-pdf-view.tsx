@@ -184,7 +184,7 @@ export function ScorePdfView({
           </p>
           <h2 className="mt-2 text-2xl font-bold">Go from a snapshot to an implementation plan</h2>
           <p className="mt-2 text-sm leading-6 text-[#6E5A50]">
-            These sections are included in the full expert-reviewed audit.
+            These sections are included in the full audit, reviewed by a person.
           </p>
           <div className="mt-5 grid grid-cols-2 gap-3">
             {lockedSections.map((section) => (

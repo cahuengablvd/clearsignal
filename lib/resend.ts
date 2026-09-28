@@ -103,7 +103,7 @@ function emailShell(opts: {
           <td style="padding: 22px 4px 0; font-family: ${FONT};">
             <hr class="cs-rule" style="border: none; border-top: 1px solid ${BRAND.border}; margin: 0 0 14px;" />
             <p class="cs-muted" style="margin: 0; font-size: 12px; line-height: 1.6; color: ${BRAND.muted};">
-              ClearSignal - expert-reviewed AI Visibility Audits. Every report is checked by a person before it is sent.
+              ClearSignal - AI Visibility Audits. Every report is checked by a person before it is sent.
             </p>
             <p class="cs-muted" style="margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: ${BRAND.muted};">
               <a href="${baseUrl()}/terms" style="color: ${BRAND.muted};">Terms</a> &nbsp;/&nbsp;
@@ -156,7 +156,7 @@ export function buildReportEmailText(url: string, reportLink: string, pdfLink: s
     `View your report: ${reportLink}`,
     `Open the PDF: ${pdfLink}`,
     '',
-    'ClearSignal - expert-reviewed AI Visibility Audits.',
+    'ClearSignal - AI Visibility Audits.',
     'Every report is checked by a person before it is sent.',
   ].join('\n')
 }

@@ -14,3 +14,6 @@ _*.ts
 email-preview.html
 
 .vercel
+
+# Pilot prospect data (personal data, never commit)
+validation/**/*.local.*

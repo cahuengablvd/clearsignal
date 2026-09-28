@@ -10,7 +10,7 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-09-10. PX-0 read-only row verification resolved the Alahli audit identity and R39 disposition; no production write, provider call, audit operation, or deploy occurred. Alahli's 30-page PDF at Vercel `319851d` / Trigger `20260904.5` passed the Fable review and is approved for delivery once the owner has read the four reviewer notes below. Report design lab: Round 1 done on branch `report-design-lab` (defective), Round 2 spec `TASKS_REPORT_DESIGN_LAB_R2.md` ready for Codex.
+**Last updated:** 2026-09-28 — Agency Pilot 01 spec and site-wording task added (section below); nothing sent, nothing deployed. Previous update 2026-09-10: PX-0 read-only row verification resolved the Alahli audit identity and R39 disposition; no production write, provider call, audit operation, or deploy occurred. Alahli's 30-page PDF at Vercel `319851d` / Trigger `20260904.5` passed the Fable review and is approved for delivery once the owner has read the four reviewer notes below. Report design lab: Round 1 done on branch `report-design-lab` (defective), Round 2 spec `TASKS_REPORT_DESIGN_LAB_R2.md` ready for Codex.
 
 ## Deploys
 
@@ -39,7 +39,34 @@ at the end of a working session.
   Confirm the renewal went through after 2026-08-23.
 - **Codex weekly limit resets 2026-08-10.** Exhausted on 2026-08-04 (see Cost below).
 
-## Sales test — running
+## Agency Pilot 01 — spec ready, nothing sent (2026-09-27)
+
+- Spec `TASKS_AGENCY_PILOT_VALIDATION.md`; copy `validation/pilot01/COPY.md`; reply playbook
+  `validation/pilot01/REPLY_PLAYBOOK.md`. The owner approved the scope exception, and his strategy
+  now puts the agency pilot first.
+- Next: Phase 1 (Codex + Apollo). No app code, and nothing is sent until the owner writes `GO LIVE`.
+- Volume (owner decision, 2026-09-27): from `alex@blvdproduction.com`, 20 new emails a day with
+  random gaps plus one follow-up, 40 a day at most in total; 200 prospects in the first wave. The
+  owner's Google Sheet `seo_baltics`, tab `gid=95772132`, is his working list; he does LinkedIn by
+  hand from it.
+- Owner inputs pending: postal address for the email signature (Phase 1); pack price and a live
+  Stripe Payment Link (Phase 3); a separate outreach domain (in parallel).
+- Phases 2–3 wait until the uncommitted engine work in `lib/` (5 files, present 2026-09-27) is
+  either committed with a Trigger deploy or dropped.
+- Gates: Phase 2 (pilot pages) only after 3 agencies accept a pilot; Phase 3 (feedback page,
+  automation) only after 3–5 written feedbacks.
+- Until then, pilots run by hand: comped audit in `/admin`, written feedback
+  (`validation/pilot01/FEEDBACK_EMAILS.md`; no calls, owner decision), notes in the sheet.
+- The first packs are sold with a Stripe invoice; the current webhook ignores invoices.
+- Site wording (owner decision, 2026-09-28): "reviewed by a person" replaces "expert-reviewed",
+  and the founder's name comes off the marketing copy (it stays on `/privacy` and `/terms`, as the
+  law requires). Task: `TASKS_SITE_REVIEW_WORDING.md` — it should be live before `GO LIVE`.
+
+## Sales test (August) — closed: 0 replies
+
+**Outcome (owner, 2026-09-27):** about 50 Baltic agencies were emailed from the owner's personal
+Gmail (LinkedIn requests too), and there were zero replies. The real tracker was the Google Sheet
+`seo_baltics`, not `validation/tracking.csv`. The text below is the August plan, kept for history.
 
 **23 emails sent 2026-08-07 (a Friday). Zero replies as of 2026-08-10.** Baltic SEO agencies, top of
 `validation/tracking.csv`, from the owner's personal mailbox. The message asks whether an agency

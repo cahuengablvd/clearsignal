@@ -10,11 +10,12 @@ at the end of a working session.
 
 ---
 
-**Last updated:** 2026-09-28 — Agency Pilot 01 spec and site-wording task added (section below); nothing sent, nothing deployed. Previous update 2026-09-10: PX-0 read-only row verification resolved the Alahli audit identity and R39 disposition; no production write, provider call, audit operation, or deploy occurred. Alahli's 30-page PDF at Vercel `319851d` / Trigger `20260904.5` passed the Fable review and is approved for delivery once the owner has read the four reviewer notes below. Report design lab: Round 1 done on branch `report-design-lab` (defective), Round 2 spec `TASKS_REPORT_DESIGN_LAB_R2.md` ready for Codex.
+**Last updated:** 2026-09-28 — Site review wording deployed to Vercel and verified live: the landing page has no expert claim or founder name, while `/privacy` and `/terms` retain the operator name. No message, provider call, audit operation, or Trigger deploy occurred. Previous update 2026-09-10: PX-0 read-only row verification resolved the Alahli audit identity and R39 disposition; no production write, provider call, audit operation, or deploy occurred. Alahli's 30-page PDF at Vercel `319851d` / Trigger `20260904.5` passed the Fable review and is approved for delivery once the owner has read the four reviewer notes below. Report design lab: Round 1 done on branch `report-design-lab` (defective), Round 2 spec `TASKS_REPORT_DESIGN_LAB_R2.md` ready for Codex.
 
 ## Deploys
 
-- **Vercel** — production `/api/health` reports **`319851d`**.
+- **Vercel** — production `/api/health` is verified against the current `main` deployment.
+- **Site wording deploy (2026-09-28)** — Vercel production was verified after `2b006a1`: public marketing copy now says "reviewed by a person", the founder section is removed, and the legal pages are unchanged. `lib/resend.ts` changed only its delivery footer; because `AUTO_DELIVER_AUDITS=false` in production, this is intentional dormant Trigger drift. The next regular Trigger deploy must clear it; do not deploy Trigger solely for this wording task.
 - **Trigger.dev** — current/deployed version **`20260904.5`**, deployed from the clean no-space
   checkout at **`319851ddcc3cda49a8aa13fef4d0f79e3705bd87`**; configured runtime `node-22`, `git.dirty: false`, 5 tasks.
 - **Supabase** — migration `014_daily_ai_spend_guard.sql` applied 2026-08-21 with RLS enabled.

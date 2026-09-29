@@ -37,6 +37,10 @@ export function knownChannel(value: string): Channel | undefined {
   const normalized = normalizeEntityName(value)
   return KNOWN_CHANNELS.find((channel) => [channel.canonical, ...channel.aliases, ...channel.domains].some((alias) => normalizeEntityName(alias) === normalized))
 }
+/** Stable presentation taxonomy for observed channel/source entities. */
+export function observedEntityKind(value: string, role: EntityRole): string {
+  return knownChannel(value)?.kind || (role === 'source_or_publisher' ? 'publisher' : 'unknown')
+}
 export function domainCorroboratesEntity(domainOrUrl: string, aliases: string[]): boolean {
   const domain = registrableDomain(domainOrUrl)
   if (!domain || knownChannel(domain)) return false

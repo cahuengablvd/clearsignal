@@ -7,6 +7,7 @@ vi.mock('../lib/supabase', () => ({ supabaseAdmin: {} }))
 
 import { recomputeReusedGeoEvidence } from '../lib/audit-runner'
 import { runGeoScan } from '../lib/geo'
+import { observedEntityKind } from '../lib/geo/entities'
 import type { GeoResult } from '../lib/schemas'
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
@@ -76,6 +77,31 @@ afterEach(() => {
 })
 
 describe('PC-1 operator competitor identity parity', () => {
+  it('classifies known directories, social and marketplace channels, publishers, and unknowns', () => {
+    expect(observedEntityKind('Clutch', 'channel_or_directory')).toBe('directory')
+    expect(observedEntityKind('Facebook', 'channel_or_directory')).toBe('social')
+    expect(observedEntityKind('Thumbtack', 'channel_or_directory')).toBe('marketplace')
+    expect(observedEntityKind('Local Journal', 'source_or_publisher')).toBe('publisher')
+    expect(observedEntityKind('Unlisted Brand', 'unknown')).toBe('unknown')
+  })
+
+  it('keeps fresh and reused observed-channel kinds in sync', async () => {
+    const answer = 'Target, Facebook, and Clutch appear together in this buyer comparison. '
+    mocks.queryEngine.mockResolvedValue(response(answer))
+    mocks.callClaudeJSON.mockResolvedValue({ candidates: [
+      { name: 'Facebook', role_guess: 'channel_or_directory', quote: 'Facebook', answer_index: 0 },
+      { name: 'Clutch', role_guess: 'channel_or_directory', quote: 'Clutch', answer_index: 0 },
+    ] })
+    const fresh = await runGeoScan({
+      brand: 'Target', url: 'https://target.example', providedQueries: ['first buyer question'],
+      engines: ['openai'], analyzeSources: false, narrative: false,
+    })
+    const reused = recomputeReusedGeoEvidence(clone(fresh))
+    const projection = (geo: GeoResult) => geo.channels_observed?.map(({ name, kind }) => ({ name, kind }))
+    expect(projection(fresh)).toEqual([{ name: 'Facebook', kind: 'social' }, { name: 'Clutch', kind: 'directory' }])
+    expect(projection(reused)).toEqual(projection(fresh))
+  })
+
   it('keeps a name-form operator competitor identical through fresh storage and repeated zero-call recompute', async () => {
     const { fresh, recomputed } = await freshThenRecompute(['al rajhi bank'])
     expect(accepted(fresh)).toEqual([{ entity_id: 'entity-alrajhibank', display_name: 'al rajhi bank', state: 'accepted' }])

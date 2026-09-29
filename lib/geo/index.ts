@@ -55,7 +55,7 @@ import {
   registrableDomain,
   sld,
 } from './detect'
-import { entityEquivalenceKey, resolveEntities, type EntityCandidate } from './entities'
+import { entityEquivalenceKey, observedEntityKind, resolveEntities, type EntityCandidate } from './entities'
 import { buildMeasurementMethodology } from './methodology'
 
 const SCORE_WEIGHTS = { mention: 0.4, citation: 0.25, position: 0.2, share_of_voice: 0.15 }
@@ -687,7 +687,7 @@ export async function runGeoScan(opts: RunGeoOptions): Promise<GeoResult> {
     evidence,
     competitor_visibility,
     entity_resolution: { version: process.env.GEO_ENTITY_PIPELINE === 'legacy' ? 'legacy' : 'v1', entities: resolution.entities },
-    channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: 'directory', mention_rate: pct(coreEvidence.filter((item) => (item.entity_observations || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
+    channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: observedEntityKind(entity.display_name, entity.role), mention_rate: pct(coreEvidence.filter((item) => (item.entity_observations || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
     cited_domains_ranked,
     ...narrative,
     query_provenance: provenance,

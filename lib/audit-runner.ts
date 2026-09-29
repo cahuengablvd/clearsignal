@@ -59,7 +59,7 @@ import { reconcileAuditAiCost } from './ai-observability'
 import { isAnswerEngineCompetitorName } from './engine-scope'
 import { isDeterministicAuditFailure } from './audit-recovery'
 import { buildEngineCoverage, evaluateCoverageGate, MEASUREMENT_TEXT_LIMIT, SUCCESSFUL_STATUSES, type LedgerRow } from './geo/coverage'
-import { resolveEntities } from './geo/entities'
+import { observedEntityKind, resolveEntities } from './geo/entities'
 import { buildMeasurementMethodology } from './geo/methodology'
 
 export type RunFullAuditOptions = {
@@ -400,7 +400,7 @@ export function recomputeReusedGeoEvidence(
     cited_domains_ranked,
     source_gap_analysis,
     entity_resolution: { version: process.env.GEO_ENTITY_PIPELINE === 'legacy' ? 'legacy' : 'v1', entities: resolution.entities },
-    channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: 'directory', mention_rate: pct(measurementEvidence.filter((item) => (resolution.observationsByAnswer[geo.evidence.indexOf(item)] || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
+    channels_observed: resolution.entities.filter((entity) => entity.state === 'channel').map((entity) => ({ name: entity.display_name, kind: observedEntityKind(entity.display_name, entity.role), mention_rate: pct(measurementEvidence.filter((item) => (resolution.observationsByAnswer[geo.evidence.indexOf(item)] || []).some((observation) => observation.entity_id === entity.entity_id)).length, total), role_source: entity.role_source })),
     score_breakdown: {
       mention_rate,
       citation_rate,

@@ -1681,6 +1681,17 @@ describe('final PDF polish: bracket placeholders + commercial-claim repair', () 
     expect(once).not.toMatch(/should be confirmed with the business|Contact the business to confirm/i)
   })
 
+  it('checks imperative client copy and keeps verified commercial terms', () => {
+    const unsupported = BusinessContextSchema.parse({})
+    const supported = BusinessContextSchema.parse({ verified_facts: 'A free consultation is available.' })
+    const input = 'Offer a free consultation.'
+    const once = sanitizeUnsupportedCommercialClaims(input, unsupported)
+    expect(once).toBe('Offer a consultation.')
+    expect(sanitizeUnsupportedCommercialClaims(once, unsupported)).toBe(once)
+    expect(sanitizeUnsupportedCommercialClaims(input, supported)).toBe(input)
+    expect(sanitizeGeneratedProse(input, undefined, undefined, { businessContext: unsupported })).toBe(once)
+  })
+
   it('replaces unsupported commercial claims at sentence level, not word level', () => {
     const ctx = BusinessContextSchema.parse({})
     const out = sanitizeUnsupportedCommercialClaims(

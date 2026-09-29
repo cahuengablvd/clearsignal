@@ -96,12 +96,11 @@ function joinLabels(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 }
 
-function isInstructionSentence(sentence: string): boolean {
-  return /^\s*(?:add|display|include|show|list|render|surface|publish|create|claim|optimi[sz]e|mark up|ensure|use|verify|confirm|consider|avoid|keep|replace|rewrite|build|develop|seek|pursue|ask)\b/i.test(sentence)
-}
-
 function unsupportedCommercialClaimLabels(sentence: string, context: BusinessContext): string[] {
-  if (isInstructionSentence(sentence) || /\?\s*$/.test(sentence.trim())) return []
+  // Instructions and questions can still contain publishable commercial terms
+  // (for example, "Offer a free consultation").  The caller decides whether
+  // the field is client-visible; do not let imperative grammar bypass the
+  // commercial-claim checks.
   const labels: string[] = []
   const add = (label: string) => {
     if (!labels.includes(label)) labels.push(label)
@@ -167,6 +166,17 @@ function unsupportedCommercialClaimLabels(sentence: string, context: BusinessCon
 
 export function sanitizeUnsupportedCommercialClaims(text: string, context?: BusinessContext): string {
   if (!text || !context) return text
+  const neutralizationLabels = new Set([
+    'purchase availability', 'shipping options', 'authenticity or provenance documentation',
+    'payment options', 'return terms', 'pricing', 'third-party recognition', 'free offer',
+    'discount or sale', 'specific price', 'warranty duration', 'turnaround or delivery duration',
+    'guaranteed availability', 'guarantee',
+  ])
+  const existingNeutralization = text.match(/^\s*Ask the business about (.+?)[.!?]\s*$/i)
+  if (existingNeutralization) {
+    const labels = existingNeutralization[1].split(/,\s*|\s+and\s+/i).map((label) => label.trim().toLowerCase())
+    if (labels.length && labels.every((label) => neutralizationLabels.has(label))) return text
+  }
   const out = splitProseParts(text)
     .map((part) => {
       if (/^\s+$/.test(part)) return part
@@ -294,7 +304,10 @@ export function sanitizeGeneratedProse(
 
   // Temporary compatibility pass for low-risk adjective swaps and sample bounds
   // not yet migrated into A2. Do not reintroduce placeholder insertion.
-  return (redactQuantifiedExamples ? out : softenUnsupportedClaims(out, mentions, total))
+  const commercialSafe = options.businessContext && options.scope !== 'third_party_source_description'
+    ? sanitizeUnsupportedCommercialClaims(out, options.businessContext)
+    : out
+  return (redactQuantifiedExamples ? commercialSafe : softenUnsupportedClaims(commercialSafe, mentions, total))
     .replace(/\s+([.,;:!?])/g, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim()

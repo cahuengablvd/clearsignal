@@ -20,6 +20,7 @@ import { buildGeoSummary } from './geo'
 import { evaluateCoverageGate, SUCCESSFUL_STATUSES } from './geo/coverage'
 import { buildQueryAnalysis } from './geo/query-taxonomy'
 import { buildGeoActionEvidenceCatalog, filterGeoActionEvidenceIds } from './geo/action-evidence'
+import { observedEntityKind } from './geo/entities'
 import { attachActionRecommendationStages, buildStagedGeoRecommendations } from './geo/recommendation-stages'
 import { splitSentences } from './trust/sentences'
 import {
@@ -276,6 +277,84 @@ const CLIENT_ARTIFACT_PATTERNS: Array<[RegExp, string]> = [
 /** Deep clone via JSON round-trip (report is always JSON-serializable). */
 function clone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v)) as T
+}
+
+function escapeEntityRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** Remove listing actions that target named businesses or unresolved entities. */
+function sanitizeEntityListingRecommendations(report: ClearSignalReport, warn: (message: string) => void): void {
+  const entities = report.geo?.entity_resolution?.version === 'v1' ? report.geo.entity_resolution.entities : []
+  if (!entities.length) return
+  const directoryNames = entities
+    .filter((entity) => entity.state === 'channel' && observedEntityKind(entity.display_name, entity.role) === 'directory')
+    .flatMap((entity) => [entity.display_name, ...entity.aliases])
+  const unsupportedNames = entities
+    .filter((entity) => entity.role === 'competitor' || entity.role === 'unknown' || entity.state === 'unconfirmed')
+    .flatMap((entity) => [entity.display_name, ...entity.aliases])
+  const unique = (values: string[]) => [...new Set(values.filter((value) => value.trim()))]
+  const bad = unique(unsupportedNames)
+  const good = unique(directoryNames)
+  const cleanText = (value: string): string => {
+    if (!/(?:list(?:ed|ing)?|mention(?:ed)?|profile|directory)/i.test(value) || !/\b(?:on|in)\b/i.test(value)) return value
+    const badMatches = bad.filter((name) => new RegExp(`(?<![\\p{L}\\p{N}])${escapeEntityRegExp(name)}(?![\\p{L}\\p{N}])`, 'iu').test(value))
+    if (!badMatches.length) return value
+    const goodMatches = good.filter((name) => new RegExp(`(?<![\\p{L}\\p{N}])${escapeEntityRegExp(name)}(?![\\p{L}\\p{N}])`, 'iu').test(value))
+    if (!goodMatches.length) return ''
+    let out = value
+    for (const name of badMatches) out = out.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escapeEntityRegExp(name)}(?![\\p{L}\\p{N}])`, 'giu'), ' ')
+    return out
+      .replace(/\s*,\s*,+\s*/g, ', ')
+      .replace(/,\s*(?:and|&)\s+/gi, ' and ')
+      .replace(/\s+(?:and|&)\s*,\s*/gi, ', ')
+      .replace(/\s+(?:and|&)\s+(?:and|&)\s+/gi, ' and ')
+      .replace(/\b(on|in)\s+(?:and|&)\s+/gi, '$1 ')
+      .replace(/\b(on|in)\s*,\s*/gi, '$1 ')
+      .replace(/\s*,\s*$/g, '')
+      .replace(/\s+(?:and|&)\s*$/gi, '')
+      .replace(/\b(on|in)\s+(?:(?:and|&)\s*)?$/gi, '')
+      .replace(/^\s*(?:and|&)\s+/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([,.])/g, '$1')
+      .trim()
+  }
+  const rewrite = (value: unknown, path: string[] = []): unknown => {
+    if (typeof value === 'string') return cleanText(value)
+    if (Array.isArray(value)) return value
+      .map((item, index) => rewrite(item, [...path, String(index)]))
+      .filter((item) => typeof item !== 'string' || item.trim().length > 0)
+    if (value && typeof value === 'object') {
+      const out: Record<string, unknown> = {}
+      for (const [key, child] of Object.entries(value)) {
+        const rewritten = rewrite(child, [...path, key])
+        if (typeof rewritten === 'string' && rewritten.trim().length === 0) continue
+        out[key] = rewritten
+      }
+      return out
+    }
+    return value
+  }
+  if (report.action) report.action = rewrite(report.action, ['action']) as ClearSignalReport['action']
+  if (report.implementation_briefs) report.implementation_briefs = rewrite(report.implementation_briefs, ['implementation_briefs']) as ClearSignalReport['implementation_briefs']
+  if (report.geo) report.geo.recommendations = rewrite(report.geo.recommendations, ['geo', 'recommendations']) as string[]
+  if (bad.length) warn('entity_taxonomy: withheld listing recommendations for non-directory or unresolved named entities')
+}
+
+function repairEntitySummary(report: ClearSignalReport, warn: (message: string) => void, repair: (text: string, path: string[]) => string): void {
+  const summary = report.action?.executive_summary
+  const geo = report.geo
+  if (!summary || !geo?.entity_resolution || geo.entity_resolution.version !== 'v1') return
+  if (!/no other (?:competitor|business|provider)[^.?!]*(?:detected|appeared|found)/i.test(summary)) return
+  const confirmed = geo.competitor_visibility.map((item) => item.name).filter(Boolean)
+  const other = geo.entity_resolution.entities.some((entity) => entity.role === 'competitor' && !confirmed.includes(entity.display_name) && entity.occurrences > 0)
+  if (!other || !confirmed.length) return
+  const replacement = `Only ${confirmed.join(', ')} met the audit's confirmed-competitor inclusion criteria. Other named businesses appeared in tested answers but were not included in the confirmed competitor table.`
+  report.action.executive_summary = summary.replace(
+    /[^.!?]*(?:no other (?:competitor|business|provider)[^.?!]*(?:detected|appeared|found))[^.!?]*[.!?]?/i,
+    repair(replacement, ['action', 'executive_summary'])
+  )
+  warn('entity_taxonomy: clarified summary distinction between named businesses and confirmed competitors')
 }
 
 function isPublishablePath(path: string[]): boolean {
@@ -778,16 +857,19 @@ export function validateReport(input: ClearSignalReport): ReportValidation {
     return out
   }
 
+  const actionTitlesBeforeFiltering = new Set(
+    (report.action?.top_fixes || []).map((fix) => String(fix.title || '').trim()).filter((title) => Boolean(title) && !isBareLabel(title))
+  )
   validateBlankAcceptanceCriteria(report, errors)
   const walked = mapProse(report, repair) as ClearSignalReport
+  sanitizeEntityListingRecommendations(walked, warn)
+  repairEntitySummary(walked, warn, repair)
   rebuildReadyMaterials(walked, warn)
   dropReplacementOnlyBriefSteps(walked, warn)
   validateFaqSanity(walked, errors, warnings, businessContext)
-  const actionTitlesBeforeFiltering = new Set(
-    (walked.action?.top_fixes || []).map((fix) => String(fix.title || '').trim()).filter((title) => Boolean(title) && !isBareLabel(title))
-  )
   dropEmptyNarrativeArrayItems(walked, warn)
   dropEmptyActionItems(walked, warn)
+  validateBlankAcceptanceCriteria(walked, errors)
   reconcileClientActionProjection(walked, warn, actionTitlesBeforeFiltering)
   validateEmptyClientFields(walked, errors)
   validatePublishableFacts(walked, errors)

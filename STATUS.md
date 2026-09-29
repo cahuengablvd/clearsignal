@@ -3,14 +3,15 @@
 Only what git cannot know. Keep this file under ~120 lines; durable product context is in
 `CLAUDE.md`, work rules in `AGENTS.md`, and open defects in `DEFECTS_BACKLOG.md`.
 
-**Last updated:** 2026-09-29 — Engine work is committed and deployed. Vercel `/api/health` reports
-`f88b070`; Trigger `20260929.1` is current, sourced from the same clean main commit, with
-Node.js `22.16.0`, `git.dirty: false`, and 5 tasks. Previous Trigger `20260924.1` from
-`635688a` was newer than the old `STATUS.md` entry `20260904.5`.
+**Last updated:** 2026-09-29 — Vercel `/api/health` was verified at `f88b070` after the engine
+push. Trigger `20260929.1` is deployed from clean code commit `f88b070`; the later repository
+update records the owner handoff. Runtime is Node.js `22.16.0`, `git.dirty: false`, 5 tasks.
+Previous Trigger `20260924.1` from `635688a` was newer than the old `STATUS.md` entry `20260904.5`.
 
 ## Deploys
 
-- **Vercel** — auto-deploys `main`; production `/api/health` reports `f88b070`.
+- **Vercel** — auto-deploys `main`; production `/api/health` was verified at `f88b070` after
+  the engine push.
 - **Trigger.dev** — current `20260929.1`, source `f88b07004c852fe8904fe414a96dd93b2d38e47e`,
   runtime Node.js `22.16.0`, `git.dirty: false`, 5 tasks. The prior version was `20260924.1`
   from `635688a`.

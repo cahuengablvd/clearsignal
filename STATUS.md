@@ -1,272 +1,76 @@
 # STATUS — external state
 
-Only what git cannot know: the state of systems outside the repository. Everything else is in the
-repo itself (`CLAUDE.md` = what the product is, `AGENTS.md` = how to work, `DEFECTS_BACKLOG.md` =
-open defects, `git log` = history).
+Only what git cannot know. Keep this file under ~120 lines; durable product context is in
+`CLAUDE.md`, work rules in `AGENTS.md`, and open defects in `DEFECTS_BACKLOG.md`.
 
-**Keep this file under ~120 lines.** It is read at the start of every session, so every line here
-is paid for on every step of that session. Detail belongs in `docs/archive/`, not here. Update it
-at the end of a working session.
-
----
-
-**Last updated:** 2026-09-28 — Site review wording deployed to Vercel and verified live: the landing page has no expert claim or founder name, while `/privacy` and `/terms` retain the operator name. No message, provider call, audit operation, or Trigger deploy occurred. Previous update 2026-09-10: PX-0 read-only row verification resolved the Alahli audit identity and R39 disposition; no production write, provider call, audit operation, or deploy occurred. Alahli's 30-page PDF at Vercel `319851d` / Trigger `20260904.5` passed the Fable review and is approved for delivery once the owner has read the four reviewer notes below. Report design lab: Round 1 done on branch `report-design-lab` (defective), Round 2 spec `TASKS_REPORT_DESIGN_LAB_R2.md` ready for Codex.
+**Last updated:** 2026-09-29 — Engine work is committed and deployed. Vercel `/api/health` reports
+`f88b070`; Trigger `20260929.1` is current, sourced from the same clean main commit, with
+Node.js `22.16.0`, `git.dirty: false`, and 5 tasks. Previous Trigger `20260924.1` from
+`635688a` was newer than the old `STATUS.md` entry `20260904.5`.
 
 ## Deploys
 
-- **Vercel** — production `/api/health` is verified against the current `main` deployment.
-- **Site wording deploy (2026-09-28)** — Vercel production was verified after `2b006a1`: public marketing copy now says "reviewed by a person", the founder section is removed, and the legal pages are unchanged. `lib/resend.ts` changed only its delivery footer; because `AUTO_DELIVER_AUDITS=false` in production, this is intentional dormant Trigger drift. The next regular Trigger deploy must clear it; do not deploy Trigger solely for this wording task.
-- **Trigger.dev** — current/deployed version **`20260904.5`**, deployed from the clean no-space
-  checkout at **`319851ddcc3cda49a8aa13fef4d0f79e3705bd87`**; configured runtime `node-22`, `git.dirty: false`, 5 tasks.
+- **Vercel** — auto-deploys `main`; production `/api/health` reports `f88b070`.
+- **Trigger.dev** — current `20260929.1`, source `f88b07004c852fe8904fe414a96dd93b2d38e47e`,
+  runtime Node.js `22.16.0`, `git.dirty: false`, 5 tasks. The prior version was `20260924.1`
+  from `635688a`.
 - **Supabase** — migration `014_daily_ai_spend_guard.sql` applied 2026-08-21 with RLS enabled.
-  Anything touching `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or
-  prompts needs a Trigger deploy or it is not live.
-- Deploy with the CLI pinned to `package.json` (`npx trigger.dev@4.4.6 deploy`); `@latest` aborts
-  on a version mismatch. See `DEPLOY.md`.
-- **A1 reminder:** any A1 change touching `lib/geo/*` requires a separate Trigger deploy from
-  `C:\csdeploy`; Vercel's `main` deployment alone does not make it live. Observe first production
-  A1 report size before declaring that operational check closed.
+- Code in `lib/audit-*`, `lib/report-*`, `lib/quality/*`, `lib/geo/*`, `trigger/*` or prompts
+  requires a separate Trigger deploy. Keep `AUTO_DELIVER_AUDITS=false`.
 
-## Blocked on the owner, not on code
+## Owner blockers
 
-1. **Live Stripe control purchase + refund** with a real card. Waiting on funds. Tests the live
-   webhook, generation and delivery end to end. Nobody else can do this.
+1. Live Stripe control purchase and refund with a real card; waiting on funds.
 2. Legal review of `/terms`, `/privacy`, `/refund` and VAT treatment.
 
-## Dated obligations
+## Agency Pilot 01 — no outreach sent
 
-- **Namecheap Private Email trial ends 2026-08-23, auto-renew on.** If that charge fails the
-  mailbox lapses and customer replies vanish silently — nothing in the app would detect it.
-  Confirm the renewal went through after 2026-08-23.
-- **Codex weekly limit resets 2026-08-10.** Exhausted on 2026-08-04 (see Cost below).
+- Pilot spec and copy are ready. The owner approved the agency-first scope; nothing is sent until
+  the owner writes `GO LIVE`.
+- Phase 1 Apollo check (2026-09-28): mailbox active/default; 2,550 lead credits; Eastern schedule
+  Mon–Fri 10:00–17:00 `America/New_York`, contact timezone and holidays respected. Empty lists:
+  Cohort A `6aba26fcb50f0e00145dad1b`, Cohort B `6aba26fde2b71e0014c6230f`.
+- Apollo still needs reauthentication with enrichment, contact, custom-field and sequence scopes.
+  No ClearSignal contacts or sequences exist; nothing was sent or enrolled, and no LinkedIn action
+  occurred. The owner's signature address is `Gaujas iela 5c, Marupe, LV-2167, Latvia`.
+- Engine work in `lib/` is committed to `main` and live on Trigger `20260929.1`; it no longer
+  blocks Agency Pilot Phase 2–3. Phase 1 still waits for Apollo OAuth reauthentication.
+- Owner decisions: 20 new emails/day plus one follow-up, 40/day maximum, first wave 200 prospects;
+  working list is `seo_baltics` (`gid=95772132`). Pack price and live Stripe Payment Link remain
+  pending for Phase 3; a separate outreach domain is a parallel item.
+- Phase 2 pages wait for 3 agency pilot acceptances; Phase 3 automation waits for 3–5 written
+  feedbacks. Until then, run pilots manually through `/admin` and collect written feedback.
 
-## Agency Pilot 01 — spec ready, nothing sent (2026-09-27)
+## Sales test — closed, 0 replies
 
-- Spec `TASKS_AGENCY_PILOT_VALIDATION.md`; copy `validation/pilot01/COPY.md`; reply playbook
-  `validation/pilot01/REPLY_PLAYBOOK.md`. The owner approved the scope exception, and his strategy
-  now puts the agency pilot first.
-- Next: Phase 1 (Codex + Apollo). No app code, and nothing is sent until the owner writes `GO LIVE`.
-- Volume (owner decision, 2026-09-27): from `alex@blvdproduction.com`, 20 new emails a day with
-  random gaps plus one follow-up, 40 a day at most in total; 200 prospects in the first wave. The
-  owner's Google Sheet `seo_baltics`, tab `gid=95772132`, is his working list; he does LinkedIn by
-  hand from it.
-- Owner inputs pending: postal address for the email signature (Phase 1); pack price and a live
-  Stripe Payment Link (Phase 3); a separate outreach domain (in parallel).
-- Phases 2–3 wait until the uncommitted engine work in `lib/` (5 files, present 2026-09-27) is
-  either committed with a Trigger deploy or dropped.
-- Gates: Phase 2 (pilot pages) only after 3 agencies accept a pilot; Phase 3 (feedback page,
-  automation) only after 3–5 written feedbacks.
-- Until then, pilots run by hand: comped audit in `/admin`, written feedback
-  (`validation/pilot01/FEEDBACK_EMAILS.md`; no calls, owner decision), notes in the sheet.
-- The first packs are sold with a Stripe invoice; the current webhook ignores invoices.
-- Site wording (owner decision, 2026-09-28): "reviewed by a person" replaces "expert-reviewed",
-  and the founder's name comes off the marketing copy (it stays on `/privacy` and `/terms`, as the
-  law requires). Task: `TASKS_SITE_REVIEW_WORDING.md` — it should be live before `GO LIVE`.
+About 50 Baltic agencies were contacted from the owner's personal Gmail, with LinkedIn requests;
+there were no replies. Agency Pilot 01 is the current validation path.
 
-## Sales test (August) — closed: 0 replies
+## Other external work
 
-**Outcome (owner, 2026-09-27):** about 50 Baltic agencies were emailed from the owner's personal
-Gmail (LinkedIn requests too), and there were zero replies. The real tracker was the Google Sheet
-`seo_baltics`, not `validation/tracking.csv`. The text below is the August plan, kept for history.
+- Site review wording is live: marketing says “reviewed by a person,” the founder section is gone,
+  and `/privacy` and `/terms` retain the legally required operator name.
+- The dormant `lib/resend.ts` delivery-footer drift is cleared by Trigger `20260929.1`;
+  `AUTO_DELIVER_AUDITS` remains false.
+- Alahli audit `1e9122fe-4eed-4160-9624-c0cdba82a5ca` remains `awaiting_review`, never delivered.
+  Its 30-page PDF passed review; the owner should read the four reviewer notes before delivery.
 
-**23 emails sent 2026-08-07 (a Friday). Zero replies as of 2026-08-10.** Baltic SEO agencies, top of
-`validation/tracking.csv`, from the owner's personal mailbox. The message asks whether an agency
-could see itself reselling the audit, not whether they will buy.
+## Open defects and deferred follow-up
 
-Read the silence correctly: two of the three elapsed days were the weekend, so one business day has
-passed. Zero at this point carries almost no information. If the true reply rate were the 20% this
-plan assumes, zero across the whole batch would be a 0.6% event — decisive by day 7-10, not now.
+`R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22`, `R30` and `R38` remain open, pending customer
+priority. Closed items: `docs/archive/DEFECTS_CLOSED.md`.
 
-What to expect: most replies that come at all arrive within 48 hours. One follow-up on day 4, then
-`closed_no_reply`. Do not judge the copy or the segment before the batch is complete (23 of 40 sent)
-and 4-5 **business** days have passed.
+- Recompute can retain stale per-row `entity_observations` when new resolution finds nothing;
+  Trigger Regenerate also lacks the Arabic disclosure.
+- Assess free-score (`/score/[id]`) gate/display separately; the paid-report `report_only`
+  presentation rollback did not address it.
 
-`validation/tracking.csv` still shows `not_sent` with empty `first_message_date` for rows that were
-actually mailed. Until those dates are filled in, the day-4 follow-up schedule cannot be run.
+## Report design lab
 
-The objection to watch for is "why pay when ChatGPT does this free" — the clinic owner raised it and
-a handler is written. Three or more agencies raising it means a positioning problem no feature fixes.
-
-## In flight — owner only, no code
-
-- **Two-week sales test.** Kit ready in `validation/` (plan, outreach, agency interview script,
-  tracking sheet). Agencies first. Go/no-go criteria in `validation/PLAN.md`.
-- First real reader: a clinic owner, personal contact, receiving the `jusukosmetologs.lv` report
-  as a gift. Capture his verbatim reaction in `validation/tracking.csv` — especially whether he
-  asks *who could implement the fixes*. Repeated implementation questions from service businesses
-  would confirm the agency-first strategy on evidence instead of assumption.
-
-## Verification standing
-
-- **Alahli final trust-proof patch — READY FOR HUMAN PDF REVIEW, do not deliver yet.** Paid audit
-  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` was stored-evidence re-rendered at
-  `2026-09-04T12:48:58Z` after Vercel reached `319851d` and Trigger `20260904.5` was deployed
-  from the same clean SHA on its configured `node-22` runtime. The 16 historic AI-call records,
-  `$1.05` acquisition cost, completed stage ledger, observation time, competitors, and metrics
-  remain unchanged; no GEO call, payment, delivery, or new stage execution occurred. Validator
-  blocking errors are zero and status is `awaiting_review`. `clarity.trust_proof.finding` is now
-  the approved three-sentence observed-content prose; the placeholder, `audit.No` artifact,
-  largest-bank claim, and false canonical warning are absent. Protected PDF download succeeded:
-  1,853,085 bytes, 30 pages. Fable inspected that exact PDF page by page on 2026-09-04: all
-  metrics, the 0-of-12 + 6-unresolved wording, the Arabic disclosure and the provenance footer are
-  correct; zero AI/provider calls since 2026-09-03. Four reviewer notes before sending, none needing
-  code: (1) `alahli.com.sa` appears as a cited source while the headline says `alahli.com` was cited
-  in 0, consider a one-line note that it is the client's own domain; (2) SAB/SABB/Saudi British Bank
-  is undercounted by the precision rule (Q1 and Q6 OpenAI answers name it but it is not listed), and
-  the executive summary says "SAB" while the competitor card says "Saudi Awwal Bank"; (3) query
-  cards print `Language: en`; (4) "Ship first" lists five items but the Action Plan numbers four.
-
-- **Alahli RD-01 re-render — superseded by 2026-09-04 final check.** Paid audit
-  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` was re-rendered once from its preserved RD-00 evidence
-  on 2026-09-03 after the operator competitors were set to Al Rajhi Bank, Riyad Bank, and Saudi
-  Awwal Bank. Trigger `20260903.2` was deployed from `6cc69da` on `node-22` first. The final
-  stored report is `awaiting_review`, validator errors are zero, raw evidence/protocol/timestamps
-  are unchanged, and no new provider log was written. Final metrics: 45, 55.6%, 31.3%, 1.6,
-  position 88, citation 0% of 12 evaluable with 6 unresolved. Do not deliver: the protected
-  production PDF still needs an authenticated operator token/session to fetch and inspect.
-
-- **Alahli RD-00 cached-stage recovery SUCCESSFUL — awaiting review, no delivery.** Same paid audit
-  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` recovered on Trigger `20260902.4` / commit `24fcccf`
-  (2026-09-02 12:22:04Z–12:22:49Z). The existing completed
-  `geo_scan` cache (153,794 bytes) was preserved and reused: zero new GEO/provider calls, zero
-  incremental API cost, and total prior acquisition cost remains `$1.048264`. Report JSON is
-  195,250 bytes, validator has zero errors, authenticated production PDF returned 200 (1,881,812
-  bytes), and raw answer text stayed byte-identical through validation. Coverage Claude/OpenAI/
-  Perplexity is 6/6 each; RD-00 persisted fields, `3/3/2` concurrency, timestamps/window, protocol
-  and operational metadata were verified. The earlier A3 span failure is absent.
-
-- **PX-0 COMPLETE (2026-09-10) — Alahli identity / R39 disposition.** Read-only Supabase rows confirm
-  `1e9122fe-4eed-4160-9624-c0cdba82a5ca` as canonical client evidence: created
-  2026-08-31, `paid` / `awaiting_review`, no Stripe session, never delivered, 16 AI-call-log
-  records all on 2026-09-02, cached-stage recovery and re-renders thereafter zero-call, final
-  re-render 2026-09-04 12:48:58Z. Its alias is `Saudi National Bank (SNB)`, narrower than the
-  historical R39 string `Saudi National Bank; SNB; SNB AlAhli`. Historical/superseded
-  `63bfd278-6a46-4518-aa52-f5592490f65c` was created 2026-08-25, is `paid` /
-  `awaiting_review`, has no Stripe session, no aliases, no re-render or delivery, and 15
-  AI-call-log records only on 2026-08-25. R39 is materially satisfied on the canonical audit;
-  do not regenerate the historical audit. Neither customer audit, nor any recovery, re-render, or
-  regeneration, counts as a fresh control or E1/E2/E3 cell unless a prior experiment manifest
-  pre-declared matching plan hash, condition, schedule, and protocol identity; no post-hoc reuse.
-
-- **A3 PRODUCTION VERIFIED — READY FOR A2.** Final production source
-  `f905c41ef6bdaa23e7cb7808d2e4d81b9ad4ced3`; Trigger `20260831.1`, runtime `node-22` / Node `22.16.0`,
-  `git.dirty: false`. Controlled audit `d8945b66-77ef-4bf9-b80b-ed957d7fb335` recovered successfully in
-  `run_06g5gq2fvb2l24lrvk5p7j0h01` and is `awaiting_review`, not delivered. Core plan 6/6 valid; S1 valid;
-  S2 unavailable (`meta_words`, `engine_name`). Coverage: Claude 6/6, Perplexity 2/6, OpenAI 6/6. Report JSON
-  141,550 bytes; duration ~334.584s; audit-row/AI-call cost `$1.421680`; provider breakdown `$1.459371`.
-  Production PDF verified (26 pages). A1 regression PASS; A4 regression PASS; A3 entity pipeline PASS;
-  accepted competitors 0; false-competitor hygiene PASS; atomic recovery PASS; no previous blocker recurred.
-  A3 human-label precision gate is deferred to A5a; 27 labels pending.
-
-- **A4 PRODUCTION VERIFIED — READY FOR A3.** Controlled audit
-  `d1d99664-14a2-4b86-9948-f18564bee0d0` (`getclearsignal.io`) is `awaiting_review`, not delivered.
-  Its final report ran on Trigger `20260825.5` / commit `639e1d3`: core ledger 18 expected, 13 successful,
-  5 failed; supplemental ledger 6 expected, 5 successful, 1 failed. Core and supplemental reconcile
-  independently; 24 ledger pairs are unique; provenance/evidence IDs and A1 fields are mechanically clean.
-  The intended core-only coverage gate failed (Claude 5/6, Perplexity 2/6, OpenAI 6/6). Final row-to-report
-  duration was ~1h22m25s, API cost `$2.917636`, and stored report JSON was 148,397 UTF-8 bytes; admin diagnostics remained responsive.
-- **A1 production verified — ready for A4.** Controlled comped audit `bcdbba5a-3004-4241-af2c-5cd9549b175f`
-  (`getclearsignal.io`) completed `awaiting_review` in ~5m13s at `$1.361498`, with no delivery.
-  Ledger: 18/18 rows; 15/18 successful (Claude 6/6, Perplexity 3/6, OpenAI 6/6). Gate correctly
-  failed because Perplexity was below 4/6: Q3/Q5/Q6 were HTTP 429 `provider_error` after two attempts.
-  Stored report was 127,686 bytes (~125 KB); admin remained responsive; no A1 integrity defect observed.
-- `vertexspain.com` (audit `beb637a8`) — regenerated once on Trigger `20260821.2`, then re-rendered
-  on app commit `d50def9`; `awaiting_review`, not delivered. Production review passed R35-R37: the
-  four-sentence summary, first fix and Ship first agree; ready copy names `local business`; detected
-  `RealEstateAgent` JSON-LD has no missing/add-JSON-LD recommendation. Coverage remained **9/18**,
-  the next observation for R30; it was not investigated here.
-- `snoika.com` (audit `9ba2d5ec`) — final regeneration on Trigger `20260820.3`; `awaiting_review`,
-  not delivered. **Five** fully described fixes survived; `Crunchbase` is the only competitor.
-- `getclearsignal.io` (audit `28ca503b`) — final regeneration on Trigger `20260820.3`;
-  `awaiting_review`, not delivered. **Five** fully described fixes survived; `Brandwatch` and
-  `Siftly` are the only competitors. `Google AI` is absent from both visibility and evidence.
-- **R28/R33 are production-verified.** Live and reused GEO paths exclude inferred engine aliases,
-  while the concurrent verification requeues completed with `recovery_attempts = 0` and no recovery
-  note. Across the plain-language measurements, 4/4/5/5/5 fixes survived according to the material;
-  the `min(3)` contract works and there is no evidence for widening descriptions beyond 18 words.
-- `jusukosmetologs.lv` (audit `5d53a488`) — 18/18 engine coverage, mechanically clean.
-  **This is the report to show people:** cited 7x (second in its niche) yet named in only 4 of 18
-  answers, while the leader is recommended in 33%. Read by AI, not recommended by it — the exact
-  distinction the product exists to surface.
-- `salidzini.lv` (audit `7590982c`) — ran against a Cloudflare challenge page. **Not a sample.**
-- Rozie verification closed 2026-07-24; report delivery proven end to end (real inbox, not spam,
-  token link, PDF, mechanical client-safety scan). One loose end: that run `9r5hcc01` executed on
-  Trigger `20260724.1` is visible only in the Trigger dashboard.
-
-Detail for all three is in `docs/archive/STATUS_HISTORY_2026-08-06.md`.
-
-## Open defects
-
-`R13`, `R16`, `R18`, `R19`, `R20`, `R21`, `R22`, `R30` and `R38` remain open. They wait for real customers
-to set their priority. Closed defects are in `docs/archive/DEFECTS_CLOSED.md`.
-
-## Report design lab (visual only, no product semantics)
-
-- **Round 1 — done, not merged.** Branch `report-design-lab` @ `75a0a3f`, worktree
-  `C:\Claude Code\clearsignal-report-design-lab`, artefacts in its `artifacts/report-design/`.
-  Spec: `TASKS_REPORT_DESIGN_LAB.md`. Outcome: C (editorial) and D (enterprise data) are the
-  useful directions, A is a decent consulting skeleton, B adds nothing. Known defects: all four
-  directions share one `ReportBase.tsx` and differ only by theme; every capture shows the Next
-  dev "1 error" overlay; fixture sanitisation broke domains (`Meridian Bank.com`,
-  `https://www.example/ Bank.com/`); the cover prints `geo.summary` twice; clarity keys render raw.
-- **Round 2 — spec ready, not started.** `TASKS_REPORT_DESIGN_LAB_R2.md`: fix the foundation
-  first, then two hybrids on `/design-lab/h1` (Editorial Intelligence, base C) and `/design-lab/h2`
-  (Modern Consulting, base A). Deliverables go to `artifacts/report-design-r2/` plus
-  `REPORT_DESIGN_LAB_R2_REPORT.md`. New session, one task.
-- Fixture source for the lab is `tmp/design-fixture-source.json` (current alahli report,
-  untracked, never commit; `tmp/` is not yet gitignored on `main`).
-
-## Deferred follow-up
-
-- Reuse path keeps stale per-row `entity_observations` when the new resolution finds nothing, so
-  a Re-render with empty or URL-form competitor fields fails A3 validation (fail-closed). Replace
-  observations wholesale on recompute. Trigger Regenerate path still lacks the Arabic disclosure.
-- Free-score (`/score/[id]`) gate/display behavior was deliberately left unchanged during the paid
-  A1 final pass. Assess and scope it separately; do not treat the paid-report `report_only` rollback
-  as a free-score fix.
+- Round 1 is complete but defective and unmerged on `report-design-lab`.
+- Round 2 spec `TASKS_REPORT_DESIGN_LAB_R2.md` is ready and not started. New session, one task.
 
 ## Cost
 
-**A complete audit costs `$1.06` in API spend** (control run `dad3447c`, 2026-08-04, 18/18
-combinations, first measurement where every engine returned evidence). Against €149 that is ~0.7%
-of the ticket. Earlier figures of `$1.89` and `$0.36` were measured on incomplete audits — do not
-quote them.
-
-**Agent spend is the real cost problem, and it dwarfs API spend.** Measured from local Codex
-transcripts against the published rate card (`gpt-5.6-sol` = 125 / 12.5 / 750 credits per 1M
-input / cached / output; 500 credits = $20, so 1 credit = $0.04):
-
-| Date | Requests | Tokens | Avg context | Cost | |
-|---|---:|---:|---:|---:|---|
-| 2026-08-04 | 521 | 64.9M | 124.5k | **$49.55** | development |
-| 2026-08-05 | 278 | 25.0M | 90.0k | $19.54 | development |
-| 2026-08-06 | 61 | 3.7M | 60.9k | $4.91 | diagnosing this spend, not development |
-| **Total** | **860** | **93.6M** | | **$74.00** | |
-
-For scale: `$74` of agent time against a `$1.06` audit is **70 complete audits** spent on three
-days of development. Earlier, on 2026-07-24, one session spent 32M input tokens from a folder
-containing only `.git`.
-
-Two things drove the 08-04 figure, in order:
-
-1. **Six unrelated tasks fed into one thread**, with four context compactions. Average context
-   reached 124.5k tokens against a 258k window — every step resent half a full window.
-2. **`gpt-5.6-sol` at `high` reasoning as the default model.** Across all projects 08-04 to
-   08-06, Sol accounted for `$117.69` of `$122.48`; Terra did 135 requests for `$4.78`. Terra
-   is ~2x cheaper per token, Luna ~5x.
-
-Note that context is the multiplier: a file read once on step 100 of an 860-step session is
-resent on all 760 remaining steps. Trimming the repo's markdown from 290 KB to 38 KB on
-2026-08-06 was aimed at exactly this.
-
-Check any day with `npm run codex-usage`, with two caveats found on 2026-08-06:
-
-- Codex archives finished sessions into `~/.codex/archived_sessions`. A script reading only
-  `~/.codex/sessions` silently undercounts — that omission hid the entire `$74` above.
-- Sessions are attributed by `cwd`, which is where the session *started*, not what it was about.
-  On 2026-08-06, 236 requests recorded against `C:\Codex\BLVD` were actually Upwork profile work,
-  because those files sat in that folder until they were moved out. Read the thread name, not
-  just the path.
-
-**ChatGPT Work spend is not measurable locally at all** — it writes no transcripts to `~/.codex`.
-Any figure produced from local logs is a floor for total agent spend, not the total.
+A complete audit's measured API spend is `$1.06`. Agent spend is the larger cost; keep implementation
+sessions focused and use `npm run codex-usage` when a spend check is needed.
